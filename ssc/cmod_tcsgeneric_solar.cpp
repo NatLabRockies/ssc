@@ -180,7 +180,7 @@ static var_info _cm_vtab_tcsgeneric_solar[] = {
 //    { SSC_OUTPUT,       SSC_ARRAY,       "hourly_energy",     "Hourly Energy",                                                  "kWh",          "",            "Outputs",        "*",                       "LENGTH=8760",           "" },
 
 	// monthly outputs
-	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",    "Monthly Energy Gross",                                                 "kWh",          "",            "Generic CSP",    "*",                       "LENGTH=12",           "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",    "Monthly AC energy in Year 1",                                                 "kWh",          "",            "Generic CSP",    "*",                       "LENGTH=12",           "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "monthly_w_gr",      "Total gross power production",                                   "kWh",          "",            "Generic CSP",    "*",                       "LENGTH=12",           "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "monthly_q_sf",      "Solar field delivered thermal power",                            "MWt",          "",            "Generic CSP",    "*",                       "LENGTH=12",           "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "monthly_q_to_pb",   "Thermal energy to the power conversion system",                  "MWt",          "",            "Generic CSP",    "*",                       "LENGTH=12",           "" },
@@ -194,7 +194,7 @@ static var_info _cm_vtab_tcsgeneric_solar[] = {
 
 
 	// annual outputs
-	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",     "Annual Energy",                                                  "kWh",          "",            "Generic CSP",    "*",                       "",                    "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",     "Annual AC energy in Year 1",                                                  "kWh",          "",            "Generic CSP",    "*",                       "",                    "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_w_gr",       "Total gross power production",                                   "kWh",          "",            "Generic CSP",    "*",                       "",                    "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_q_sf",       "Solar field delivered thermal power",                            "MWht",          "",            "Generic CSP",    "*",                       "",                    "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_q_to_pb",    "Thermal energy to the power conversion system",                  "MWht",          "",            "Generic CSP",    "*",                       "",                    "" },
@@ -377,7 +377,7 @@ public:
         size_t hours = 8760;
 
         //Load the solar field adjustment factors
-        adjustment_factors sf_haf(this, "sf_adjust");
+        adjustment_factors sf_haf(this->get_var_table(), "sf_adjust");
         if (!sf_haf.setup(hours))
 			throw exec_error("tcsgeneric_solar", "failed to setup sf adjustment factors: " + sf_haf.error());
         //allocate array to pass to tcs
@@ -400,7 +400,7 @@ public:
 		if (!enet || count != 8760)
 			throw exec_error("tcsgeneric_solar", "Failed to retrieve hourly net energy");
 
-		adjustment_factors haf(this, "adjust");
+		adjustment_factors haf(this->get_var_table(), "adjust");
 		if (!haf.setup(count))
 			throw exec_error("tcsgeneric_solar", "failed to setup adjustment factors: " + haf.error());
 

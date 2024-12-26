@@ -82,7 +82,7 @@ TEST_F(CmodLeveragedPartnershipFlipTest, PV) {
 }
 
 
-TEST_F(CmodLeveragedPartnershipFlipTest, GenericBattery) {
+TEST_F(CmodLeveragedPartnershipFlipTest, CustomGenerationBattery) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/levpartflip/2023.10.27_om-expense-cash-flow_Generic_Battery_Leveraged_Partnership_Flip_cmod_levpartflip.json";
     std::string file_outputs = SSCDIR;
@@ -104,7 +104,7 @@ TEST_F(CmodLeveragedPartnershipFlipTest, GenericCSP) {
     Test("levpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
-TEST_F(CmodLeveragedPartnershipFlipTest, Generic) {
+TEST_F(CmodLeveragedPartnershipFlipTest, CustomGeneration) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/levpartflip/2023.10.27_om-expense-cash-flow_Generic_System_Leveraged_Partnership_Flip_cmod_levpartflip.json";
     std::string file_outputs = SSCDIR;

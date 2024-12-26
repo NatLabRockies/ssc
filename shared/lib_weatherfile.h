@@ -201,6 +201,8 @@ public:
 	double tz() { return header().tz; }
 	double elev() { return header().elev; }
 
+	double start_year() {return m_startYear; }
+
     bool check_hour_of_year(int hour, int line);
 
 	// virtual functions specific to weather data source

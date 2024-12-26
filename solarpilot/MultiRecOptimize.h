@@ -30,57 +30,54 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef _MULTI_REC_
+#define _MULTI_REC_
 
+#ifdef _WINDOWS
+	#define LPWINAPP
+#endif 
+#include <vector>
+#include <string>
+#include <sstream>
 
-#ifndef _CMOD_GENERIC_TEST_H_
-#define _CMOD_GENERIC_TEST_H_
+class SolarField;
+class simulation_info;
 
-#include <gtest/gtest.h>
-#include <memory>
+struct multi_rec_opt_helper
+{
+    enum RESULT_STATUS { RS_NOSIM=-1, RS_OPTIMAL=0, RS_SUBOPTIMAL, RS_INFEASIBLE, RS_TIMED_OUT, RS_UNKNOWN_ERROR};
 
-#include "core.h"
-#include "sscapi.h"
+    bool is_abort_flag;
+    bool is_performance;
+    bool is_field_assigned;
+    int result_status;
+    double objective;
+    Hvector included_heliostats;
+    double timeout_sec;
+    simulation_info *sim_info;
+    int solver_status;
+    double last_report_time;
+    double sim_report_step;
+    std::string problem_name;
 
-#include "vartab.h"
-#include "../ssc/common.h"
-#include "../input_cases/code_generator_utilities.h"
-#include "../input_cases/generic_common_data.h"
+    multi_rec_opt_helper()
+    {
+        is_abort_flag = false;
+        is_performance = false;
+        is_field_assigned = false;
+        result_status = RESULT_STATUS::RS_NOSIM;
+        timeout_sec = 10000;
+        objective = 0.;
+        sim_info = 0;
+        solver_status = std::numeric_limits<int>::quiet_NaN();
+        last_report_time = -1.;
+        sim_report_step = 1.;
+        problem_name = "Optimization problem";
+    };
 
-/**
- * CMFuelCell tests the cmod_fuelcell using the SAM code generator to generate data
- * Eventually a method can be written to write this data to a vartable so that lower-level methods of pvsamv1 can be tested
- * For now, this uses the SSCAPI interfaces to run the compute module and compare results
- */
-class CMGeneric : public ::testing::Test {
-
-public:
-
-	ssc_data_t data;
-	ssc_number_t calculated_value;
-	ssc_number_t * calculated_array;
-	double m_error_tolerance_hi = 1.0;
-	double m_error_tolerance_lo = 0.1;
-
-	void SetUp()
-	{
-		data = ssc_data_create();
-	}
-	void TearDown() {
-		if (data) {
-			ssc_data_free(data);
-			data = nullptr;
-		}
-	}
-	void SetCalculated(std::string name)
-	{
-		ssc_data_get_number(data, const_cast<char *>(name.c_str()), &calculated_value);
-	}
-	// apparently memory of the array is managed internally to the sscapi.
-	void SetCalculatedArray(std::string name)
-	{
-		int n;
-		calculated_array = ssc_data_get_array(data, const_cast<char *>(name.c_str()), &n);
-	}
+    int run(SolarField *SF);
 };
 
-#endif 
+
+
+#endif

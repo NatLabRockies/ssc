@@ -209,6 +209,8 @@ public:
         else if (is_assigned("solar_resource_data"))
         {
             wdprov = std::unique_ptr<weather_data_provider>(new weatherdata(lookup("solar_resource_data")));
+            if (!wdprov->ok()) throw exec_error("swh", wdprov->message());
+            if (wdprov->has_message()) log(wdprov->message(), SSC_WARNING);
         }
         else
             throw exec_error("swh", "no weather data supplied");
@@ -342,7 +344,7 @@ public:
 		double ts_hour = 1.0/step_per_hour;
 		double ts_sec = 3600.0/step_per_hour;
 
-        adjustment_factors haf( this, "adjust" );
+        adjustment_factors haf( this->get_var_table(), "adjust" );
 		if ( !haf.setup(nrec) )
 			throw exec_error("swh", "failed to setup adjustment factors: " + haf.error() );
 

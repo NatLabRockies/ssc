@@ -122,7 +122,6 @@ static var_info _cm_vtab_etes_ptes[] = {
     // System control
     { SSC_INPUT,  SSC_NUMBER, "disp_horizon",                  "Time horizon for dispatch optimization",                        "hour",         "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "disp_frequency",                "Frequency for dispatch optimization calculations",              "hour",         "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
-    { SSC_INPUT,  SSC_NUMBER, "disp_steps_per_hour",           "Time steps per hour for dispatch optimization calculations",    "",             "",                                  "System Control",                           "?=1",                                                              "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,  SSC_NUMBER, "disp_max_iter",                 "Max number of dispatch optimization iterations",                "",             "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "disp_timeout",                  "Max dispatch optimization solve duration",                      "s",            "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "disp_mip_gap",                  "Dispatch optimization solution tolerance",                      "",             "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
@@ -666,6 +665,7 @@ public:
             as_double("tes_init_hot_htf_percent"),
             0.0,                               //[kW/kg/s] No htf pump losses in direct TES
             false,                             //[-] False: Field HTF always goes to TES. PC HTF always comes from TES. ETES should not simultaneously operate heater and cycle
+            1.0,                               //[-] packed volume fraction
             1.85,                              //[m/s]
             false                              // for now, to get 'tanks_in_parallel' to work
         );
@@ -722,6 +722,7 @@ public:
             100.0 - as_double("tes_init_hot_htf_percent"),   //[-] Cold storage is charged when cold tank is full
             0.0,                                             //[kW/kg/s] No htf pump losses in direct TES
             false,                                           //[-] False: Field HTF always goes to TES. PC HTF always comes from TES. ETES should not simultaneously operate heater and cycle
+            1.0,                                             //[-] packed volume fraction
             1.85,                                            //[m/s]
             false                                            // for now, to get 'tanks_in_parallel' to work
         ));
@@ -835,7 +836,7 @@ public:
         etes_dispatch_opt dispatch;
 
         if (as_boolean("is_dispatch")) {
-            dispatch.solver_params.set_user_inputs(as_boolean("is_dispatch"), as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
+            dispatch.solver_params.set_user_inputs(as_boolean("is_dispatch"), steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                 as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                 as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
                 false, false, "", "");
@@ -1011,19 +1012,19 @@ public:
             // HT TES
         double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
             d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
-            Q_tes_des_calc /*MWt-hr*/;
+            Q_tes_des_calc /*MWt-hr*/, HT_tes_total_mass /*kg*/;
 
         c_HT_TES.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-            d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
+            d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, HT_tes_total_mass);
 
             // CT TES
         double CT_V_tes_htf_avail_calc /*m3*/, CT_V_tes_htf_total_calc /*m3*/,
             CT_d_tank_calc /*m*/, CT_q_dot_loss_tes_des_calc /*MWt*/, CT_dens_store_htf_at_T_ave_calc /*kg/m3*/,
-            CT_Q_tes_des_calc /*MWt-hr*/;
+            CT_Q_tes_des_calc /*MWt-hr*/, CT_tes_total_mass /*kg*/;
 
         c_CT_TES->get_design_parameters(CT_V_tes_htf_avail_calc, CT_V_tes_htf_total_calc,
             CT_d_tank_calc, CT_q_dot_loss_tes_des_calc, CT_dens_store_htf_at_T_ave_calc,
-            CT_Q_tes_des_calc);
+            CT_Q_tes_des_calc, CT_tes_total_mass);
 
             // System
         double W_dot_bop_design, W_dot_fixed_parasitic_design;    //[MWe]
@@ -1249,7 +1250,7 @@ public:
         ssc_number_t* p_time_final_hr = as_array("time_hr", &count);
 
         // 'adjustment_factors' class stores factors in hourly array, so need to index as such
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if (!haf.setup(count))
             throw exec_error("etes_electric_resistance", "failed to setup adjustment factors: " + haf.error());
 

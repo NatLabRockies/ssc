@@ -57,7 +57,7 @@ private:
 	int m_n_flux_x;		//[-]
 	int m_n_flux_y;		//[-]
 
-        // receiver target values
+    // receiver target values
     double m_A_rec_active_total;    //[m2]
     double m_A_rec_flux_node;       //[m2]
 
@@ -83,7 +83,7 @@ public:
 
 	struct RUN_TYPE { enum A {AUTO, USER_FIELD, USER_DATA}; };
 
-	// Callback funtion
+	// Callback function
 	bool(*mf_callback)(simulation_info* siminfo, void *data);
 	void *m_cdata;
 

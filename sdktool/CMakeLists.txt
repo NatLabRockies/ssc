@@ -112,11 +112,15 @@ endif()
 target_link_libraries(SDKtool ${wxWidgets_LIBRARIES})
 
 if (UNIX AND NOT APPLE)
-	target_link_libraries(SDKtool -ldl -lfontconfig)
+	target_link_libraries(SDKtool ${CMAKE_DL_LIBS} -lfontconfig)
 endif()
 
 if (UNIX)
-	target_link_libraries(SDKtool -lm -lcurl)
+	find_library(MATH_LIBRARY m)
+	if(MATH_LIBRARY)
+		target_link_libraries(SDKtool ${MATH_LIBRARY})
+	endif()
+	target_link_libraries(SDKtool -lcurl)
 elseif (MSVC)
 	find_library( CURL_LIB
 			NAMES libcurl.lib

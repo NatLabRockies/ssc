@@ -48,6 +48,11 @@ static const char* me_array_cable_length_doc =
 	"     'number_rows' - double [-]\\n"
 	"     'row_spacing' - double [m]\\n"
 	"     'cable_system_overbuild' - double [%]\\n"
+    "     'floating_array - int [-]\\n"
+    "     'export_cable_redundancy - int [-]\\n"
+    "     'water_depth - double [m]\\n"
+    "     'number_devices - int [-]\\n"
+    "     'distance_to_shore - double [m]\\n"
     "Output: key-value pairs added to var_table\\n"
     "     'inter_array_cable_length' - double [m]\\n";
 
@@ -63,10 +68,12 @@ static const char* tidal_turbine_calculate_powercurve_doc =
 "     'cut_in' - double [m/s]\\n"
 "     'cut_out' - double [m/s]\\n"
 "     'tidal_resource' - matrix [-]\\n"
-"     'generator_rated_capacity' - matrix [-]\\n"
 "Output: key-value pairs added to var_table\\n"
 "     'tidal_turbine_powercurve_tidespeeds' - array [m/s]\\n"
 "     'tidal_turbine_powercurve_powerout' - array [kW]\\n"
+"     'tidal_turine_powercurve_powerout_rated' - array [kW]\\n"
+"     'tidal_turbine_rated_power' - double [kW]\\n"
+"     'tidal_turbine_rated_power_rotor' - double [kW]\\n"
 "     'error - string [-]\\n";
 
 

@@ -161,8 +161,6 @@ vector<string> *LayoutSimThread::GetSimMessages()
 void LayoutSimThread::StartThread() //Entry()
 {
 	/* 
-	This method duplicates the functionality of SolarField::LayoutSimulate(...)
-
 	This method is intended to be thread safe and can be called by the GUI directly. Each thread must have 
 	its own instance of _SF. Before running multiple threads, create a solar field object, prepare it with
 	PrepareFieldLayout(...), and use the deep copy constructor in SolarField to create as many duplicate

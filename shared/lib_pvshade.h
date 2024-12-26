@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <unordered_map>
+#include <cmath>
 #include "lib_util.h"
 
 
@@ -73,7 +74,9 @@ struct ssoutputs	// self-shading outputs
 // added to removing duplicate computations for speed up (https://github.com/NREL/ssc/issues/384)
 class sssky_diffuse_table
 {
-    std::unordered_map<std::string, double> derates_table;      // stores pairs of surface tilts and derates
+    std::unordered_map<int, double> derates_table;      // stores pairs of surface tilts and derates
+	size_t derates_table_digits = 0;
+	size_t derates_table_digits_multiplier = std::pow(10, derates_table_digits);
     double gcr;                                                 // 0.01 - 0.99
 
     double compute(double surface_tilt);

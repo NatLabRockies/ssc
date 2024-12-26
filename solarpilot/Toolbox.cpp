@@ -89,6 +89,13 @@ void sp_point::Subtract( sp_point &P )
 	this->z += -P.z;
 }
 
+void sp_point::Subtract(double _x, double _y, double _z)
+{
+	this->x += -_x;
+	this->y += -_y;
+	this->z += -_z;
+}
+
 double& sp_point::operator [](const int &index){
 
     switch (index)
@@ -182,6 +189,10 @@ PointVect& PointVect::operator= (const PointVect &v) {
 	x = v.x; y=v.y; z=v.z;
 	i = v.i; j=v.j; k=v.k;
 	return *this;
+}
+PointVect::PointVect(sp_point &p, Vect &v) {
+	x = p.x; y = p.y; z = p.z;
+	i = v.i; j = v.j; k = v.k;
 }
 PointVect::PointVect(double px, double py, double pz, double vi, double vj, double vk) 
 {
@@ -1115,7 +1126,7 @@ void Toolbox::ellipse_bounding_box(double &A, double &B, double &phi, double sid
 	
 	Governing equations are:
 	x = cx + A*cos(t)*cos(phi) - b*sin(t)*sin(phi)
-	y = cy + b*sin(t)*cos(phi) - a*cos(t)*sin(phi)
+	y = cy + b*sin(t)*cos(phi) + a*cos(t)*sin(phi)
 	
 	where 't' is an eigenvalue with repeating solutions of dy/dt=0
 	
@@ -1127,30 +1138,28 @@ void Toolbox::ellipse_bounding_box(double &A, double &B, double &phi, double sid
 	for Y values:
 	0 = dy/dt = B*cos(t)*cos(phi) - A*sin(t)*sin(phi)
 	--> tan(t) = B*cot(phi)/A
-	--> t = aan( B*cot(phi)/A )
+	--> t = atan( B*cot(phi)/A )
 	
 	*/
 	//double pi = PI;
 
 	//X first
-	//double tx = atan( -B*tan(phi)/A );
-	double tx = atan2( -B*tan(phi), A);
+	double tx = atan2(-B * tan(phi), A);
 	//plug back into the gov. equation
-	double txx = A*cos(tx)*cos(phi) - B*sin(tx)*sin(phi);
+	double txx = A * cos(tx) * cos(phi) - B * sin(tx) * sin(phi);
 	sides[0] = cx + txx/2.;
 	sides[1] = cx - txx/2.;
 	//enforce orderedness
 	if(sides[1] < sides[0]) swap(&sides[0], &sides[1]);
 
 	//Y next
-	double ty = atan2( -B, tan(phi)*A );
-	double tyy = B*sin(ty)*cos(phi) - A*cos(ty)*sin(phi);
+	double ty = atan2(B, tan(phi) * A);
+	//plug back into the gov. equation
+	double tyy = B * sin(ty) * cos(phi) + A * cos(ty) * sin(phi);
 	sides[2] = cy + tyy/2.;
 	sides[3] = cy - tyy/2.;
+	//enforce orderedness
 	if(sides[3] < sides[2]) swap(&sides[3], &sides[2]);
-	
-
-
 }
 
 void Toolbox::convex_hull(std::vector<sp_point> &points, std::vector<sp_point> &hull)
@@ -1185,8 +1194,6 @@ void Toolbox::convex_hull(std::vector<sp_point> &points, std::vector<sp_point> &
 		while (k >= t && crossprod(H.at(k-2), H.at(k-1), pointscpy.at(i)) <= 0) k--;
 		H.at(k++) = pointscpy[i];
 	}
- 
-	
 
 	H.resize(k);
 	hull = H;
@@ -1231,7 +1238,7 @@ double Toolbox::area_polygon(std::vector<sp_point> &points){
 
 }
 
-typedef vector<sp_point> Poly;  //Local definitino of polygon, used only in polyclip
+typedef vector<sp_point> Poly;  //Local definition of polygon, used only in polyclip
 class polyclip  
 {
     /*
@@ -1246,64 +1253,63 @@ public:
     Poly clip(Poly &subjectPolygon, Poly &clipPolygon)
     {
         /* 
-        
         http://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
-    
         */        
 
         outputList = subjectPolygon;
-        cp1 = clipPolygon.back();
+        clipEdgeStart = clipPolygon.back();
     
+		// Loop through clipping edges
         for(int i=0; i<(int)clipPolygon.size(); i++)
         {
-            cp2 = clipPolygon.at(i);
-            inputList = outputList;
+            clipEdgeEnd = clipPolygon.at(i);
+			inputList = outputList;
             outputList.clear();
-
-            s = inputList.back();
+			if (inputList.size() == 0.0) break; // polygons do not overlap
+            start = inputList.back();
 
             for(int j=0; j<(int)inputList.size(); j++)
             {
-                e = inputList.at(j);
+                end = inputList.at(j);
+				//start = inputList.at((j - 1) % inputList.size());
 
-                if(inside(&e) ){
-                    if(! inside(&s) )
-                        outputList.push_back( computeIntersection() );
-                    outputList.push_back(e);
+                if(inside(&end) ){ // end point inside clipping edge
+                    if(! inside(&start) ) // start point is not inside clipping edge
+                        outputList.push_back( computeIntersection() ); // out->in case: save intersection and end point
+                    outputList.push_back(end);	// out->in case and in->in case: save end point
                 }
-                else if( inside(&s) ){
-                    outputList.push_back( computeIntersection() );
+                else if( inside(&start) ){
+                    outputList.push_back( computeIntersection() ); // in->out case: save intersection point
                 }
-
-                s = e;
+				// out->out case: save nothing
+                start = end; 
             }
-
-            cp1 = cp2;
-
+            clipEdgeStart = clipEdgeEnd;
         }
 
         return outputList;
     }
 
 private:
-    sp_point cp1, cp2;
+    sp_point clipEdgeStart, clipEdgeEnd;
     Poly outputList, inputList;
-    sp_point s, e;
+    sp_point start, end;   // Start and end points of the edge the subject polygon
 
     bool inside(sp_point *P){
-        return (cp2.x - cp1.x)*(P->y - cp1.y) > (cp2.y - cp1.y)*(P->x - cp1.x);
+		// Is point P left of clipping Edge?
+        return (clipEdgeEnd.x - clipEdgeStart.x)*(P->y - clipEdgeStart.y) > (clipEdgeEnd.y - clipEdgeStart.y)*(P->x - clipEdgeStart.x);
     };
 
     sp_point computeIntersection()
     {
-        sp_point dc = cp1;
-        dc.Subtract(cp2);
+        sp_point dc = clipEdgeStart;
+        dc.Subtract(clipEdgeEnd);
 
-        sp_point dp = s;
-        dp.Subtract(e);
+        sp_point dp = start;
+        dp.Subtract(end);
 
-        double n1 = cp1.x * cp2.y - cp1.y * cp2.x;
-        double n2 = s.x * e.y - s.y * e.x;
+        double n1 = clipEdgeStart.x * clipEdgeEnd.y - clipEdgeStart.y * clipEdgeEnd.x;
+        double n2 = start.x * end.y - start.y * end.x;
         double n3 = 1./ (dc.x * dp.y - dc.y * dp.x);
 
         sp_point ret;
@@ -1318,6 +1324,8 @@ vector<sp_point> Toolbox::clipPolygon(std::vector<sp_point> &A, std::vector<sp_p
     /* 
     Compute the polygon that forms the intersection of two polygons subjectPolygon 
     and clipPolygon. (clipPolygon clips subjectPolygon).
+
+	clipPolygon and subjectPolygon points must be in a counter-clockwise order.
 
     This only considers 2D polygons -- vertices X and Y in "sp_point" structure!
     */
@@ -1686,8 +1694,18 @@ double Toolbox::ZRotationTransform(Vect &normal_vect){
 
 	//Calculate Euler angles
 	double alpha = atan2(normal_vect.i, normal_vect.k);		//Rotation about the Y axis
-	double bsign = normal_vect.j > 0. ? 1. : -1.;
-	double beta = -bsign*acos( ( pow(normal_vect.i,2) + pow(normal_vect.k,2) )/ max(sqrt(pow(normal_vect.i,2) + pow(normal_vect.k,2)), 1.e-8) );	//Rotation about the modified X axis
+	double leg_ratio = (pow(normal_vect.i, 2) + pow(normal_vect.k, 2)) / max(sqrt(pow(normal_vect.i, 2) + pow(normal_vect.k, 2)), 1.e-8);
+	double beta;
+	if (leg_ratio <= -1.) {
+		beta = PI;
+	}
+	else if (leg_ratio >= 1.0) {
+		beta = 0.;
+	}
+	else {
+		double bsign = normal_vect.j > 0. ? 1. : -1.;
+		beta = -bsign * acos(leg_ratio);	//Rotation about the modified X axis
+	}
 
 	//Calculate the modified axis vector
 	Vect modax;
@@ -1735,7 +1753,7 @@ double Toolbox::ZRotationTransform(double Az, double Zen){
 	//Calculate the normal vector to the heliostat based on elevation and azimuth
 	double Pi = PI;
 	double el = Pi/2.-Zen;
-	double az = Az+Pi;	//Transform to 0..360 (in radians)
+	double az = Az; // +Pi;	//Transform to 0..360 (in radians)
 	Vect aim;
 	aim.Set( sin(az)*cos(el), cos(az)*cos(el), sin(el) );
 	return ZRotationTransform(aim);

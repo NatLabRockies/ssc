@@ -216,6 +216,7 @@ NAMESPACE_TEST(csp_common, TesCspSolver, Default)
         30.,                                          //[-]
         0.55,                                         //[kWe/kg/s]
         true,                                         //[-]
+        1.0,                                          //[-]
         1.85,                                         //[m/s]
         true,                                         //[-]
         0.15,                                         //[kWe/kg/s]
@@ -362,6 +363,7 @@ NAMESPACE_TEST(csp_common, TesSubcomponentCmod, Default)
     ssc_data_set_number(inputs, "hot_tank_Thtr", 365.);
     ssc_data_set_number(inputs, "hot_tank_max_heat", 25.);
     ssc_data_set_number(inputs, "cold_tank_Thtr", 250.);
+    ssc_data_set_number(inputs, "packed_vol_frac", 1.0);
     ssc_data_set_number(inputs, "cold_tank_max_heat", 25.);
     ssc_data_set_number(inputs, "dt_hot", 5.);
     ssc_data_set_number(inputs, "T_loop_in_des", 293.);

@@ -35,17 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
 
-// from branch SOL-853
-TEST_F(SolescaTest, sam_pv_test) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/solesca/sam_pv_test.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/solesca/sam_pv_test_out.json";
-    std::vector<std::string> compare_number_variables = { "annual_energy"};
-    std::vector<std::string> compare_array_variables;
 
-    Test("pvsamv1", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
 // results from SOL-853 branch of Solesca app and tests in pvsamv1.rs
 TEST_F(SolescaTest, test_fixed_tilt_racking) {
     std::string file_inputs = SSCDIR;

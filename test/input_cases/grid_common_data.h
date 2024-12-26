@@ -46,11 +46,11 @@ namespace {
 	char gen_path_grid_30_2yr[256];
 	char grid_curtailment_default_MW[256];
 
-	int nfc1 = sprintf(gen_path_grid, "%s/test/input_cases/generic_system_data/energy_output_array.csv", SSCDIR);
+	int nfc1 = sprintf(gen_path_grid, "%s/test/input_cases/custom_generation_data/energy_output_array.csv", SSCDIR);
 	int nfc2 = sprintf(load_profile_path_grid, "%s/test/input_cases/general_data/commercial_load.csv", SSCDIR);
-	int nfc3 = sprintf(gen_path_grid_30, "%s/test/input_cases/generic_system_data/energy_output_array_30min.csv", SSCDIR);
-	int nfc4 = sprintf(load_profile_path_grid_30, "%s/test/input_cases/generic_system_data/load_30min.csv", SSCDIR);
-	int nfc5 = sprintf(gen_path_grid_30_2yr, "%s/test/input_cases/generic_system_data/energy_output_array_30min-2yr.csv", SSCDIR);
+	int nfc3 = sprintf(gen_path_grid_30, "%s/test/input_cases/custom_generation_data/energy_output_array_30min.csv", SSCDIR);
+	int nfc4 = sprintf(load_profile_path_grid_30, "%s/test/input_cases/custom_generation_data/load_30min.csv", SSCDIR);
+	int nfc5 = sprintf(gen_path_grid_30_2yr, "%s/test/input_cases/custom_generation_data/energy_output_array_30min-2yr.csv", SSCDIR);
 	int nfc6 = sprintf(grid_curtailment_default_MW, "%s/test/input_cases/general_data/grid_curtailment_default_MW.csv", SSCDIR);
 
 }

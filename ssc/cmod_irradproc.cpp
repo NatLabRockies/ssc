@@ -151,7 +151,7 @@ public:
         else {
             elev = as_double("elevation");
             if (elev < 0 || elev > 5100) {
-                throw exec_error("irradproc", "The elevation input is outside of the expected range. Please make sure that the units are in meters");
+                throw exec_error("irradproc", util::format("The elevation (%lg) must be between 0 and 5100 meters", elev));
             }
         }
         if (!is_assigned("tamb")) {
@@ -160,7 +160,7 @@ public:
         else {
             tamb = as_double("tamb");
             if (tamb > 128 || tamb < -50) {
-                throw exec_error("irradproc", "The annual average temperature input is outside of the expected range. Please make sure that the units are in degrees Celsius");
+                throw exec_error("irradproc", util::format("The ambient temperature (%lg) must be between -50 and 128 degrees Celsius", tamb));
             }
         }
         if (!is_assigned("pressure")) {
@@ -169,7 +169,7 @@ public:
         else {
             pres = as_double("pressure");
             if (pres > 2000 || pres < 500) {
-                throw exec_error("irradproc", "The atmospheric pressure input is outside of the expected range. Please make sure that the units are in millibars");
+                throw exec_error("irradproc", util::format("The atmospheric pressure (%lg) must be between 500 and 2000 millibars", pres));
             }
         }
 

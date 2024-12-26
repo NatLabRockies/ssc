@@ -408,7 +408,7 @@ static var_info _cm_vtab_tcstrough_physical[] = {
     { SSC_OUTPUT,       SSC_ARRAY,       "Q_par_tes_fp",      "Parasitic thermal TES freeze protection",                        "MWt",          "",            "SumCalc",        "*",                       "",                      "" },
 	
 	// Monthly Outputs
-	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",        "Monthly Energy Gross",                                             "kWh",           "",            "Net_E_Calc",     "*",                      "LENGTH=12",             "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",        "Monthly AC energy in Year 1",                                             "kWh",           "",            "Net_E_Calc",     "*",                      "LENGTH=12",             "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_W_cycle_gross", "Electrical source - Power cycle gross output",               "MWhe",          "",            "Net_E_Calc",     "*",                      "LENGTH=12",             "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_q_inc_sf_tot",  "Total power incident on the field",                          "MWht",          "",            "Type250",        "*",                      "LENGTH=12",             "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_q_abs_tot",     "Total absorbed energy",                                      "MWht",          "",            "Type250",        "*",                      "LENGTH=12",             "" },
@@ -420,7 +420,7 @@ static var_info _cm_vtab_tcstrough_physical[] = {
 	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_q_to_tes",      "Thermal energy into storage",                                "MWht",          "",            "Type251",        "*",                      "LENGTH=12",             "" },
 
 	// Annual Outputs
-	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",         "Annual Energy",                                              "kWh",           "",            "Net_E_Calc",     "*",                       "",                      "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",         "Annual AC energy in Year 1",                                              "kWh",           "",            "Net_E_Calc",     "*",                       "",                      "" },
 	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_W_cycle_gross",  "Electrical source - Power cycle gross output",               "MWhe",          "",            "Net_E_Calc",     "*",                       "",                      "" },
 	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_q_inc_sf_tot",   "Total power incident on the field",                          "MWht",          "",            "Type250",        "*",                       "",                      "" },
 	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_q_abs_tot",      "Total absorbed energy",                                      "MWht",          "",            "Type250",        "*",                       "",                      "" },
@@ -981,7 +981,7 @@ public:
         std::copy(sgs_P_dsn, sgs_P_dsn + nv, sgs_P_dsn_cm);
 		
 		// performance adjustment factors
-		adjustment_factors haf(this, "adjust");
+		adjustment_factors haf(this->get_var_table(), "adjust");
 		if (!haf.setup(nrec))
 			throw exec_error("tcstrough_physical", "failed to setup adjustment factors: " + haf.error());
 

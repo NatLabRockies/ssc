@@ -72,6 +72,7 @@ private:
 	double m_V_total;			//[m^3] Total volume for *one temperature* tank
 	double m_V_active;			//[m^3] active volume of *one temperature* tank (either cold or hot)
 	double m_V_inactive;		//[m^3] Inactive volume of *one temperature* tank (either cold or hot)
+    double m_V_frac_packed;     //[-] Packed volume fraction
 	double m_UA;				//[W/K] Tank loss conductance
 
 	double m_T_htr;				//[K] Tank heater set point
@@ -114,7 +115,7 @@ public:
 		double h_tank /*m*/, double h_min /*m*/, double u_tank /*W/m2-K*/, 
 		double tank_pairs /*-*/, double T_htr /*K*/, double max_q_htr /*MWt*/, 
 		double V_ini /*m3*/, double T_ini /*K*/,
-		double T_design /*K*/);
+		double T_design /*K*/, double V_frac_packed = 1.0 /*-*/);
 
 	double m_dot_available(double f_unavail, double timestep);	
 
@@ -155,6 +156,7 @@ private:
 	double m_q_pb_design;		//[Wt] thermal power to sink at design
 	double m_V_tank_hot_ini;	//[m^3] Initial volume in hot storage tank
     double m_mass_total_active; //[kg] Total HTF mass at design point inlet/outlet T
+    double m_mass_total;        //[kg] Total HTF mass (active + inactive)
     double m_d_tank;            //[m] diameter of a single tank
     double m_q_dot_loss_des;    //[MWt] design tank heat loss
     double m_ts_hours;          //[hr] hours of storage at design sink operation		
@@ -209,6 +211,7 @@ public:
         double f_V_hot_ini,                          // [%] Initial fraction of available volume that is hot
         double htf_pump_coef,		                 // [kW/kg/s] Pumping power to move 1 kg/s of HTF through sink
         bool tanks_in_parallel,                      // [-] Whether the tanks are in series or parallel with the external system. Series means external htf must go through storage tanks.
+        double tes_packed_vol_frac = 1.0,            // [-] Packed volume fraction for the TES medium (used for particle systems)
         double V_tes_des = 1.85,                     // [m/s] Design-point velocity for sizing the diameters of the TES piping
         bool calc_design_pipe_vals = true,           // [-] Should the HTF state be calculated at design conditions
         double tes_pump_coef = std::numeric_limits<double>::quiet_NaN(),		// [kW/kg/s] Pumping power to move 1 kg/s of HTF through tes loop
@@ -252,7 +255,8 @@ public:
     double eta_pump;            //[-] Pump efficiency, for newer pumping calculations
     bool tanks_in_parallel;     //[-] Whether the tanks are in series or parallel with the external system. Series means external htf must go through storage tanks.
     bool has_hot_tank_bypass;   //[-] True if the bypass valve causes the external htf to bypass just the hot tank and enter the cold tank before flowing back to the external system.
-    double T_tank_hot_inlet_min; //[C] Minimum external htf temperature that may enter the hot tank
+    double T_tank_hot_inlet_min;//[C] Minimum external htf temperature that may enter the hot tank
+    double tes_packed_vol_frac; //[-] Packed volume fraction for the TES medium (used for particle systems)
     double V_tes_des;           //[m/s] Design-point velocity for sizing the diameters of the TES piping
     bool custom_tes_p_loss;     //[-] True if the TES piping losses should be calculated using the TES pipe lengths and minor loss coeffs, false if using the pumping loss parameters
     bool custom_tes_pipe_sizes;               //[-] True if the TES diameters and wall thicknesses parameters should be used instead of calculating them
@@ -345,8 +349,7 @@ public:
         double T_sf_in /*K*/, double T_sf_out /*K*/, double T_pb_in /*K*/, double T_pb_out /*K*/, bool recirculating);
 
     void get_design_parameters(double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/, double& d_tank /*m*/,
-        double& q_dot_loss_des /*MWt*/, double& dens_store_htf_at_T_ave /*kg/m3*/, double& Q_tes /*MWt-hr*/);
-
+        double& q_dot_loss_des /*MWt*/, double& dens_store_htf_at_T_ave /*kg/m3*/, double& Q_tes /*MWt-hr*/, double& total_mass);
 
     double get_max_storage_htf_temp();
 
@@ -602,6 +605,7 @@ public:
 
 void two_tank_tes_sizing(HTFProperties &tes_htf_props, double Q_tes_des /*MWt-hr*/, double T_tes_hot /*K*/,
 		double T_tes_cold /*K*/, double h_min /*m*/, double h_tank /*m*/, int tank_pairs /*-*/, double u_tank /*W/m^2-K*/,
+        double tes_packed_vol_frac /*-*/,
 		double & vol_one_temp_avail /*m3*/, double & vol_one_temp_total /*m3*/, double & d_tank /*m*/,
 		double & q_dot_loss_des /*MWt*/  );
 

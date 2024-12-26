@@ -298,6 +298,16 @@ public:
         std::vector<double> m_q_dot_elec_to_PAR_HTR_in;
         std::vector<bool> m_is_PAR_HTR_allowed_in;
 
+        void resize(size_t len) {
+            m_q_pc_target_su_in.resize(len);
+            m_q_pc_target_on_in.resize(len);
+            m_q_pc_max_in.resize(len);
+            m_is_rec_su_allowed_in.resize(len);
+            m_is_pc_su_allowed_in.resize(len);
+            m_is_pc_sb_allowed_in.resize(len);
+            m_q_dot_elec_to_PAR_HTR_in.resize(len);
+            m_is_PAR_HTR_allowed_in.resize(len);
+        }
     } mc_dispatch_params;   // TODO: Remove this 
 
 	struct S_csp_tou_outputs
@@ -893,6 +903,7 @@ public:
 			TWET,             //[C] Wet bulb temperature
 			RH,	              //[-] Relative humidity
 			WSPD,             //[m/s] Wind speed
+            WDIR,             //[deg] Wind direction
 			PRES,             //[mbar] Atmospheric pressure
 				// Controller and Storage
 			CR_DEFOCUS,       //[-] Field optical focus fraction

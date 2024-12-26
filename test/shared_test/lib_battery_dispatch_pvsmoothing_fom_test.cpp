@@ -98,7 +98,7 @@ TEST_F(PVSmoothing_lib_battery_dispatch, Generic_w_PV_input_all_on) {
     // Run with fixed output
 //    auto mod1 = ssc_module_create("generic_system");
 
-    int errors = run_module(dat, "generic_system");
+    int errors = run_module(dat, "custom_generation");
     errors += run_module(dat, "battery");
     // minimize memory usage for Travis
 //    errors = run_module(dat, "grid");

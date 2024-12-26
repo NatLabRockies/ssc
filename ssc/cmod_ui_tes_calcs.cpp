@@ -175,7 +175,7 @@ public:
 		double tes_avail_vol, vol_tank, csp_pt_tes_tank_diameter, q_dot_loss_des;
 		tes_avail_vol = vol_tank = csp_pt_tes_tank_diameter = q_dot_loss_des = std::numeric_limits<double>::quiet_NaN();
 		two_tank_tes_sizing(tes_htf_props, Q_tes_des, T_tes_hot, T_tes_cold,
-			h_min, h_tank, (int)tank_pairs, u_tank,
+			h_min, h_tank, (int)tank_pairs, u_tank, 1.0,
 			tes_avail_vol, vol_tank, csp_pt_tes_tank_diameter, q_dot_loss_des);
 
         assign("are_htfs_equal", are_htfs_same);

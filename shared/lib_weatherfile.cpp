@@ -1542,6 +1542,8 @@ bool weatherfile::open(const std::string& file, bool header_only)
         }
     }
 
+    m_startYear = m_columns[YEAR].data[0];
+
     if (!header_only) {
         start_hours_at_0();
 

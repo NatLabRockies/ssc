@@ -412,6 +412,8 @@ void ioutil::parseXMLInputFile(const string &fname,var_map &V, parametric &par_d
 
 		var_node = var_node->next_sibling("variable");
 	}
+	// sorting heliostat templates based on id value
+	std::sort(V.hels.begin(), V.hels.end(), [](var_heliostat const& hel1, var_heliostat const& hel2) -> bool {return hel1.id.val < hel2.id.val; });
 
     //backwards compatibility for rec_offset_reference
     if (rec_offset_assignments.size() == 0)
@@ -551,6 +553,7 @@ void ioutil::parseXMLInputFile(const string &fname,var_map &V, parametric &par_d
 		}
 
 	}
+	delete[] fstr;
 	return;
 }
 

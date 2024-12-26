@@ -2121,7 +2121,7 @@ void C_mspt_receiver::initialize_transient_param_inputs(const s_steady_state_sol
 	double T_coolant_prop = (soln.T_salt_hot + soln.T_salt_cold_in) / 2.0;
 	pinputs.mflow_tot = soln.m_dot_salt_tot;
 	pinputs.c_htf = field_htfProps.Cp(T_coolant_prop)*1000.0;		// HTF specific heat at average temperature [J/kg-K] 
-	pinputs.rho_htf = field_htfProps.dens(T_coolant_prop, 1.0);	// HTF density at average temperature [kg/m3]
+	pinputs.rho_htf = field_htfProps.dens(T_coolant_prop, 1.0);	    // HTF density at average temperature [kg/m3]
 	pinputs.mu_htf = field_htfProps.visc(T_coolant_prop);			// HTF viscosity at average temperature [kg/m/s]
 	pinputs.k_htf = field_htfProps.cond(T_coolant_prop);			// HTF conductivity at average temperature [W/m/K]
 	pinputs.Pr_htf = param_inputs.c_htf*pinputs.mu_htf / pinputs.k_htf;

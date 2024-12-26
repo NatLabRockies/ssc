@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
+// Used to get intercept efficiency for each heliostat (For central receviers, requires a lot of rays to be traced)
+#define HELIO_INTERCEPT false;  
 
 //-------------------  arraystring ----------------
 
@@ -110,6 +112,20 @@ SimControl::SimControl()
 	_stthread = 0;
 	_STSim = 0;
 }
+
+SimControl::~SimControl()
+{
+	if (_STSim != 0) delete _STSim;
+	if (_stthread != 0) delete[] _stthread;
+
+	_n_threads = 1;
+	_n_threads_active = 1;
+	_is_mt_simulation = false;
+	_cancel_simulation = false;
+
+	_stthread = 0;
+	_STSim = 0;
+}
 //--------------------
 
 //interop namespace
@@ -152,15 +168,12 @@ void interop::GenerateSimulationWeatherData(var_map &V, int design_method, Array
 	switch (design_method)
 	{
     case var_solarfield::DES_SIM_DETAIL::SUBSET_OF_DAYSHOURS:
-	//case LAYOUT_DETAIL::SUBSET_HOURS:
-
 	{		//Subset of days/hours
 		//Need to add this still
 		V.amb.sim_time_step.Setval(0.);
 		throw spexception("Simulation with a user-specified list of days/hours is not currently supported. Please use another option.");
 		//break;
 	}
-	//case LAYOUT_DETAIL::SINGLE_POINT:
     case var_solarfield::DES_SIM_DETAIL::SINGLE_SIMULATION_POINT:
 	{  //2) Single design point=1;
 		V.amb.sim_time_step.Setval(0.);
@@ -185,14 +198,12 @@ void interop::GenerateSimulationWeatherData(var_map &V, int design_method, Array
         wdatvar->setStep(0, dom, hour, month, P.dni, P.Tamb, P.Patm, P.Vwind, P.Simweight);
 		break;
 	}
-	//case LAYOUT_DETAIL::NO_FILTER:
     case var_solarfield::DES_SIM_DETAIL::DO_NOT_FILTER_HELIOSTATS:
 	{	//3) Do not filter heliostats=0;
 		wdatvar->clear();
 		V.amb.sim_time_step.Setval(0.);
 		break;
 	}
-	//case LAYOUT_DETAIL::FULL_ANNUAL:
     case var_solarfield::DES_SIM_DETAIL::ANNUAL_SIMULATION:
 	{	//4) Annual simulation=3;
 		*wdatvar = WeatherData(V.amb.wf_data.val); //vset["ambient"][0]["wf_data"].value;
@@ -201,7 +212,6 @@ void interop::GenerateSimulationWeatherData(var_map &V, int design_method, Array
 		V.amb.sim_time_step.Setval(3600.);
 		break;
 	}
-	//case LAYOUT_DETAIL::MAP_TO_ANNUAL:
     case var_solarfield::DES_SIM_DETAIL::EFFICIENCY_MAP__ANNUAL:
 	{  //Efficiency map + annual simulation
 		V.amb.sim_time_step.Setval(3600.);
@@ -237,8 +247,6 @@ void interop::GenerateSimulationWeatherData(var_map &V, int design_method, Array
 		break;
 
 	}
-	//case LAYOUT_DETAIL::LIMITED_ANNUAL:
-	//case LAYOUT_DETAIL::AVG_PROFILES:
     case var_solarfield::DES_SIM_DETAIL::LIMITED_ANNUAL_SIMULATION:
     case var_solarfield::DES_SIM_DETAIL::REPRESENTATIVE_PROFILES:
 	case -1:  //for optimization
@@ -561,7 +569,7 @@ bool interop::ticker_increment(int lengths[], int indices[], bool changed[], int
 
 //Simulation methods
 
-bool interop::PerformanceSimulationPrep(SolarField &SF, Hvector &helios, int /*sim_method*/){
+bool interop::PerformanceSimulationPrep(SolarField &SF, Hvector &helios){
 	/* 
 	Call this method when setting up a performance simulation (i.e. a flux simulation).
 
@@ -626,7 +634,7 @@ bool interop::PerformanceSimulationPrep(SolarField &SF, Hvector &helios, int /*s
     V->flux.flux_solar_el.Setval( 90. - zen );
 
     sim_params P;
-    P.dni = V->flux.flux_dni.val; 
+    P.dni = V->flux.flux_dni.val;		// TODO: some dni values are in kW/m2 while this one is in W/m2...
 	P.Tamb = 25.; 
 	P.Patm = 1.;
 
@@ -653,18 +661,18 @@ bool interop::SolTraceFluxSimulation_ST(st_context_t cxt, int seed, ST_System &S
 
 	Passes an optional pointer to a callback function that updates the GUI.
 	*/	
-	int minrays = ST.sim_raycount;
-	int maxrays = ST.sim_raymax;
+	//int minrays = ST.sim_raycount;
+	//int maxrays = ST.sim_raymax;
 	
 	//simulate, setting the UI callback and a pointer to the UI class
 	
-	st_sim_params( cxt, minrays, maxrays );
+	st_sim_params( cxt, ST.sim_raycount, ST.sim_raymax, ST.sim_dynamic_group);
     //if(load_stage_data)
         //return st_sim_run_data(cxt, seed, st0data, st1data, false, callback, par) != -1;
     //else if(save_stage_data)
         //return st_sim_run_data(cxt, seed, st0data, st1data, true, callback, par) != -1;
     //else
-	    return st_sim_run(cxt, seed, true, callback, par) != -1;
+	    return st_sim_run(cxt, seed, callback, par) != -1;
 }
 
 
@@ -721,7 +729,7 @@ void interop::UpdateMapLayoutData(var_map &V, Hvector *heliostats){
 		//sdat4 = string(tchar3);
 
 		char tchar4[300];
-		sprintf(tchar4, "%d,%d,%d,%f,%f,%f,%s,%s,%s\n",H->getVarMap()->type.val, H->IsEnabled() ? 1 : 0, H->IsInLayout() ? 1 : 0, loc->x, loc->y, loc->z, tchar1, tchar2, tchar3);
+		sprintf(tchar4, "%d,%d,%d,%f,%f,%f,%s,%s,%s\n",H->getVarMap()->id.val, H->IsEnabled() ? 1 : 0, H->IsInLayout() ? 1 : 0, loc->x, loc->y, loc->z, tchar1, tchar2, tchar3);
 		sdat = string(tchar4);
 		var->append(sdat);
 
@@ -732,11 +740,11 @@ void interop::UpdateMapLayoutData(var_map &V, Hvector *heliostats){
 bool interop::HermiteFluxSimulationHandler(sim_results& results, SolarField& SF, Hvector& helios)
 {
 	/*
-	Call the hermite flux evaluation algorithm and process.
+	Call the Hermite flux evaluation algorithm and process.
 	*/
 	SF.HermiteFluxSimulation(helios,
 		SF.getVarMap()->flux.aim_method.mapval() == var_fluxsim::AIM_METHOD::IMAGE_SIZE_PRIORITY    //to not re-simulate, aim strategy must be "IMAGE_SIZE"...
-		&& helios.size() == SF.getHeliostats()->size());                                        //and all heliostats must be included.
+		&& helios.size() == SF.getHeliostats()->size());											//and all heliostats must be included.
 
 	//Process the results
 	double azzen[2];
@@ -767,7 +775,7 @@ bool interop::HermiteFluxSimulationHandler(sim_results& results, SolarField& SF,
 	return true;
 }
 
-#ifdef SP_USE_THREADS
+#ifdef SP_USE_SOLTRACE
 bool interop::SolTraceFluxSimulation(SimControl& SimC, sim_results& results, SolarField& SF, var_map& vset, Hvector& helios)
 {
 	/*
@@ -977,7 +985,7 @@ bool interop::SolTraceFluxSimulation(SimControl& SimC, sim_results& results, Sol
 			rays_alloc += rays_this_thread;
 			rays_alloc1 += rays_this_thread1;
 
-			st_sim_params(pcxt, rays_this_thread, SimC._STSim->sim_raymax / SimC._n_threads);
+			st_sim_params(pcxt, rays_this_thread, SimC._STSim->sim_raymax / SimC._n_threads, SimC._STSim->sim_dynamic_group);
 		}
 
 		for (int i = 0; i < SimC._n_threads; i++)
@@ -1056,9 +1064,9 @@ bool interop::SolTraceFluxSimulation(SimControl& SimC, sim_results& results, Sol
 		int maxrays = SimC._STSim->sim_raymax;
 
 		//simulate, setting the UI callback and a pointer to the UI class
-		st_sim_params(cxt, minrays, maxrays);
+		st_sim_params(cxt, SimC._STSim->sim_raycount, SimC._STSim->sim_raymax, SimC._STSim->sim_dynamic_group);
 
-		bool sim_result = st_sim_run(cxt, seed, true, SimC.soltrace_callback, SimC.soltrace_callback_data) != -1;
+		bool sim_result = st_sim_run(cxt, seed, SimC.soltrace_callback, SimC.soltrace_callback_data) != -1;
 		if(sim_result)
 			contexts.push_back(cxt);
 		else
@@ -1109,6 +1117,7 @@ bool interop::SolTraceFluxSimulation(SimControl& SimC, sim_results& results, Sol
 
 	//Collect all of the results
 	int ind = 0;
+	int rstart = 0;
 	for (int i = 0; i < nc; i++)
 	{
 		int cs = csizes.at(i);
@@ -1119,15 +1128,30 @@ bool interop::SolTraceFluxSimulation(SimControl& SimC, sim_results& results, Sol
 		st_stagemap(contexts.at(i), &SimC._STSim->IntData.smap[ind]);
 		st_raynumbers(contexts.at(i), &SimC._STSim->IntData.rnum[ind]);
 
+		// Make rays numbers unique by adding the previous context max ray number
+		if (i != 0) {
+			int c_max_rays = 0;
+			for (int j = 0; j < cs; j++) {
+				if (SimC._STSim->IntData.smap[ind + j] == 2) { // hit stage 2
+					c_max_rays = SimC._STSim->IntData.rnum[ind + j - 1]; //max ray number was last ray of stage 1
+					break; // once we hit stage 2 we're done
+				}
+			}
+			rstart += c_max_rays; // Update ray numbers
+			for (int j = 0; j < cs; j++) {
+				SimC._STSim->IntData.rnum[ind + j] += rstart;
+			}
+		}
+
 		int nsr;
 		st_sun_stats(contexts.at(i), &bounds[0], &bounds[1], &bounds[2], &bounds[3], &nsr);    //Bounds should always be the same
 		SimC._STSim->IntData.nsunrays += nsr;
 		ind += cs;
-
 	}
 
 	//DNI
-	double dni = vset.sf.dni_des.val / 1000.;    //[kw/m2]
+	double dni = vset.flux.flux_dni.val / 1000.;   //[kw/m2]
+	
 
 	//if the heliostat field ray data is loaded from a file, just specify the number of sun rays based on this value
 	if (is_load_raydata)
@@ -1151,7 +1175,7 @@ bool interop::SolTraceFluxSimulation(SimControl& SimC, sim_results& results, Sol
 		sim_params P;
 		P.dni = dni;
 		double azzen[2] = { az, PI / 2. - el };
-		results.back().process_raytrace_simulation(SF, P, 2, azzen, helios, SimC._STSim->IntData.q_ray, SimC._STSim->IntData.emap, SimC._STSim->IntData.smap, SimC._STSim->IntData.rnum, nint, bounds);
+		results.back().process_raytrace_simulation(SF, P, 2, azzen, helios, SimC._STSim);
 	}
 
 	//If the user wants to save stage0 ray data, do so here
@@ -1227,7 +1251,7 @@ bool interop::SolTraceFluxSimulation(SimControl& SimC, sim_results& results, Sol
 bool interop::SolTraceFluxBinning(SimControl& SimC, SolarField& SF)
 {
 	//Collect all of the rays that hit the receiver(s) into the flux profile
-	int rstage1 = 2;
+	int rstage1 = SimC._STSim->StageList.size();
 
 	for (int r = 0; r < (int)SF.getReceivers()->size(); r++)
 	{
@@ -1235,6 +1259,7 @@ bool interop::SolTraceFluxBinning(SimControl& SimC, SolarField& SF)
 		if (!Rec->isReceiverEnabled())
 			continue;
 		var_receiver* RV = Rec->getVarMap();
+		var_heliostat* Hv = SF.getHeliostats()->front()->getVarMap();
 
 		//.. for each receiver, 
 		int recgeom = Rec->getGeometryType();
@@ -1271,7 +1296,7 @@ bool interop::SolTraceFluxBinning(SimControl& SimC, SolarField& SF)
 			nfy = fs->getFluxNY();
 
 			Arec = Rec->getAbsorberArea();
-			dqspec = SimC._STSim->IntData.q_ray / Arec * (float)(nfx * nfy);
+			dqspec = SimC._STSim->IntData.q_ray * Hv->reflect_ratio.val / Arec * (float)(nfx * nfy);
 
 			for (int j = 0; j < SimC._STSim->IntData.nint; j++)
 			{    //loop through each intersection
@@ -1324,7 +1349,7 @@ bool interop::SolTraceFluxBinning(SimControl& SimC, SolarField& SF)
 			nfy = fs->getFluxNY();
 
 			Arec = Rec->getAbsorberArea();
-			dqspec = SimC._STSim->IntData.q_ray / Arec * (float)(nfx * nfy);
+			dqspec = SimC._STSim->IntData.q_ray * Hv->reflect_ratio.val / Arec * (float)(nfx * nfy);
 
 
 			for (int j = 0; j < SimC._STSim->IntData.nint; j++)
@@ -1353,6 +1378,97 @@ bool interop::SolTraceFluxBinning(SimControl& SimC, SolarField& SF)
 			}
 			break;
 		}
+		case Receiver::REC_GEOM_TYPE::FALL_FLAT:
+		case Receiver::REC_GEOM_TYPE::FALL_CURVE:
+		{
+			// Aperture window
+			int apstage = SimC._STSim->StageList.size() - 1; // Aperture is the penultimate stage
+			fs = &Rec->getFluxSurfaces()->at(0);
+			fs->ClearFluxGrid();
+			fg = fs->getFluxMap();
+
+			rel = RV->rec_elevation.val * D2R;
+			raz = RV->rec_azimuth.val * D2R;
+			rh = RV->rec_height.val;
+			rw = RV->rec_width.val;
+
+			//The number of points in the flux grid 
+			//(x-axis receiver width, y axis is receiver height)
+			nfx = fs->getFluxNX();
+			nfy = fs->getFluxNY();
+
+			Arec = rh*rw; // aperture area
+			dqspec = SimC._STSim->IntData.q_ray * Hv->reflect_ratio.val / Arec * (float)(nfx * nfy);
+
+			for (int j = 0; j < SimC._STSim->IntData.nint; j++)
+			{    //loop through each intersection
+
+				if (SimC._STSim->IntData.smap[j] != apstage || abs(SimC._STSim->IntData.emap[j]) != 1) continue;    //only consider rays that interact with this element
+
+				//Where did the ray hit relative to the location of the receiver?
+				rayhit.Set(SimC._STSim->IntData.hitx[j], SimC._STSim->IntData.hity[j], SimC._STSim->IntData.hitz[j]);
+				// Hit position is in stage coordinates which already account for offset and azimuth
+
+				//Calculate the point location in relative cylindrical coorinates
+				pw = 0.5 + rayhit.i / rw;    //0 at "starboard" side, increase towards "port"
+				ph = 0.5 + rayhit.k / rh;    //0 for flux grid at bottom of the panel, 1 at top
+
+				//Calculate which bin to add this ray to in the flux grid
+				ibin = int(floor(pw * nfx));
+				jbin = int(floor(ph * nfy));
+
+				//Add the magnitude of the flux to the correct bin
+				fg->at(ibin).at(jbin).flux += dqspec;
+			}
+
+			// Get curtain surface flux
+			int n_panels = RV->n_panels.val;
+			// Loop through curtain surfaces
+			for (int i = 1; i <= n_panels; i++) {
+				fs = &Rec->getFluxSurfaces()->at(i);
+
+				nfx = fs->getFluxNX();
+				nfy = fs->getFluxNY();
+
+				Arec = fs->getSurfaceArea();
+				dqspec = SimC._STSim->IntData.q_ray * Hv->reflect_ratio.val / Arec * (float)(nfx * nfy);
+
+				fs->ClearFluxGrid();
+				fg = fs->getFluxMap();
+
+				e_ind = i; //element index for this receiver
+			
+				rel = 0.0;
+				raz = RV->rec_azimuth.val * D2R;
+
+				rh = fs->getSurfaceHeight();
+				rw = RV->max_curtain_width.Val();
+
+				sp_point offset = *fs->getSurfaceOffset();
+				double curtain_depth = sqrt(pow(offset.x, 2) + pow(offset.y, 2));
+
+				for (int j = 0; j < SimC._STSim->IntData.nint; j++) // TODO: Looping through interactions multiple times is inefficient
+				{    //loop through each intersection
+					// Flux map is incident flux not absorbed
+					if (SimC._STSim->IntData.smap[j] != rstage1 || abs(SimC._STSim->IntData.emap[j]) != e_ind) continue;    //only consider rays that interact with this element
+
+					//Where did the ray hit relative to the location of the receiver?
+					rayhit.Set(SimC._STSim->IntData.hitx[j], SimC._STSim->IntData.hity[j] + curtain_depth, SimC._STSim->IntData.hitz[j] - offset.z);
+
+					//Calculate the point location in relative cylindrical coorinates
+					pw = 0.5 + rayhit.i / rw;    //0 at "starboard" side, increase towards "port"
+					ph = 0.5 + rayhit.k / rh;    //0 for flux grid at bottom of the panel, 1 at top
+
+					//Calculate which bin to add this ray to in the flux grid
+					ibin = int(floor(pw * nfx));
+					jbin = int(floor(ph * nfy));
+
+					//Add the magnitude of the flux to the correct bin
+					fg->at(ibin).at(jbin).flux += dqspec;
+				}
+			}
+			break;
+		}
 		case Receiver::REC_GEOM_TYPE::PLANE_ELLIPSE:
 		case Receiver::REC_GEOM_TYPE::POLYGON_CLOSED:
 		case Receiver::REC_GEOM_TYPE::POLYGON_OPEN:
@@ -1361,8 +1477,6 @@ bool interop::SolTraceFluxBinning(SimControl& SimC, SolarField& SF)
 			return false;
 			break;
 		}
-
-
 	}
 	return true;
 }
@@ -1525,7 +1639,7 @@ bool interop::DoManagedLayout(SimControl& SimC, SolarField& SF, var_map& V, Layo
 		}
 	}
 	else
-#endif 
+#endif
 	{
 		SimC._n_threads_active = 1;
 		SimC._is_mt_simulation = false;
@@ -1536,7 +1650,7 @@ bool interop::DoManagedLayout(SimControl& SimC, SolarField& SF, var_map& V, Layo
 	//follow-on stuff
 	Vect sun = Ambient::calcSunVectorFromAzZen(SF.getVarMap()->sf.sun_az_des.Val() * D2R, (90. - SF.getVarMap()->sf.sun_el_des.Val()) * D2R);
 	SF.calcHeliostatShadows(sun);    if (SF.ErrCheck()) return false;
-	V.land.bound_area.Setval(SF.getLandObject()->getLandBoundArea());
+	V.land.bound_area.Setval(SF.getLandObject()->getLandBoundArea() / 4046.86 ); // [m^2] -> [acres]
 
 	return true;
 
@@ -1571,13 +1685,13 @@ void interop::CreateResultsTable(sim_result& result, grid_emulator_base& table)
 		{
 			table.AddRow(id++, "Cloudiness efficiency", "%", 100. * result.eff_cloud.wtmean, 2);
 			table.AddRow(id++, "Shadowing and Cosine efficiency", "%", 100. * result.eff_cosine.wtmean, 2);
-			table.AddRow(id++, "Reflection efficiency", "%", 100. * result.eff_reflect.wtmean, 2);
+			table.AddRow(id++, "Reflection and Attenuation efficiency", "%", 100. * result.eff_reflect.wtmean, 2);
 			table.AddRow(id++, "Blocking efficiency", "%", 100. * result.eff_blocking.wtmean, 2);
 			table.AddRow(id++, "Image intercept efficiency", "%", 100. * result.eff_intercept.wtmean, 2);
 			table.AddRow(id++, "Absorption efficiency", "%", 100. * result.eff_absorption.wtmean, 2);
 			table.AddRow(id++, "Solar field optical efficiency", "%", 100. * result.eff_total_sf.wtmean / result.eff_absorption.wtmean, 2);
 			table.AddRow(id++, "Optical efficiency incl. receiver", "%", 100. * result.eff_total_sf.wtmean, 2);
-			table.AddRow(id++, "Incident flux", "kW/m2", result.flux_density.ave, -1, result.flux_density.min, result.flux_density.max, result.flux_density.stdev);
+			table.AddRow(id++, "Incident flux", "kW/m2", result.flux_density.ave, -1, nan, result.flux_density.min, result.flux_density.max, result.flux_density.stdev);
 			table.AddRow(id++, "No. rays traced", "-", result.num_ray_traced, 0);
 			table.AddRow(id++, "No. heliostat ray intersections", "-", result.num_ray_heliostat, 0);
 			table.AddRow(id++, "No. receiver ray intersections", "-", result.num_ray_receiver, 0);
@@ -1640,7 +1754,7 @@ void interop::CreateResultsTable(sim_result& result, grid_emulator_base& table)
 				100. * result.eff_total_sf.max,
 				100. * result.eff_total_sf.stdev);
 			table.AddRow(id++, "Annualized heliostat efficiency", "%",
-				100. * result.eff_annual.wtmean, 2,
+				100. * result.eff_annual.ave, 2,
 				nan,
 				100. * result.eff_annual.min,
 				100. * result.eff_annual.max,
@@ -1976,10 +2090,21 @@ void sim_result::process_flux_stats(Rvector *recs)
 	double fave=0., fave2=0., fmax = -9.e9, fmin = 9.e9;
 	int nf = 0;
 	for( int i=0; i<(int)recs->size(); i++){
+		int recgeom = recs->at(i)->getGeometryType();
 		FluxSurfaces *fs = recs->at(i)->getFluxSurfaces();
-		for(int j=0; j<(int)fs->size(); j++){
+		int start_surf = 0;
+		switch (recs->at(i)->getVarMap()->rec_type.mapval())
+		{
+		case var_receiver::REC_TYPE::CAVITY:
+		case var_receiver::REC_TYPE::FALLING_PARTICLE:
+			start_surf = 1; // Skip aperture surface
+			break;
+		default:
+			break;
+		}
+
+		for(int j=start_surf; j<(int)fs->size(); j++){
 			FluxGrid *fg = fs->at(j).getFluxMap();
-			//double ascale = fs->at(j).getSurfaceArea()/atot;
 			int 
 				nx = fs->at(j).getFluxNX(),
 				ny = fs->at(j).getFluxNY();
@@ -2077,7 +2202,7 @@ void sim_result::process_analytical_simulation(SolarField &SF, sim_params &P, in
             }
 		}
 		process_field_stats();
-		dni =  SF.getVarMap()->flux.flux_dni.val/1000.;
+		dni =  SF.getVarMap()->flux.flux_dni.val/1000.;		// TODO: Why is this not using sim_params structure?
 		power_on_field = total_heliostat_area * dni;	//[kW]
 		power_absorbed = power_on_field * eff_total_sf.ave;
 
@@ -2121,91 +2246,131 @@ void sim_result::process_analytical_simulation(SolarField &SF, sim_params &P, in
 
 }
 
-void sim_result::process_raytrace_simulation(SolarField &SF, sim_params &P, int nsim_type, double sun_az_zen[2], Hvector &helios, double qray, int *emap, int *smap, int *rnum, int ntot, double *boxinfo)
+#ifdef SP_USE_SOLTRACE
+void sim_result::process_raytrace_simulation(SolarField& SF, sim_params& P, int nsim_type, double sun_az_zen[2], Hvector& helios, ST_System* STsim)
 {
 	is_soltrace = true;
 	/* sim_type: 2=flux simulation, 3=parametric */
 	initialize();
 	sim_type = nsim_type;
 	if(sim_type == 2){
-
 		num_heliostats_used = (int)helios.size();
 		for(int i=0; i<num_heliostats_used; i++){
 			total_heliostat_area += helios.at(i)->getArea();
 		}
+		var_heliostat* Hv = helios.front()->getVarMap();
         double dni = P.dni; //W/m2
-
-
+		
+		// vector of heliostat values with the ray as the index
+		var_receiver* RV = SF.getReceivers()->at(0)->getVarMap();
+		int max_rec_e = 1; //Maximum Receiver element number, it is assumed that heat absorbing elements are between zero and this value
+		if (RV->rec_type.mapval() == var_receiver::REC_TYPE::FALLING_PARTICLE) max_rec_e = RV->n_panels.val;
+		int rstage = STsim->StageList.size(); // Receiver stage
+#if HELIO_INTERCEPT
+		int max_rays = *std::max_element(STsim->IntData.rnum, STsim->IntData.rnum + STsim->IntData.nint);
+		std::vector<int> ray_helios(max_rays+1, -1); // Rays start at 1
+		int npanels = 1;
+		if (Hv->is_faceted.val) {
+			npanels = Hv->n_cant_x.val * Hv->n_cant_y.val;
+		}
+#endif
 		//Process the ray data
 		int st, st0=0, ray, ray0=0, el;
-		int nhin=0, nhout=0, nhblock=0, nhabs=0, nrin=0, nrspill=0, nrabs=0;
+		int nhin=0, nhout=0, nhblock=0, nhabs=0, nrin=0, nrabs=0;
+		int h_ind;
+		for(int i=0; i<STsim->IntData.nint; i++){ //for each ray hit
+			st = STsim->IntData.smap[i];	//Stage
+			ray = STsim->IntData.rnum[i];	//Ray number
+			el = STsim->IntData.emap[i];	//Element
 
-		for(int i=0; i<ntot; i++){ //for each ray hit
-			st = smap[i];	//Stage
-			ray = rnum[i];	//Ray number
-			el = emap[i];	//Element
-			
-			//Check first to see if the ray number has changed without logging data
-			if((ray != ray0) && (ray0 != 0)){
-				if( st0 == 1){ //Heliostat stage
-					//Ray was successfully reflected out of the field
-					nhin++;
-					nhout++;
-				}
-				else{ //Receiver stage
-					//Ray was lost through reflection from the receiver
-					nrin++;
-				}
-				ray0 = 0;
-				st0 = 0;
-			}
-
-			if(el < 0){
-				//Ray was absorbed 
-				if(st == 1){ //Heliostat
-					nhin++;
-					if( ray == ray0 ) //Multiple intersections within heliostat field, meaning blocking occurred
-						nhblock++;
-					else
+			if (st == 1) { // Heliostat stage
+#if HELIO_INTERCEPT
+				//Determine the heliostat from the element number in stage 1, first intersection only
+				if (ray_helios[ray] == -1) ray_helios[ray] = (std::abs(el) - 1) / npanels;
+#endif
+				if (el > 0 && ray != ray0) nhin++; // Reflected, no second reflection allowed
+				else if (el < 0) { // Absorbed
+					if (ray == ray0) nhblock++;    //Multiple intersections within heliostat field, meaning blocking occurred
+					else {
 						nhabs++; //Single intersection -- reflectivity loss
+						nhin++;
+					}
 				}
-				else{  //Receiver
-					nrin++;
-					nrabs++;
-				}
-				ray0 = 0;
-				st0 = 0;
 			}
-			else if( el == 0 ){ //Element map is 0 - a ray missed the receiver
-				nrspill++;
-
-				ray0 = 0;
-				st0 = 0;
+			else if (STsim->aperture_virtual_stage && st == rstage - 1) { // Aperture stage
+				if (el > 0) nrin++; // Aperture hit
 			}
-			else{
-				st0 = st;
-				ray0 = ray;
+			else if (st == rstage) { // Receiver stage
+				if (!STsim->aperture_virtual_stage && el != 0) nrin++; // Reflected or Absorbed
+				
+				if (el < 0 && el >= -max_rec_e) nrabs++; // Absorbed only if ray hits heat absorbing receiver elements
 			}
+			ray0 = ray; // previous ray
 		}
+#if HELIO_INTERCEPT
+		// Go through the rays again for updating intercept efficiency because 
+		// we now know the heliostat associated with each ray
+		std::vector<double> rec_hit_rays(helios.size(), 0.0);
+		std::vector<double> ref_rays(helios.size(), 1.e-7);
+		ray0 = 0;
+		int intercept_stage = 2;
+		if (STsim->aperture_virtual_stage) intercept_stage = STsim->StageList.size() - 1;
+		for (int i = 0; i < STsim->IntData.nint; i++) { //for each ray hit
+			st = STsim->IntData.smap[i];	//Stage
+			ray = STsim->IntData.rnum[i];	//Ray number
+			el = STsim->IntData.emap[i];	//Element
+			h_ind = ray_helios[ray];	// Heliostat index
 
-		int nsunrays = (int)boxinfo[4];
-		double Abox = (boxinfo[0] - boxinfo[1])*(boxinfo[2] - boxinfo[3]);
+			// Repeated algorithm from above
+			if (st == 1) { // Heliostat stage
+				if (el > 0 && ray != ray0) ref_rays[h_ind] += 1.; // Reflected, no second reflection allowed
+				else if (el < 0) { // Absorbed
+					if (ray == ray0) ref_rays[h_ind] -= 1.;    //Multiple intersections within heliostat field, meaning blocking occurred
+					else {
+						ref_rays[h_ind] -= 1.; //Single intersection -- reflectivity loss
+						ref_rays[h_ind] += 1.;
+					}
+				}
+			}
+			//Check if ray hits target on first intersection
+			if (st == intercept_stage && ray != ray0 && el != 0) { // Aperture or recevier stage and new ray
+				rec_hit_rays[h_ind] += 1.;
+			}
+			ray0 = ray;  // previous ray
+		}
+		// Using ray data to update heliostat intercept efficiency -> TODO: Fix this
+		for (int i = 0; i < num_heliostats_used; i++) {
+			helios.at(i)->setEfficiencyIntercept(rec_hit_rays[i] / ref_rays[i]);
+			helios.at(i)->calcPowerEnergy(P);
+		}
+#endif
+
+		int nsunrays = (int)STsim->IntData.bounds[4];
+		double Abox = (STsim->IntData.bounds[0] - STsim->IntData.bounds[1])*(STsim->IntData.bounds[2] - STsim->IntData.bounds[3]);
 
         num_ray_traced = nsunrays;
         num_ray_heliostat = nhin;
         num_ray_receiver = nrin;
 
+		// Adjust ray counts based on the heliostat reflective surface radio -> assumes constant precent of rays are lost
+		nhin *= Hv->reflect_ratio.val;
+		nhabs *= Hv->reflect_ratio.val;
+		nhblock *= Hv->reflect_ratio.val;
+		nrin *= Hv->reflect_ratio.val;
+		nrabs *= Hv->reflect_ratio.val;
+		nhout = nhin - nhabs - nhblock; // rays in field less absorbed and blocked
+
 		power_on_field = total_heliostat_area *dni;	//[kW]
-		power_absorbed = qray * nrabs;
+		power_absorbed = STsim->IntData.q_ray * nrabs;
         power_thermal_loss = SF.getReceiverTotalHeatLoss();
         power_piping_loss = SF.getReceiverPipingHeatLoss();
         power_to_htf = power_absorbed - (power_thermal_loss + power_piping_loss);
-
+		
         eff_total_sf.set(0,0, 0, 0, 0., power_absorbed / power_on_field);
         eff_cosine.set(0.,0., 0., 0., 0., (double)nhin / (double)nsunrays*Abox / total_heliostat_area);
-        eff_shading.set(1., 1., 1., 0., 1., 1.);        //shading is accounted for in the blocking calculation
+        eff_shading.set(1., 1., 1., 0., 1., 1.);        //shading is accounted for in the cosine calculation
 		eff_blocking.set(0.,0., 0., 0., 0., 1. - (double)nhblock / (double)(nhin - nhabs));
-		eff_attenuation.set(0., 0., 0., 0., 0., 1.);	//Not currently accounted for
+		eff_attenuation.set(0., 0., 0., 0., 0., 1.);	// Accounted for within reflection efficiency
 		eff_reflect.set(0., 0., 0., 0., 0., (double)(nhin - nhabs) / (double)nhin);
 		eff_intercept.set(0., 0., 0., 0., 0., (double)nrin / (double)nhout);
 		eff_absorption.set(0., 0., 0., 0., 0., (double)nrabs / (double)nrin);
@@ -2227,11 +2392,10 @@ void sim_result::process_raytrace_simulation(SolarField &SF, sim_params &P, int 
 
 		SF.getFinancialObject()->calcPlantCapitalCost(*SF.getVarMap());	//Always update the plant cost
 
-		total_installed_cost = SF.getVarMap()->fin.total_installed_cost.Val(); //SF.getFinancialObject()->getTotalInstalledCost();
+		total_installed_cost = SF.getVarMap()->fin.total_installed_cost.Val();
 		coe_metric = total_installed_cost/power_absorbed;
 
 		process_flux_stats(SF.getReceivers());
-
 	}
 	else{
 
@@ -2239,44 +2403,45 @@ void sim_result::process_raytrace_simulation(SolarField &SF, sim_params &P, int 
 
 
 }
+#endif
 
-void sim_result::process_flux(SolarField *SF, bool normalize){
+void sim_result::process_flux(SolarField* SF, bool normalize) {
 	flux_surfaces.clear();
 	receiver_names.clear();
 	int nr = (int)SF->getReceivers()->size();
-	Receiver *rec;
-	for(int i=0; i<nr; i++){
+	Receiver* rec;
+	for (int i = 0; i < nr; i++) {
 		rec = SF->getReceivers()->at(i);
-		if(! rec->isReceiverEnabled() ) continue;
-        int n_surfaces = rec->getFluxSurfaces()->size();
-		flux_surfaces.push_back( *rec->getFluxSurfaces() );
-		if(normalize){
-            if (n_surfaces == 1) {
-                for (unsigned int j = 0; j < rec->getFluxSurfaces()->size(); j++) {
-                    flux_surfaces.back().at(j).Normalize();
-                }
-            }
-            else {
-                // For aperture (j = 0), use normalize, because we don't want it to count towards total flux
-                flux_surfaces.back().at(0).Normalize();
+		if (!rec->isReceiverEnabled()) continue;
+		int n_surfaces = rec->getFluxSurfaces()->size();
+		flux_surfaces.push_back(*rec->getFluxSurfaces());
+		if (normalize) {
+			if (n_surfaces == 1) {
+				for (unsigned int j = 0; j < rec->getFluxSurfaces()->size(); j++) {
+					flux_surfaces.back().at(j).Normalize();
+				}
+			}
+			else {
+				// For aperture (j = 0), use normalize, because we don't want it to count towards total flux
+				flux_surfaces.back().at(0).Normalize();
 
-                // Sum flux on all receiver panels
-                double flux_tot = 0.0;
-                for (unsigned int j = 1; j < rec->getFluxSurfaces()->size(); j++) {
-                    flux_tot += flux_surfaces.back().at(j).getTotalFlux();
-                }
+				// Sum flux on all receiver panels
+				double flux_tot = 0.0;
+				for (unsigned int j = 1; j < rec->getFluxSurfaces()->size(); j++) {
+					flux_tot += flux_surfaces.back().at(j).getTotalFlux();
+				}
 
-                for (unsigned int j = 1; j < rec->getFluxSurfaces()->size(); j++) {
-                    flux_surfaces.back().at(j).Scale(1.0 / flux_tot);
-                }
-            }
+				for (unsigned int j = 1; j < rec->getFluxSurfaces()->size(); j++) {
+					flux_surfaces.back().at(j).Scale(1.0 / flux_tot);
+				}
+			}
 		}
-		receiver_names.push_back( 
-            //*SF->getReceivers()->at(i)->getReceiverName() 
-            SF->getReceivers()->at(i)->getVarMap()->rec_name.val
-            );
+		receiver_names.push_back(
+			//*SF->getReceivers()->at(i)->getReceiverName() 
+			SF->getReceivers()->at(i)->getVarMap()->rec_name.val
+		);
 	}
-	
+
 }
 
 //------parametric------------------------

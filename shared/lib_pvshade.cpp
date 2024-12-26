@@ -291,10 +291,10 @@ void selfshade_xs_horstr(bool landscape,
 
 // Accessor for sky diffuse derates for the given surface_tilt. If the value doesn't exist in the table, it is computed.
 double sssky_diffuse_table::lookup(double surface_tilt) {
-    char buf[8];
-    sprintf(buf, "%.3f", surface_tilt);
-    if (derates_table.find(buf) != derates_table.end())
-        return derates_table[buf];
+    int surface_tilt_key = int(surface_tilt * derates_table_digits_multiplier);
+
+    if (derates_table.find(surface_tilt_key) != derates_table.end())
+        return derates_table[surface_tilt_key];
     return compute(surface_tilt);
 }
 
@@ -302,16 +302,17 @@ double sssky_diffuse_table::compute(double surface_tilt) {
     if (gcr == 0)
         throw std::runtime_error("sssky_diffuse_table::compute error: gcr required in initialization");
     // sky diffuse reduction
-    double step = 1.0 / 1000.0;
+	const size_t n_steps = 250;
+    double step = 1.0 / (double)n_steps;
     double skydiff = 0.0;
     double tand_stilt = tand(surface_tilt);
     double sind_stilt = sind(surface_tilt);
     double Asky = M_PI + M_PI / pow((1 + pow(tand_stilt, 2)), 0.5);
-    double arg[1000];
-    double gamma[1000];
-    double tan_tilt_gamma[1000];
-    double Asky_shade[1000];
-    for (int n = 0; n < 1000; n++)
+    double arg[n_steps];
+    double gamma[n_steps];
+    double tan_tilt_gamma[n_steps];
+    double Asky_shade[n_steps];
+    for (int n = 0; n < n_steps; n++)
     {
         if (surface_tilt != 0)
             arg[n] = (1 / tand_stilt) - (1 / (gcr * sind_stilt * (1 - n * step)));
@@ -331,9 +332,8 @@ double sssky_diffuse_table::compute(double surface_tilt) {
         else {}
         skydiff += (Asky_shade[n] / Asky) * step;
     }
-    char buf[8];
-    sprintf(buf, "%.3f", surface_tilt);
-    derates_table[buf] = skydiff;
+    int surface_tilt_key = int(surface_tilt * derates_table_digits_multiplier);
+	derates_table[surface_tilt_key] = skydiff;
     return skydiff;
 }
 

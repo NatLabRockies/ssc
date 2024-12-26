@@ -97,6 +97,8 @@ var_info vtab_battery_stateful_inputs[] = {
     { SSC_INPUT,        SSC_ARRAY,       "monthly_discharge_loss",                     "Battery system losses when discharging",                  "[kW]",       "",                     "ParamsPack",       "?=0",                        "",                             "" },
     { SSC_INPUT,        SSC_ARRAY,       "monthly_idle_loss",                          "Battery system losses when idle",                         "[kW]",       "",                     "ParamsPack",       "?=0",                        "",                             "" },
     { SSC_INPUT,        SSC_ARRAY,       "schedule_loss",                              "Battery system losses at each timestep",                  "[kW]",       "",                     "ParamsPack",       "?=0",                        "",                             "" },
+    { SSC_INPUT,        SSC_ARRAY,       "availabilty_loss",                           "Battery availability losses at each timestep",            "[%]",       "",                      "ParamsPack",       "?=0",                        "",                             "" },
+
 
     // replacement inputs
     { SSC_INPUT,        SSC_NUMBER,      "replacement_option",                         "Replacements: none (0), by capacity (1), or schedule (2)", "0=none,1=capacity limit,2=yearly schedule", "", "ParamsPack", "?=0",                  "INTEGER,MIN=0,MAX=2",          "" },
@@ -128,6 +130,8 @@ var_info vtab_battery_state[] = {
     { SSC_INOUT,        SSC_NUMBER,     "charge_mode",               "Charge (0), Idle (1), Discharge (2)",                      "0/1/2",     "",                     "StateCell",       "",                           "",                               ""  },
     { SSC_INOUT,        SSC_NUMBER,     "SOC_prev",                  "State of Charge of last time step",                        "%",         "",                     "StateCell",       "",                           "",                               ""  },
     { SSC_INOUT,        SSC_NUMBER,     "prev_charge",               "Charge mode of last time step",                            "0/1/2",     "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_INOUT,        SSC_NUMBER,     "percent_unavailable",       "Percent of system that is down",                           "%",         "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_INOUT,        SSC_NUMBER,     "percent_unavailable_prev",  "Percent of system that was down last step",                "%",         "",                     "StateCell",       "",                           "",                               ""  },
     { SSC_INOUT,        SSC_NUMBER,     "chargeChange",              "Whether Charge mode changed since last step",              "0/1",       "",                     "StateCell",       "",                           "",                               ""  },
     { SSC_INOUT,        SSC_NUMBER,     "q1_0",                      "Lead acid - Cell charge available",                        "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
     { SSC_INOUT,        SSC_NUMBER,     "q2_0",                      "Lead acid - Cell charge bound",                            "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
@@ -216,6 +220,8 @@ void write_battery_state(const battery_state& state, var_table* vt) {
     vt->assign_match_case("charge_mode", cap->charge_mode);
     vt->assign_match_case("prev_charge", cap->prev_charge);
     vt->assign_match_case("chargeChange", cap->chargeChange);
+    vt->assign_match_case("percent_unavailable", cap->percent_unavailable);
+    vt->assign_match_case("percent_unavailable_prev", cap->percent_unavailable_prev);
 
     int choice;
     vt_get_int(vt, "chem", &choice);
@@ -296,7 +302,7 @@ void write_battery_state(const battery_state& state, var_table* vt) {
         }
     }
 
-    vt->assign_match_case("loss_kw", state.losses->loss_kw);
+    vt->assign_match_case("loss_kw", state.losses->ancillary_loss_kw);
 
     vt->assign_match_case("n_replacements", state.replacement->n_replacements);
     vt->assign_match_case("indices_replaced", state.replacement->indices_replaced);
@@ -325,6 +331,8 @@ void read_battery_state(battery_state& state, var_table* vt) {
     vt_get_int(vt, "charge_mode", &cap->charge_mode);
     vt_get_int(vt, "prev_charge", &cap->prev_charge);
     vt_get_bool(vt, "chargeChange", &cap->chargeChange);
+    vt_get_number(vt, "percent_unavailable", &cap->percent_unavailable);
+    vt_get_number(vt, "percent_unavailable_prev", &cap->percent_unavailable_prev);
 
     int choice;
     vt_get_int(vt, "chem", &choice);
@@ -410,7 +418,7 @@ void read_battery_state(battery_state& state, var_table* vt) {
         }
     }
 
-    vt_get_number(vt, "loss_kw", &state.losses->loss_kw);
+    vt_get_number(vt, "loss_kw", &state.losses->ancillary_loss_kw);
 
     vt_get_int(vt, "n_replacements", &state.replacement->n_replacements);
     vt_get_array_vec(vt, "indices_replaced", state.replacement->indices_replaced);
@@ -538,6 +546,8 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
     else if (losses->loss_choice == losses_params::SCHEDULE) {
         vt_get_array_vec(vt, "schedule_loss", losses->schedule_loss);
     }
+
+    vt_get_array_vec(vt, "availabilty_loss", losses->adjust_loss);
 
     // replacements
     auto replacements = params->replacement;

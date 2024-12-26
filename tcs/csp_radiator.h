@@ -62,7 +62,8 @@ public:
 		double radfield_dp;		//Pressure drop through panel and distribution in radiative field [kPa]
 		S_params()
 		{
-			n = Np=Afield= radfield_dp=0;
+            n = Np = 0;
+            Afield = radfield_dp = 0.0;
 			m_dot_panel = W = L = L_c = th = D = k_panel = epsilon = epsilonb = epsilong = Lsec = m_night_hrs = RM = epsilon_HX = Asolar_refl = std::numeric_limits<double>::quiet_NaN();
 		}
 	};

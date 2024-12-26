@@ -265,11 +265,10 @@ bool noct_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 		tau_al = std::abs(TauAlpha);  // Sev: What's the point of recalculating this??
 
 		W_spd = input.Wspd * ffv_wind; //added 1/11/12 to account for FFV_wind correction factor internally
-		if (W_spd < 0.001) W_spd = 0.001;		
-		if (G_total > 0) tau_al *= Geff_total/G_total;		
+		if (W_spd < 0.001) W_spd = 0.001;				
 
 		double Tnoct_adj = Tnoct + standoff_tnoct_adj; // added 1/11/12 for adjustment to NOCT as in the CECPV calculator based on standoff height, used in eqn below.
-		Tcell = (input.Tdry+273.15) + (G_total/I_noct * (Tnoct_adj - Tamb_noct) * (1.0-eff_ref/tau_al))*9.5/(5.7 + 3.8*W_spd);
+		Tcell = (input.Tdry+273.15) + (Geff_total/I_noct * (Tnoct_adj - Tamb_noct) * (1.0-eff_ref/tau_al))*9.5/(5.7 + 3.8*W_spd);
 		Tcell = Tcell-273.15;
 	}
 

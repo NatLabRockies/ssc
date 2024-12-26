@@ -119,7 +119,6 @@ static var_info _cm_vtab_etes_electric_resistance[] = {
     // System control
     { SSC_INPUT,  SSC_NUMBER, "disp_horizon",                  "Time horizon for dispatch optimization",                        "hour",         "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "disp_frequency",                "Frequency for dispatch optimization calculations",              "hour",         "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
-    { SSC_INPUT,  SSC_NUMBER, "disp_steps_per_hour",           "Time steps per hour for dispatch optimization calculations",    "",             "",                                  "System Control",                           "?=1",                                                              "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,  SSC_NUMBER, "disp_max_iter",                 "Max number of dispatch optimization iterations",                "",             "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "disp_timeout",                  "Max dispatch optimization solve duration",                      "s",            "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "disp_mip_gap",                  "Dispatch optimization solution tolerance",                      "",             "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
@@ -516,7 +515,7 @@ public:
                 pc->m_CT = as_integer("CT");                    // cooling tech type: 1=evaporative, 2=air, 3=hybrid
                 if (pc->m_CT > 2) {
                     std::string err_msg = util::format("The specified power cycle cooling tech type, %d, does not exist"
-                        " for the ETES electric resistance heating model. Choose from 1) evaporative or 2) air\n", pb_tech_type);
+                        " for the ETES electric resistance heating model. Choose from 1) evaporative or 2) air\n", pc->m_CT);
                     log(err_msg, SSC_WARNING);
                     return;
                 }
@@ -625,6 +624,7 @@ public:
             as_double("tes_init_hot_htf_percent"),
             as_double("pb_pump_coef"),
             false,                        //[-] False: Field HTF always goes to TES. PC HTF always comes from TES. ETES should not simultaneously operate heater and cycle
+            1.0,                          // Packed volume fraction
             1.85,                         //[m/s]
             false                         // for now, to get 'tanks_in_parallel' to work
         );
@@ -737,7 +737,7 @@ public:
         etes_dispatch_opt dispatch;
 
         if (as_boolean("is_dispatch")) {
-            dispatch.solver_params.set_user_inputs(as_boolean("is_dispatch"), as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
+            dispatch.solver_params.set_user_inputs(as_boolean("is_dispatch"), steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                 as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                 as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
                 false, false, "", "");
@@ -883,9 +883,9 @@ public:
         c_electric_resistance.get_design_parameters(E_heater_su_des, W_dot_heater_des_calc);
 
             // TES
-        double V_tes_htf_avail /*m3*/, V_tes_htf_total /*m3*/, d_tank /*m*/, q_dot_loss_tes_des /*MWt*/, dens_store_htf_at_T_ave /*kg/m3*/, Q_tes_des_tes_class;
+        double V_tes_htf_avail /*m3*/, V_tes_htf_total /*m3*/, d_tank /*m*/, q_dot_loss_tes_des /*MWt*/, dens_store_htf_at_T_ave /*kg/m3*/, Q_tes_des_tes_class, tes_total_mass /*kh*/;
         storage.get_design_parameters(V_tes_htf_avail, V_tes_htf_total, d_tank,
-            q_dot_loss_tes_des, dens_store_htf_at_T_ave, Q_tes_des_tes_class);        
+            q_dot_loss_tes_des, dens_store_htf_at_T_ave, Q_tes_des_tes_class, tes_total_mass);
 
             // System
         double W_dot_bop_design;    //[MWe]
@@ -1096,7 +1096,7 @@ public:
         ssc_number_t* p_time_final_hr = as_array("time_hr", &count);
 
         // 'adjustment_factors' class stores factors in hourly array, so need to index as such
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if (!haf.setup(n_steps_fixed))
             throw exec_error("etes_electric_resistance", "failed to setup adjustment factors: " + haf.error());
 

@@ -294,7 +294,7 @@ TEST_F(ResilienceTest_lib_resilience, PVWattsSetUp)
         batt->advance(vartab, ac[count], 500);
 
 //        printf("%f\t current, %f\t voltage, %f\t losses, %f\t power\n",
-//               cap->I(), vol->V(), batt->battery_model->losses_model()->getLoss(count), power_model->powerBatteryDC);
+//               cap->I(), vol->V(), batt->battery_model->losses_model()->getAncillaryLoss(count), power_model->powerBatteryDC);
 
         count ++;
     }

@@ -234,7 +234,7 @@ static var_info _cm_vtab_tcsdish[] = {
 //    { SSC_OUTPUT,       SSC_ARRAY,       "hourly_energy",            "Hourly Energy",                                                     "kWe",           "",             "Outputs",        "*",                      "LENGTH=8760",           "" },
 
 	// annual outputs
-	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",            "Annual Energy",                                                     "kWh",           "",             "Outputs",        "*",                       "",                    "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",            "Annual AC energy in Year 1",                                                     "kWh",           "",             "Outputs",        "*",                       "",                    "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_Power_in_collector","Power incident on the collector",                                   "MWh",           "",             "Outputs",        "*",                       "",                    "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_Power_out_col",     "Total power from the collector dish",                               "MWh",           "",             "Outputs",        "*",                       "",                    "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_Power_in_rec",      "Power entering the receiver from the collector",                    "MWh",           "",             "Outputs",        "*",                       "",                    "" },
@@ -245,7 +245,7 @@ static var_info _cm_vtab_tcsdish[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_Q_rec_losses",      "Receiver thermal losses",                                           "MWh",           "",             "Outputs",        "*",                       "",                    "" },
 
 	// monthly outputs
-	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",            "Monthly Energy",                                                   "kWh",           "",             "Outputs",        "*",                       "LENGTH=12",           "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",            "Monthly AC energy in Year 1",                                                   "kWh",           "",             "Outputs",        "*",                       "LENGTH=12",           "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "monthly_Power_in_collector","Power incident on the collector",                                  "MWh",           "",             "Outputs",        "*",                       "LENGTH=12",           "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "monthly_Power_out_col",     "Total power from the collector dish",                              "MWh",           "",             "Outputs",        "*",                       "LENGTH=12",           "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "monthly_Power_in_rec",      "Power entering the receiver from the collector",                   "MWh",           "",             "Outputs",        "*",                       "LENGTH=12",           "" },
@@ -517,7 +517,7 @@ public:
 		ssc_number_t *po8 = allocate("hourly_Q_rec_losses", count);
 
 
-		adjustment_factors haf(this, "adjust");
+		adjustment_factors haf(this->get_var_table(), "adjust");
 		if (!haf.setup(count))
 			throw exec_error("dish", "failed to setup adjustment factors: " + haf.error());
 

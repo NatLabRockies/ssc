@@ -254,6 +254,18 @@ TEST_F(Data8760CaseWeatherData, initTest_lib_weatherfile){
 	EXPECT_FALSE(wd.has_data_column(8)) << "Should not have POA column";
 }
 
+TEST_F(Data8760CaseWeatherData, initTest_errormessage_lib_weatherfile) {
+    input->table.unassign("elev");
+    weatherdata wd(input);
+    weather_record r;
+    EXPECT_TRUE(std::isnan(wd.header().elev)) << "NaN elevation";
+
+    input->table.unassign("lat");
+    weatherdata wd2(input);
+    std::string error = "missing latitude: could not find lat";
+    EXPECT_EQ(error, wd2.message()) << "Latitude missing error";
+}
+
 TEST_F(Data8760CaseWeatherData, readTest_lib_weatherfile){
 	weatherdata wd(input);
 	weather_record r;

@@ -74,7 +74,7 @@ SSCEXPORT bool Reopt_size_battery_params(ssc_data_t data) {
         //map_input(vt, "system_capacity", &reopt_pv, "existing_kw");
         map_input(vt, "system_capacity", &reopt_pv, "max_kw");
     }
-    map_optional_input(vt, "degradation", &reopt_pv, "degradation_pct", 0.5, true);
+    map_optional_input(vt, "degradation", &reopt_pv, "degradation_fraction", 0.5, true);
 
     map_optional_input(vt, "module_type", &reopt_pv, "module_type", 1);
 

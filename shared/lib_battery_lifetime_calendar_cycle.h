@@ -125,6 +125,9 @@ public:
     /// Return the relative capacity percentage of nominal (%)
     double capacity_percent();
 
+    /// Return the relative capacity loss percentage of nominal (%)
+    double capacity_loss_percent();
+
     /// Run the rainflow counting algorithm at the current depth-of-discharge to determine cycle
     void rainflow(double DOD);
 
@@ -217,6 +220,9 @@ public:
 
     /// Return the relative capacity percentage of nominal (%)
     double capacity_percent();
+
+    /// Return the relative capacity loss percentage of nominal (%)
+    double capacity_loss_percent();
 
     lifetime_state get_state();
 

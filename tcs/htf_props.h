@@ -78,8 +78,9 @@ public:
         N06230,         // Nickel alloy
         N07740,         // Nickel alloy
         Methanol,
-        Salt_45MgCl2_39KCl_16NaCl, // Zhao 2020 Molten Chloride Thermophysical Properties, Chemical Optimization, and Purification Purification
-		End_Library_Fluids,
+        Salt_45MgCl2_39KCl_16NaCl, // Zhao 2020 Molten Chloride Thermo-physical Properties, Chemical Optimization, and Purification
+        Bauxite_particles, // Albrecht 2019 "PARAMETRIC ANALYSIS OF PARTICLE CSP SYSTEM PERFORMANCE AND COST TO INTRINSIC PARTICLE PROPERTIES AND OPERATING CONDITIONS" 
+        End_Library_Fluids,
 		User_defined = 50
 	};
 	
@@ -129,7 +130,7 @@ public:
 
 private:
 
-	Linear_Interp User_Defined_Props;		// Define interpolation class in case user defined propeties are required
+	Linear_Interp User_Defined_Props;		// Define interpolation class in case user defined properties are required
 	Linear_Interp mc_temp_enth_lookup;		// Enthalpy-temperature relationship, populated by pre-processor: 'set_temp_enth_lookup' 
 	void set_temp_enth_lookup();
 	bool m_is_temp_enth_avail;

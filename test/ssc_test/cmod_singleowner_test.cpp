@@ -42,7 +42,7 @@ TEST_F(CMSingleOwner, ResidentialDefault_cmod_swh) {
 
     ssc_number_t npv;
     ssc_data_get_number(data, "project_return_aftertax_npv", &npv);
-    EXPECT_NEAR(npv, -647727845.8, 0.1);
+    EXPECT_NEAR(npv, -647715977.8, 0.1);
 
 }
 
@@ -125,7 +125,7 @@ TEST_F(CmodSingleOwnerTest, FuelCell) {
     Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
-TEST_F(CmodSingleOwnerTest, GenericBattery) {
+TEST_F(CmodSingleOwnerTest, CustomGenerationBattery) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/singleowner/2022.08.08_develop_branch_Generic_Battery_Single_Owner_cmod_singleowner.json";
     std::string file_outputs = SSCDIR;
@@ -147,7 +147,7 @@ TEST_F(CmodSingleOwnerTest, GenericCSP) {
     Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
-TEST_F(CmodSingleOwnerTest, Generic) {
+TEST_F(CmodSingleOwnerTest, CustomGeneration) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/singleowner/2022.08.08_develop_branch_Generic_System_Single_Owner_cmod_singleowner.json";
     std::string file_outputs = SSCDIR;

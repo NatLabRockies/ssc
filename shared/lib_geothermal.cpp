@@ -1160,13 +1160,21 @@ double CGeothermalAnalyzer::RameyWellbore()
 {
     double alpharock = mo_geo_in.md_EGSThermalConductivity / (mo_geo_in.md_EGSRockDensity * mo_geo_in.md_EGSSpecificHeatConstant);
     double time = 0;
-    if (mp_geo_out->ElapsedHours < 0.1) time = 744 * 3600;
-    else time = mp_geo_out->ElapsedHours * 3600; //elapsed time (s)
+    double working_temp = md_WorkingTemperatureC;
+    if (mp_geo_out->ElapsedHours < 0.1) {
+        time = 744 * 3600;
+        working_temp = GetResourceTemperatureC();
+    }
+    else {
+        time = mp_geo_out->ElapsedHours * 3600; //elapsed time (s)
+        working_temp = md_WorkingTemperatureC;
+    }
     double utilfactor = 1.0; //capacity factor?
     double avg_gradient = 2 / GetResourceDepthM(); //local average geothermal gradient
     double framey = -1.0 * log(1.1 * (0.3048 * (mo_geo_in.md_DiameterProductionWellInches / (2 * 12)) / sqrt(4.0 * alpharock * time * utilfactor))) - 0.29;
-    double rameyA = productionFlowRate() * md_WorkingTemperatureC * framey / (2 * physics::PI * mo_geo_in.md_EGSThermalConductivity);
-    double ProdTempDrop = -1.0 * ((GetResourceTemperatureC() - md_WorkingTemperatureC) - avg_gradient * (GetResourceDepthM() - rameyA) + (md_WorkingTemperatureC - avg_gradient * rameyA - GetResourceTemperatureC()) * exp(-GetResourceDepthM() / rameyA));
+    double c_w = geothermal::EGSSpecificHeat(working_temp);
+    double rameyA = mo_geo_in.md_ProductionFlowRateKgPerS * c_w * framey / (2 * physics::PI * mo_geo_in.md_EGSThermalConductivity);
+    double ProdTempDrop = -1.0 * ((GetResourceTemperatureC() - working_temp) - avg_gradient * (GetResourceDepthM() - rameyA) + (working_temp - avg_gradient * rameyA - GetResourceTemperatureC()) * exp(-GetResourceDepthM() / rameyA));
     return ProdTempDrop;
 }
 
@@ -2406,7 +2414,7 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 
 			// Is it possible and do we want to replace the reservoir in the next time step?
 			//bWantToReplaceReservoir = ( md_WorkingTemperatureC < (GetResourceTemperatureC() - geothermal::MAX_TEMPERATURE_DECLINE_C) ) ? true : false;
-			bWantToReplaceReservoir = (md_WorkingTemperatureC < (GetResourceTemperatureC() - mo_geo_in.md_MaxTempDeclineC)) ? true : false;
+			bWantToReplaceReservoir = (md_WorkingTemperatureC < (GetResourceTemperatureC() - mo_geo_in.md_MaxTempDeclineC) && mo_geo_in.md_AllowReservoirReplacements) ? true : false;
 			if (bWantToReplaceReservoir && CanReplaceReservoir(dElapsedTimeInYears + (1.0 / 12)))
 			{
 				ReplaceReservoir(dElapsedTimeInYears); // this will 'reset' temperature back to original resource temp

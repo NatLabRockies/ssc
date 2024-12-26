@@ -107,7 +107,10 @@ public:
         double m_Tdownc;				//[C] Average downcomer wall temperature at outlet
 
 		double m_Q_thermal_csky_ss;		//[MWt]  Steady-state thermal power delivered to TES/PC if DNI is equal to clear-sky DNI 
-		double m_Q_thermal_ss;			//[MWt] Steady-state thermal power delivered to TES/PC 
+		double m_Q_thermal_ss;			//[MWt] Steady-state thermal power delivered to TES/PC
+
+        double m_max_T_cav_wall;        //[C] Maximum cavity wall temperature (only defined/used for the falling particle receiver)
+        double m_avg_T_cav_wall;        //[C] Average cavity wall temperature (only defined/used for the falling particle receiver)
 
         S_outputs()
         {
@@ -124,6 +127,8 @@ public:
 
 			m_inst_T_salt_hot = m_max_T_salt_hot = m_min_T_salt_hot = m_max_rec_tout = m_Twall_inlet = m_Twall_outlet = 
 				m_Triser = m_Tdownc = m_Q_thermal_csky_ss = m_Q_thermal_ss = std::numeric_limits<double>::quiet_NaN();
+
+            m_max_T_cav_wall, m_avg_T_cav_wall = std::numeric_limits<double>::quiet_NaN();
         }
     };
 
@@ -158,13 +163,17 @@ public:
 
     virtual double area_proj() = 0; //[m^2]
 
-    double estimate_thermal_efficiency(const C_csp_weatherreader::S_outputs& weather, double q_inc);
+    virtual double estimate_thermal_efficiency(const C_csp_weatherreader::S_outputs& weather, double q_inc);
+
+    virtual double getHeatLossPerApertureArea(); // [W/m^2]
 
     double get_min_power_delivery(); //[MWt]
 
     double get_max_power_delivery(); //[MWt]
 
     double get_T_htf_cold_des();    //[K]
+
+    double get_T_htf_hot_des();    //[K]
 
     double get_q_dot_rec_des();     //[MWt]
 
@@ -175,6 +184,10 @@ public:
         double& rec_pump_coef /*MWe/MWt*/, double& rec_vel_htf_des /*m/s*/,
         double& m_dot_htf_rec /*kg/s*/, double& m_dot_htf_max /*kg/s*/,
         double& q_dot_piping_loss_des /*MWt*/);
+
+    virtual void set_state_requirement(bool) {};       // Only implemented in falling particle receiver class
+    virtual void set_fixed_mflow(double) {};            // Only implemented in falling particle receiver class
+    virtual void update_sizing(double, double, double, double);  // Only implemented in falling particle receiver class
 
 protected:
 
@@ -197,7 +210,7 @@ protected:
     double m_T_htf_hot_des;			    //[K] hot outlet HTF temperature at design, converted from C in constructor
     double m_T_htf_cold_des;		    //[K] cold inlet HTF temperature at design, converted from C in constructor
     double m_f_rec_min;				    //[-] minimum receiver thermal output as fraction of design
-    double m_q_rec_des;				    //[MW] design recever thermal output, converted to [W] in init()
+    double m_q_rec_des;				    //[MW] design receiver thermal output, converted to [W] in init()
     double m_rec_su_delay;			    //[hr] required startup time
     double m_rec_qf_delay;			    //[-] required startup energy as fraction of design thermal output
     double m_m_dot_htf_max_frac;	    //[-] maximum receiver HTF mass flow as fraction of design mass flow

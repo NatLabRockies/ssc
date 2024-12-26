@@ -36,14 +36,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <map>
 #include <vector>
-#include <stdio.h>
 #include <limits>
+#include <stdio.h>
 
 #include "string_util.h"
 #include "mod_base.h"
 #include "heliodata.h"
 #include "definitions.h"
-#ifdef SP_USE_THREADS
+#ifdef SP_USE_SOLTRACE
 #include "stapi.h"
 #endif
 
@@ -202,13 +202,14 @@ public:
 	ST_System* _STSim;
 
 	SimControl();
+	~SimControl();
 
 	void SetThreadCount(int nthreads);
 
-    #ifdef SP_USE_THREADS
-    int (*soltrace_callback)(st_uint_t, st_uint_t, st_uint_t, st_uint_t, st_uint_t, void*);
+#ifdef SP_USE_SOLTRACE
+	int (*soltrace_callback)(st_uint_t, st_uint_t, st_uint_t, st_uint_t, st_uint_t, void*);
 	void* soltrace_callback_data;
-    #endif
+#endif
 
 	int (*message_callback)(const char*, void*);
 	void* message_callback_data;
@@ -304,7 +305,7 @@ public:
 
 	void process_analytical_simulation(SolarField &SF, sim_params &P, int nsim_type, double sun_az_zen[2], Hvector* helios=0, Rvector* recs=0);
 
-	void process_raytrace_simulation(SolarField &SF, sim_params &P, int nsim_type, double sun_az_zen[2], Hvector &helios, double qray, int *emap, int *smap, int *rnum, int ntot, double *boxinfo);
+	void process_raytrace_simulation(SolarField& SF, sim_params& P, int nsim_type, double sun_az_zen[2], Hvector& helios, ST_System* STsim);
 
 	void process_flux(SolarField *SF, bool normalize);
 	
@@ -319,7 +320,7 @@ typedef std::vector<sim_result> sim_results;
 namespace interop
 {
 	/*
-	Provides functions that calculate simulatin input values based on other specified data.
+	Provides functions that calculate simulation input values based on other specified data.
 
 	E.g. - given a layout simulation method, calculate the days/hours of the year to simulate.
 
@@ -335,7 +336,7 @@ namespace interop
 	bool ticker_increment(int lengths[], int indices[], bool changed[], int n);
 
 	//Simulation setup methods
-	bool PerformanceSimulationPrep(SolarField& SF, Hvector& helios, int sim_method);
+	bool PerformanceSimulationPrep(SolarField& SF, Hvector& helios);
 #ifdef SP_USE_SOLTRACE
 	bool SolTraceFluxSimulation_ST(st_context_t cxt, SolarField& SF, Hvector& helios, Vect& sunvect,
 		int callback(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void* data),

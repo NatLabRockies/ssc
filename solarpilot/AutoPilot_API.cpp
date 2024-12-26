@@ -329,13 +329,17 @@ struct AutoOptHelper
         vector<double> current;
 
         //update the objective variables
-        for(int i=0; i<(int)m_opt_vars.size(); i++)
-        {
+        for(int i=0; i<(int)m_opt_vars.size(); i++) {
             current.push_back( x[i] );
             *m_opt_vars.at(i) = current.at(i)/* * m_normalizers.at(i)*/;
         }
 
         m_all_points.push_back( current );
+
+        // Update falling-particle receiver dependent variables
+        var_map* V = m_variables;
+        if (V->recs.front().rec_type.mapval() == var_receiver::REC_TYPE::FALLING_PARTICLE)
+            update_fp_rec_dep_vars(current);
 
         double obj, cost;
         std::vector<double> flux;
@@ -356,6 +360,27 @@ struct AutoOptHelper
                 
         return obj;
     };
+
+    void update_fp_rec_dep_vars(std::vector<double> x)
+    {
+        // Update dependent variables based on current point
+        var_map* V = m_variables;
+        for (auto& rec : V->recs) {
+            rec.rec_height.val = x.at(1);
+            rec.rec_width.val = x.at(1);   // Assumes a square aspect ratio
+        }
+        // azimuth angle
+        if (V->recs.size() == 2 || V->recs.size() == 3) {
+            V->recs.front().rec_azimuth.val = x.back();   // "East"
+            V->recs.back().rec_azimuth.val = -x.back();   // "West"
+        }
+        if (V->recs.size() == 3) {
+            if (V->amb.latitude.val > 0.0)
+                V->recs.at(1).rec_azimuth.val = 0.0;     // "North"
+            else
+                V->recs.at(1).rec_azimuth.val = 180.0;   // "South"
+        }
+    }
 };
 
 double optimize_leastsq_eval(unsigned n, const double *x, double * /*grad*/, void *data)
@@ -427,7 +452,6 @@ double optimize_auto_eval(unsigned n, const double *x, double * /*grad*/, void *
 
     return D->Simulate(x, n);
 };
-
 
 void constraint_auto_eval(unsigned m, double *result, unsigned n, const double* x, double* /*gradient*/, void *data)
 {
@@ -608,8 +632,11 @@ void AutoPilot::GenerateDesignPointSimulations(var_map &V, vector<string> &wdata
 	day, hour, month,  dni, tdry, pres, wspd
 	1..,  0..,  1-12, W/m2,    C,  bar,  m/s
 	*/
-    
-	interop::GenerateSimulationWeatherData(V, -1, wdata);	
+//#ifdef _DEBUG
+//    interop::GenerateSimulationWeatherData(V, var_solarfield::DES_SIM_DETAIL::SINGLE_SIMULATION_POINT, wdata);	// Reduces number of cases to run in debug
+//#else
+	interop::GenerateSimulationWeatherData(V, -1, wdata);
+//#endif
 }
 
 void AutoPilot::PreSimCallbackUpdate()
@@ -628,37 +655,37 @@ void AutoPilot::PreSimCallbackUpdate()
 	}
 }
 
-
 void AutoPilot::PostProcessLayout(sp_layout &layout)
 {
-    /*
-    Layout post-process.. collect the layout results and fill the data into the
-    layout structure for later use
+	/* 
+	Layout post-process.. collect the layout results and fill the data into the
+	layout structure for later use
     Calculate all post layout parameters
-    */
+	*/
 
-    Hvector* hpos = _SF->getHeliostats();
-    layout.heliostat_positions.clear();
+	Hvector *hpos = _SF->getHeliostats();
+	layout.heliostat_positions.clear();
     layout.heliostat_positions.reserve(hpos->size());
-    for (int i = 0; i < (int)hpos->size(); i++) {
-        sp_layout::h_position hp;
-        hp.location.x = hpos->at(i)->getLocation()->x;
-        hp.location.y = hpos->at(i)->getLocation()->y;
-        hp.location.z = hpos->at(i)->getLocation()->z;
+	for(int i=0; i<(int)hpos->size(); i++){
+		sp_layout::h_position hp;
+		hp.location.x = hpos->at(i)->getLocation()->x;
+		hp.location.y = hpos->at(i)->getLocation()->y;
+		hp.location.z = hpos->at(i)->getLocation()->z;
 
-        hp.cant_vector.i = hpos->at(i)->getCantVector()->i;
+		hp.cant_vector.i = hpos->at(i)->getCantVector()->i;
         hp.cant_vector.j = hpos->at(i)->getCantVector()->j;
         hp.cant_vector.k = hpos->at(i)->getCantVector()->k;
-
+		
         hp.aimpoint.x = hpos->at(i)->getAimPoint()->x;
-        hp.aimpoint.y = hpos->at(i)->getAimPoint()->y;
-        hp.aimpoint.z = hpos->at(i)->getAimPoint()->z;
+		hp.aimpoint.y = hpos->at(i)->getAimPoint()->y;
+		hp.aimpoint.z = hpos->at(i)->getAimPoint()->z;
 
-        hp.focal_length = hpos->at(i)->getFocalX();
-        hp.template_number = -1;
-        //hp.user_optics = false;
-        layout.heliostat_positions.push_back(hp);
-    }
+		hp.focal_length = hpos->at(i)->getFocalX();
+		hp.template_number = -1;
+        hp.which_rec = hpos->at(i)->getWhichReceiver()->getVarMap()->id.val;
+		//hp.user_optics = false;
+		layout.heliostat_positions.push_back( hp );
+	}
 
     var_map *V = _SF->getVarMap();
     _SF->updateAllCalculatedParameters( *V );
@@ -667,13 +694,13 @@ void AutoPilot::PostProcessLayout(sp_layout &layout)
 void AutoPilot::PrepareFluxSimulation(sp_flux_table &fluxtab, int flux_res_x, int flux_res_y, bool /*is_normalized*/)
 {
 	var_map *V = _SF->getVarMap();
-    V->amb.sim_time_step.Setval(0.);    //sest the simulation time step for flux
+    V->amb.sim_time_step.Setval(0.);    //set the simulation time step for flux
 
     //simulate flux maps for all of the receivers
 	Rvector rec_to_sim = *_SF->getReceivers();
 	//Get flags and settings
 	
-	if(flux_res_y > 1)
+	if(flux_res_y > 1 && V->recs.front().rec_type.mapval() != var_receiver::REC_TYPE::FALLING_PARTICLE)
         V->flux.aim_method.combo_select_by_mapval( var_fluxsim::AIM_METHOD::IMAGE_SIZE_PRIORITY );
 
 	//Shape the flux surface files to match
@@ -727,7 +754,7 @@ void AutoPilot::PrepareFluxSimulation(sp_flux_table &fluxtab, int flux_res_x, in
     }
 
 	fluxtab.flux_surfaces.clear();
-	//resize the results to accommodate each receiver surface
+	//resize the results to accommodate each receiver surfaces
 	int nsurftot=0;
 	for(int i=0; i<(int)_SF->getReceivers()->size(); i++){
 		for(int j=0; j<(int)_SF->getReceivers()->at(i)->getFluxSurfaces()->size(); j++){
@@ -736,8 +763,14 @@ void AutoPilot::PrepareFluxSimulation(sp_flux_table &fluxtab, int flux_res_x, in
 	}
 	fluxtab.flux_surfaces.resize(nsurftot);
 	//resize the flux surfaces to match the flux data and the number of annual simulation positions
-	for(int i=0; i<nsurftot; i++)
-		fluxtab.flux_surfaces.at(i).flux_data.resize(flux_res_y, flux_res_x, nflux_sim);
+    int surf_idx = 0;
+    for (int i = 0; i < (int)_SF->getReceivers()->size(); i++) {//for all receivers
+        for (int j = 0; j < (int)_SF->getReceivers()->at(i)->getFluxSurfaces()->size(); j++) {//for all receiver flux surfaces
+            FluxSurface *fs = &_SF->getReceivers()->at(i)->getFluxSurfaces()->at(j);
+            fluxtab.flux_surfaces.at(surf_idx).flux_data.resize(fs->getFluxNY(), fs->getFluxNX(), nflux_sim);
+            surf_idx++;
+        }
+    }
 }
 
 void AutoPilot::PostProcessFlux(sim_result &result, sp_flux_map &fluxmap, int flux_layer)
@@ -825,7 +858,7 @@ bool AutoPilot::EvaluateDesign(double &obj_metric, std::vector< double > &flux_m
         _SF->getVarMap()->flux.flux_time_type.combo_select_by_mapval( var_fluxsim::FLUX_TIME_TYPE::SUN_POSITION );
 
 		//prep for performance simulation (aim points, etc.)
-		interop::PerformanceSimulationPrep(*_SF, *_SF->getHeliostats(), 0 /*analytical*/);
+		interop::PerformanceSimulationPrep(*_SF, *_SF->getHeliostats());
 		
 		//do flux simulation
 		_SF->HermiteFluxSimulation( *_SF->getHeliostats(), V->flux.aim_method.mapval() == var_fluxsim::AIM_METHOD::IMAGE_SIZE_PRIORITY);	
@@ -894,7 +927,8 @@ bool AutoPilot::Optimize(vector<double*> &optvars, vector<double> &upper_range, 
     AO.SetObjects( (void*)this,  *V, &nlobj);
     AO.m_opt_vars = optvars;
     //-------
-    nlobj.set_min_objective( optimize_auto_eval, &AO  );
+    nlobj.set_min_objective(optimize_auto_eval, &AO);
+    
     nlobj.set_xtol_rel(1.e-4);
     nlobj.set_ftol_rel(V->opt.converge_tol.val);
     nlobj.set_initial_step( stepsize );
@@ -909,10 +943,10 @@ bool AutoPilot::Optimize(vector<double*> &optvars, vector<double> &upper_range, 
     //Number of variables to be optimized
 	int nvars = (int)optvars.size();
 	
-    //the initial normalized point is '1'
-	vector<double> start(nvars);
-    for(int i=0; i<(int)optvars.size(); i++)
-        start.at(i) = *optvars.at(i);
+    //NLopt optimization variable values
+	vector<double> var_values(nvars);
+    for(int i=0; i<nvars; i++)
+        var_values.at(i) = *optvars.at(i);
 
     //Check feasibility
     int itct = 0;
@@ -921,16 +955,16 @@ bool AutoPilot::Optimize(vector<double*> &optvars, vector<double> &upper_range, 
         unsigned int iht = (unsigned int)(std::find(names->begin(), names->end(), rit->rec_height.name) - names->begin());
         if (iht < names->size())
         {
-            double *xtemp = new double[optvars.size()];
-            for (int i = 0; i < (int)optvars.size(); i++)
+            double *xtemp = new double[nvars];
+            for (int i = 0; i < nvars; i++)
                 xtemp[i] = 1.;
-            AO.Simulate(xtemp, (int)optvars.size());
+            AO.Simulate(xtemp, nvars);
             delete[] xtemp;
             double feas_mult = 1.;
             if (AO.m_flux.back().at(itct) > rit->peak_flux.val)
             {
                 feas_mult += (AO.m_flux.back().at(itct) / rit->peak_flux.val - 1.)*3.;
-                start.at(iht) *= feas_mult;
+                var_values.at(iht) *= feas_mult;
                 _summary_siminfo->addSimulationNotice("Modifying initial receiver height for feasibility");
             }
         }
@@ -939,13 +973,13 @@ bool AutoPilot::Optimize(vector<double*> &optvars, vector<double> &upper_range, 
     
     //Add a formatted simulation notice
     ostringstream os;
-    int width = 9;
+    int width = 12;
     os << "\n\nBeginning Simulation\nIter | ";
 
     for (int j = 0; ; j++)      //header line counter
     {
         bool all_written = true;    //initialize
-        for (int i = 0; i < (int)optvars.size(); i++)
+        for (int i = 0; i < nvars; i++)
         {
             size_t nch = names->at(i).size();
 
@@ -966,7 +1000,7 @@ bool AutoPilot::Optimize(vector<double*> &optvars, vector<double> &upper_range, 
     }
     os << "| Obj.    | Flux    ";
     for (size_t i = 0; i < _SF->getVarMap()->recs.size(); i++)
-        os << setw(8) << " ";
+        os << setw(width) << " ";
     os << "| Plant cost";
 
     int maxlinelen = 0;
@@ -985,19 +1019,28 @@ bool AutoPilot::Optimize(vector<double*> &optvars, vector<double> &upper_range, 
 
     double fmin;
     try{
-       nlobj.optimize( start, fmin );
+       nlobj.optimize(var_values, fmin );       //
         _summary_siminfo->addSimulationNotice( ol.str() );
         
-        //int iopt = 0;
-        int iopt = (int)AO.m_objective.size()-1;
-
         //write the optimal point found
         ostringstream oo;
         oo << "Algorithm converged:\n";
-        for(int i=0; i<(int)optvars.size(); i++)
-            oo << (names == 0 ? "" : names->at(i) + "=" ) << setw(8) << AO.m_all_points.at(iopt).at(i) << "   ";
-        oo << "\nObjective: " << AO.m_objective.back(); //objbest;
+        for(int i=0; i<nvars; i++)
+            oo << (names == 0 ? "" : names->at(i) + "=" ) << setw(8) << var_values.at(i) << "   ";
+        oo << "\nObjective: " << fmin;
         _summary_siminfo->addSimulationNotice(oo.str() );
+
+        //Set vars to optimal point
+        double* opt_x = new double[nvars];
+        for (int i = 0; i < nvars; i++) {
+            *optvars.at(i) = var_values.at(i);
+            opt_x[i] = var_values.at(i);
+        }
+        var_map* V = AO.m_variables;
+        if (V->recs.front().rec_type.mapval() == var_receiver::REC_TYPE::FALLING_PARTICLE)
+            AO.update_fp_rec_dep_vars(var_values);
+        delete[] opt_x;
+
     }
     catch(const std::exception &e){
 		ostringstream oo;
@@ -1039,15 +1082,16 @@ sp_optimize *AutoPilot::GetOptimizationObject()
 
 void AutoPilot::PostEvaluationUpdate(int iter, vector<double> &pos, /*vector<double> &normalizers, */double &obj, std::vector<double> &flux, double &cost, std::string *note)
 {
+    int width = 12;
 	ostringstream os;
     os << "[" << setw(3) << iter << "]  ";
     for(int i=0; i<(int)pos.size(); i++)
-        os << setw(8) << pos.at(i) /** normalizers.at(i)*/ << " |";
+        os << setw(width) << pos.at(i) /** normalizers.at(i)*/ << " |";
 
-    os << "|" << setw(8) << obj << " |";
+    os << "|" << setw(width) << obj << " |";
     for (size_t i = 0; i < flux.size(); i++)
-        os << setw(8) << flux.at(i) << (flux.size()>0 ? "  " : "");
-    os << " | $" << setw(8) << cost;
+        os << setw(width) << flux.at(i) << (flux.size()>0 ? "  " : "");
+    os << " | $" << setw(width) << cost;
 
     if( note != 0 )
         os << *note;
@@ -1056,42 +1100,6 @@ void AutoPilot::PostEvaluationUpdate(int iter, vector<double> &pos, /*vector<dou
 		CancelSimulation();
 
 
-}
-
-bool AutoPilot::CalculateFluxMapsOV1(vector<vector<double> > &sunpos, vector<vector<double> > &fluxtab, vector<double> &efficiency, int flux_res_x, int flux_res_y, bool is_normalized)
-{
-	/* 
-	overload to provide the flux data in a simple 2D vector arrangement. Each flux map is provided 
-	in a continuous sequence, and it is up to the user to separate out the data based on knowledge
-	of the number of flux maps and dimension of each flux map.
-	*/
-
-	//Call the main algorithm
-	sp_flux_table fluxtab_s;
-	if(! CalculateFluxMaps(fluxtab_s, flux_res_x, flux_res_y, is_normalized) )
-		return false;
-
-	block_t<double> *flux_data = &fluxtab_s.flux_surfaces.front().flux_data;
-
-	//convert data structure
-	fluxtab.clear();
-	efficiency.clear();
-	for(int i=0; i<(int)flux_data->nlayers(); i++){
-		sunpos.push_back( vector<double>(2) );
-		sunpos.back().at(0) = fluxtab_s.azimuths.at(i);
-		sunpos.back().at(1) = fluxtab_s.zeniths.at(i);
-		efficiency.push_back( fluxtab_s.efficiency.at(i) );
-
-		for(int j=0; j<flux_res_y; j++){
-			vector<double> newline;
-			for(int k=0; k<flux_res_x; k++){
-				newline.push_back(flux_data->at(j, k, i));
-			}
-			fluxtab.push_back( newline );
-		}
-	}
-
-	return true;
 }
 
 //---------------- API_S --------------------------
@@ -1105,8 +1113,9 @@ bool AutoPilot_S::CreateLayout(sp_layout &layout, bool do_post_process)
 
 	if(! _cancel_simulation){
 		bool simok = _SF->FieldLayout();			
-        
-        if(_SF->ErrCheck() || !simok) return false;
+
+        // TODO: ErrCheck() doesn't work...
+        if(_SF->ErrCheck() || !simok || _SF->getHeliostats()->size() == 0) return false;
 	}
 	if(do_post_process){
 		if(! _cancel_simulation)
@@ -1209,6 +1218,29 @@ bool AutoPilot_S::CalculateOpticalEfficiencyTable(sp_optical_table &opttab)
 	return true;
 }
 
+bool AutoPilot_S::SimulateAimPointsAtDesign()
+{
+    /*
+    Sets the aimpoints based on the design point conditions (for multi-receiver cases).
+    */
+    var_map* vars = _SF->getVarMap();
+
+    sim_result result;
+    double azzen[2];
+    _SF->CalcDesignPtSunPosition(vars->sf.sun_loc_des.mapval(), azzen[0], azzen[1]);
+
+    sim_params P;
+    P.dni = vars->sf.dni_des.val;
+    P.is_layout = false;
+
+    if (!_cancel_simulation)
+        _SF->Simulate(azzen[0] * D2R, azzen[1] * D2R, P);
+
+    //result.process_analytical_simulation(*_SF, P, 0, azzen);
+
+    return true;
+}
+
 bool AutoPilot_S::CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x, int flux_res_y, bool is_normalized)
 {
 	/* 
@@ -1267,9 +1299,7 @@ bool AutoPilot_S::CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x, int 
 		_sim_complete++;  //increment
 
 		if(_has_summary_callback)
-			if( ! 
-				_summary_siminfo->setCurrentSimulation(_sim_complete) 
-				) 
+			if( !_summary_siminfo->setCurrentSimulation(_sim_complete) ) 
 				CancelSimulation();
 
         double azzen[2];
@@ -1280,35 +1310,50 @@ bool AutoPilot_S::CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x, int 
 			_SF->Simulate(azzen[0], azzen[1], P);
 		if(! _cancel_simulation)
 			_SF->HermiteFluxSimulation( *_SF->getHeliostats() );
-			
-		sim_result result;
+
+        // Get Results
+        sim_result result;
+        int num_recs = _SF->getActiveReceiverCount();
+
 		if(! _cancel_simulation){
-			result.process_analytical_simulation(*_SF, P, 2, azzen);	
-			fluxtab.efficiency.push_back( result.eff_total_sf.ave );
+            //if we have more than 1 receiver, create performance summaries for each and append to the results vector
+            if (num_recs > 1){
+                //which heliostats are aiming at which receiver?
+                Hvector helios = *_SF->getHeliostats();
+                unordered_map<Receiver*, Hvector> aim_map;
+                for (Hvector::iterator h = helios.begin(); h != helios.end(); h++)
+                    aim_map[(*h)->getWhichReceiver()].push_back(*h);
+
+                std::vector<double> sf_eff;
+                for (Rvector::iterator rec = _SF->getReceivers()->begin(); rec != _SF->getReceivers()->end(); rec++){
+                    Rvector recs = { *rec };
+                    result.process_analytical_simulation(*_SF, P, 2, azzen, &aim_map[*rec], &recs);
+                    sf_eff.push_back(result.eff_total_sf.ave);
+                }
+                fluxtab.efficiency.push_back(sf_eff);
+                result.process_analytical_simulation(*_SF, P, 2, azzen); // process with all heliostats and receivers for flux maps
+            }
+            else {
+                result.process_analytical_simulation(*_SF, P, 2, azzen);
+                fluxtab.efficiency.push_back({ result.eff_total_sf.ave });
+            }
 		}
 						
 		//Collect flux results here
-		if(! _cancel_simulation)
-			result.process_flux( _SF, is_normalized);
+        if (!_cancel_simulation) {
+            result.process_flux(_SF, is_normalized);
+        }
 						
 		//Collect the results for each flux surface
-
 		if(! _cancel_simulation){
 			PostProcessFlux(result, fluxtab, i);
-				
 		} //end cancel 
 
 		if(_cancel_simulation)
-				return false;
+			return false;
 	}
 	
 	return true;
-}
-
-bool AutoPilot_S::CalculateFluxMaps(vector<vector<double> > &sunpos, vector<vector<double> > &fluxtab, vector<double> &efficiency, int flux_res_x, int flux_res_y, bool is_normalized)
-{
-	PreSimCallbackUpdate();
-	return CalculateFluxMapsOV1(sunpos, fluxtab, efficiency, flux_res_x, flux_res_y, is_normalized);
 }
 
 //---------------- API_MT --------------------------
@@ -1852,17 +1897,11 @@ bool AutoPilot_MT::CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x, int
 
 	for(int i=0; i<_sim_total; i++){
 		PostProcessFlux(results.at(i), fluxtab, i);
-		fluxtab.efficiency.at(i) = results.at(i).eff_total_sf.ave;
+        fluxtab.efficiency.at(i) = { results.at(i).eff_total_sf.ave };
 	}
 
 
 	return true;
-}
-
-bool AutoPilot_MT::CalculateFluxMaps(vector<vector<double> > &sunpos, vector<vector<double> > &fluxtab, vector<double> &efficiency, int flux_res_x, int flux_res_y, bool is_normalized)
-{
-	PreSimCallbackUpdate();
-	return CalculateFluxMapsOV1(sunpos, fluxtab, efficiency, flux_res_x, flux_res_y, is_normalized);
 }
 
 void AutoPilot_MT::CancelSimulation()

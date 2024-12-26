@@ -69,13 +69,12 @@ protected:
 	int _sim_total;
 	int _sim_complete;
 	
-	bool _cancel_simulation;	//changing this flag to "true" will cause the current simulation to terminate
+	bool _cancel_simulation;	        //Changing this flag to "true" will cause the current simulation to terminate
 	bool _has_summary_callback;			//A callback function has been provided to the API.
 	bool _has_detail_callback;
 	bool _is_solarfield_external;		//Is the SolarField object provided externally? Otherwise, it will be created and destroyed locally
-	bool
-		_setup_ok,	//The variable structure has been created
-		_simflag;	//add bool flags here to indicate simulation/setup status
+    bool _setup_ok;	                    //The variable structure has been created
+	bool _simflag;	                    //add bool flags here to indicate simulation/setup status
 
     sp_optimize *_opt;
 
@@ -84,10 +83,6 @@ protected:
 
 	void PrepareFluxSimulation(sp_flux_table &fluxtab, int flux_res_x, int flux_res_y, bool is_normalized);
 	void PostProcessFlux(sim_result &result, sp_flux_map &fluxmap, int flux_layer = 0);
-	
-
-	bool CalculateFluxMapsOV1(std::vector<std::vector<double> > &sunpos, std::vector<std::vector<double> > &fluxtab, std::vector<double> &efficiency, 
-		int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true);
 
 	simulation_info *_summary_siminfo;
 	simulation_info *_detail_siminfo;
@@ -104,7 +99,7 @@ public:
 	void PreSimCallbackUpdate();
 	void SetExternalSFObject(SolarField *SF);
 	bool Setup(var_map &V, bool for_optimize = false);
-    void PostProcessLayout(sp_layout& layout);
+	void PostProcessLayout(sp_layout& layout);
 	//generate weather data
 	void GenerateDesignPointSimulations(var_map &V, std::vector<std::string> &hourly_weather_data);
 	//Simulation methods
@@ -113,15 +108,13 @@ public:
 	virtual bool CreateLayout(sp_layout &layout, bool do_post_process = true)=0;
 	virtual bool CalculateOpticalEfficiencyTable(sp_optical_table &opttab)=0;
 	virtual bool CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true)=0;
-	virtual bool CalculateFluxMaps(std::vector<std::vector<double> > &sunpos, std::vector<std::vector<double> > &fluxtab, std::vector<double> &efficiency, 
-		int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true)=0;
 	bool Optimize(std::vector<double*> &optvars, std::vector<double> &upper_range, std::vector<double> &lower_range, std::vector<double> &stepsize, std::vector<std::string> *names=0);
 	//cancellation methods
 	void CancelSimulation();
 	bool IsSimulationCancelled();
     //other
     sp_optimize *GetOptimizationObject();
-
+    
     struct API_CANT_TYPE { enum A {NONE, ON_AXIS, EQUINOX, SOLSTICE_SUMMER, SOLSTICE_WINTER }; };
 	
 };
@@ -133,12 +126,10 @@ class SPEXPORT AutoPilot_S : public AutoPilot
 	
 public:
 	//methods
-	bool CreateLayout(sp_layout &layout, bool do_post_process = true);
-	bool CalculateOpticalEfficiencyTable(sp_optical_table &opttab);
-	bool CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true);
-	bool CalculateFluxMaps(std::vector<std::vector<double> > &sunpos, std::vector<std::vector<double> > &fluxtab, std::vector<double> &efficiency, 
-		int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true);
-
+    bool CreateLayout(sp_layout &layout, bool do_post_process = true);
+    bool CalculateOpticalEfficiencyTable(sp_optical_table &opttab);
+    bool SimulateAimPointsAtDesign();
+    bool CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true);
 };
 
 #ifdef SP_USE_THREADS
@@ -159,8 +150,6 @@ public:
 	bool CreateLayout(sp_layout &layout, bool do_post_process = true);
 	bool CalculateOpticalEfficiencyTable(sp_optical_table &opttab);
 	bool CalculateFluxMaps(sp_flux_table &fluxtab, int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true);
-	bool CalculateFluxMaps(std::vector<std::vector<double> > &sunpos, std::vector<std::vector<double> > &fluxtab, std::vector<double> &efficiency, 
-		int flux_res_x = 12, int flux_res_y = 10, bool is_normalized = true);
 
 	//other methods
 	bool SetMaxThreadCount(int nt);

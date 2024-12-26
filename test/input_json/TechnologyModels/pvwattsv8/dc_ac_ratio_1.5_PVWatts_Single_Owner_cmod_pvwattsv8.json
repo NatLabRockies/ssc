@@ -1,5 +1,5 @@
 {
-	"solar_resource_file" : "C:/Projects/Github/NREL/working/SAM/deploy/solar_resource/phoenix_az_33.450495_-111.983688_psmv3_60_tmy.csv",
+	"solar_resource_file" : "C:/Users/mprillim/sam_dev/SAM/deploy/solar_resource/phoenix_az_33.450495_-111.983688_psmv3_60_tmy.csv",
 	"albedo" : [ 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001, 0.20000000000000001 ],
     "use_wf_albedo" : 1,
     "system_use_lifetime_output" : 0,
@@ -31,13 +31,7 @@
     "adjust_en_timeindex" : 0,
     "adjust_en_periods" : 0,
 	"adjust_timeindex" : [ 0 ],
-    "adjust_periods": [
-        [
-            0.0,
-            0.0,
-            0.0
-        ]
-    ],
+	"adjust_periods" : [ [ 0,  0,  0 ] ],
 	"number_compute_modules" : 0,
 	"number_metrics" : 0
 }

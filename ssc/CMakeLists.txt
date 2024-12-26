@@ -16,8 +16,8 @@ set(SSC_SRC
 		cmod_battery.h
 		cmod_battery_eqns.cpp
 		cmod_battery_eqns.h
-        cmod_battery_stateful.cpp
-        cmod_battery_stateful.h
+        	cmod_battery_stateful.cpp
+        	cmod_battery_stateful.h
 		cmod_battwatts.cpp
 		cmod_battwatts.h
 		cmod_belpe.cpp
@@ -29,9 +29,11 @@ set(SSC_SRC
 		cmod_csp_common_eqns.cpp
 		cmod_csp_common_eqns.h
 		cmod_csp_dsg_lf_ui.cpp
+		cmod_csp_tower_particle.cpp
 		cmod_csp_subcomponent.cpp
-        cmod_csp_trough_eqns.cpp
+        	cmod_csp_trough_eqns.cpp
 		cmod_csp_trough_eqns.h
+        cmod_custom_generation.cpp
 		cmod_etes_electric_resistance.cpp
 		cmod_etes_ptes.cpp
 		cmod_equpartflip.cpp
@@ -44,9 +46,10 @@ set(SSC_SRC
 		cmod_fuelcell.h
 		cmod_generic_system-builder.cpp
 		cmod_generic_system-builder.h
-		cmod_generic_system.cpp
 		cmod_geothermal.cpp
 		cmod_geothermal_costs.cpp
+        cmod_geothermal_eqns.cpp
+        cmod_geothermal_eqns.h
 		cmod_grid.cpp
 		cmod_grid.h
 		cmod_hcpv.cpp
@@ -71,8 +74,8 @@ set(SSC_SRC
 		cmod_mhk_tidal.cpp
 		cmod_mhk_wave.cpp
 		cmod_mspt_sf_and_rec_isolated.cpp
-        cmod_mspt_iph.cpp
-        cmod_ptes_design_point.cpp
+        	cmod_mspt_iph.cpp
+        	cmod_ptes_design_point.cpp
 		cmod_pv6parmod.cpp
 		cmod_pv_get_shade_loss_mpp.cpp
 		cmod_pvsamv1.cpp
@@ -117,11 +120,11 @@ set(SSC_SRC
 		cmod_utilityrate5.cpp
 		cmod_utilityrate5.h
 		cmod_wavefile.cpp
-        cmod_tidalfile.cpp
+        	cmod_tidalfile.cpp
 		cmod_utilityrate5_eqns.cpp
 		cmod_utilityrate5_eqns.h
-        cmod_utilityrateforecast.cpp
-        cmod_utilityrateforecast.h
+        	cmod_utilityrateforecast.cpp
+        	cmod_utilityrateforecast.h
 		cmod_wfcheck.cpp
 		cmod_wfcsv.cpp
 		cmod_wfreader.cpp
@@ -133,8 +136,8 @@ set(SSC_SRC
 		cmod_windpower.h
 		cmod_windpower_eqns.cpp
 		cmod_windpower_eqns.h
-        cmod_wind_landbosse.cpp
-        cmod_wind_landbosse.h
+        	cmod_wind_landbosse.cpp
+        	cmod_wind_landbosse.h
 		common.cpp
 		common.h
 		common_financial.cpp
@@ -190,7 +193,8 @@ else()
             cmod_csp_common_eqns.cpp
             cmod_financial_eqns.cpp
             cmod_windpower_eqns.cpp
-            cmod_utilityrate5_eqns.cpp)
+            cmod_utilityrate5_eqns.cpp
+            cmod_geothermal_eqns.cpp)
     set_source_files_properties(${SRC_UNUSED_VARS} PROPERTIES COMPILE_FLAGS -Wno-unused-variable)
 endif()
 
@@ -245,11 +249,16 @@ set( DEPENDENCIES
 	splinter
 	)
 foreach( name ${DEPENDENCIES} )
-	target_link_libraries(ssc ${name})
+	target_link_libraries(ssc PUBLIC ${name})
 endforeach()
 
 if (UNIX)
-	target_link_libraries(ssc -lpthread -lm -ldl -lstdc++)
+	find_package(Threads REQUIRED)
+	target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
+	find_library(MATH_LIBRARY m)
+	if(MATH_LIBRARY)
+		target_link_libraries(ssc PUBLIC ${MATH_LIBRARY})
+	endif()
 endif()
 
 

@@ -72,6 +72,9 @@ protected:
     std::vector<double> omCost = { 0.0 };
 
     double interconnection_limit = 1e+38;
+    std::vector<double> cleared_capacity;
+    dispatch_t::CAPACITY_FORECAST_TYPE capacity_forecast_type = dispatch_t::PRICE_ONLY;
+    double cleared_cap_percent = 0.0;
 public:
 
     void CreateBattery(double dtHour)
@@ -89,6 +92,7 @@ public:
 
         int numberOfInverters = 40;
         m_sharedInverter = new SharedInverter(SharedInverter::SANDIA_INVERTER, numberOfInverters, sandia, partload, ond);
+        cleared_capacity.clear();
     }
     void CreateBatteryWithLosses(double dtHour)
     {
@@ -104,12 +108,50 @@ public:
         std::vector<double> charging_losses(12, 10); // Monthly losses
         std::vector<double> discharging_losses(12, 20);
         std::vector<double> idle_losses(12, 5);
-        lossModel = new losses_t(charging_losses, discharging_losses, idle_losses);
+        std::vector<double> adjust_losses(8760, 0);
+        lossModel = new losses_t(charging_losses, discharging_losses, idle_losses, adjust_losses);
         batteryModel = new battery_t(dtHour, chemistry, capacityModel, voltageModel, lifetimeModel, thermalModel, lossModel);
 
         int numberOfInverters = 40;
         m_sharedInverter = new SharedInverter(SharedInverter::SANDIA_INVERTER, numberOfInverters, sandia, partload, ond);
+        cleared_capacity.clear();
     }
+
+    void CreateBatteryWithAvailabilityLosses(double dtHour)
+    {
+        // For testing Automated Front-of-meter DC-coupled
+        BatteryProperties::SetUp();
+
+        capacityModel = new capacity_lithium_ion_t(2.25 * 133227, 50, 100, 10, dtHour);
+        voltageModel = new voltage_dynamic_t(139, 133227, 3.6, 4.10, 4.05, 3.4,
+            2.25, 0.04, 2.00, 0, 0.2, 0.2, dtHour);
+        lifetimeModel = new lifetime_calendar_cycle_t(cycleLifeMatrix, dtHour, calendar_q0, calendar_a, calendar_b, calendar_c);
+        thermalModel = new thermal_t(1.0, mass, surface_area, resistance, Cp, h, capacityVsTemperature, T_room);
+
+        std::vector<double> charging_losses(12, 0); // Monthly losses
+        std::vector<double> discharging_losses(12, 0);
+        std::vector<double> idle_losses(12, 0);
+        std::vector<double> adjust_losses;
+        for (size_t i = 0; i < 8760; i++) {
+            if (i < 6) {
+                adjust_losses.push_back(0.0);
+            }
+            else if (i < 48) {
+                adjust_losses.push_back(0.25);
+            }
+            else {
+                adjust_losses.push_back(0.0);
+            }
+        }
+
+        lossModel = new losses_t(charging_losses, discharging_losses, idle_losses, adjust_losses);
+        batteryModel = new battery_t(dtHour, chemistry, capacityModel, voltageModel, lifetimeModel, thermalModel, lossModel);
+
+        int numberOfInverters = 40;
+        m_sharedInverter = new SharedInverter(SharedInverter::SANDIA_INVERTER, numberOfInverters, sandia, partload, ond);
+        cleared_capacity.clear();
+    }
+
     void TearDown()
     {
         BatteryProperties::TearDown();

@@ -335,7 +335,7 @@ void base_dispatch_opt::set_lp_solve_outputs(lprec* lp)
         lp_outputs.rel_mip_gap = get_mip_gap(lp, FALSE);
 
     // Set suboptimal state flag
-    if ((lp_outputs.solve_state == SUBOPTIMAL) & (solver_params.is_abort_flag)) {
+    if ((lp_outputs.solve_state == SUBOPTIMAL) && (solver_params.is_abort_flag)) {
         if (lp_outputs.solve_iter > solver_params.max_bb_iter) {
             lp_outputs.subopt_flag = INTERATION;    // stop due to iteration count
         }
@@ -351,15 +351,17 @@ void base_dispatch_opt::set_lp_solve_outputs(lprec* lp)
             lp_outputs.subopt_flag = MIPGAPLPSOLVE;   // stop due to mip gap internal of LPSolve
         }
     }
-    else
-    {
+    else if (lp_outputs.solve_state == OPTIMAL) {
         lp_outputs.subopt_flag = OPTIMAL;
+    }
+    else {
+        lp_outputs.subopt_flag = FAILED;
     }
 }
 
 void base_dispatch_opt::count_solutions_by_type(std::vector<int>& flag, int dispatch_freq, std::string& log_msg)
 {
-    int opt = 0, iter = 0, timeout = 0, user_gap = 0, lpsolve_gap = 0;
+    int opt = 0, iter = 0, timeout = 0, user_gap = 0, lpsolve_gap = 0, failed = 0;
     for (size_t i = 0; i < flag.size(); i += dispatch_freq)
     {
         // Mapping flags to solve state condition
@@ -378,6 +380,9 @@ void base_dispatch_opt::count_solutions_by_type(std::vector<int>& flag, int disp
         else if (flag[i] == MIPGAPLPSOLVE) {
             lpsolve_gap += 1;
         }
+        else {
+            failed += 1;
+        }
     }
 
     log_msg = util::format("====== Dispatch Optimization Summary ======\n"
@@ -385,7 +390,8 @@ void base_dispatch_opt::count_solutions_by_type(std::vector<int>& flag, int disp
         "Suboptimal iteration limit: %d\n"
         "Suboptimal time limit: %d\n"
         "Suboptimal user gap: %d\n"
-        "Suboptimal lpsolve gap: %d", opt, iter, timeout, user_gap, lpsolve_gap);
+        "Suboptimal lpsolve gap: %d\n"
+        "Failed solve: %d", opt, iter, timeout, user_gap, lpsolve_gap, failed);
 }
 
 double base_dispatch_opt::calc_avg_subopt_gap(std::vector<double>& gap, std::vector<int>& flag, int dispatch_freq)

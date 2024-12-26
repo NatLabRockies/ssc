@@ -136,6 +136,7 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
     }
     else if (cm->is_assigned("solar_resource_data")) {
         weatherDataProvider = std::unique_ptr<weather_data_provider>(new weatherdata(cm->lookup("solar_resource_data")));
+        if (!weatherDataProvider->ok()) throw exec_error(cmName, weatherDataProvider->message());
         if (weatherDataProvider->has_message()) cm->log(weatherDataProvider->message(), SSC_WARNING);
     }
     else {

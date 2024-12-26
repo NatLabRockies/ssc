@@ -96,9 +96,9 @@ TEST_F(CmodHybridTest, PVWattsv8WindBatterySingleOwner) {
         ssc_data_get_number(hybrid_outputs, "project_return_aftertax_npv", &npv);
 
         EXPECT_NEAR(om_expenses[1], 10772001, 1);
-        EXPECT_NEAR(revenue[1], 31648432, 1);
-        EXPECT_NEAR(ebitda[1], 20876432, 1);
-        EXPECT_NEAR(npv, -242777472, 242777472 * 0.001);
+        EXPECT_NEAR(revenue[1], 31651347, 1);
+        EXPECT_NEAR(ebitda[1], 20879346, 1);
+        EXPECT_NEAR(npv, -246312045, 246312045 * 0.001);
     }
     ssc_data_free(dat);
     dat = nullptr;
@@ -147,15 +147,15 @@ TEST_F(CmodHybridTest, PVWattsv8WindBatteryHostDeveloper) {
 
         auto hybrid_outputs = ssc_data_get_table(outputs, "Hybrid");
         ssc_data_get_number(hybrid_outputs, "project_return_aftertax_npv", &npv);
-        EXPECT_NEAR(npv, -174953, 174953 * 0.001);
+        EXPECT_NEAR(npv, -182666, 182665 * 0.001);
     }
     ssc_data_free(dat);
     dat = nullptr;
 }
 
-TEST_F(CmodHybridTest, GenericPVWattsWindFuelCellBatteryHybrid_SingleOwner) {
+TEST_F(CmodHybridTest, CustomGenerationPVWattsWindFuelCellBatteryHybrid_SingleOwner) {
     char file_path[256];
-    int nfc1 = sprintf(file_path, "%s/test/input_json/hybrids/Generic PVWatts Wind FuelCell Battery Hybrid_Single Owner.json", SSCDIR);
+    int nfc1 = sprintf(file_path, "%s/test/input_json/hybrids/CustomGeneration PVWatts Wind FuelCell Battery Hybrid_Single Owner.json", SSCDIR);
     std::ifstream file(file_path);
     std::ostringstream tmp;
     tmp << file.rdbuf();
@@ -183,7 +183,7 @@ TEST_F(CmodHybridTest, GenericPVWattsWindFuelCellBatteryHybrid_SingleOwner) {
         int len;
         auto outputs = ssc_data_get_table(dat, "output");
 
-        auto gs_outputs = ssc_data_get_table(outputs, "generic_system");
+        auto gs_outputs = ssc_data_get_table(outputs, "custom_generation");
         ssc_data_get_number(gs_outputs, "annual_energy", &genericannualenergy);
         auto gs_om_expenses = ssc_data_get_array(gs_outputs, "cf_operating_expenses", &len);
 
@@ -215,7 +215,7 @@ TEST_F(CmodHybridTest, GenericPVWattsWindFuelCellBatteryHybrid_SingleOwner) {
         EXPECT_NEAR(om_expenses[1], 90570832., 1e5);
         EXPECT_NEAR(revenue[1], 66865452., 1e5);
         EXPECT_NEAR(ebitda[1], -23705384., 1e5);
-        EXPECT_NEAR(npv, -1748593536., 1e6);
+        EXPECT_NEAR(npv, -1754023822., 1e6);
     }
     ssc_data_free(dat);
     dat = nullptr;

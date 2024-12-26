@@ -109,10 +109,10 @@ var_info vtab_oandm[] = {
 { SSC_INPUT,        SSC_NUMBER,      "om_production_escal",          "Production-based O&M escalation",   "%/year",  "",                  "System Costs",            "?=0.0",                 "",                                         "" },
 { SSC_INPUT,        SSC_ARRAY,       "om_capacity",                  "Capacity-based O&M amount",         "$/kWcap", "!battery,!fuelcell",                  "System Costs",            "?=0.0",                 "",                                         "" },
 { SSC_INPUT,        SSC_NUMBER,      "om_capacity_escal",            "Capacity-based O&M escalation",     "%/year",  "",                  "System Costs",            "?=0.0",                 "",                                         "" },
-{ SSC_INPUT,        SSC_ARRAY,		 "om_fuel_cost",                 "Fuel cost",                         "$/MMBtu", "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0.0",                 "",                                         "" },
-{ SSC_INPUT,        SSC_NUMBER,      "om_fuel_cost_escal",           "Fuel cost escalation",              "%/year",  "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0.0",                 "",                                         "" },
-{ SSC_INPUT,        SSC_NUMBER,      "annual_fuel_usage",            "Fuel usage (yr 1)",                 "kWht",    "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0",                     "MIN=0",                                         "" },
-{ SSC_INPUT,        SSC_ARRAY,       "annual_fuel_usage_lifetime",   "Fuel usage (lifetime)",             "kWht",    "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "",                     "",                                         "" },
+{ SSC_INPUT,        SSC_ARRAY,		 "om_fuel_cost",                 "Fuel cost",                         "$/MMBtu", "custom_generation,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0.0",                 "",                                         "" },
+{ SSC_INPUT,        SSC_NUMBER,      "om_fuel_cost_escal",           "Fuel cost escalation",              "%/year",  "custom_generation,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0.0",                 "",                                         "" },
+{ SSC_INPUT,        SSC_NUMBER,      "annual_fuel_usage",            "Fuel usage (yr 1)",                 "kWht",    "custom_generation,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0",                     "MIN=0",                                         "" },
+{ SSC_INPUT,        SSC_ARRAY,       "annual_fuel_usage_lifetime",   "Fuel usage (lifetime)",             "kWht",    "custom_generation,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "",                     "",                                         "" },
 
 // replacements
 { SSC_INPUT,SSC_ARRAY   , "om_batt_replacement_cost"                 , "Replacement cost 1"               , "$/kWh"   , "battery"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
@@ -563,6 +563,16 @@ var_info vtab_sf_adjustment_factors[] = {
 { SSC_INPUT,SSC_MATRIX  , "sf_adjust_periods"                    , "SF Period-based Adjustment Factors"                             , "%"                                      , "n x 3 matrix [ start, end, loss ]"     , "Adjustment Factors"   , "sf_adjust_en_periods=1"              , "COLS=3"                , ""},
 var_info_invalid };
 
+var_info vtab_batt_adjustment_factors[] = {
+{ SSC_INPUT,SSC_NUMBER  , "batt_adjust_constant"                   , "Battery Constant loss adjustment",        "%", "",                "Adjustment Factors", "?=0"               , "MAX=100"               , ""},
+{ SSC_INPUT, SSC_NUMBER,     "batt_adjust_en_timeindex"        , "Enable battery lifetime adjustment factors",     "0/1",      "",                      "Adjustment Factors",      "?=0",                       "BOOLEAN",                                         "" },
+{ SSC_INPUT, SSC_NUMBER,     "batt_adjust_en_periods"        , "Enable battery period-based adjustment factors",     "0/1",      "",                      "Adjustment Factors",      "?=0",                       "BOOLEAN",                                         "" },
+{ SSC_INPUT,SSC_ARRAY   , "batt_adjust_timeindex"                        , "Battery Lifetime Adjustment Factors"                                      , "%"                                      , ""                                      , "Adjustment Factors"   , "batt_adjust_en_timeindex=1"              , ""           , ""},
+{ SSC_INPUT,SSC_MATRIX  , "batt_adjust_periods"                    , "Battery Period-based Adjustment Factors"                             , "%"                                      , "n x 3 matrix [ start, end, loss ]"     , "Adjustment Factors"   , "batt_adjust_en_periods=1"               , "COLS=3"                , ""},
+{ SSC_OUTPUT, SSC_ARRAY,  "batt_availability_loss",                  "Battery availability loss",                             "%", "",    "Time Series",                 "",                     "",                   "" },
+
+var_info_invalid };
+
 var_info vtab_financial_capacity_payments[] = {
 
 	/*   VARTYPE           DATATYPE         NAME                                    LABEL                                             UNITS        META                               GROUP                    REQUIRED_IF           CONSTRAINTS               UI_HINTS	*/
@@ -681,6 +691,11 @@ var_info vtab_forecast_price_signal[] = {
     { SSC_INPUT,        SSC_NUMBER,     "mp_enable_ancserv2_percent_gen",		      "Enable percent demand cleared capacity option for ancillary service 2",   "0/1",   "",    "Revenue",  "forecast_price_signal_model=1",	"INTEGER,MIN=0,MAX=1",      "" },
     { SSC_INPUT,        SSC_NUMBER,     "mp_enable_ancserv3_percent_gen",		      "Enable percent demand cleared capacity option for ancillary service 3",   "0/1",   "",    "Revenue",  "forecast_price_signal_model=1",	"INTEGER,MIN=0,MAX=1",      "" },
     { SSC_INPUT,        SSC_NUMBER,     "mp_enable_ancserv4_percent_gen",		      "Enable percent demand cleared capacity option for ancillary service 4",   "0/1",   "",    "Revenue",  "forecast_price_signal_model=1",	"INTEGER,MIN=0,MAX=1",      "" },
+    { SSC_INPUT,        SSC_NUMBER,     "mp_market_percent_gen",                 "Percent of demand to copy to cleared capacity array",       "%","", "Revenue", "forecast_price_signal_model=1&mp_enable_market_percent_gen=1", "MIN=0,MAX=100", "" },
+    { SSC_INPUT,        SSC_NUMBER,     "mp_ancserv1_percent_gen",               "Percent of demand to copy to cleared capacity array",       "%","", "Revenue", "forecast_price_signal_model=1&mp_enable_ancserv1_percent_gen=1", "MIN=0,MAX=100", "" },
+    { SSC_INPUT,        SSC_NUMBER,     "mp_ancserv2_percent_gen",               "Percent of demand to copy to cleared capacity array",       "%","", "Revenue", "forecast_price_signal_model=1&mp_enable_ancserv2_percent_gen=1", "MIN=0,MAX=100", "" },
+    { SSC_INPUT,        SSC_NUMBER,     "mp_ancserv3_percent_gen",               "Percent of demand to copy to cleared capacity array",       "%","", "Revenue", "forecast_price_signal_model=1&mp_enable_ancserv3_percent_gen=1", "MIN=0,MAX=100", "" },
+    { SSC_INPUT,        SSC_NUMBER,     "mp_ancserv4_percent_gen",               "Percent of demand to copy to cleared capacity array",       "%","", "Revenue", "forecast_price_signal_model=1&mp_enable_ancserv4_percent_gen=1", "MIN=0,MAX=100", "" },
 
 var_info_invalid };
 
@@ -711,6 +726,22 @@ bool forecast_price_signal::setup(size_t step_per_hour)
         int mp_enable_ancserv2_percent_gen = vartab->as_integer("mp_enable_ancserv2_percent_gen");
         int mp_enable_ancserv3_percent_gen = vartab->as_integer("mp_enable_ancserv3_percent_gen");
         int mp_enable_ancserv4_percent_gen = vartab->as_integer("mp_enable_ancserv4_percent_gen");
+
+        double mp_market_percent_gen = 0;
+        if (vartab->is_assigned("mp_market_percent_gen") && mp_enable_market_percent_gen)
+            mp_market_percent_gen = vartab->as_number("mp_market_percent_gen") / 100.0;
+        double ancserv1_percent_gen = 0;
+        if (vartab->is_assigned("mp_ancserv1_percent_gen") && mp_enable_ancserv1_percent_gen)
+            ancserv1_percent_gen = vartab->as_number("mp_ancserv1_percent_gen") / 100.0;
+        double ancserv2_percent_gen = 0;
+        if (vartab->is_assigned("mp_ancserv2_percent_gen") && mp_enable_ancserv2_percent_gen)
+            ancserv2_percent_gen = vartab->as_number("mp_ancserv2_percent_gen") / 100.0;
+        double ancserv3_percent_gen = 0;
+        if (vartab->is_assigned("mp_ancserv3_percent_gen") && mp_enable_ancserv3_percent_gen)
+            ancserv3_percent_gen = vartab->as_number("mp_ancserv3_percent_gen") / 100.0;
+        double ancserv4_percent_gen = 0;
+        if (vartab->is_assigned("mp_ancserv4_percent_gen") && mp_enable_ancserv4_percent_gen)
+            ancserv4_percent_gen = vartab->as_number("mp_ancserv4_percent_gen") / 100.0;
 
 		// cleared capacity and price columns
 		// assume cleared capacities valid and use as generation for forecasting - will verify after generation in the financial models.
@@ -815,56 +846,223 @@ bool forecast_price_signal::setup(size_t step_per_hour)
             return false;
         }
         m_forecast_price.reserve(nsteps * nyears);
-        for (size_t i = 0; i < nsteps * nyears; i++)
+        m_cleared_capacity.reserve(nsteps * nyears);
+        for (size_t i = 0; i < nsteps * nyears; i++) {
             m_forecast_price.push_back(0.0);
+            m_cleared_capacity.push_back(0.0);
+        }
 
 		// calculate revenue and consolidate to m_forecast_price
 		std::vector<double> as_revenue;
-		std::vector<double> as_revenue_extrapolated(nsteps,0.0);
+		std::vector<double> as_revenue_extrapolated_em(nsteps,0.0);
+		std::vector<double> as_revenue_extrapolated_ancserv_1(nsteps,0.0);
+		std::vector<double> as_revenue_extrapolated_ancserv_2(nsteps,0.0);
+		std::vector<double> as_revenue_extrapolated_ancserv_3(nsteps,0.0);
+		std::vector<double> as_revenue_extrapolated_ancserv_4(nsteps,0.0);
+        std::vector<double> as_capacity;
+        std::vector<double> as_capacity_extrapolated_em(nsteps, 0.0);
+        std::vector<double> as_capacity_extrapolated_ancserv_1(nsteps, 0.0);
+        std::vector<double> as_capacity_extrapolated_ancserv_2(nsteps, 0.0);
+        std::vector<double> as_capacity_extrapolated_ancserv_3(nsteps, 0.0);
+        std::vector<double> as_capacity_extrapolated_ancserv_4(nsteps, 0.0);
+
+        // Users can mix and match percent of generation and cleared capacity. Determine what percent is available for cleared capacity calcs
+        cleared_capacity_percent = 1 - (mp_market_percent_gen + ancserv1_percent_gen + ancserv2_percent_gen
+            + ancserv3_percent_gen + ancserv4_percent_gen);
 
         for (size_t y = 0; y < nyears; y++) {
             size_t forecast_start = y * nsteps;
             size_t forecast_end = (y + 1) * nsteps;
+            // First: adapt all merchant plant timeseries to the simulation timestep
             size_t n_marketrevenue_per_year = mp_energy_market_revenue_mat.nrows() / (size_t)nyears;
             as_revenue.clear();
             as_revenue.reserve(n_marketrevenue_per_year);
-            for (size_t j = y * n_marketrevenue_per_year; j < (y + 1) * n_marketrevenue_per_year; j++)
-                as_revenue.push_back(mp_energy_market_revenue_mat.at(j, 1 - mp_enable_market_percent_gen) / 1000.0);
-            as_revenue_extrapolated = extrapolate_timeseries(as_revenue, step_per_hour);
-            std::transform(m_forecast_price.begin() + forecast_start, m_forecast_price.begin() + forecast_end, as_revenue_extrapolated.begin(), m_forecast_price.begin() + forecast_start, std::plus<double>());
+            as_capacity.clear();
+            as_capacity.reserve(n_marketrevenue_per_year);
+            if (n_marketrevenue_per_year == 0) {
+                if (mp_energy_market_revenue_mat.nrows() == 1) {
+                    if (mp_enable_market_percent_gen) {
+                        as_revenue.push_back(mp_energy_market_revenue_mat.at(0, 0) / 1000.0);
+                    }
+                    else {
+                        as_capacity.push_back(mp_energy_market_revenue_mat.at(0, 0) * 1000.0);
+                        as_revenue.push_back(mp_energy_market_revenue_mat.at(0, 1) / 1000.0);
+                    }
+                }
+            }
+            else {
+                for (size_t j = y * n_marketrevenue_per_year; j < (y + 1) * n_marketrevenue_per_year; j++) {
+                    as_revenue.push_back(mp_energy_market_revenue_mat.at(j, 1 - mp_enable_market_percent_gen) / 1000.0);
+                    if (!mp_enable_market_percent_gen) {
+                        as_capacity.push_back(mp_energy_market_revenue_mat.at(j, 0) * 1000.0);
+                    }
+                }
+            }
 
+            as_revenue_extrapolated_em = extrapolate_timeseries(as_revenue, step_per_hour);
+            as_capacity_extrapolated_em = extrapolate_timeseries(as_capacity, step_per_hour);
+            
             size_t n_ancserv_1_revenue_per_year = mp_ancserv_1_revenue_mat.nrows() / (size_t)nyears;
             as_revenue.clear();
             as_revenue.reserve(n_ancserv_1_revenue_per_year);
-            for (size_t j = y * n_ancserv_1_revenue_per_year; j < (y + 1) * n_ancserv_1_revenue_per_year; j++)
-                as_revenue.push_back(mp_ancserv_1_revenue_mat.at(j, 1 - mp_enable_ancserv1_percent_gen) / 1000.0);
-            as_revenue_extrapolated = extrapolate_timeseries(as_revenue, step_per_hour);
-            std::transform(m_forecast_price.begin() + forecast_start, m_forecast_price.begin() + forecast_end, as_revenue_extrapolated.begin(), m_forecast_price.begin() + forecast_start, std::plus<double>());
-
+            as_capacity.clear();
+            as_capacity.reserve(n_ancserv_1_revenue_per_year);
+            if (n_ancserv_1_revenue_per_year == 0) {
+                if (mp_ancserv_1_revenue_mat.nrows() == 1) {
+                    if (mp_enable_ancserv1_percent_gen) {
+                        as_revenue.push_back(mp_ancserv_1_revenue_mat.at(0, 0) / 1000.0);
+                    }
+                    else {
+                        as_capacity.push_back(mp_ancserv_1_revenue_mat.at(0, 0) * 1000.0);
+                        as_revenue.push_back(mp_ancserv_1_revenue_mat.at(0, 1) / 1000.0);
+                    }
+                }
+            }
+            else {
+                for (size_t j = y * n_ancserv_1_revenue_per_year; j < (y + 1) * n_ancserv_1_revenue_per_year; j++) {
+                    as_revenue.push_back(mp_ancserv_1_revenue_mat.at(j, 1 - mp_enable_ancserv1_percent_gen) / 1000.0);
+                    if (!mp_enable_ancserv1_percent_gen) {
+                        as_capacity.push_back(mp_ancserv_1_revenue_mat.at(j, 0) * 1000.0);
+                    }
+                }
+            }
+            as_revenue_extrapolated_ancserv_1 = extrapolate_timeseries(as_revenue, step_per_hour);
+            as_capacity_extrapolated_ancserv_1 = extrapolate_timeseries(as_capacity, step_per_hour);
+            
             size_t n_ancserv_2_revenue_per_year = mp_ancserv_2_revenue_mat.nrows() / (size_t)nyears;
             as_revenue.clear();
             as_revenue.reserve(n_ancserv_2_revenue_per_year);
-            for (size_t j = y * n_ancserv_2_revenue_per_year; j < (y + 1) * n_ancserv_2_revenue_per_year; j++)
-                as_revenue.push_back(mp_ancserv_2_revenue_mat.at(j, 1 - mp_enable_ancserv2_percent_gen) / 1000.0);
-            as_revenue_extrapolated = extrapolate_timeseries(as_revenue, step_per_hour);
-            std::transform(m_forecast_price.begin() + forecast_start, m_forecast_price.begin() + forecast_end, as_revenue_extrapolated.begin(), m_forecast_price.begin() + forecast_start, std::plus<double>());
-
+            as_capacity.clear();
+            as_capacity.reserve(n_ancserv_2_revenue_per_year);
+            if (n_ancserv_2_revenue_per_year == 0) {
+                if (mp_ancserv_2_revenue_mat.nrows() == 1) {
+                    if (mp_enable_ancserv2_percent_gen) {
+                        as_revenue.push_back(mp_ancserv_2_revenue_mat.at(0, 0) / 1000.0);
+                    }
+                    else {
+                        as_capacity.push_back(mp_ancserv_2_revenue_mat.at(0, 0) * 1000.0);
+                        as_revenue.push_back(mp_ancserv_2_revenue_mat.at(0, 1) / 1000.0);
+                    }
+                }
+            }
+            else {
+                for (size_t j = y * n_ancserv_2_revenue_per_year; j < (y + 1) * n_ancserv_2_revenue_per_year; j++) {
+                    as_revenue.push_back(mp_ancserv_2_revenue_mat.at(j, 1 - mp_enable_ancserv2_percent_gen) / 1000.0);
+                    if (!mp_enable_ancserv2_percent_gen) {
+                        as_capacity.push_back(mp_ancserv_2_revenue_mat.at(j, 0) * 1000.0);
+                    }
+                }
+            }
+            as_revenue_extrapolated_ancserv_2 = extrapolate_timeseries(as_revenue, step_per_hour);
+            as_capacity_extrapolated_ancserv_2 = extrapolate_timeseries(as_capacity, step_per_hour);
+            
             size_t n_ancserv_3_revenue_per_year = mp_ancserv_3_revenue_mat.nrows() / (size_t)nyears;
             as_revenue.clear();
             as_revenue.reserve(n_ancserv_3_revenue_per_year);
-            for (size_t j = y * n_ancserv_3_revenue_per_year; j < (y + 1) * n_ancserv_3_revenue_per_year; j++)
-                as_revenue.push_back(mp_ancserv_3_revenue_mat.at(j, 1 - mp_enable_ancserv3_percent_gen) / 1000.0);
-            as_revenue_extrapolated = extrapolate_timeseries(as_revenue, step_per_hour);
-            std::transform(m_forecast_price.begin() + forecast_start, m_forecast_price.begin() + forecast_end, as_revenue_extrapolated.begin(), m_forecast_price.begin() + forecast_start, std::plus<double>());
-
+            as_capacity.clear();
+            as_capacity.reserve(n_ancserv_3_revenue_per_year);
+            if (n_ancserv_3_revenue_per_year == 0) {
+                if (mp_ancserv_3_revenue_mat.nrows() == 1) {
+                    if (mp_enable_ancserv3_percent_gen) {
+                        as_revenue.push_back(mp_ancserv_3_revenue_mat.at(0, 0) / 1000.0);
+                    }
+                    else {
+                        as_capacity.push_back(mp_ancserv_3_revenue_mat.at(0, 0) * 1000.0);
+                        as_revenue.push_back(mp_ancserv_3_revenue_mat.at(0, 1) / 1000.0);
+                    }
+                }
+            }
+            else {
+                for (size_t j = y * n_ancserv_3_revenue_per_year; j < (y + 1) * n_ancserv_3_revenue_per_year; j++) {
+                    as_revenue.push_back(mp_ancserv_3_revenue_mat.at(j, 1 - mp_enable_ancserv3_percent_gen) / 1000.0);
+                    if (!mp_enable_ancserv3_percent_gen) {
+                        as_capacity.push_back(mp_ancserv_3_revenue_mat.at(j, 0) * 1000.0);
+                    }
+                }
+            }
+            as_revenue_extrapolated_ancserv_3 = extrapolate_timeseries(as_revenue, step_per_hour);
+            as_capacity_extrapolated_ancserv_3 = extrapolate_timeseries(as_capacity, step_per_hour);
+            
             size_t n_ancserv_4_revenue_per_year = mp_ancserv_4_revenue_mat.nrows() / (size_t)nyears;
             as_revenue.clear();
             as_revenue.reserve(n_ancserv_4_revenue_per_year);
-            for (size_t j = y * n_ancserv_4_revenue_per_year; j < (y + 1) * n_ancserv_4_revenue_per_year; j++)
-                as_revenue.push_back(mp_ancserv_4_revenue_mat.at(j, 1 - mp_enable_ancserv4_percent_gen) / 1000.0);
-            as_revenue_extrapolated = extrapolate_timeseries(as_revenue, step_per_hour);
-            std::transform(m_forecast_price.begin() + forecast_start, m_forecast_price.begin() + forecast_end, as_revenue_extrapolated.begin(), m_forecast_price.begin() + forecast_start, std::plus<double>());
+            as_capacity.clear();
+            as_capacity.reserve(n_ancserv_4_revenue_per_year);
+            if (n_ancserv_4_revenue_per_year == 0) {
+                if (mp_ancserv_4_revenue_mat.nrows() == 1) {
+                    if (mp_enable_ancserv4_percent_gen) {
+                        as_revenue.push_back(mp_ancserv_4_revenue_mat.at(0, 0) / 1000.0);
+                    }
+                    else {
+                        as_capacity.push_back(mp_ancserv_4_revenue_mat.at(0, 0) * 1000.0);
+                        as_revenue.push_back(mp_ancserv_4_revenue_mat.at(0, 1) / 1000.0);
+                    }
+                }
+            }
+            else {
+                for (size_t j = y * n_ancserv_4_revenue_per_year; j < (y + 1) * n_ancserv_4_revenue_per_year; j++) {
+                    as_revenue.push_back(mp_ancserv_4_revenue_mat.at(j, 1 - mp_enable_ancserv4_percent_gen) / 1000.0);
+                    if (!mp_enable_ancserv4_percent_gen) {
+                        as_capacity.push_back(mp_ancserv_4_revenue_mat.at(j, 0) * 1000.0);
+                    }
+                }
+            }
+            as_revenue_extrapolated_ancserv_4 = extrapolate_timeseries(as_revenue, step_per_hour);
+            as_capacity_extrapolated_ancserv_4 = extrapolate_timeseries(as_capacity, step_per_hour);
+
+            // Then: sum weighted average prices for timeseries use
+            for (size_t j = 0; j < nsteps; j++) {
+                m_cleared_capacity[j + forecast_start] = as_capacity_extrapolated_em[j] + as_capacity_extrapolated_ancserv_1[j]
+                    + as_capacity_extrapolated_ancserv_2[j] + as_capacity_extrapolated_ancserv_3[j] + as_capacity_extrapolated_ancserv_4[j];
+
+                if (mp_enable_market_percent_gen) {
+                    m_forecast_price[j + forecast_start] += as_revenue_extrapolated_em[j] * mp_market_percent_gen;
+                }
+                else if (m_cleared_capacity[j + forecast_start] > 0) {
+                    m_forecast_price[j + forecast_start] += as_capacity_extrapolated_em[j] / m_cleared_capacity[j + forecast_start] * cleared_capacity_percent;
+                }
+
+                if (mp_enable_ancserv1_percent_gen) {
+                    m_forecast_price[j + forecast_start] += as_revenue_extrapolated_ancserv_1[j] * ancserv1_percent_gen;
+                }
+                else if (m_cleared_capacity[j + forecast_start] > 0) {
+                    m_forecast_price[j + forecast_start] += as_capacity_extrapolated_ancserv_1[j] / m_cleared_capacity[j + forecast_start] * cleared_capacity_percent;
+                }
+
+                if (mp_enable_ancserv2_percent_gen) {
+                    m_forecast_price[j + forecast_start] += as_revenue_extrapolated_ancserv_2[j] * ancserv2_percent_gen;
+                }
+                else if (m_cleared_capacity[j + forecast_start] > 0) {
+                    m_forecast_price[j + forecast_start] += as_capacity_extrapolated_ancserv_2[j] / m_cleared_capacity[j + forecast_start] * cleared_capacity_percent;
+                }
+
+                if (mp_enable_ancserv3_percent_gen) {
+                    m_forecast_price[j + forecast_start] += as_revenue_extrapolated_ancserv_3[j] * ancserv3_percent_gen;
+                }
+                else if (m_cleared_capacity[j + forecast_start] > 0) {
+                    m_forecast_price[j + forecast_start] += as_capacity_extrapolated_ancserv_3[j] / m_cleared_capacity[j + forecast_start] * cleared_capacity_percent;
+                }
+
+                if (mp_enable_ancserv4_percent_gen) {
+                    m_forecast_price[j + forecast_start] += as_revenue_extrapolated_ancserv_4[j] * ancserv4_percent_gen;
+                }
+                else if (m_cleared_capacity[j + forecast_start] > 0) {
+                    m_forecast_price[j + forecast_start] += as_capacity_extrapolated_ancserv_4[j] / m_cleared_capacity[j + forecast_start] * cleared_capacity_percent;
+                }
+
+            }
         }
+
+        if (cleared_capacity_percent < 1e-7) {
+            forecast_type = dispatch_t::PRICE_ONLY;
+        }
+        else if (cleared_capacity_percent > (1 - 1e-7)) {
+            forecast_type = dispatch_t::CAPACITY_ONLY;
+        }
+        else {
+            forecast_type = dispatch_t::PRICE_AND_CAPACITY;
+        }
+
 	}
 	else
 	{
@@ -883,6 +1081,10 @@ bool forecast_price_signal::setup(size_t step_per_hour)
         m_forecast_price.reserve(nsteps* nyears);
         for (size_t i = 0; i < nsteps * nyears; i++)
             m_forecast_price.push_back(0.0);
+        forecast_type = dispatch_t::PRICE_ONLY;
+        cleared_capacity_percent = 0.0;
+        m_cleared_capacity.clear();
+
         std::vector<double> as_revenue;
 
         for (size_t y = 0; y < nyears; y++) {
@@ -990,7 +1192,7 @@ var_info vtab_hybrid_fin_om[] = {
     /*   VARTYPE           DATATYPE         NAME                           LABEL                UNITS     META                      GROUP           REQUIRED_IF      CONSTRAINTS     UI_HINTS*/
     { SSC_INPUT,          SSC_NUMBER,     "is_hybrid",              "hybrid configuration",      "0/1", "0=singletech,1=hybrid",    "HybridFin",       "?=0",      "",             "" },
     { SSC_INPUT,          SSC_ARRAY,      "cf_hybrid_om_sum",       "Hybrid O&M costs",          "$",   "",                         "HybridFin",       "",         "",             "" },
-    { SSC_INOUT,          SSC_ARRAY,      "monthly_energy",         "Monthly energy",            "kWh", "",                         "Monthly",         "",         "LENGTH = 12",  "" },
+    { SSC_INOUT,          SSC_ARRAY,      "monthly_energy",         "Monthly AC energy in Year 1",            "kWh", "",                         "Monthly",         "",         "LENGTH = 12",  "" },
 
 var_info_invalid };
 
@@ -1063,22 +1265,22 @@ var_info vtab_utility_rate_common[] = {
     var_info_invalid
 };
 
-adjustment_factors::adjustment_factors( compute_module *cm, const std::string &prefix )
-: m_cm(cm), m_prefix(prefix)
+adjustment_factors::adjustment_factors(var_table* vt, const std::string &prefix )
+: m_vt(vt), m_prefix(prefix)
 {
 }
 
 //adjustment factors changed from derates to percentages jmf 1/9/15
 bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set to 8760 in this declaration function in common.h
 {
-    ssc_number_t f = m_cm->as_number(m_prefix + "_constant");
+    ssc_number_t f = m_vt->as_number(m_prefix + "_constant");
     f = 1.0 - f / 100.0; //convert from percentage to factor
 	m_factors.resize( nsteps * analysis_period, f);
 
-    if (m_cm->is_assigned(m_prefix + "_en_hourly")) {
-        if (m_cm->as_boolean(m_prefix + "_en_hourly")) {
+    if (m_vt->is_assigned(m_prefix + "_en_hourly")) {
+        if (m_vt->as_boolean(m_prefix + "_en_hourly")) {
             size_t n;
-            ssc_number_t* p = m_cm->as_array(m_prefix + "_hourly", &n);
+            ssc_number_t* p = m_vt->as_array(m_prefix + "_hourly", &n);
             if (p != 0 && n == 8760)
             {
                 for (int i = 0; i < 8760; i++)
@@ -1089,14 +1291,14 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
             }
         }
     }
-    if (m_cm->as_boolean(m_prefix +  "_en_timeindex"))
+    if (m_vt->as_boolean(m_prefix +  "_en_timeindex"))
     {
         size_t n;
-        int steps_per_hour = nsteps / 8760;
+        double steps_per_hour = nsteps / 8760.0;
         int month = 0;
         int day = 0;
         int week = 0;
-        ssc_number_t* p = m_cm->as_array(m_prefix + "_timeindex", &n);
+        ssc_number_t* p = m_vt->as_array(m_prefix + "_timeindex", &n);
         if (p != 0) {
             if (n == 1) {
                 for (int a = 0; a < analysis_period; a++) {
@@ -1110,9 +1312,9 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
                         m_factors[nsteps * a + i] *= (1.0 - p[a*nsteps + i]/100.0); //convert from percentages to factors
                 }
             }
-            else if ((n % 8760 == 0) && n != (size_t)(nsteps * analysis_period)) // give a helpful error for timestep mismatch
+            else if ((n % 8760 == 0 || n % 2920 == 0) && n != (size_t)(nsteps * analysis_period)) // give a helpful error for timestep mismatch
             {
-                m_error = util::format("Availability losses must be the same timestep as the weather file, if they are not daily/weekly/monthly.");
+                m_error = util::format("Time series availability losses must have the same time step as the simulation time step unless losses are daily, weekly, monthly, annual, or single value.");
             }
             else if (n == (size_t)( 12 * analysis_period)) { //Monthly 
                 for (int a = 0; a < analysis_period; a++) {
@@ -1152,10 +1354,10 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
             }
         }
     }
-    if (m_cm->as_boolean(m_prefix + "_en_periods"))
+    if (m_vt->as_boolean(m_prefix + "_en_periods"))
     {
 		size_t nr, nc;
-        ssc_number_t* mat = m_cm->as_matrix(m_prefix + "_periods", &nr, &nc);
+        ssc_number_t* mat = m_vt->as_matrix(m_prefix + "_periods", &nr, &nc);
         double ts_mult = nsteps / 8760.0;
 		if ( mat != 0 && nc == 3 )
 		{
@@ -1532,12 +1734,25 @@ weatherdata::weatherdata( var_data *data_table )
 		return;
 	}
 
-
 	m_hdr.lat = get_number( data_table, "lat" );
+    if (std::isnan(m_hdr.lat)) {
+        m_message = "missing latitude: could not find lat";
+        m_ok = false;
+    }
 	m_hdr.lon = get_number( data_table, "lon" );
+    if (std::isnan(m_hdr.lon)) {
+        m_message = "missing longitude: could not find lon";
+        m_ok = false;
+    }
 	m_hdr.tz = get_number( data_table, "tz" );
+    if (std::isnan(m_hdr.tz)) {
+        m_message = "missing time zone: could not find tz";
+        m_ok = false;
+    }
+    
 	m_hdr.elev = get_number( data_table, "elev" );
-
+    //Handle missing elevation in performance model, not weather file handling
+    
 	// make sure two types of irradiance are provided
 	size_t nrec = 0;
 	int n_irr = 0;

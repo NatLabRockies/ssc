@@ -51,11 +51,6 @@ static var_info _cm_vtab_mhk_wave[] = {
     { SSC_INPUT,           SSC_NUMBER,           "number_hours",                "Number of hours in wave time series",                                        "",     "",                       "MHKWave",      "?",                        "",                            "" },
     { SSC_INPUT,           SSC_NUMBER,           "number_records",                "Number of records in wave time series",                                        "",     "",                       "MHKWave",      "?",                        "",                            "" },
 
-    { SSC_INPUT,SSC_NUMBER  , "me_adjust:constant"                      , "Constant loss adjustment"                                       , "%"                                      , ""                                      , "Adjustment Factors"   , "?"              , "MAX=100"               , ""},
-    { SSC_INPUT,SSC_ARRAY   , "me_adjust:hourly"                        , "Hourly Adjustment Factors"                                      , "%"                                      , ""                                      , "Adjustment Factors"   , "?"              , "LENGTH=8760"           , ""},
-    { SSC_INPUT,SSC_ARRAY   , "me_adjust:timeindex"                        , "Lifetime Adjustment Factors"                                      , "%"                                      , ""                                      , "Adjustment Factors"   , "?"              , "LENGTH=8760"           , ""},
-    { SSC_INPUT,SSC_MATRIX  , "me_adjust:periods"                       , "Period-based Adjustment Factors"                                , "%"                                      , "n x 3 matrix [ start, end, loss ]"     , "Adjustment Factors"   , "?"              , "COLS=3"                , ""},
-
     { SSC_INPUT,			SSC_NUMBER,			"device_rated_power",				"Rated capacity of device",													"kW",			"",				"MHKWave",			"*",		"",						"" },
     { SSC_INPUT,			SSC_NUMBER,			"fixed_charge_rate",						"FCR from LCOE Cost page",									"",				"",             "MHKWave",         "?=1",                      "",				"" },
     { SSC_INPUT,			SSC_NUMBER,			"device_costs_total",						"Device costs",									"$",				"",             "MHKWave",         "?=1",                      "",				"" },
@@ -83,7 +78,7 @@ static var_info _cm_vtab_mhk_wave[] = {
 
 
 	{ SSC_OUTPUT,			SSC_NUMBER,			"device_average_power",					"Average power production of a single device",											"kW",			"",				"MHKWave",			"*",						"",							"" },
-	{ SSC_OUTPUT,			SSC_NUMBER,			"annual_energy",						"Annual energy production of array",											"kWh",			"",				"MHKWave",			"",						"",							"" },
+	{ SSC_OUTPUT,			SSC_NUMBER,			"annual_energy",						"Annual AC energy in Year 1",											"kWh",			"",				"MHKWave",			"",						"",							"" },
     { SSC_OUTPUT,           SSC_ARRAY,          "energy_hourly_kWh",                        "Energy production of array",                                            "kWh",          "", "Time Series",          "wave_resource_model_choice=1",                        "",          "" },
     { SSC_OUTPUT,           SSC_ARRAY,          "energy_hourly_kW",                        "Power output of array",                                            "kW",          "", "Time Series",          "wave_resource_model_choice=1",                        "",          "" },
 
@@ -386,6 +381,7 @@ private:
 public:
 	cm_mhk_wave() {
 		add_var_info(_cm_vtab_mhk_wave);
+        add_var_info(vtab_adjustment_factors);
 	}
 
 	void exec() {
@@ -554,11 +550,8 @@ public:
             if (number_records == 2920) number_records_gen *= 3.0;
 
             
-            /*
-            adjustment_factors haf(this, "me_adjust");
-            if (!haf.setup(number_records))
-                throw exec_error("mewave", "failed to setup adjustment factors: " + haf.error());
-            double haf_input[2920];*/
+            
+            
             
 
             if (system_use_lifetime_output)
@@ -584,10 +577,15 @@ public:
             else {
                 sys_degradation.push_back(1); // single year mode - degradation handled in financial models.
             }
-            ssc_number_t* energy_hourly_kWh = allocate("energy_hourly_kWh", number_records_gen);
+
+            adjustment_factors haf(this->get_var_table(), "adjust");
+            if (!haf.setup(number_records, nyears))
+                throw exec_error("mhk_wave", "Failed to set up adjustment factors: " + haf.error());
+
+            ssc_number_t* energy_hourly_kWh = allocate("energy_hourly_kWh", number_records * nyears);
             ssc_number_t* energy_hourly_kW = allocate("energy_hourly_kW", number_records_gen); //8760 of kW values
-            ssc_number_t* energy_hourly_gen = allocate("gen", number_records_gen);
-            ssc_number_t* sig_wave_height_index_mat = allocate("sig_wave_height_index_mat", number_records);
+            ssc_number_t* energy_hourly_gen = allocate("gen", number_records * nyears );
+            ssc_number_t* sig_wave_height_index_mat = allocate("sig_wave_height_index_mat", number_records );
             ssc_number_t* sig_wave_height_data = allocate("sig_wave_height_data", number_records);
             ssc_number_t* energy_period_index_mat = allocate("energy_period_index_mat", number_records);
             ssc_number_t* energy_period_data = allocate("energy_period_data", number_records);
@@ -681,10 +679,10 @@ public:
                             throw exec_error("mhk_wave", "The device power calculated from the wave height and wave period exceeds the maximum power matrix value at index" + to_string(i) + ". Please check the wave conditions.");
                     }
                 
-                    energy_hourly_kWh[y * size_t(number_records) + i] = (ssc_number_t)(wave_power_matrix.at(size_t(sig_wave_height_index), size_t(energy_period_index))) * hour_step * (1 - total_loss / 100) * sys_degradation[y] * number_devices;
+                    energy_hourly_kWh[y * size_t(number_records) + i] = (ssc_number_t)(wave_power_matrix.at(size_t(sig_wave_height_index_mat[i]), size_t(energy_period_index_mat[i]))) * hour_step * (1 - total_loss / 100) * sys_degradation[y] * number_devices * haf(y * number_records + i);
                     if (y == 0)
                         p_annual_energy_dist[size_t(sig_wave_height_index_mat[i]) * 22 + size_t(energy_period_index_mat[i])] += energy_hourly_kWh[i]; //Add energy for given time step to height x period distribution matrix at specified grid point
-                    energy_hourly_gen[y * size_t(number_records) + i] = (ssc_number_t)(wave_power_matrix.at(size_t(sig_wave_height_index_mat[i]), size_t(energy_period_index_mat[i]))) * (1 - total_loss / 100) * sys_degradation[y] * number_devices; //Store in gen to use in heatmap output (probably don't need two variables)
+                    energy_hourly_gen[y * size_t(number_records) + i] = (ssc_number_t)(wave_power_matrix.at(size_t(sig_wave_height_index_mat[i]), size_t(energy_period_index_mat[i]))) * (1 - total_loss / 100) * sys_degradation[y] * number_devices * haf(y * number_records + i); //Store in gen to use in heatmap output (probably don't need two variables)
                     //energy_hourly_gen[i*3+1] = energy_hourly[i]; //Store in gen to use in heatmap output (probably don't need two variables)
                     //energy_hourly_gen[i*3+2] = energy_hourly[i]; //Store in gen to use in heatmap output (probably don't need two variables)
                     if (number_records == 2920) {

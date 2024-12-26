@@ -52,7 +52,7 @@ var_info vtab_grid_input[] = {
     { SSC_INPUT,		SSC_ARRAY,	     "crit_load",			              "Critical electricity load (year 1)",    "kW",	        "",				        "Load",                             "",	                      "",	                            "" },
     { SSC_INOUT,        SSC_ARRAY,       "grid_outage",                       "Grid outage in this time step",            "0/1",        "0=GridAvailable,1=GridUnavailable,Length=load", "Load",    "",                       "",                               "" },
     { SSC_INPUT,        SSC_ARRAY,       "load_escalation",                   "Annual load escalation",                "%/year",    "",                                    "Load",                        "?=0",                      "",                            "" },
-    { SSC_INOUT,        SSC_ARRAY,       "monthly_energy",                    "AC energy (year 1)",              "kWh/mo",    "",                 "Monthly",       "",                    "LENGTH=12",                              "" },
+    { SSC_INOUT,        SSC_ARRAY,       "monthly_energy",                    "Monthly AC energy in Year 1",              "kWh/mo",    "",                 "Monthly",       "",                    "LENGTH=12",                              "" },
 
 
 var_info_invalid };
@@ -64,7 +64,7 @@ var_info vtab_grid_output[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,       "system_pre_interconnect_kwac",     "System power before grid interconnect",  "kW",       "Lifetime system generation" "",                 "",                        "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,      "capacity_factor_interconnect_ac",  "Capacity factor based on AC interconnection limit",  "%",          "",                "",                           "",                     "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,      "annual_energy_pre_interconnect_ac", "Annual Energy AC pre-interconnection (year 1)",   "kWh",        "",                "",                           "",                     "",                              "" },
-	{ SSC_INOUT,        SSC_NUMBER,      "annual_energy",                    "Annual Energy AC (year 1)",                        "kWh",        "",                "System Output",                           "",                     "",                              "" },
+	{ SSC_INOUT,        SSC_NUMBER,      "annual_energy",                    "Annual AC energy in Year 1",                        "kWh",        "",                "System Output",                           "",                     "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,      "annual_ac_interconnect_loss_percent","Annual Energy loss from interconnection limit (year 1)", "%", "",                "",                           "",                     "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,      "annual_ac_interconnect_loss_kwh",   "Annual Energy loss from interconnection limit (year 1)", "kWh", "",                "",                           "",                     "",                              "" },
 

@@ -90,7 +90,8 @@ endif()
 target_link_libraries(Test ssc splinter)
 
 if (UNIX)
-    target_link_libraries(Test -ldl -lpthread)
+    find_package(Threads REQUIRED)
+    target_link_libraries(Test Threads::Threads ${CMAKE_DL_LIBS}) 
 endif()
 
 

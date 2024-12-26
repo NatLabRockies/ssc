@@ -240,13 +240,13 @@ public:
 	void cornfieldPositions(std::vector<sp_point> &HelPos);
 	Heliostat *whichTemplate(int method, sp_point &pos);		//Function returning a pointer to the template to use
 	void TemplateRange(int pos_order, int method, double *rrange, double *azrange);
-	void RefactorHeliostatImages(Vect &Sun);
+	void RefactorHeliostatImages(Vect &Sun); // TODO: This is not used...
     static bool CheckReceiverAcceptance(Receiver* rec, sp_point *hpos, double towerheight);
 	
     void Simulate(double az, double zen, sim_params &P);		//Method to simulate the performance of the field
 	bool SimulateTime(int hour, int day_of_Month, int month, sim_params &P);
 	
-    static void SimulateHeliostatEfficiency(SolarField *SF, Vect &Sun, Heliostat *helio, sim_params &P);
+    void SimulateHeliostatEfficiency(Vect &Sun, Heliostat *helio, sim_params &P);
 	double calcShadowBlock(Heliostat *H, Heliostat *HS, int mode, Vect &Sun, double interaction_limit = 100.);	//Calculate the shadowing or blocking between two heliostats
 	void updateAllTrackVectors(Vect &Sun);	//Macro for calculating corner positions
 	void calcHeliostatShadows(Vect &Sun);	//Macro for calculating heliostat shadows

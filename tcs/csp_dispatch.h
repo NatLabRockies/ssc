@@ -49,7 +49,7 @@ public:
         std::vector<double> delta_rs;            //expected proportion of time step used for receiver start up
         std::vector<double> f_pb_op_limit;		//[-] Maximum normalized cycle output
 
-        //TODO: This is not used and probabily should be removed.
+        //TODO: This is not used and probably should be removed.
         std::vector<double> eta_sf_expected;     //Expected solar field thermal efficiency (normalized)
 
         // Parameters
@@ -58,10 +58,10 @@ public:
         double e_tes_max;                   //[kWht] maximum allowable energy capacity in TES
         double e_pb_startup_cold;           //[kWht] energy requirement to start up the power block from cold state
         double e_pb_startup_hot;            //[kWht] energy requirement to start up the power block from standby
-        double e_rec_startup;               //[kWht] energy requirement to start up the reciever
-        double dt_pb_startup_cold;          //[hr] time requiremeent to start up the power block from cold state
-        double dt_pb_startup_hot;           //[hr] time requiremeent to start up the power block from hot state
-        double dt_rec_startup;              //[hr] time requirement to start up the reciever
+        double e_rec_startup;               //[kWht] energy requirement to start up the receiver
+        double dt_pb_startup_cold;          //[hr] time requirement to start up the power block from cold state
+        double dt_pb_startup_hot;           //[hr] time requirement to start up the power block from hot state
+        double dt_rec_startup;              //[hr] time requirement to start up the receiver
         double tes_degrade_rate;            //IN [1/hr] Fractional energy loss from tes per hour
         double q_pb_standby;                //[kWt] power requirement to maintain the power block in standby mode
         double q_pb_des;                    //[kWe] design cycle thermal power input

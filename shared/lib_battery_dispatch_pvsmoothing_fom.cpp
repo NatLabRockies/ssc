@@ -60,6 +60,7 @@ dispatch_pvsmoothing_front_of_meter_t::dispatch_pvsmoothing_front_of_meter_t(
 	bool can_clip_charge,
 	bool can_grid_charge,
 	bool can_fuelcell_charge,
+    bool can_curtail_charge,
 	double inverter_paco,
     std::vector<double> battReplacementCostPerkWh,
 	int battCycleCostChoice,
@@ -86,7 +87,8 @@ dispatch_pvsmoothing_front_of_meter_t::dispatch_pvsmoothing_front_of_meter_t(
     double interconnection_limit
 
 ) : dispatch_automatic_t(Battery, dt_hour, SOC_min, SOC_max, current_choice, Ic_max, Id_max, Pc_max_kwdc, Pd_max_kwdc, Pc_max_kwac, Pd_max_kwac,
-		t_min, dispatch_mode, weather_forecast_mode, pv_dispatch, nyears, look_ahead_hours, dispatch_update_frequency_hours, can_charge, can_clip_charge, can_grid_charge, can_fuelcell_charge,
+		t_min, dispatch_mode, weather_forecast_mode, pv_dispatch, nyears, look_ahead_hours, dispatch_update_frequency_hours,
+        can_charge, can_clip_charge, can_grid_charge, can_fuelcell_charge, can_curtail_charge,
         battReplacementCostPerkWh, battCycleCostChoice, battCycleCost, battOMCost, interconnection_limit),
     m_batt_dispatch_pvs_nameplate_ac(batt_dispatch_pvs_nameplate_ac),
     m_batt_dispatch_pvs_ac_lb(batt_dispatch_pvs_ac_lb),
@@ -247,7 +249,7 @@ void dispatch_pvsmoothing_front_of_meter_t::update_dispatch(size_t year, size_t 
             ssc_number_t battery_soc = _Battery->SOC()/100.0;
             ssc_number_t battery_energy = _Battery->energy_nominal();
             ssc_number_t batt_half_round_trip_eff = sqrt(m_etaDischarge * m_etaPVCharge);
-            ssc_number_t battery_power = m_batteryPower->powerBatteryChargeMaxAC;
+            ssc_number_t battery_power = m_batteryPower->getMaxACChargePower();
             ssc_number_t soc_min = _Battery->get_params().capacity->minimum_SOC * 0.01;
             ssc_number_t soc_max = _Battery->get_params().capacity->maximum_SOC * 0.01;
             // scale by nameplate per ERPI code
@@ -359,13 +361,13 @@ void dispatch_pvsmoothing_front_of_meter_t::update_dispatch(size_t year, size_t 
 
         // adjust for loss and efficiencies
         m_batteryPower->powerBatteryTarget = (m_batt_dispatch_pvs_nameplate_ac > 0 ? m_batt_dispatch_pvs_nameplate_ac * m_batt_dispatch_pvs_battpower : m_batt_dispatch_pvs_battpower);
-        double loss_kw = _Battery->calculate_loss(m_batteryPower->powerBatteryTarget, lifetimeIndex); // Battery is responsible for covering discharge losses
+        double ancillary_loss_kw = _Battery->calculate_loss(m_batteryPower->powerBatteryTarget, lifetimeIndex); // Battery is responsible for covering discharge losses
         if (m_batteryPower->connectionMode == AC_CONNECTED) {
-            m_batteryPower->powerBatteryTarget = m_batteryPower->adjustForACEfficiencies(m_batteryPower->powerBatteryTarget, loss_kw);
+            m_batteryPower->powerBatteryTarget = m_batteryPower->adjustForACEfficiencies(m_batteryPower->powerBatteryTarget, ancillary_loss_kw);
         }
         else if (m_batteryPower->powerBatteryTarget > 0) {
             // Adjust for DC discharge losses
-            m_batteryPower->powerBatteryTarget += loss_kw;
+            m_batteryPower->powerBatteryTarget += ancillary_loss_kw;
         }
 
         m_batteryPower->powerBatteryDC = m_batteryPower->powerBatteryTarget;

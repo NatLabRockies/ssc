@@ -147,11 +147,17 @@ class Flux
 	//This method to calculate and convolve all moments of error distribution in the image plane
 	double imagePlaneIntercept(var_map &V, Heliostat &H, Receiver *Rec, Vect *Sun);
 
+	// Calculates viewable aperture window from heliostat location
+	bool calculateProjectedSnoutApertureIntersection(Heliostat& H, Receiver* Rec, double viewable_aperture[4]);
+
 	//An algorithm to initialize the polynomial coefficients
 	void initHermiteCoefs(var_map &V, Ambient& A);
 
 	//A method to calculate the flux density given a map of values and a solar field
-	void fluxDensity(simulation_info *siminfo, FluxSurface &flux_surface, Hvector &helios, double tht, bool clear_grid = true, bool norm_grid = true, bool show_progress=false, double *total_flux=0);
+	void fluxDensity(simulation_info *siminfo, FluxSurface &flux_surface, Hvector &helios, double tht, bool show_progress = false);
+
+	//A method to check if the flux point can be viewed by the heliostat
+	bool checkApertureSnout(sp_point& fp_g, sp_point* hloc, sp_point* aim, var_receiver* rec_var_map);
 
 	double hermiteFluxEval(Heliostat *H, double xs, double ys);
 

@@ -197,7 +197,7 @@ public:
         {
             std::vector<std::string> content = split(SV, ";");
 		    int nrows = (int)content.size();
-		    if(nrows == 0) { Vp.resize_fill(1,2,0.0); return true; }
+		    if(nrows == 0) { Vp.resize_fill(0,0,0.0); return true; }
 		    std::vector<std::string> line;
 		    line = split(content.at(0), ",");
 		    int rowlen = (int)line.size();

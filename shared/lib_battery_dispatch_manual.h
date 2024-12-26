@@ -65,6 +65,7 @@ public:
 		std::map<size_t, double> dm_percent_discharge,
 		std::map<size_t, double> dm_percent_gridcharge,
         bool can_clip_charge,
+        bool can_curtail_charge,
         double interconnection_limit,
         bool chargeOnlySystemExceedLoad = true,
         bool dischargeOnlyLoadExceedSystem = true,
@@ -100,6 +101,7 @@ protected:
 		std::map<size_t, double> dm_percent_discharge,
 		std::map<size_t, double> dm_percent_gridcharge,
         bool can_clip_charge,
+        bool can_curtail_charge,
         bool priorityChargeBattery);
 
 	void SOC_controller() override;
@@ -114,6 +116,7 @@ protected:
 	std::vector<bool> _fuelcellcharge_array;
     std::vector<bool> _discharge_grid_array;
     bool _can_clip_charge;
+    bool _can_curtail_charge;
     bool _priority_charge_battery;
 
 	double _percent_discharge;

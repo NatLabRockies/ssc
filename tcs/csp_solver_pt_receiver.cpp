@@ -93,6 +93,7 @@ C_pt_receiver::C_pt_receiver(double h_tower /*m*/, double epsilon /*-*/,
     m_rec_pump_coef = std::numeric_limits<double>::quiet_NaN();
     m_vel_htf_des = std::numeric_limits<double>::quiet_NaN();
     m_m_dot_htf_des = std::numeric_limits<double>::quiet_NaN();
+    m_m_dot_htf_max = std::numeric_limits<double>::quiet_NaN();
 
     // State variables
     m_mode = C_csp_collector_receiver::E_csp_cr_modes::OFF;
@@ -220,6 +221,12 @@ double C_pt_receiver::estimate_thermal_efficiency(const C_csp_weatherreader::S_o
 
 }
 
+
+double C_pt_receiver::getHeatLossPerApertureArea()
+{
+    throw std::runtime_error((std::string)__func__ + " is not implemented.");
+};
+
 double C_pt_receiver::get_min_power_delivery() //[MWt]
 {
     return m_f_rec_min * m_q_rec_des * 1.E-6;   //[MWt]
@@ -233,6 +240,11 @@ double C_pt_receiver::get_max_power_delivery() //[MWt]
 double C_pt_receiver::get_T_htf_cold_des()    //[K]
 {
     return m_T_htf_cold_des;    //[K]
+}
+
+double C_pt_receiver::get_T_htf_hot_des()    //[K]
+{
+    return m_T_htf_hot_des;    //[K]
 }
 
 double C_pt_receiver::get_q_dot_rec_des()     //[MWt]
@@ -262,3 +274,10 @@ void C_pt_receiver::get_design_performance(double& eta_thermal /*-*/,
     q_dot_piping_loss_des = m_Q_dot_piping_loss*1.E-6;  //[MWt]
     m_dot_htf_max = m_m_dot_htf_max;            //[kg/s]
 }
+
+
+void C_pt_receiver::update_sizing(double val1, double val2, double val3, double val4)
+{
+    throw std::runtime_error((std::string)__func__ + " is not implemented.");
+};
+

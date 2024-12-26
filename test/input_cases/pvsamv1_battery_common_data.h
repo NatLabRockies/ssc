@@ -238,7 +238,6 @@ void pvsamv1_pv_defaults(ssc_data_t& data) {
 	ssc_data_set_number(data, "cec_adjust", 22.909179999999999);
 	ssc_data_set_number(data, "cec_alpha_sc", 0.003735);
 	ssc_data_set_number(data, "cec_beta_oc", -0.175619);
-	ssc_data_set_number(data, "cec_gamma_r", -0.38600000000000001);
 	ssc_data_set_number(data, "cec_i_l_ref", 6.0537280000000004);
 	ssc_data_set_number(data, "cec_i_mp_ref", 5.6699999999999999);
 	ssc_data_set_number(data, "cec_i_o_ref", 8.3604350000000005e-11);
@@ -994,7 +993,6 @@ void commercial_multiarray_default(ssc_data_t& data) {
 	ssc_data_set_number(data, "cec_adjust", 22.909179999999999);
 	ssc_data_set_number(data, "cec_alpha_sc", 0.003735);
 	ssc_data_set_number(data, "cec_beta_oc", -0.175619);
-	ssc_data_set_number(data, "cec_gamma_r", -0.38600000000000001);
 	ssc_data_set_number(data, "cec_i_l_ref", 6.0537280000000004);
 	ssc_data_set_number(data, "cec_i_mp_ref", 5.6699999999999999);
 	ssc_data_set_number(data, "cec_i_o_ref", 8.3604350000000005e-11);

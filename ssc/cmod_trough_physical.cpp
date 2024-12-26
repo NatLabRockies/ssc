@@ -249,7 +249,6 @@ static var_info _cm_vtab_trough_physical[] = {
     { SSC_INPUT,        SSC_STRING,      "ampl_data_dir",             "AMPL data file directory",                                                         "-",            "",               "tou",            "?=''",                    "",                      "SIMULATION_PARAMETER" },
     { SSC_INPUT,        SSC_STRING,      "ampl_exec_call",            "System command to run AMPL code",                                                  "-",            "",               "tou",            "?='ampl sdk_solution.run'", "",                    "SIMULATION_PARAMETER" },
     { SSC_INPUT,        SSC_NUMBER,      "disp_frequency",            "Frequency for dispatch optimization calculations",                                 "hour",         "",               "tou",            "is_dispatch=1",           "",                      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "disp_steps_per_hour",       "Time steps per hour for dispatch optimization calculations",                       "-",            "",               "tou",            "?=1",                     "",                      "SIMULATION_PARAMETER" },
     { SSC_INPUT,        SSC_NUMBER,      "disp_horizon",              "Time horizon for dispatch optimization",                                           "hour",         "",               "tou",            "is_dispatch=1",           "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "disp_max_iter",             "Max. no. dispatch optimization iterations",                                        "-",            "",               "tou",            "is_dispatch=1",           "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "disp_timeout",              "Max. dispatch optimization solve duration",                                        "s",            "",               "tou",            "is_dispatch=1",           "",                      "" },
@@ -607,10 +606,10 @@ static var_info _cm_vtab_trough_physical[] = {
     { SSC_OUTPUT,       SSC_ARRAY,       "q_balance",                 "Relative energy balance error",                                                    "",             "",               "solver",         "sim_type=1",                       "",                      "" },
 
     // Monthly Outputs
-    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",            "Monthly Energy Gross",                                                             "kWh",          "",               "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",            "Monthly AC energy in Year 1",                                                             "kWh",          "",               "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
 
     // Annual Outputs
-    { SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",                   "Annual Net Electrical Energy Production w/ avail derate",                    "kWe-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",                   "Annual net electrical energy production with availability derate",                    "kWe-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_thermal_consumption",      "Annual thermal freeze protection required",                                  "kWt-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_total_water_use",          "Total Annual Water Usage",                                                   "m^3",          "",               "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_field_freeze_protection",  "Annual thermal power for field freeze protection",                           "kWt-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
@@ -908,7 +907,7 @@ public:
                     c_trough.m_T_out_loop_initial = as_double("T_out_loop_initial");
                 }
                 if (is_assigned("T_out_scas_initial")) {
-                    size_t n_T_out_scas_last_initial = -1;
+                    size_t n_T_out_scas_last_initial = 0;
                     ssc_number_t* T_out_scas_last_initial = as_array("T_out_scas_initial", &n_T_out_scas_last_initial);
                     std::copy(T_out_scas_last_initial, T_out_scas_last_initial + n_T_out_scas_last_initial, back_inserter(c_trough.m_T_out_scas_last_initial));
                 }
@@ -1271,8 +1270,6 @@ public:
         // ********************************
         C_csp_two_tank_tes storage;
         {
-
-            bool custom_tes_pipe_sizes = as_boolean("custom_tes_pipe_sizes");
             util::matrix_t<double> tes_lengths;
             if (is_assigned("tes_lengths")) {
                 tes_lengths = as_matrix("tes_lengths");               //[m]
@@ -1319,6 +1316,7 @@ public:
                 as_double("init_hot_htf_percent"),
                 as_double("pb_pump_coef"),
                 as_boolean("tanks_in_parallel"),
+                1.0,                                            // [-] tes packed volume fraction
                 as_double("V_tes_des"),
                 as_boolean("calc_design_pipe_vals"),
                 as_double("tes_pump_coef"),
@@ -1430,7 +1428,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"), as_matrix("dispatch_sched_weekend"),
-                            as_vector_double("dispatch_tod_factors"), std::numeric_limits<double>::quiet_NaN());
+                            as_vector_double("dispatch_tod_factors"), ppa_price_year1);
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule
@@ -1599,7 +1597,7 @@ public:
 
                 double q_dot_rec_des = q_dot_cycle_des*c_trough.m_solar_mult; //[MWt]
 
-                dispatch.solver_params.set_user_inputs(as_boolean("is_dispatch"), as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
+                dispatch.solver_params.set_user_inputs(as_boolean("is_dispatch"), steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                     as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                     as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
                     as_boolean("is_write_ampl_dat"), as_boolean("is_ampl_engine"), as_string("ampl_data_dir"), as_string("ampl_exec_call"));
@@ -1810,10 +1808,10 @@ public:
             {
                 double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
                     d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
-                    Q_tes_des_calc /*MWt-hr*/;
+                    Q_tes_des_calc /*MWt-hr*/, tes_total_mass /*kg*/;
 
                 storage.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-                    d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
+                    d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
 
                 double vol_min = V_tes_htf_total_calc * (storage.m_h_tank_min / storage.m_h_tank);
                 double V_tank_hot_ini = (as_double("h_tank_min") / as_double("h_tank")) * V_tes_htf_total_calc; // m3
@@ -1968,7 +1966,6 @@ public:
 
             // System Control
             {
-                double adjust_constant = as_double("adjust_constant");
                 double W_dot_bop_design, W_dot_fixed_parasitic_design;    //[MWe]
                 csp_solver.get_design_parameters(W_dot_bop_design, W_dot_fixed_parasitic_design);
                 vector<double> aux_vec = as_vector_double("aux_array");
@@ -2138,7 +2135,7 @@ public:
             throw exec_error("trough_physical", "The number of fixed steps does not match the length of output data arrays");
 
         // 'adjustment_factors' class stores factors in hourly array, so need to index as such
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if( !haf.setup(n_steps_full) )
             throw exec_error("trough_physical", "failed to setup adjustment factors: " + haf.error());
 
@@ -2355,9 +2352,9 @@ public:
     template <typename T>
     void set_vector(const std::string& name, const vector<T> vec)
     {
-        int size = vec.size();
+        size_t size = vec.size();
         ssc_number_t* alloc_vals = allocate(name, size);
-        for (int i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
             alloc_vals[i] = vec[i];    // []
     }
 

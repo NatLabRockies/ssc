@@ -271,8 +271,8 @@ static var_info _cm_vtab_tcstrough_empirical[] = {
 
 //	{ SSC_OUTPUT, SSC_ARRAY, "hourly_energy", "Hourly energy", "kWh", "", "tcs_trough_empirical", "*", "LENGTH=8760", "" },
 
-    { SSC_OUTPUT, SSC_ARRAY, "monthly_energy", "Monthly energy gross", "kWh", "", "tcs_trough_empirical", "*", "", "" },
-    { SSC_OUTPUT, SSC_NUMBER, "annual_energy", "Annual energy", "kWh", "", "tcs_trough_empirical", "*", "", "" },
+    { SSC_OUTPUT, SSC_ARRAY, "monthly_energy", "Monthly AC energy in Year 1", "kWh", "", "tcs_trough_empirical", "*", "", "" },
+    { SSC_OUTPUT, SSC_NUMBER, "annual_energy", "Annual AC energy in Year 1", "kWh", "", "tcs_trough_empirical", "*", "", "" },
 	{ SSC_OUTPUT, SSC_NUMBER, "annual_W_cycle_gross", "Electrical source - Power cycle gross output", "kWh", "", "tcs_trough_empirical", "*", "", "" },
 
 	{ SSC_OUTPUT, SSC_NUMBER, "conversion_factor", "Gross to Net Conversion Factor", "%", "", "Calculated", "*", "", "" },
@@ -553,7 +553,7 @@ public:
 		assign("conversion_factor", convfactor);
 
 		// performance adjustement factors
-		adjustment_factors haf(this, "adjust");
+		adjustment_factors haf(this->get_var_table(), "adjust");
 		if (!haf.setup())
 			throw exec_error("tcstrough_empirical", "failed to setup adjustment factors: " + haf.error());
 		// hourly_energy output

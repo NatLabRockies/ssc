@@ -88,7 +88,7 @@ void N_mspt::calculate_mspt_etes_costs(
     double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
     // Contingency Cost
-    double contingency_rate,		//[%] Of precontingency direct capital costs
+    double contingency_rate,		//[%] Of pre-contingency direct capital costs
 
     // Indirect Capital Costs
     double total_land_area,			    //[acres]
@@ -254,7 +254,7 @@ void N_mspt::calculate_mspt_etes__no_rad_cool__costs(
     double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
     // Contingency Cost
-    double contingency_rate,		//[%] Of precontingency direct capital costs
+    double contingency_rate,		//[%] Of pre-contingency direct capital costs
 
     // Indirect Capital Costs
     double total_land_area,			    //[acres]
@@ -421,7 +421,7 @@ void N_mspt::calculate_mspt__no_rad_cool__costs(
     double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
     // Contingency Cost
-    double contingency_rate,		//[%] Of precontingency direct capital costs
+    double contingency_rate,		//[%] Of pre-contingency direct capital costs
 
     // Indirect Capital Costs
     double total_land_area,			    //[acres]
@@ -582,7 +582,7 @@ void N_mspt::calculate_etes_costs(
     double bop_spec_cost,			//[$/kWe] BOP specific cost
 
     // Contingency Cost
-    double contingency_rate,		//[%] Of precontingency direct capital costs
+    double contingency_rate,		//[%] Of pre-contingency direct capital costs
 
     // Indirect Capital Costs
     double plant_net_capacity,		    //[MWe] Nameplate plant capacity (Net cycle output less estimated parasitics)
@@ -612,7 +612,7 @@ void N_mspt::calculate_etes_costs(
     double& estimated_installed_cost_per_cap        //[$/kWe]
 )
 {
-    // Cost model inputs not relevant to etes - set to 0
+    // Cost model inputs not relevant to ETES - set to 0
     double A_sf_refl, site_improv_spec_cost, heliostat_spec_cost, heliostat_fixed_cost,
         h_tower, h_rec, h_helio, tower_fixed_cost, tower_cost_scaling_exp,
         A_rec, rec_ref_cost, A_rec_ref, rec_cost_scaling_exp,
@@ -629,7 +629,7 @@ void N_mspt::calculate_etes_costs(
         fossil_backup_spec_cost = total_land_area = 
         EPC_land_spec_cost = total_land_spec_cost = 0.0;
 
-    // Cost model outputs not relevant to etes - don't pass upstream
+    // Cost model outputs not relevant to ETES - don't pass upstream
     double site_improvement_cost, heliostat_cost, tower_cost, receiver_cost,
         rad_field_totcost, rad_fluid_totcost, rad_storage_totcost, fossil_backup_cost;
     site_improvement_cost = heliostat_cost = tower_cost = receiver_cost =
@@ -835,9 +835,9 @@ double N_mspt::site_improvement_cost(double A_refl /*m^2*/, double site_improv_s
 	return A_refl*site_improv_spec_cost;		//[$]
 }
 
-double N_mspt::heliostat_cost(double A_refl /*m^2*/, double heliostat_spec_cost /*$/m^2*/, double heliostate_fixed_cost /*$*/)
+double N_mspt::heliostat_cost(double A_refl /*m^2*/, double heliostat_spec_cost /*$/m^2*/, double heliostat_fixed_cost /*$*/)
 {
-	return A_refl*heliostat_spec_cost + heliostate_fixed_cost;	//[$]
+	return A_refl*heliostat_spec_cost + heliostat_fixed_cost;	//[$]
 }
 
 double N_mspt::tower_cost(double h_tower /*m*/, double h_rec /*m*/, double h_helio /*m*/, double tower_fixed_cost /*$*/, double tower_cost_scaling_exp /*-*/)
@@ -850,9 +850,24 @@ double N_mspt::receiver_cost(double A_rec /*m^2*/, double rec_ref_cost /*$*/, do
 	return rec_ref_cost*pow(A_rec/rec_ref_area, rec_cost_scaling_exp);	//[$]
 }
 
+double N_mspt::lift_cost(double lift_mdot /*kg/s*/, double lift_height /*m*/, double lift_spec_cost /*$-s/m-kg*/, double n_lifts /*-*/)
+{
+    return lift_spec_cost * lift_mdot * lift_height * n_lifts;
+}
+
 double N_mspt::tes_cost(double Q_storage /*MWt-hr*/, double tes_spec_cost /*$/kWt-hr*/)
 {
 	return Q_storage*1.E3*tes_spec_cost;		//[$]
+}
+
+double N_mspt::tes_tank_cost(double tes_mass /*kg*/,double cost_per_mass /*$/kg*/, double tes_cost_exp /*-*/)
+{
+    return cost_per_mass * pow(tes_mass, tes_cost_exp);
+}
+
+double N_mspt::tes_medium_cost(double tes_mass /*kg*/, double tes_cost_per_mass /*$/kg*/, double nonactive_tes_mass_frac /*-*/)
+{
+    return (1.0 + nonactive_tes_mass_frac) * tes_cost_per_mass * tes_mass;
 }
 
 double N_mspt::power_cycle_cost(double W_dot_design /*MWe*/, double power_cycle_spec_cost /*$/kWe*/)

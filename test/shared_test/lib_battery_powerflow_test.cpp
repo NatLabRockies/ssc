@@ -53,8 +53,8 @@ void BatteryPowerFlowTest_lib_battery_powerflow::SetUp()
 	m_batteryPower->singlePointEfficiencyACToDC = 0.96;
 	m_batteryPower->singlePointEfficiencyDCToAC = 0.96;
 	m_batteryPower->singlePointEfficiencyDCToDC = 0.98;
-	m_batteryPower->powerBatteryChargeMaxDC = 100;
-	m_batteryPower->powerBatteryDischargeMaxDC = 50;
+	m_batteryPower->setMaxDCChargePower(100);
+	m_batteryPower->setMaxDCDischargePower(50);
 	m_batteryPower->connectionMode = ChargeController::AC_CONNECTED;
 
     // setup Sandia inverter using SMA America: SB3800TL-US-22 (240V) [CEC 2013]
@@ -87,14 +87,14 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, TestInitialize)
     // Grid charging Scenario
     m_batteryPower->canGridCharge = true;
     m_batteryPowerFlow->initialize(50, false);
-    EXPECT_EQ(m_batteryPower->powerBatteryDC, -m_batteryPower->powerBatteryChargeMaxDC);
+    EXPECT_EQ(m_batteryPower->powerBatteryDC, -m_batteryPower->getMaxDCChargePower());
 
 	// Discharging Scenario
 	m_batteryPower->canDischarge = true;
 	m_batteryPower->powerSystem = 50;
 	m_batteryPower->powerLoad = 100;
 	m_batteryPowerFlow->initialize(50, false);
-	EXPECT_EQ(m_batteryPower->powerBatteryDC, m_batteryPower->powerBatteryDischargeMaxDC);
+	EXPECT_EQ(m_batteryPower->powerBatteryDC, m_batteryPower->getMaxDCDischargePower());
 }
 
 // Excess PV production
@@ -2871,233 +2871,6 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_PVCharging_ExcessLoad_Flex
     check_net_flows(std::string());
 }
 
-TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, AC_system_w_ac_losses) {
-    m_batteryPower->connectionMode = ChargeController::AC_CONNECTED;
-
-    m_batteryPower->canSystemCharge = true;
-    m_batteryPower->canDischarge = true;
-    m_batteryPower->canGridCharge = false;
-    m_batteryPower->powerSystem = 100;
-    m_batteryPower->powerLoad = 50;
-
-    // Try to charge - but 100% system loss
-    m_batteryPower->acLossPostBattery = 1;
-    m_batteryPower->powerBatteryDC = -50 * m_batteryPower->singlePointEfficiencyACToDC;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, -50, error); // Dispatch would be responsible for reducing this to zero in the full code
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    double gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-
-    // Try to charge when inverter loss is 100%, disallowed
-    m_batteryPower->powerSystem = 0;
-    m_batteryPower->powerLoad = 50;
-    m_batteryPower->acLossPostBattery = 0;
-    m_batteryPower->acLossWiring = 1;
-
-    // Try to charge - 100% inverter loss means no available power
-    m_batteryPower->powerBatteryDC = -50 * m_batteryPower->singlePointEfficiencyACToDC;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 0, error); // Grid charge error handling reduces this to zero
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 0, error);
-
-    gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    // Allow grid charging
-    m_batteryPower->powerSystem = 0;
-    m_batteryPower->powerLoad = 50;
-    m_batteryPower->acLossPostBattery = 0;
-    m_batteryPower->acLossWiring = 1;
-    m_batteryPower->canGridCharge = true;
-
-    // Try to charge - grid charging provides power even with inverter off
-    m_batteryPower->powerBatteryDC = -50 * m_batteryPower->singlePointEfficiencyACToDC;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, -50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2.0, error);
-
-    gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    // Cannot grid charge with post batt loss
-    m_batteryPower->powerSystem = 0;
-    m_batteryPower->powerLoad = 50;
-    m_batteryPower->acLossPostBattery = 1;
-    m_batteryPower->acLossWiring = 0;
-    m_batteryPower->canGridCharge = true;
-
-    // Try to charge - but 100% system loss
-    m_batteryPower->powerBatteryDC = -50 * m_batteryPower->singlePointEfficiencyACToDC;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, -50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2.0, error);
-
-    gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    // Try to discharge to load w/ inverter loss
-    m_batteryPower->acLossPostBattery = 0;
-    m_batteryPower->acLossWiring = 1;
-    m_batteryPower->powerBatteryDC = 50;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 48, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 2, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 48, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2.0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-
-    // Cannot discharge to load w/ post batt loss
-    m_batteryPower->acLossPostBattery = 1;
-    m_batteryPower->acLossWiring = 0;
-    m_batteryPower->powerBatteryDC = 50;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 48, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 50, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-
-    // Try to discharge to grid w/ inverter loss
-    m_batteryPower->acLossPostBattery = 0;
-    m_batteryPower->acLossWiring = 1;
-    m_batteryPower->powerLoad = 0;
-    m_batteryPower->powerBatteryDC = 50;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 48, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToGrid, 48, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2.0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 0, error);
-
-    // Cannot discharge w/ post batt loss
-    m_batteryPower->acLossPostBattery = 1;
-    m_batteryPower->acLossWiring = 0;
-    m_batteryPower->powerBatteryDC = 50;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 48, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-
-    gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC;
-    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 0, error);
-
-    // Post batt loss affects meeting critical load
-    m_batteryPower->acLossPostBattery = 0.05;
-    m_batteryPower->acLossWiring = 0;
-    m_batteryPower->powerBatteryDC = 50;
-    m_batteryPower->isOutageStep = true;
-    m_batteryPower->powerCritLoad = 50;
-    m_batteryPower->powerLoad = 50;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 48, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 45.6, error);
-    EXPECT_NEAR(m_batteryPower->powerCritLoadUnmet, 4.4, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-
-    // Increasing batt power allows meeting critical load
-    m_batteryPower->acLossPostBattery = 0.05;
-    m_batteryPower->acLossWiring = 0;
-    m_batteryPower->powerBatteryDC = 60;
-    m_batteryPower->isOutageStep = true;
-    m_batteryPower->powerLoad = 50;
-    m_batteryPower->powerCritLoad = 50;
-    m_batteryPowerFlow->calculate();
-
-    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 55.4, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryDC, 57.7, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 50.0, error);
-    EXPECT_NEAR(m_batteryPower->powerCritLoadUnmet, 0.0, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
-    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 2.308, error);
-    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
-    EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
-}
-
 TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     m_batteryPower->connectionMode = ChargeController::DC_CONNECTED;
 
@@ -3108,7 +2881,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     m_batteryPower->powerLoad = 50;
 
     // Try to charge - allowed to charge from PV since loss is on AC side
-    m_batteryPower->acLossPostBattery = 1;
+    m_batteryPower->acLossSystemAvailability = 1;
     m_batteryPower->powerBatteryDC = -50;
     m_batteryPowerFlow->calculate();
 
@@ -3127,7 +2900,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     // Try to charge when inverter loss is 100%, allowed for DC connected
     m_batteryPower->powerSystem = 100;
     m_batteryPower->powerLoad = 50;
-    m_batteryPower->acLossPostBattery = 0;
+    m_batteryPower->acLossSystemAvailability = 0;
     m_batteryPower->acLossWiring = 1;
 
     m_batteryPower->powerBatteryDC = -50;
@@ -3148,7 +2921,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     m_batteryPower->powerSystem = 0;
     m_batteryPower->powerSystem = 0;
     m_batteryPower->powerLoad = 50;
-    m_batteryPower->acLossPostBattery = 0;
+    m_batteryPower->acLossSystemAvailability = 0;
     m_batteryPower->acLossWiring = 1;
     m_batteryPower->canGridCharge = true;
 
@@ -3170,7 +2943,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     // Cannot grid charge with post batt loss
     m_batteryPower->powerSystem = 0;
     m_batteryPower->powerLoad = 50;
-    m_batteryPower->acLossPostBattery = 1;
+    m_batteryPower->acLossSystemAvailability = 1;
     m_batteryPower->acLossWiring = 0;
     m_batteryPower->canGridCharge = true;
 
@@ -3190,7 +2963,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
 
     // Try to discharge to load w/ inverter loss - not allowed
-    m_batteryPower->acLossPostBattery = 0;
+    m_batteryPower->acLossSystemAvailability = 0;
     m_batteryPower->acLossWiring = 1;
     m_batteryPower->powerBatteryDC = 50;
     m_batteryPowerFlow->calculate();
@@ -3207,7 +2980,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
 
     // Cannot discharge to load w/ post batt loss
-    m_batteryPower->acLossPostBattery = 1;
+    m_batteryPower->acLossSystemAvailability = 1;
     m_batteryPower->acLossWiring = 0;
     m_batteryPower->powerBatteryDC = 50;
     m_batteryPowerFlow->calculate();
@@ -3224,7 +2997,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
 
     // Try to discharge to grid w/ inverter loss - not allowed
-    m_batteryPower->acLossPostBattery = 0;
+    m_batteryPower->acLossSystemAvailability = 0;
     m_batteryPower->acLossWiring = 1;
     m_batteryPower->powerLoad = 0;
     m_batteryPower->powerBatteryDC = 50;
@@ -3243,7 +3016,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerLoad, 0, error);
 
     // Cannot discharge w/ post batt loss
-    m_batteryPower->acLossPostBattery = 1;
+    m_batteryPower->acLossSystemAvailability = 1;
     m_batteryPower->acLossWiring = 0;
     m_batteryPower->powerBatteryDC = 50;
     m_batteryPowerFlow->calculate();
@@ -3261,7 +3034,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerLoad, 0, error);
 
     // Transformer losses applied to battery
-    m_batteryPower->acLossPostBattery = 0;
+    m_batteryPower->acLossSystemAvailability = 0;
     m_batteryPower->acXfmrLoadLoss = 0.5;
     m_batteryPower->acXfmrRating = 50;
     m_batteryPower->acLossWiring = 0;
@@ -3281,7 +3054,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerLoad, 0, error);
 
     // Transformer no load loss is in kw
-    m_batteryPower->acLossPostBattery = 0;
+    m_batteryPower->acLossSystemAvailability = 0;
     m_batteryPower->acXfmrLoadLoss = 0.01;
     m_batteryPower->acXfmrNoLoadLoss = 10.0;
     m_batteryPower->acXfmrRating = 50;
@@ -3305,7 +3078,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     m_batteryPower->acXfmrNoLoadLoss = 0.0;
 
     // Post batt loss affects meeting critical load
-    m_batteryPower->acLossPostBattery = 0.05;
+    m_batteryPower->acLossSystemAvailability = 0.05;
     m_batteryPower->acLossWiring = 0;
     m_batteryPower->powerBatteryDC = 50;
     m_batteryPower->isOutageStep = true;
@@ -3325,7 +3098,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
 
     // Increasing batt power allows meeting critical load
-    m_batteryPower->acLossPostBattery = 0.05;
+    m_batteryPower->acLossSystemAvailability = 0.05;
     m_batteryPower->acLossWiring = 0;
     m_batteryPower->powerBatteryDC = 60;
     m_batteryPower->isOutageStep = true;

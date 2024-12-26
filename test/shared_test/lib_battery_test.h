@@ -42,8 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_battery_lifetime_test.h"
 #include "lib_battery_lifetime_nmc.h"
 
-static void compareState(thermal_state tested_state, thermal_state expected_state, const std::string& msg){
-    double tol = 0.02;
+static void compareState(thermal_state tested_state, thermal_state expected_state, const std::string& msg, double tol=0.02){
     EXPECT_NEAR(tested_state.T_batt, expected_state.T_batt, tol) << msg;
     EXPECT_NEAR(tested_state.T_room, expected_state.T_room, tol) << msg;
     EXPECT_NEAR(tested_state.q_relative_thermal, expected_state.q_relative_thermal, tol) << msg;
@@ -100,6 +99,7 @@ protected:
     std::vector<double> dischargingLosses;
 
     std::vector<double> fullLosses;
+    std::vector<double> adjustLosses;
 
     double dt_hour = 1;
     int nyears = 1;
@@ -114,6 +114,7 @@ public:
         }
         for (size_t i = 0; i < 8760; i++) {
             fullLosses.push_back((double)i/8760);
+            adjustLosses.push_back(0.0);
         }
     }
 };
@@ -135,13 +136,12 @@ struct battery_state_test{
     }
 };
 
-static void compareState(std::unique_ptr<battery_t>&model, const battery_state_test& expected_state, const std::string& msg){
+static void compareState(std::unique_ptr<battery_t>&model, const battery_state_test& expected_state, const std::string& msg, double tol=0.01){
     auto tested_state = model->get_state();
-    compareState(*tested_state.capacity, expected_state.capacity, msg);
+    compareState(*tested_state.capacity, expected_state.capacity, msg, tol);
 
-    EXPECT_NEAR(tested_state.V, expected_state.batt_voltage, 0.01) << msg;
+    EXPECT_NEAR(tested_state.V, expected_state.batt_voltage, tol) << msg;
 
-    double tol = 0.01;
     auto lifetime_tested = tested_state.lifetime;
     auto lifetime_expected = expected_state.lifetime;
     EXPECT_NEAR(lifetime_tested->day_age_of_battery, lifetime_expected.day_age_of_battery, tol) << msg;
@@ -159,8 +159,7 @@ static void compareState(std::unique_ptr<battery_t>&model, const battery_state_t
     EXPECT_NEAR(lifetime_tested->cycle->rainflow_Ylt, cyc_expected.rainflow_Ylt, tol) << msg;
     EXPECT_NEAR(lifetime_tested->cycle->rainflow_jlt, cyc_expected.rainflow_jlt, tol) << msg;
 
-    compareState(*tested_state.thermal, expected_state.thermal, msg);
-
+    compareState(*tested_state.thermal, expected_state.thermal, msg, tol);
 }
 
 class lib_battery_test : public ::testing::Test
@@ -207,6 +206,7 @@ public:
     std::vector<double> fullLosses;
     std::vector<double> fullLossesMinute;
     int lossChoice;
+    std::vector<double> adjustLosses;
 
     // battery
     int chemistry;
@@ -273,6 +273,10 @@ public:
             fullLossesMinute.push_back(0);
         }
         lossChoice = 0;
+        for (size_t i = 0; i < 8760; i++) {
+            adjustLosses.push_back(0);
+        }
+
 
         // battery
         chemistry = 1;
@@ -283,7 +287,7 @@ public:
                                              C_rate, resistance, dtHour );
         lifetimeModel = new lifetime_calendar_cycle_t(cycleLifeMatrix, dtHour, 1.02, 2.66e-3, -7280, 930);
         thermalModel = new thermal_t(dtHour, mass, surface_area, resistance, Cp, h, capacityVsTemperature, T_room);
-        lossModel = new losses_t(monthlyLosses, monthlyLosses, monthlyLosses);
+        lossModel = new losses_t(monthlyLosses, monthlyLosses, monthlyLosses, adjustLosses);
         batteryModel = std::unique_ptr<battery_t>(new battery_t(dtHour, chemistry, capacityModel, voltageModel, lifetimeModel, thermalModel, lossModel));
     }
 

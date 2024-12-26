@@ -77,7 +77,6 @@ void C_pt_sf_perf_interp::init()
 {
 	//Read in parameters
 	util::matrix_t<double> eta_map;
-	util::matrix_t<double> flux_maps;
 	
 	m_p_start = ms_params.m_p_start;
 	m_p_track = ms_params.m_p_track;
@@ -90,16 +89,14 @@ void C_pt_sf_perf_interp::init()
 	m_n_flux_y = ms_params.m_n_flux_y;
     m_A_rec_flux_node = m_A_rec_active_total / (double(m_n_flux_x * m_n_flux_y));
 
-    if (m_n_flux_y != 1) {
-        throw(C_csp_exception("n_flux_y must be equal to 1", "heliostat field initialization"));
-    }
+    //if (m_n_flux_y != 1) {
+    //    throw(C_csp_exception("n_flux_y must be equal to 1", "heliostat field initialization"));
+    //}
 
 	int nfluxpos = eta_map.nrows();
 	int nfposdim = 2;
 
-	flux_maps = ms_params.m_flux_maps;
-	int nfluxmap = flux_maps.nrows();
-	int nfluxcol = flux_maps.ncols();
+	int nfluxmap = ms_params.m_flux_maps.nrows();
 
 	//check that flux maps match dimensions
 	if( nfluxmap % nfluxpos != 0 )
@@ -290,8 +287,7 @@ void C_pt_sf_perf_interp::call(const C_csp_weatherreader::S_outputs &weather, do
 		vector<double> sunpos;
 		sunpos.push_back(solaz / az_scale);
 		sunpos.push_back(solzen / zen_scale);
-        if( ms_params.m_eta_map_aod_format )
-        {
+        if( ms_params.m_eta_map_aod_format ) {
             if( weather.m_aod != weather.m_aod )
                 sunpos.push_back( 0. );
             else
@@ -332,13 +328,10 @@ void C_pt_sf_perf_interp::call(const C_csp_weatherreader::S_outputs &weather, do
 			weights.at(i) *= 1. / normalizer;
 
 		//set the values
-		for( int k = 0; k<npt; k++ )
-		{
+		for( int k = 0; k<npt; k++ ) { // for all nearest points
 			int imap = indices.at(k);
-			for( int j = 0; j<m_n_flux_y; j++ )
-			{
-				for( int i = 0; i<m_n_flux_x; i++ )
-				{
+			for( int j = 0; j<m_n_flux_y; j++ ) { // for all flux y-points
+				for( int i = 0; i<m_n_flux_x; i++ ) { // for all flux x-points
 					ms_outputs.m_flux_map_out(j, i) += ms_params.m_flux_maps(imap*m_n_flux_y + j, i)*weights.at(k);
 				}
 			}
@@ -346,10 +339,9 @@ void C_pt_sf_perf_interp::call(const C_csp_weatherreader::S_outputs &weather, do
 
 	}
 
-    for (int j = 0; j < m_n_flux_y; j++)
-    {
-        for (int i = 0; i < m_n_flux_x; i++)
-        {
+    for (int j = 0; j < m_n_flux_y; j++) { // for all flux y-points
+        for (int i = 0; i < m_n_flux_x; i++) { // for all flux x-points
+            // scaling flux map to absolute power, Solar field area * field efficiency * DNI / receiver node area
             ms_outputs.m_flux_map_out(j, i) *= ms_params.m_A_sf*eta_field/m_A_rec_flux_node*weather.m_beam*1.E-3;  //[kW/m2]
         }
     }
@@ -365,11 +357,11 @@ void C_pt_sf_perf_interp::call(const C_csp_weatherreader::S_outputs &weather, do
 void C_pt_sf_perf_interp::off(const C_csp_weatherreader::S_outputs& weather,
     const C_csp_solver_sim_info &sim_info)
 {
-	// Increase call-per-timestep counter
+	// Increase call-per-time step counter
 	// Converge() sets it to -1, so on first call this line will adjust it = 0
 	m_ncall++;
 
-	// Get sim info
+	// Get simulation info
 	double step = sim_info.ms_ts.m_step;
 
     m_is_field_tracking = false;

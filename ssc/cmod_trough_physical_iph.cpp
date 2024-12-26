@@ -586,13 +586,13 @@ static var_info _cm_vtab_trough_physical_iph[] = {
     { SSC_OUTPUT,       SSC_ARRAY,       "q_balance",                 "Relative energy balance error",                                                    "",             "",               "solver",         "sim_type=1",                       "",                      "" },
 
     // Monthly Outputs
-    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",            "Monthly Energy Gross",                                                                   "kWh",          "",               "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",            "Monthly AC energy in Year 1",                                                                   "kWh",          "",               "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
 
     // Annual Outputs
-    { SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",                   "Annual Net Electrical Energy Production w/ avail derate",                    "kWe-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",                   "Annual net electrical energy production with availability derate",                    "kWe-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
     //{ SSC_OUTPUT,       SSC_NUMBER,      "annual_gross_energy",             "Annual Gross Electrical Energy Production w/ avail derate",                  "kWe-hr",       "",               "Post-process",   "*",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_thermal_consumption",      "Annual thermal freeze protection required",                                  "kWt-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "annual_electricity_consumption",  "Annual electricity consumption w/ avail derate",                             "kWe-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "annual_electricity_consumption",  "Annual electricity consumption with availability derate",                             "kWe-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_total_water_use",          "Total Annual Water Usage",                                                   "m^3",          "",               "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_field_freeze_protection",  "Annual thermal power for field freeze protection",                           "kWt-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_tes_freeze_protection",    "Annual thermal power for TES freeze protection",                             "kWt-hr",       "",               "Post-process",   "sim_type=1",                       "",                      "" },
@@ -682,7 +682,7 @@ public:
         //write_cmod_to_lk_script(fp, m_vartab);
 
         // Common Parameters
-        int sim_type = as_number("sim_type");
+        int sim_type = as_integer("sim_type");
         int csp_financial_model = as_integer("csp_financial_model");
         double T_htf_cold_des = as_double("T_loop_in_des");    //[C]
         double T_htf_hot_des = as_double("T_loop_out");      //[C]
@@ -757,7 +757,7 @@ public:
 
                 //int actual_nSCA = trough_loop_vec[0];
 
-                c_trough.m_use_solar_mult_or_aperture_area = as_number("use_solar_mult_or_aperture_area"); // Use specified solar mult (0) or total aperture (1)
+                c_trough.m_use_solar_mult_or_aperture_area = as_integer("use_solar_mult_or_aperture_area"); // Use specified solar mult (0) or total aperture (1)
                 c_trough.m_specified_solar_mult = as_number("specified_solar_multiple");            // User specified solar mult
                 c_trough.m_specified_total_aperture = as_number("specified_total_aperture");    //[m2] User specified total aperture
                 //c_trough.m_nSCA = actual_nSCA;   CALCULATED INTERNAL                           //[-] Number of SCA's in a loop
@@ -1120,6 +1120,7 @@ public:
                 as_double("init_hot_htf_percent"),
                 as_double("pb_pump_coef"),
                 as_boolean("tanks_in_parallel"),
+                1.0,                                        // [-] tes packed volume fraction
                 as_double("V_tes_des"),
                 as_boolean("calc_design_pipe_vals"),
                 as_double("tes_pump_coef"),
@@ -1287,7 +1288,7 @@ public:
 
             double q_dot_rec_des = q_dot_pc_des * c_trough.m_solar_mult; //[MWt]
 
-            dispatch.solver_params.set_user_inputs(is_dispatch, as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
+            dispatch.solver_params.set_user_inputs(is_dispatch, steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                 as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                 as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
                 as_boolean("is_write_ampl_dat"), as_boolean("is_ampl_engine"), as_string("ampl_data_dir"), as_string("ampl_exec_call"));
@@ -1497,10 +1498,10 @@ public:
             {
                 double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
                     d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
-                    Q_tes_des_calc /*MWt-hr*/;
+                    Q_tes_des_calc /*MWt-hr*/, tes_total_mass /*kg*/;
 
                 storage.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-                    d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
+                    d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
 
                 double vol_min = V_tes_htf_total_calc * (storage.m_h_tank_min / storage.m_h_tank);
                 double V_tank_hot_ini = (as_double("h_tank_min") / as_double("h_tank")) * V_tes_htf_total_calc; // m3
@@ -1826,7 +1827,7 @@ public:
             throw exec_error("trough_physical", "The number of fixed steps does not match the length of output data arrays");
 
         // 'adjustment_factors' class stores factors in hourly array, so need to index as such
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if( !haf.setup(n_steps_fixed) )
             throw exec_error("trough_physical", "failed to setup adjustment factors: " + haf.error());
 
@@ -1991,9 +1992,9 @@ public:
     template <typename T>
     void set_vector(const std::string& name, const vector<T> vec)
     {
-        int size = vec.size();
+        size_t size = vec.size();
         ssc_number_t* alloc_vals = allocate(name, size);
-        for (int i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
             alloc_vals[i] = vec[i];    // []
     }
 

@@ -82,7 +82,7 @@ TEST_F(CmodSaleLeasebackTest, PV) {
 }
 
 
-TEST_F(CmodSaleLeasebackTest, GenericBattery) {
+TEST_F(CmodSaleLeasebackTest, CustomGenerationBattery) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/saleleaseback/2023.10.27_om-expense-cash-flow_Generic_Battery_Sale_Leaseback_cmod_saleleaseback.json";
     std::string file_outputs = SSCDIR;
@@ -104,7 +104,7 @@ TEST_F(CmodSaleLeasebackTest, GenericCSP) {
     Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
-TEST_F(CmodSaleLeasebackTest, Generic) {
+TEST_F(CmodSaleLeasebackTest, CustomGeneration) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/saleleaseback/2023.10.27_om-expense-cash-flow_Generic_System_Sale_Leaseback_cmod_saleleaseback.json";
     std::string file_outputs = SSCDIR;

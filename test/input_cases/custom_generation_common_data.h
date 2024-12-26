@@ -31,13 +31,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifndef _GENERIC_COMMON_DATA_H_
-#define _GENERIC_COMMON_DATA_H_
+#ifndef _CUSTOMGENERATION_COMMON_DATA_H_
+#define _CUSTOMGENERATION_COMMON_DATA_H_
 
 #include <stdio.h>
 #include "code_generator_utilities.h"
 
-namespace generictest {
+namespace customgenerationtest {
 	char load_profile_path_60min[256];
 	char load_profile_path_30min[256];
 	char gen_path_60min[256];
@@ -50,20 +50,20 @@ namespace generictest {
 	char temperature_path_30min[256];
 
 
-	int n1 = sprintf(load_profile_path_60min, "%s/test/input_cases/generic_system_data/load_60min.csv",SSCDIR);
-	int n2 = sprintf(load_profile_path_30min, "%s/test/input_cases/generic_system_data/load_30min.csv",SSCDIR);
-	int n3 = sprintf(gen_path_60min, "%s/test/input_cases/generic_system_data/energy_output_array_60min.csv",SSCDIR);
-	int n4 = sprintf(gen_path_30min, "%s/test/input_cases/generic_system_data/energy_output_array_30min.csv",SSCDIR);
-	int n5 = sprintf(batt_dispatch_path_30min, "%s/test/input_cases/generic_system_data/batt_custom_dispatch_30min.csv",SSCDIR);
-	int n6 = sprintf(batt_dispatch_path_60min, "%s/test/input_cases/generic_system_data/batt_custom_dispatch_60min.csv",SSCDIR);
-	int n7 = sprintf(dispatch_factors_unused, "%s/test/input_cases/generic_system_data/dispatch_factors_ts.csv",SSCDIR);
-	int n8 = sprintf(sell_rate_unused, "%s/test/input_cases/generic_system_data/ur_ts_sell_rate.csv",SSCDIR);
+	int n1 = sprintf(load_profile_path_60min, "%s/test/input_cases/custom_generation_data/load_60min.csv",SSCDIR);
+	int n2 = sprintf(load_profile_path_30min, "%s/test/input_cases/custom_generation_data/load_30min.csv",SSCDIR);
+	int n3 = sprintf(gen_path_60min, "%s/test/input_cases/custom_generation_data/energy_output_array_60min.csv",SSCDIR);
+	int n4 = sprintf(gen_path_30min, "%s/test/input_cases/custom_generation_data/energy_output_array_30min.csv",SSCDIR);
+	int n5 = sprintf(batt_dispatch_path_30min, "%s/test/input_cases/custom_generation_data/batt_custom_dispatch_30min.csv",SSCDIR);
+	int n6 = sprintf(batt_dispatch_path_60min, "%s/test/input_cases/custom_generation_data/batt_custom_dispatch_60min.csv",SSCDIR);
+	int n7 = sprintf(dispatch_factors_unused, "%s/test/input_cases/custom_generation_data/dispatch_factors_ts.csv",SSCDIR);
+	int n8 = sprintf(sell_rate_unused, "%s/test/input_cases/custom_generation_data/ur_ts_sell_rate.csv",SSCDIR);
 	int n9 = sprintf(temperature_path, "%s/test/input_cases/battery_data/batt_room_temperature_celsius_60min.csv",SSCDIR);
 	int n10 = sprintf(temperature_path_30min, "%s/test/input_cases/battery_data/batt_room_temperature_celsius_30min.csv",SSCDIR);
 }
 
 
-void generic_singleowner_battery_60min(ssc_data_t &data)
+void custom_generation_singleowner_battery_60min(ssc_data_t &data)
 {
 	ssc_data_set_number( data, "spec_mode", 1 );
 	ssc_data_set_number( data, "derate", 0 );
@@ -71,7 +71,7 @@ void generic_singleowner_battery_60min(ssc_data_t &data)
 	ssc_data_set_number( data, "user_capacity_factor", 43.599998474121094 );
 	ssc_data_set_number( data, "heat_rate", 0 );
 	ssc_data_set_number( data, "conv_eff", 0 );
-	set_array( data, "energy_output_array", generictest::gen_path_60min, 8760);
+	set_array( data, "energy_output_array", customgenerationtest::gen_path_60min, 8760);
 	ssc_data_set_number( data, "system_use_lifetime_output", 0 );
 	ssc_data_set_number( data, "analysis_period", 25 );
 	ssc_number_t p_generic_degradation[1] ={ 0 };
@@ -81,6 +81,7 @@ void generic_singleowner_battery_60min(ssc_data_t &data)
 
 
 	ssc_data_set_number( data, "en_batt", 1 );
+    ssc_data_set_number(data, "en_standalone_batt", 0);
 	ssc_data_set_number( data, "batt_replacement_option", 0 );
 	ssc_data_set_number( data, "batt_chem", 1 );
 	ssc_data_set_number( data, "batt_ac_or_dc", 1 );
@@ -151,7 +152,7 @@ void generic_singleowner_battery_60min(ssc_data_t &data)
 	ssc_data_set_number( data, "batt_surface_area", 2694 );
 	ssc_data_set_number( data, "batt_Cp", 1004 );
 	ssc_data_set_number( data, "batt_h_to_ambient", 20 );
-	set_array(data, "batt_room_temperature_celsius", generictest::temperature_path, 8760);
+	set_array(data, "batt_room_temperature_celsius", customgenerationtest::temperature_path, 8760);
 	ssc_number_t p_cap_vs_temp[8] ={ -10, 60, 0, 80, 25, 100, 40, 100 };
 	ssc_data_set_matrix( data, "cap_vs_temp", p_cap_vs_temp, 4, 2 );
 	ssc_number_t p_dispatch_manual_charge[6] ={ 1, 1, 1, 0, 0, 0 };
@@ -168,7 +169,7 @@ void generic_singleowner_battery_60min(ssc_data_t &data)
 	ssc_data_set_matrix( data, "dispatch_manual_sched", p_dispatch_manual_sched, 12, 24 );
 	ssc_number_t p_dispatch_manual_sched_weekend[288] ={ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1 };
 	ssc_data_set_matrix( data, "dispatch_manual_sched_weekend", p_dispatch_manual_sched_weekend, 12, 24 );
-	set_array( data, "batt_custom_dispatch", generictest::batt_dispatch_path_60min, 8760);
+	set_array( data, "batt_custom_dispatch", customgenerationtest::batt_dispatch_path_60min, 8760);
 	ssc_data_set_number( data, "batt_dispatch_choice", 3 );
 	ssc_number_t p_batt_pv_clipping_forecast[1] ={ 0 };
 	ssc_data_set_array( data, "batt_pv_clipping_forecast", p_batt_pv_clipping_forecast, 1 );
@@ -351,7 +352,7 @@ void generic_singleowner_battery_60min(ssc_data_t &data)
 	ssc_data_set_number( data, "loan_moratorium", 0 );
 	ssc_data_set_number( data, "system_use_recapitalization", 0 );
 	ssc_data_set_number( data, "ppa_multiplier_model", 0 );
-	set_array( data, "dispatch_factors_ts", generictest::dispatch_factors_unused, 8147);
+	set_array( data, "dispatch_factors_ts", customgenerationtest::dispatch_factors_unused, 8147);
 	ssc_number_t p_dispatch_tod_factors[9] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
     ssc_data_set_array(data, "dispatch_tod_factors", p_dispatch_tod_factors, 9);
 	ssc_data_set_number( data, "total_installed_cost", 1554456064 );
@@ -431,7 +432,7 @@ void generic_singleowner_battery_60min(ssc_data_t &data)
 	ssc_data_set_number( data, "batt_replacement_cost_escal", 0 );
 }
 
-void generic_commerical_battery_60min(ssc_data_t &data)
+void custom_generation_commerical_battery_60min(ssc_data_t &data)
 {
 	ssc_data_set_number(data, "spec_mode", 1);
 	ssc_data_set_number(data, "derate", 4);
@@ -439,7 +440,7 @@ void generic_commerical_battery_60min(ssc_data_t &data)
 	ssc_data_set_number(data, "user_capacity_factor", 43.599998474121094);
 	ssc_data_set_number(data, "heat_rate", 10);
 	ssc_data_set_number(data, "conv_eff", 34.118049621582031);
-	set_array(data, "energy_output_array", generictest::gen_path_60min, 8760);
+	set_array(data, "energy_output_array", customgenerationtest::gen_path_60min, 8760);
 	ssc_data_set_number(data, "system_use_lifetime_output", 0);
 	ssc_data_set_number(data, "analysis_period", 25);
 	ssc_number_t p_generic_degradation[1] = { 0 };
@@ -448,7 +449,8 @@ void generic_commerical_battery_60min(ssc_data_t &data)
     ssc_data_set_number(data, "adjust_constant", 0.0);
 
 	ssc_data_set_number(data, "en_batt", 1);
-	set_array(data, "load", generictest::load_profile_path_60min, 8760);
+    ssc_data_set_number(data, "en_standalone_batt", 0);
+	set_array(data, "load", customgenerationtest::load_profile_path_60min, 8760);
 	ssc_data_set_number(data, "batt_replacement_option", 0);
 	ssc_data_set_number(data, "batt_chem", 1);
 	ssc_data_set_number(data, "batt_ac_or_dc", 1);
@@ -520,7 +522,7 @@ void generic_commerical_battery_60min(ssc_data_t &data)
 	ssc_data_set_number(data, "batt_surface_area", 2.05);
 	ssc_data_set_number(data, "batt_Cp", 1000);
 	ssc_data_set_number(data, "batt_h_to_ambient", 20);
-	set_array(data, "batt_room_temperature_celsius", generictest::temperature_path, 8760);
+	set_array(data, "batt_room_temperature_celsius", customgenerationtest::temperature_path, 8760);
 	ssc_number_t p_cap_vs_temp[8] = { -15, 65, 0, 85, 25, 100, 40, 104 };
 	ssc_data_set_matrix(data, "cap_vs_temp", p_cap_vs_temp, 4, 2);
 	ssc_number_t p_dispatch_manual_charge[6] = { 1, 1, 1, 0, 0, 0 };
@@ -544,7 +546,7 @@ void generic_commerical_battery_60min(ssc_data_t &data)
 	ssc_number_t p_batt_target_power_monthly[1] = { 0 };
 	ssc_data_set_array(data, "batt_target_power_monthly", p_batt_target_power_monthly, 1);
 	ssc_data_set_number(data, "batt_target_choice", 0);
-	set_array(data, "batt_custom_dispatch", generictest::batt_dispatch_path_60min, 8760);
+	set_array(data, "batt_custom_dispatch", customgenerationtest::batt_dispatch_path_60min, 8760);
 	ssc_data_set_number(data, "batt_dispatch_choice", 3);
 	ssc_data_set_number(data, "batt_dispatch_auto_can_gridcharge", 0);
 	ssc_data_set_number(data, "batt_dispatch_auto_can_charge", 1);
@@ -570,7 +572,7 @@ void generic_commerical_battery_60min(ssc_data_t &data)
 	ssc_data_set_number(data, "ur_monthly_min_charge", 0);
 	ssc_data_set_number(data, "ur_annual_min_charge", 0);
 	ssc_data_set_number(data, "ur_en_ts_sell_rate", 0);
-	set_array(data, "ur_ts_sell_rate", generictest::sell_rate_unused, 8760);
+	set_array(data, "ur_ts_sell_rate", customgenerationtest::sell_rate_unused, 8760);
 	ssc_data_set_number(data, "ur_dc_enable", 1);
 	ssc_number_t p_ur_dc_sched_weekday[288] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 	ssc_data_set_matrix(data, "ur_dc_sched_weekday", p_ur_dc_sched_weekday, 12, 24);

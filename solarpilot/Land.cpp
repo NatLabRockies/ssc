@@ -1,4 +1,3 @@
-
 /*
 BSD 3-Clause License
 
@@ -39,7 +38,7 @@ using namespace std;
 void Land::Create(var_map &V)
 {
     _var_land = &V.land;
-    _bound_area = 0.;
+    _bound_area = 0.;		// [m^2]
 
     updateCalculatedParameters(V);
 }
@@ -47,9 +46,9 @@ void Land::Create(var_map &V)
 void Land::updateCalculatedParameters(var_map &V)
 {
     //bound_area
-    V.land.bound_area.Setval( _bound_area ); //land bound area. Either we have it or we don't. Something will have to have called calcLandArea for this to be set.
+    V.land.bound_area.Setval( _bound_area / 4046.86 ); //land bound area. Either we have it or we don't. Something will have to have called calcLandArea for this to be set.
     //land_area
-    V.land.land_area.Setval( _bound_area * V.land.land_mult.val/4046.86 + V.land.land_const.val );
+    V.land.land_area.Setval( _bound_area / 4046.86 * V.land.land_mult.val + V.land.land_const.val );
     //min and max radius
     double exts[2];
     Land::getRadialExtents(V, exts, V.sf.tht.val );

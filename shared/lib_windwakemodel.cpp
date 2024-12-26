@@ -49,6 +49,23 @@ bool windTurbine::setPowerCurve(std::vector<double> windSpeeds, std::vector<doub
 	return 1;
 }
 
+bool windTurbine::setCtCurve(std::vector<double> thrustCoeffCurve)
+{
+    if (powerCurveWS.empty())
+    {
+        errDetails = "Power curve must be set before thrust curve.";
+        return 0;
+    }
+    if (thrustCoeffCurve.size() != powerCurveWS.size())
+    {
+        errDetails = "Coefficient of thrust curve must have the same number of values as the power curve wind speeds";
+        return 0;
+    }
+    ctCurve.resize(thrustCoeffCurve.size());
+    ctCurve = thrustCoeffCurve;
+    return 1;
+}
+
 double windTurbine::tipSpeedRatio(double windSpeed)
 {
 	if (powerCurveRPM[0] == -1) return 7.0;
@@ -104,9 +121,9 @@ void windTurbine::turbinePower(double windVelocity, double airDensity, double *t
 
 	// Find power from turbine power curve
 	double out_pwr = 0.0;
+    int j = 1; // an index for the correct wind speed in the power curve for interpolations
 	if ((windVelocity > densityCorrectedWS[0]) && (windVelocity < densityCorrectedWS[powerCurveArrayLength - 1]))
 	{
-		int j = 1;
 		while (densityCorrectedWS[j] <= windVelocity)
 			j++; // find first m_adPowerCurveWS > windVelocity
 
@@ -132,6 +149,16 @@ void windTurbine::turbinePower(double windVelocity, double airDensity, double *t
 		*turbineOutput = out_pwr;
 		if (fPowerCoefficient >= 0.0)
 			*thrustCoefficient = max_of(0.0, -1.453989e-2 + 1.473506*fPowerCoefficient - 2.330823*pow(fPowerCoefficient, 2) + 3.885123*pow(fPowerCoefficient, 3));
+
+        // overwrite the coefficient of thrust if it has been specified by the user
+        // if it has not been specified by the user, the thrust curve vector is {0.}
+        if (ctCurve.size() != 1)
+        {
+            //interpolate to right value of Ct based on wind speed, like for power curve
+            //can use the same index for the wind speed array that was determined above
+            *thrustCoefficient = util::interpolate(densityCorrectedWS[j - 1], ctCurve[j - 1], densityCorrectedWS[j], ctCurve[j], windVelocity);
+        }
+
 	} // out_pwr > (rated power * 0.001)
 
 	return;
@@ -214,7 +241,7 @@ double parkWakeModel::delta_V_Park(double Uo, double Ui, double distCrosswind, d
 	// bound the coeff of thrust
 	double Ct = max_of(min_of(0.999, dThrustCoeff), minThrustCoeff);
 
-	double k = wakeDecayCoefficient;
+	double k = wakeDecayConstant;
 
 	double dRadiusOfWake = dRadiusUpstream + (k * distDownwind); // radius of circle formed by wake from upwind rotor
 	double dAreaOverlap = circle_overlap(distCrosswind, dRadiusDownstream, dRadiusOfWake);

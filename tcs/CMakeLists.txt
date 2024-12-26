@@ -17,6 +17,8 @@ set(TCS_SRC
 		csp_solver_core.cpp
 		csp_solver_cr_electric_resistance.cpp
 		csp_solver_cr_heat_pump.cpp
+		csp_solver_falling_particle_collector_receiver.cpp
+		csp_solver_falling_particle_receiver.cpp
         csp_solver_fresnel_collector_receiver.cpp
 		csp_solver_gen_collector_receiver.cpp
 		csp_solver_lf_dsg_collector_receiver.cpp
@@ -112,6 +114,8 @@ set(TCS_SRC
 		csp_solver_core.h
 		csp_solver_cr_electric_resistance.h
 		csp_solver_cr_heat_pump.h
+		csp_solver_falling_particle_collector_receiver.h
+		csp_solver_falling_particle_receiver.h
         csp_solver_fresnel_collector_receiver.h
 		csp_solver_gen_collector_receiver.h
 		csp_solver_lf_dsg_collector_receiver.h

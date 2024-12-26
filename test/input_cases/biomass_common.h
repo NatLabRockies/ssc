@@ -42,7 +42,7 @@ namespace biomass_test {
 	char file_name[256];
 	int n1 = sprintf(file_name, "%s/test/input_cases/swh_residential_data/fargo_nd_46.9_-96.8_mts1_60_tmy.csv", SSCDIR);
 	char dispatch_factors[256];
-    int n2 = sprintf(dispatch_factors, "%s/test/input_cases/generic_system_data/dispatch_factors_ts.csv", SSCDIR);
+    int n2 = sprintf(dispatch_factors, "%s/test/input_cases/custom_generation_data/dispatch_factors_ts.csv", SSCDIR);
 
 }
 

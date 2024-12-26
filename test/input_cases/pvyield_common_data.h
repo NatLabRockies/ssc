@@ -216,7 +216,6 @@ void pvyield_no_financial_meteo(ssc_data_t& data)
     ssc_data_set_number(data, "cec_adjust", 5.0100002288818359);
     ssc_data_set_number(data, "cec_alpha_sc", 0.0024920001160353422);
     ssc_data_set_number(data, "cec_beta_oc", -0.16975000500679016);
-    ssc_data_set_number(data, "cec_gamma_r", -0.31000000238418579);
     ssc_data_set_number(data, "cec_i_l_ref", 6.2369999885559082);
     ssc_data_set_number(data, "cec_i_mp_ref", 5.8499999046325684);
     ssc_data_set_number(data, "cec_i_o_ref", 3.9799999233813832e-12);
@@ -658,7 +657,6 @@ void pvyield_bifacial_case(ssc_data_t& data)
     ssc_data_set_number(data, "cec_adjust", 5.0100002288818359);
     ssc_data_set_number(data, "cec_alpha_sc", 0.0024920001160353422);
     ssc_data_set_number(data, "cec_beta_oc", -0.16975000500679016);
-    ssc_data_set_number(data, "cec_gamma_r", -0.31000000238418579);
     ssc_data_set_number(data, "cec_i_l_ref", 6.2369999885559082);
     ssc_data_set_number(data, "cec_i_mp_ref", 5.8499999046325684);
     ssc_data_set_number(data, "cec_i_o_ref", 3.9799999233813832e-12);
@@ -1095,7 +1093,6 @@ void pvyield_user_support_80603_meteo(ssc_data_t& data)
     ssc_data_set_number(data, "cec_adjust", 5.0100002288818359);
     ssc_data_set_number(data, "cec_alpha_sc", 0.0024920001160353422);
     ssc_data_set_number(data, "cec_beta_oc", -0.16975000500679016);
-    ssc_data_set_number(data, "cec_gamma_r", -0.31000000238418579);
     ssc_data_set_number(data, "cec_i_l_ref", 6.2369999885559082);
     ssc_data_set_number(data, "cec_i_mp_ref", 5.8499999046325684);
     ssc_data_set_number(data, "cec_i_o_ref", 3.9799999233813832e-12);
@@ -1534,7 +1531,6 @@ void pvyield_user_support_80603_AZ(ssc_data_t& data)
     ssc_data_set_number(data, "cec_adjust", 5.0100002288818359);
     ssc_data_set_number(data, "cec_alpha_sc", 0.0024920001160353422);
     ssc_data_set_number(data, "cec_beta_oc", -0.16975000500679016);
-    ssc_data_set_number(data, "cec_gamma_r", -0.31000000238418579);
     ssc_data_set_number(data, "cec_i_l_ref", 6.2369999885559082);
     ssc_data_set_number(data, "cec_i_mp_ref", 5.8499999046325684);
     ssc_data_set_number(data, "cec_i_o_ref", 3.9799999233813832e-12);
@@ -1974,7 +1970,6 @@ void pvsamMPPT_nofinancial_default(ssc_data_t& data)
     ssc_data_set_number(data, "cec_adjust", 5.0100002288818359);
     ssc_data_set_number(data, "cec_alpha_sc", 0.0024920001160353422);
     ssc_data_set_number(data, "cec_beta_oc", -0.16975000500679016);
-    ssc_data_set_number(data, "cec_gamma_r", -0.31000000238418579);
     ssc_data_set_number(data, "cec_i_l_ref", 6.2369999885559082);
     ssc_data_set_number(data, "cec_i_mp_ref", 5.8499999046325684);
     ssc_data_set_number(data, "cec_i_o_ref", 3.9799999233813832e-12);

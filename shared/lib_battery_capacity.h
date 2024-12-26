@@ -47,6 +47,8 @@ struct capacity_state {
     double I_loss; // [A] - Lifetime and thermal losses
     double SOC; // [%] - State of Charge
     double SOC_prev; // [%] - previous step
+    double percent_unavailable; // [%] - Percent of system that is down
+    double percent_unavailable_prev; // [%] - Percent of system that was down last step
 
     enum {
         CHARGE, NO_CHARGE, DISCHARGE
@@ -119,6 +121,8 @@ public:
     virtual void updateCapacityForLifetime(double capacity_percent) = 0;
 
     virtual void replace_battery(double replacement_percent) = 0;
+
+    virtual void updateCapacityForAvailability(double availability_percent) = 0;
 
     void change_SOC_limits(double min, double max) {
         params->minimum_SOC = min;
@@ -199,6 +203,8 @@ public:
 
     void replace_battery(double replacement_percent) override;
 
+    void updateCapacityForAvailability(double availability_percent) override;
+
     double q1() override; // Available charge
     double q2(); // Bound charge
     double q10() override; // Capacity at 10 hour discharge rate
@@ -253,6 +259,8 @@ public:
     void updateCapacityForLifetime(double capacity_percent) override;
 
     void replace_battery(double replacement_percent) override;
+
+    void updateCapacityForAvailability(double availability_percent) override;
 
     double q1() override; // Available charge
     double q10() override; // Capacity at 10 hour discharge rate

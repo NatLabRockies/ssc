@@ -72,6 +72,7 @@ struct DispatchProperties {
     std::map<size_t, double> percentDischarge;
     std::map<size_t, double> percentGridcharge;
     bool canClipCharge = false;
+    bool canCurtailCharge = false;
 
     // resource
     std::vector<double> pv;

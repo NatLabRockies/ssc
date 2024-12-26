@@ -91,7 +91,7 @@ public:
 
             for (size_t i = 0; i < vec_cms.size(); i++) {
                 std::string computemodulename = vec_cms[i].str;
-                if ((computemodulename == "pvsamv1") || (computemodulename == "pvwattsv8") || (computemodulename == "windpower") || (computemodulename == "generic_system"))
+                if ((computemodulename == "pvsamv1") || (computemodulename == "pvwattsv8") || (computemodulename == "windpower") || (computemodulename == "custom_generation"))
                     generators.push_back(computemodulename);
                 else if (computemodulename == "battery")
                     batteries.push_back(computemodulename);
@@ -216,7 +216,7 @@ public:
                 else {
                     size_t count_degrad = 0;
                     ssc_number_t* degrad = input.as_array("degradation", &count_degrad);
-                    if (compute_module == "generic_system")
+                    if (compute_module == "custom_generation")
                         input.assign("generic_degradation", *input.lookup("degradation"));
                     if (count_degrad == 1) {
                         for (int i = 1; i <= analysisPeriod; i++)

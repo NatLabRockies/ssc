@@ -47,40 +47,44 @@ public:
 	 3. Charging from the PV array during times of low PPA sell rates
 	 4. Charging from the PV array during times where the PV power would be clipped due to inverter limits (if DC-connected)
 	*/
-	dispatch_automatic_front_of_meter_t(
-		battery_t * Battery,
-		double dt,
-		double SOC_min,
-		double SOC_max,
-		int current_choice,
-		double Ic_max,
-		double Id_max,
-		double Pc_max_kwdc,
-		double Pd_max_kwdc,
-		double Pc_max_kwac,
-		double Pd_max_kwac,
-		double t_min,
-		int dispatch_mode,
+    dispatch_automatic_front_of_meter_t(
+        battery_t* Battery,
+        double dt,
+        double SOC_min,
+        double SOC_max,
+        int current_choice,
+        double Ic_max,
+        double Id_max,
+        double Pc_max_kwdc,
+        double Pd_max_kwdc,
+        double Pc_max_kwac,
+        double Pd_max_kwac,
+        double t_min,
+        int dispatch_mode,
         int weather_forecast_mode,
-		int pv_dispatch,
-		size_t nyears,
-		size_t look_ahead_hours,
-		double dispatch_update_frequency_hours,
-		bool can_charge,
-		bool can_clipcharge,
-		bool can_grid_charge,
-		bool can_fuelcell_charge,
-		double inverter_paco,
+        int pv_dispatch,
+        size_t nyears,
+        size_t look_ahead_hours,
+        double dispatch_update_frequency_hours,
+        bool can_charge,
+        bool can_clipcharge,
+        bool can_grid_charge,
+        bool can_fuelcell_charge,
+        bool can_curtail_charge,
+        double inverter_paco,
         std::vector<double> battReplacementCostPerkWh,
-		int battCycleCostChoice,
+        int battCycleCostChoice,
         std::vector<double> battCycleCost,
         std::vector<double> battOMCost, // required for base class
-		std::vector<double> ppa_price_series_dollar_per_kwh,
-		UtilityRate * utilityRate,
-		double etaPVCharge,
-		double etaGridCharge,
-		double etaDischarge,
-        double interconnection_limit
+        std::vector<double> ppa_price_series_dollar_per_kwh,
+        UtilityRate* utilityRate,
+        double etaPVCharge,
+        double etaGridCharge,
+        double etaDischarge,
+        double interconnection_limit,
+        std::vector<double> cleared_capacities_kw,
+        dispatch_t::CAPACITY_FORECAST_TYPE cleared_capacity_type,
+        double cleared_cap_percent
 		);
 
 	~dispatch_automatic_front_of_meter_t();
@@ -126,6 +130,9 @@ protected:
 	/*! Market real time and forecast prices */
 	std::vector<double> _forecast_price_rt_series;
     std::vector<double> ppa_prices; // Smaller vector for copying and sorting
+    std::vector<double> cleared_capacities; // For automated dispatch with merchant plant
+    dispatch_t::CAPACITY_FORECAST_TYPE capacity_type;
+    double cleared_capacity_percent; // 0 - 1, 0: all markets are set by percent of generation, 1: all markets are set by cleared capacity
 
     size_t discharge_hours; // Battery size in hours
 
@@ -142,6 +149,7 @@ protected:
 	double revenueToGridCharge;
 	double revenueToClipCharge;
 	double revenueToDischarge;
+    double revenueToCurtailCharge;
 };
 
 #endif // __LIB_BATTERY_DISPATCH_AUTOMATIC_FOM_H__

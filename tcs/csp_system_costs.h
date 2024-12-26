@@ -393,13 +393,19 @@ namespace N_mspt
 
     double site_improvement_cost(double A_refl /*m^2*/, double site_improv_spec_cost /*$/m^2_reflect*/);
 
-	double heliostat_cost(double A_refl /*m^2*/, double heliostat_spec_cost /*$/m^2*/, double heliostate_fixed_cost /*$*/ );
+	double heliostat_cost(double A_refl /*m^2*/, double heliostat_spec_cost /*$/m^2*/, double heliostat_fixed_cost /*$*/ );
 
 	double tower_cost(double h_tower /*m*/, double h_rec /*m*/, double h_helio /*m*/, double tower_fixed_cost /*$*/, double tower_cost_scaling_exp /*-*/);
 
 	double receiver_cost(double A_rec /*m^2*/, double rec_ref_cost /*$*/, double rec_ref_area /*m^2*/, double rec_cost_scaling_exp /*-*/);
-	
+
+    double lift_cost(double lift_mdot /*kg/s*/, double lift_height /*m*/, double lift_spec_cost /*$-s/m-kg*/, double n_lifts /*-*/);
+
 	double tes_cost(double Q_storage /*MWt-hr*/, double tes_spec_cost /*$/kWt-hr*/);
+
+    double tes_tank_cost(double tes_mass /*kg*/, double cost_per_mass /*$/kg*/, double tes_cost_exp /*-*/);
+
+    double tes_medium_cost(double tes_mass /*kg*/, double tes_cost_per_mass /*$/kg*/, double nonactive_tes_mass_frac /*-*/);
 
 	double power_cycle_cost(double W_dot_design /*MWe*/, double power_cycle_spec_cost /*$/kWe*/);
 

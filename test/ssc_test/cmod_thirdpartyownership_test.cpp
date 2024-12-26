@@ -82,7 +82,7 @@ TEST_F(CmodThirdPartyOwnershipTest, PVBattery) {
 }
 
 
-TEST_F(CmodThirdPartyOwnershipTest, Generic) {
+TEST_F(CmodThirdPartyOwnershipTest, CustomGeneration) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/thirdpartyownership/2022.08.08_develop_branch_Generic_System_Third_Party_cmod_thirdpartyownership.json";
     std::string file_outputs = SSCDIR;
@@ -94,7 +94,7 @@ TEST_F(CmodThirdPartyOwnershipTest, Generic) {
 }
 
 
-TEST_F(CmodThirdPartyOwnershipTest, GenericBattery) {
+TEST_F(CmodThirdPartyOwnershipTest, CustomGenerationBattery) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/thirdpartyownership/2022.08.08_develop_branch_Generic_Battery_Third_Party_cmod_thirdpartyownership.json";
     std::string file_outputs = SSCDIR;

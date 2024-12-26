@@ -74,7 +74,7 @@ struct SGeothermal_Inputs
         md_dtProdWell = md_dtProdWellChoice = 0.0;
         md_NumberOfWellsProdExp = md_NumberOfWellsInjDrilled = md_NumberOfWellsProdDrilled = md_FailedWells = md_StimSuccessRate = md_DrillSuccessRate = 0;
         md_FailedInjFlowRatio = md_FailedProdFlowRatio = md_InjWellFriction = md_ProdWellFriction = md_InjWellPressurePSI = md_InjectivityIndex = md_ExplorationWellsProd = 0;
-        md_UseWeatherFileConditions = 0.0;
+        md_UseWeatherFileConditions = md_AllowReservoirReplacements = 0.0;
 	}
 
 	calculationBasis me_cb;									// { NO_CALCULATION_BASIS, POWER_SALES, NUMBER_OF_WELLS };
@@ -152,6 +152,8 @@ struct SGeothermal_Inputs
 	double md_AdditionalPressure;							// manually enter additional psi for injection pumps
     double md_dtProdWell;                                   // degrees C, temperature loss in production well
     double md_dtProdWellChoice;                             // Constant dt prod well or Ramey model
+
+    bool md_AllowReservoirReplacements;
 
 
 	const char * mc_WeatherFileName;

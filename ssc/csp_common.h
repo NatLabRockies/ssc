@@ -51,6 +51,8 @@ class solarpilot_invoke : public var_map
 
 public:
 
+    void getHeliostatFieldEfficiency(util::matrix_t<double> &eta_map);
+    void getReceiverFluxMaps(util::matrix_t<double>& flux_maps);
 	void getOptimizationSimulationHistory(std::vector<std::vector<double> > &sim_points, std::vector<double> &obj_values, std::vector<double> &flux_values);
 	void setOptimizationSimulationHistory(std::vector<std::vector<double> > &sim_points, std::vector<double> &obj_values, std::vector<double> &flux_values);
 
@@ -61,7 +63,6 @@ public:
     sp_receivers recs;*/
     sp_layout layout;
     sp_flux_table fluxtab;
-    sp_layout_table heliotab;
 
     solarpilot_invoke( compute_module *cm );
     ~solarpilot_invoke();
@@ -76,6 +77,8 @@ public:
 };
 
 bool are_values_sig_different(double v1, double v2, double tol);
+
+void importFluxMaps(util::matrix_t<double> flux_maps_in, util::matrix_t<double>* flux_maps_out);
 
 bool ssc_cmod_solarpilot_callback(simulation_info *siminfo, void *data);
 

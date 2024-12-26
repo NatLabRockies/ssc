@@ -64,6 +64,7 @@ static var_info _cm_vtab_csp_subcomponent[] = {
     { SSC_INPUT,        SSC_NUMBER,      "hot_tank_Thtr",             "Minimum allowable hot tank HTF temp",                                              "C",            "",               "TES",            "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "hot_tank_max_heat",         "Rated heater capacity for hot tank heating",                                       "MWe",          "",               "TES",            "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "cold_tank_Thtr",            "Minimum allowable cold tank HTF temp",                                             "C",            "",               "TES",            "*",                       "",                      "" },
+    { SSC_INPUT,        SSC_NUMBER,      "packed_vol_frac",           "Packed volume fraction",                                                           "-",            "",               "TES",            "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "cold_tank_max_heat",        "Rated heater capacity for cold tank heating",                                      "MWe",          "",               "TES",            "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "dt_hot",                    "Hot side HX approach temp",                                                        "C",            "",               "TES",            "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "T_loop_in_des",             "Design loop inlet temperature",                                                    "C",            "",               "solar_field",    "*",                       "",                      "" },
@@ -137,6 +138,7 @@ public:
             as_double("init_hot_htf_percent"),                                  // [%] Initial fraction of available volume that is hot
             as_double("pb_pump_coef"),                                          // [kW/kg/s] Pumping power to move 1 kg/s of HTF through power cycle
             as_boolean("tanks_in_parallel"),                                    // [-] Whether the tanks are in series or parallel with the solar field. Series means field htf must go through storage tanks.
+            as_double("packed_vol_frac"),                                       // [-] Packed volume fraction
             as_double("V_tes_des"),                                             // [m/s] Design-point velocity for sizing the diameters of the TES piping
             as_boolean("calc_design_pipe_vals"),                                // [-] Should the HTF state be calculated at design conditions
             as_double("tes_pump_coef"),                                         // [kW/kg/s] Pumping power to move 1 kg/s of HTF through tes loop

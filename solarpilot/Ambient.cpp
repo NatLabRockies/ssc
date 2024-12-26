@@ -85,8 +85,8 @@ void Ambient::calcBuieCSRIntensity(std::vector<double>& angle, std::vector<doubl
     calculate relative solar intensity over the span 0..angle_max[mrad] at npt increments, filling 'angle' and 'intesity'
 
     Creates the Buie (2003) sun shape based on CSR
-    [1] Buie, D., Dey, C., & Bosi, S. (2003). The effective size of the solar cone for solar concentrating systems. Solar energy, 74(2003), 417–427.
-    [2] Buie, D., Monger, A., & Dey, C. (2003). Sunshape distributions for terrestrial solar simulations. Solar Energy, 74(March 2003), 113–122.
+    [1] Buie, D., Dey, C., & Bosi, S. (2003). The effective size of the solar cone for solar concentrating systems. Solar energy, 74(2003), 417â€“427.
+    [2] Buie, D., Monger, A., & Dey, C. (2003). Sunshape distributions for terrestrial solar simulations. Solar Energy, 74(March 2003), 113â€“122.
 
     */
     double dt_s = .2;
@@ -212,7 +212,7 @@ void Ambient::calcSunPosition(double lat, double lon, double timezone, double ts
 
 
 	long retcode = 0;		//Initialize with no errors
-	retcode = S_solpos(pdat);	//Call the solar posotion algorithm
+	retcode = S_solpos(pdat);	//Call the solar position algorithm
 	S_decode(retcode, pdat);	//Check the return code
 
 	//set the calculated values
@@ -243,7 +243,7 @@ void Ambient::calcDaytimeHours(double hrs[2], double lat, double lon, double tim
 
 
 	long retcode = 0;		//Initialize with no errors
-	retcode = S_solpos(pdat);	//Call the solar posotion algorithm
+	retcode = S_solpos(pdat);	//Call the solar position algorithm
 	//srss( pdat );
 	S_decode(retcode, pdat);	//Check the return code
 	hrs[0] = pdat->sretr/60.;
@@ -353,6 +353,8 @@ void Ambient::calcSpacedDaysHours(double lat, double lon, double tmz, int nday, 
 	DateTime DT;
 	int month, dom;
 
+    if (nday == 1) throw spexception("Algorithm to determine spaced days cannot handle a input of one day.");
+
 	for(int i=0; i<nday; i++){
 		//Calculate the day number - The days are evenly distributed over the cosine wave of the year
 		uday[i] = 355 - (int)floor(acos(-1.+2.*i/(float)(nday-1))/pi*(float)(355-172));
@@ -427,7 +429,7 @@ double Ambient::calcInsolation(var_map &V, double /*azimuth*/, double zenith, in
 		break;
 	//case Ambient::CONSTANT:
     case var_ambient::INSOL_TYPE::CONSTANT_VALUE:
-		dni = V.sf.dni_des.val / (S0 * 1000.);
+		dni = V.sf.dni_des.val / (S0 * 1000.);  // TODO: Should this be dni_layout? and not dni_des? Or should we just remove dni_layout
 		break;
 	//case Ambient::MOON:
     case var_ambient::INSOL_TYPE::MOON_MODEL:

@@ -92,7 +92,7 @@ TEST_F(CmodLCOEFCRTest, GenericCSP) {
     Test("lcoefcr", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
-TEST_F(CmodLCOEFCRTest, Generic) {
+TEST_F(CmodLCOEFCRTest, CustomGeneration) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/lcoefcr/2022.08.08_develop_branch_Generic_System_LCOE_Calculator_cmod_lcoefcr.json";
     std::string file_outputs = SSCDIR;

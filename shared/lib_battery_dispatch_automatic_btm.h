@@ -86,6 +86,7 @@ public:
 		bool can_clipcharge,
 		bool can_grid_charge,
 		bool can_fuelcell_charge,
+        bool can_curtail_charge,
         rate_data* util_rate,
         std::vector<double> battReplacementCostPerkWh,
         int battCycleCostChoice,

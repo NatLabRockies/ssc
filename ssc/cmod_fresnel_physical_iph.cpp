@@ -198,7 +198,6 @@ static var_info _cm_vtab_fresnel_physical_iph[] = {
     /*LK Only*/{ SSC_INPUT,    SSC_NUMBER,         "is_ampl_engine",              "Run dispatch optimization with external AMPL engine",                                   "-",                   "",                             "tou",                                      "?=0",                     "",                      "SIMULATION_PARAMETER" },
     /*LK Only*/{ SSC_INPUT,    SSC_STRING,         "ampl_data_dir",               "AMPL data file directory",                                                              "-",                   "",                             "tou",                                      "?=''",                    "",                      "SIMULATION_PARAMETER" },
     /*LK Only*/{ SSC_INPUT,    SSC_STRING,         "ampl_exec_call",              "System command to run AMPL code",                                                       "-",                   "",                             "tou",                                      "?='ampl sdk_solution.run'", "",                    "SIMULATION_PARAMETER" },
-    /*LK Only*/{ SSC_INPUT,    SSC_NUMBER,         "disp_steps_per_hour",         "Time steps per hour for dispatch optimization calculations",                            "-",                   "",                             "tou",                                      "?=1",                     "",                      "SIMULATION_PARAMETER" },
     /*LK Only*/{ SSC_INPUT,    SSC_NUMBER,         "disp_spec_presolve",          "Dispatch optimization presolve heuristic",                                              "-",                   "",                             "tou",                                      "?=-1",                    "",                      "SIMULATION_PARAMETER" },
     /*LK Only*/{ SSC_INPUT,    SSC_NUMBER,         "disp_spec_bb",                "Dispatch optimization B&B heuristic",                                                   "-",                   "",                             "tou",                                      "?=-1",                    "",                      "SIMULATION_PARAMETER" },
     /*LK Only*/{ SSC_INPUT,    SSC_NUMBER,         "disp_reporting",              "Dispatch optimization reporting level",                                                 "-",                   "",                             "tou",                                      "?=-1",                    "",                      "SIMULATION_PARAMETER" },
@@ -566,12 +565,12 @@ static var_info _cm_vtab_fresnel_physical_iph[] = {
     { SSC_OUTPUT,       SSC_ARRAY,      "gen",                              "Total thermal power to heat sink with available derate",               "kWe",          "",         "system",         "sim_type=1",                       "",                      "" },
 
     // Monthly Outputs
-    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy",                   "Monthly Energy",                                                       "kWh",          "",         "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy",                   "Monthly AC energy in Year 1",                                                       "kWh",          "",         "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
 
     // Annual Outputs
-    { SSC_OUTPUT,       SSC_NUMBER,     "annual_energy",                    "Annual Net Electrical Energy Production w/ avail derate",              "kWe-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "annual_energy",                    "Annual net electricity production with availability derate",              "kWe-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "annual_thermal_consumption",       "Annual thermal freeze protection required",                            "kWt-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "annual_electricity_consumption",   "Annual electricity consumption w/ avail derate",                       "kWe-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "annual_electricity_consumption",   "Annual electricity consumption with availability derate",                       "kWe-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "annual_total_water_use",           "Total Annual Water Usage",                                             "m^3",          "",         "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "annual_field_freeze_protection",   "Annual thermal power for field freeze protection",                     "kWt-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "annual_tes_freeze_protection",     "Annual thermal power for TES freeze protection",                       "kWt-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
@@ -846,6 +845,7 @@ public:
                 as_double("init_hot_htf_percent"),
                 as_double("pb_pump_coef"),
                 as_boolean("tanks_in_parallel"),
+                1.0,                    // packed volume fraction
                 V_tes_des,
                 false,
                 as_double("tes_pump_coef")
@@ -947,7 +947,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"),
-                            as_matrix("dispatch_sched_weekend"), as_vector_double("dispatch_tod_factors"), std::numeric_limits<double>::quiet_NaN());
+                            as_matrix("dispatch_sched_weekend"), as_vector_double("dispatch_tod_factors"), ppa_price_year1);
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule
@@ -1005,7 +1005,7 @@ public:
 
             double q_dot_rec_des = q_dot_pc_des * c_fresnel.m_solar_mult; //[MWt]
 
-            dispatch.solver_params.set_user_inputs(is_dispatch, as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
+            dispatch.solver_params.set_user_inputs(is_dispatch, steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                 as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                 as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
                 as_boolean("is_write_ampl_dat"), as_boolean("is_ampl_engine"), as_string("ampl_data_dir"), as_string("ampl_exec_call"));
@@ -1263,10 +1263,10 @@ public:
             // Storage
             double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
                 d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
-                Q_tes_des_calc /*MWt-hr*/;
+                Q_tes_des_calc /*MWt-hr*/, tes_total_mass/*kg*/;
 
             storage.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-                d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
+                d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
 
             double vol_min = V_tes_htf_total_calc * (storage.m_h_tank_min / storage.m_h_tank);
             double tes_htf_min_temp = storage.get_min_storage_htf_temp() - 273.15;
@@ -1531,7 +1531,7 @@ public:
             throw exec_error("fresnel_physical", "The number of fixed steps does not match the length of output data arrays");
 
         // 'adjustment_factors' class stores factors in hourly array, so need to index as such
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if (!haf.setup(n_steps_fixed))
             throw exec_error("fresnel_physical", "failed to setup adjustment factors: " + haf.error());
 

@@ -40,8 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "lib_battery_capacity.h"
 #include "lib_battery.h"
 
-static void compareState(capacity_state tested_state, capacity_state expected_state, const std::string& msg){
-    double tol = 0.01;
+static void compareState(capacity_state tested_state, capacity_state expected_state, const std::string& msg, double tol=0.01){
     EXPECT_NEAR(tested_state.q0, expected_state.q0, tol) << msg;
     EXPECT_NEAR(tested_state.qmax_thermal, expected_state.qmax_thermal, tol) << msg;
     EXPECT_NEAR(tested_state.qmax_lifetime, expected_state.qmax_lifetime, tol) << msg;

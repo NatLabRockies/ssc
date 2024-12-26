@@ -116,7 +116,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_MATRIX, "land_bound_table",                   "Land boundary table",                                                                                                                     "m",            "",                                  "Heliostat Field",                          "?",                                                                "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_ARRAY,  "land_bound_list",                    "Land boundary table listing",                                                                                                             "",             "",                                  "Heliostat Field",                          "?",                                                                "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "p_start",                            "Heliostat startup energy",                                                                                                                "kWe-hr",       "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "p_track",                            "Heliostat tracking energy",                                                                                                               "kWe",          "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "p_track",                            "Heliostat tracking power",                                                                                                               "kWe",          "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "hel_stow_deploy",                    "Stow/deploy elevation angle",                                                                                                             "deg",          "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "v_wind_max",                         "Heliostat max wind velocity",                                                                                                             "m/s",          "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "interp_nug",                         "Interpolation nugget",                                                                                                                    "-",            "",                                  "Heliostat Field",                          "?=0",                                                              "",              "SIMULATION_PARAMETER"},
@@ -138,7 +138,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "water_usage_per_wash",               "Water usage per wash",                                                                                                                    "L/m2_aper",    "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "washing_frequency",                  "Mirror washing frequency",                                                                                                                "none",         "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "check_max_flux",                     "Check max flux at design point",                                                                                                          "",             "",                                  "Heliostat Field",                          "?=0",                                                              "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "sf_excess",                          "Heliostat field multiple",                                                                                                                "",             "",                                  "System Design",                            "?=1.0",                                                            "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "sun_loc_des",                        "Sun location at design point (0 = Summer solstice, 1 = Equinox, 2 = Winter solstice)",                                                    "",             "",                                  "Heliostat Field",                          "?=0",                                                              "",              ""},
 
     // Inputs required for user defined SF performance when field_model_type = 4
     // Values can be defined by mapping to equivalent _calc output for simulation results with field_model_type < 3
@@ -334,7 +334,6 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "can_cycle_use_standby",              "Can the cycle use standby operation?",                                                                                                    "",             "",                                  "System Control",                           "?=0",                                                              "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "disp_horizon",                       "Time horizon for dispatch optimization",                                                                                                  "hour",         "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "disp_frequency",                     "Frequency for dispatch optimization calculations",                                                                                        "hour",         "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "disp_steps_per_hour",                "Time steps per hour for dispatch optimization calculations",                                                                              "",             "",                                  "System Control",                           "?=1",                                                              "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "disp_max_iter",                      "Max number of dispatch optimization iterations",                                                                                          "",             "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "disp_timeout",                       "Max dispatch optimization solve duration",                                                                                                "s",            "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "disp_mip_gap",                       "Dispatch optimization solution tolerance",                                                                                                "",             "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
@@ -921,15 +920,11 @@ public:
 
         // *****************************************************
         // System Design Parameters
-        double T_htf_cold_des = as_double("T_htf_cold_des");    //[C]
-        double T_htf_hot_des = as_double("T_htf_hot_des");      //[C]
         double W_dot_cycle_des = as_double("P_ref");            //[MWe]
         double eta_cycle = as_double("design_eff");             //[-]
-        double tshours = as_double("tshours");                  //[-]
 
         // System Design Calcs
         double q_dot_pc_des = W_dot_cycle_des / eta_cycle;      //[MWt]
-        double Q_tes = q_dot_pc_des * tshours;                  //[MWt-hr]
         double solar_mult = as_number("solarm");                //[-]
         double q_dot_rec_des = q_dot_pc_des * solar_mult;       //[MWt]
 
@@ -957,9 +952,6 @@ public:
         // Initialize to get weather file info
         weather_reader.init();
         if (weather_reader.has_error()) throw exec_error("tcsmolten_salt", weather_reader.get_error());
-
-        // Get info from the weather reader initialization
-        double site_elevation = weather_reader.ms_solved_params.m_elev;     //[m]
 
         int tes_type = 1;
         
@@ -1029,7 +1021,7 @@ public:
                 assign("n_flux_x", 2);  // n_flux_x represents *per panel* the number subsurfaces in x direction 
             }
             else {
-                throw exec_error("tcsmolten_salt", "receiver_type must be 1 (external) or 0 (cavity)");
+                throw exec_error("tcsmolten_salt", "receiver_type must be 0 (external) or 1 (cavity)");
             }
 
             if ((field_model_type == 0 || field_model_type == 1) && sim_type == 1) // Auto-design. Generate a new system (is_optimize = true) or field layout
@@ -1050,13 +1042,14 @@ public:
 
                 if (is_optimize) {
                     //Optimization iteration history
+                    // TODO (Bill): who owns "opt_history"? GUI? It doesn't appear anywhere...
                     vector<vector<double> > steps;
                     vector<double> obj, flux;
                     spi.getOptimizationSimulationHistory(steps, obj, flux);
                     size_t nr = steps.size();
                     if (nr > 0) {
                         size_t nc = steps.front().size() + 2;
-                        ssc_number_t* ssc_hist = allocate("opt_history", nr, nc);
+                        ssc_number_t* ssc_hist = allocate("opt_history", nr, nc);   
                         for (size_t i = 0; i < nr; i++) {
 
                             for (size_t j = 0; j < steps.front().size(); j++)
@@ -1066,104 +1059,11 @@ public:
                         }
                     }
                 }
-
-                // receiver calculations
-                double H_rec = spi.recs.front().rec_height.val;
-
                 //collect the optical efficiency data and sun positions
-                if (spi.fluxtab.zeniths.size() > 0 && spi.fluxtab.azimuths.size() > 0
-                    && spi.fluxtab.efficiency.size() > 0)
-                {
-                    size_t nvals = spi.fluxtab.efficiency.size();
-                    mt_eta_map.resize(nvals, 3);
-
-                    for (size_t i = 0; i < nvals; i++)
-                    {
-                        mt_eta_map(i, 0) = spi.fluxtab.azimuths[i] * 180. / CSP::pi;      //Convention is usually S=0, E<0, W>0 
-                        mt_eta_map(i, 1) = spi.fluxtab.zeniths[i] * 180. / CSP::pi;     //Provide zenith angle
-                        mt_eta_map(i, 2) = spi.fluxtab.efficiency[i];
-                    }
-                }
-                else
-                    throw exec_error("solarpilot", "failed to calculate a correct optical efficiency table");
+                spi.getHeliostatFieldEfficiency(mt_eta_map);
 
                 //collect the flux map data
-                block_t<double>* flux_data = &spi.fluxtab.flux_surfaces.front().flux_data;  //there should be only one flux stack for SAM
-                if (flux_data->ncols() > 0 && flux_data->nlayers() > 0)
-                {
-                    if (rec_type == 0) {
-
-                        int nflux_y = (int)flux_data->nrows();
-                        int nflux_x = (int)flux_data->ncols();
-
-                        mt_flux_maps.resize(nflux_y * flux_data->nlayers(), nflux_x);
-
-                        int cur_row = 0;
-
-                        for (size_t i = 0; i < flux_data->nlayers(); i++)
-                        {
-                            for (int j = 0; j < nflux_y; j++)
-                            {
-                                for (int k = 0; k < nflux_x; k++)
-                                {
-                                    mt_flux_maps(cur_row, k) = flux_data->at(j, k, i);
-                                    //fluxdata[cur_row * nflux_x + k] = (float)flux_data->at(j, k, i);
-                                }
-                                cur_row++;
-                            }
-                        }
-                    }
-                    else if (rec_type == 1) {
-
-                        int nflux_y = (int)flux_data->nrows();
-                        int nflux_x = (int)flux_data->ncols();
-
-                        int n_panels_cav = as_integer("n_cav_rec_panels");  //[-]
-                        int n_sp_surfaces = spi.fluxtab.flux_surfaces.size();
-                        int n_panels_cav_sp = n_sp_surfaces - 1;
-
-                        if (nflux_y > 1) {
-                            throw exec_error("solarpilot", "cavity flux maps currently only work for nflux_y = 1");
-                        }
-
-                        mt_flux_maps.resize(nflux_y * flux_data->nlayers(), n_panels_cav_sp);
-
-                        int cur_row = 0;
-
-                        // nlayers is number of solar positions (i.e. flux maps)
-                        for (size_t i = 0; i < flux_data->nlayers(); i++) {
-
-                            int j = 0;
-
-                            double flux_receiver = 0.0;
-
-                            // Start at k=1 because the first surface in flux_surfaces is the aperture, which we don't want
-                            for (int k = 1; k <= n_panels_cav_sp; k++) {
-
-                                block_t<double>* flux_data = &spi.fluxtab.flux_surfaces[k].flux_data; //.front().flux_data;  //there should be only one flux stack for SAM
-
-                                double flux_local = 0.0;
-                                for (int l = 0; l < nflux_x; l++) {
-                                    //double flux_local0 = flux_data->at(j, 0, i);
-                                    //double flux_local1 = flux_data->at(j, 1, i);
-                                    //double flux_local2 = flux_data->at(j, 2, i);
-                                    //double flux_local3 = flux_data->at(j, 3, i);
-
-                                    flux_local += flux_data->at(j, l, i);
-                                }
-
-                                // Adjust k to start flux maps with first receiver surface
-                                mt_flux_maps(cur_row, k - 1) = flux_local;
-                                flux_receiver += flux_local;
-                                double abc = 1.23;
-                            }
-
-                            cur_row++;
-                        }
-                    }
-                }
-                else
-                    throw exec_error("solarpilot", "failed to calculate a correct flux map table");
+                spi.getReceiverFluxMaps(mt_flux_maps);
             }
             else if (field_model_type == 2 || field_model_type == 3)
             {
@@ -1218,100 +1118,16 @@ public:
 
                 if (sim_type == 1 && field_model_type == 2) {
                     //collect the optical efficiency data and sun positions
-                    if (spi.fluxtab.zeniths.size() > 0 && spi.fluxtab.azimuths.size() > 0
-                        && spi.fluxtab.efficiency.size() > 0)
-                    {
-                        size_t nvals = spi.fluxtab.efficiency.size();
-                        mt_eta_map.resize(nvals, 3);
-
-                        for (size_t i = 0; i < nvals; i++)
-                        {
-                            mt_eta_map(i, 0) = spi.fluxtab.azimuths[i] * 180. / CSP::pi;    //Convention is usually S=0, E<0, W>0 
-                            mt_eta_map(i, 1) = spi.fluxtab.zeniths[i] * 180. / CSP::pi;     //Provide zenith angle
-                            mt_eta_map(i, 2) = spi.fluxtab.efficiency[i];
-                        }
-                    }
-                    else
-                        throw exec_error("solarpilot", "failed to calculate a correct optical efficiency table");
+                    spi.getHeliostatFieldEfficiency(mt_eta_map);
 
                     //collect the flux map data
-                    block_t<double>* flux_data = &spi.fluxtab.flux_surfaces.front().flux_data;  //there should be only one flux stack for SAM
-                    if (flux_data->ncols() > 0 && flux_data->nlayers() > 0)
-                    {
-                        if (rec_type == 0) {
-
-                            int nflux_y = (int)flux_data->nrows();
-                            int nflux_x = (int)flux_data->ncols();
-
-                            mt_flux_maps.resize(nflux_y * flux_data->nlayers(), nflux_x);
-
-                            int cur_row = 0;
-
-                            for (size_t i = 0; i < flux_data->nlayers(); i++)
-                            {
-                                for (int j = 0; j < nflux_y; j++)
-                                {
-                                    for (int k = 0; k < nflux_x; k++)
-                                    {
-                                        mt_flux_maps(cur_row, k) = flux_data->at(j, k, i);
-                                        //fluxdata[cur_row * nflux_x + k] = (float)flux_data->at(j, k, i);
-                                    }
-                                    cur_row++;
-                                }
-                            }
-                        }
-                        else if (rec_type == 1) {
-
-                            int nflux_y = (int)flux_data->nrows();
-                            int nflux_x = (int)flux_data->ncols();
-
-                            int n_panels_cav = as_integer("n_cav_rec_panels"); //[-]
-                            int n_sp_surfaces = spi.fluxtab.flux_surfaces.size();
-                            int n_panels_cav_sp = n_sp_surfaces - 1;
-
-                            if (nflux_y > 1) {
-                                throw exec_error("solarpilot", "cavity flux maps currently only work for nflux_y = 1");
-                            }
-
-                            mt_flux_maps.resize(nflux_y * flux_data->nlayers(), n_panels_cav_sp);
-
-                            int cur_row = 0;
-
-                            // nlayers is number of solar positions (i.e. flux maps)
-                            for (size_t i = 0; i < flux_data->nlayers(); i++) {
-
-                                int j = 0;
-
-                                double flux_receiver = 0.0;
-
-                                // Start at k=1 because the first surface in flux_surfaces is the aperture, which we don't want
-                                for (int k = 1; k <= n_panels_cav_sp; k++) {
-
-                                    block_t<double>* flux_data = &spi.fluxtab.flux_surfaces[k].flux_data; //.front().flux_data;  //there should be only one flux stack for SAM
-
-                                    double flux_local = 0.0;
-                                    for (int l = 0; l < nflux_x; l++) {
-                                        flux_local += flux_data->at(j, l, i);
-                                    }
-
-                                    // Adjust k to start flux maps with first receiver surface
-                                    mt_flux_maps(cur_row, k - 1) = flux_local;
-                                    flux_receiver += flux_local;
-                                }
-                                // flux_receiver should equal 1 after each panel is added
-
-                                cur_row++;
-                            }
-                        }
-                    }
-                    else
-                        throw exec_error("solarpilot", "failed to calculate a correct flux map table");
-
+                    spi.getReceiverFluxMaps(mt_flux_maps);
                 }
                 else if (field_model_type == 3) {
 
                     mt_eta_map = as_matrix("eta_map");
-                    mt_flux_maps = as_matrix("flux_maps");
+                    util::matrix_t<double> raw_flux_maps = as_matrix("flux_maps");
+                    importFluxMaps(raw_flux_maps, &mt_flux_maps);
                 }
                 else if (field_model_type == 2 && sim_type == 2) {
 
@@ -1379,7 +1195,8 @@ public:
         {
             // Use input flux and efficiency maps
             mt_eta_map = as_matrix("eta_map");
-            mt_flux_maps = as_matrix("flux_maps");
+            util::matrix_t<double> raw_flux_maps = as_matrix("flux_maps");
+            importFluxMaps(raw_flux_maps, &mt_flux_maps);
 
             // Need to specify:
             // 1) reflective area (scale flux map)
@@ -1884,12 +1701,12 @@ public:
         heliostatfield.ms_params.mv_clearsky_data = clearsky_data;
 
         //Load the solar field adjustment factors
-        adjustment_factors sf_haf(this, "sf_adjust");
+        adjustment_factors sf_haf(this->get_var_table(), "sf_adjust");
         if (!sf_haf.setup((int)n_steps_full))
             throw exec_error("tcsmolten_salt", "failed to setup sf adjustment factors: " + sf_haf.error());
         //allocate array to pass to tcs
         heliostatfield.ms_params.m_sf_adjust.resize(sf_haf.size());
-        for (int i = 0; i < sf_haf.size(); i++)
+        for (size_t i = 0; i < sf_haf.size(); i++)
             heliostatfield.ms_params.m_sf_adjust.at(i) = sf_haf(i);
 
         // Set callback information
@@ -2025,7 +1842,8 @@ public:
             as_double("h_tank_min"),
             as_double("tes_init_hot_htf_percent"),
             as_double("pb_pump_coef"),
-            as_boolean("tanks_in_parallel"),        //[-]       
+            as_boolean("tanks_in_parallel"),        //[-]
+            1.0,                                    //[-] packed volume fraction
             1.85,                                   //[m/s]
             false                                   // for now, to get 'tanks_in_parallel' to work
         );
@@ -2198,18 +2016,8 @@ public:
 
         C_csp_tou tou(offtaker_schedule, elec_pricing_schedule, dispatch_model_type, is_offtaker_frac_also_max);
 
-        //tou.mc_dispatch_params.m_is_tod_pc_target_also_pc_max = as_boolean("is_tod_pc_target_also_pc_max");
-        //tou.mc_dispatch_params.m_is_block_dispatch = !(as_boolean("is_dispatch") || as_boolean("is_dispatch_targets"));
-        //tou.mc_dispatch_params.m_use_rule_1 = true;
-        //tou.mc_dispatch_params.m_standby_off_buffer = 2.0;
-        //tou.mc_dispatch_params.m_use_rule_2 = false;
-        //tou.mc_dispatch_params.m_q_dot_rec_des_mult = -1.23;
-        //tou.mc_dispatch_params.m_f_q_dot_pc_overwrite = -1.23;
-
-        
-        //tou.mc_dispatch_params.m_is_dispatch_targets = is_dispatch_targets;
         if (is_dispatch_targets) {
-            int n_expect = (int)ceil((sim_setup.m_sim_time_end - sim_setup.m_sim_time_start) / 3600. * steps_per_hour);
+            size_t n_expect = (size_t)ceil((sim_setup.m_sim_time_end - sim_setup.m_sim_time_start) / 3600. * steps_per_hour);
 
             size_t inputs_len = 0;
             ssc_number_t* q_pc_target_su_in = as_array("q_pc_target_su_in", &inputs_len);
@@ -2230,40 +2038,30 @@ public:
             ssc_number_t* is_pc_sb_allowed_in = as_array("is_pc_sb_allowed_in", &inputs_len);
             if (inputs_len != n_expect) throw exec_error("tcsmolten_salt", "The length of dispatch target is_pc_sb_allowed_in array does not match the value expected from the simulation start time, end time, and time steps per hour");
 
-            ssc_number_t *q_dot_elec_to_PAR_HTR_in, *is_PAR_HTR_allowed_in;
-            if (is_parallel_heater) {
-                q_dot_elec_to_PAR_HTR_in = as_array("q_dot_elec_to_PAR_HTR_in", &inputs_len);
-                if (inputs_len != n_expect) throw exec_error("tcsmolten_salt", "The length of dispatch target q_dot_elec_to_PAR_HTR_in array does not match the value expected from the simulation start time, end time, and time steps per hour");
-
-                is_PAR_HTR_allowed_in = as_array("is_PAR_HTR_allowed_in", &inputs_len);
-                if (inputs_len != n_expect) throw exec_error("tcsmolten_salt", "The length of dispatch target is_PAR_HTR_allowed_in array does not match the value expected from the simulation start time, end time, and time steps per hour");
-            }
-
-            tou.mc_dispatch_params.m_q_pc_target_su_in.resize(inputs_len);
-            tou.mc_dispatch_params.m_q_pc_target_on_in.resize(inputs_len);
-            tou.mc_dispatch_params.m_q_pc_max_in.resize(inputs_len);
-            tou.mc_dispatch_params.m_is_rec_su_allowed_in.resize(inputs_len);
-            tou.mc_dispatch_params.m_is_pc_su_allowed_in.resize(inputs_len);
-            tou.mc_dispatch_params.m_is_pc_sb_allowed_in.resize(inputs_len);
-
-            tou.mc_dispatch_params.m_q_dot_elec_to_PAR_HTR_in.resize(inputs_len);
-            tou.mc_dispatch_params.m_is_PAR_HTR_allowed_in.resize(inputs_len);
-
-            for (int i = 0; i < inputs_len; i++) {
+            tou.mc_dispatch_params.resize(inputs_len);
+            for (size_t i = 0; i < inputs_len; i++) {
                 tou.mc_dispatch_params.m_q_pc_target_su_in.at(i) = q_pc_target_su_in[i];
                 tou.mc_dispatch_params.m_q_pc_target_on_in.at(i) = q_pc_target_on_in[i];
                 tou.mc_dispatch_params.m_q_pc_max_in.at(i) = q_pb_max[i];
                 tou.mc_dispatch_params.m_is_rec_su_allowed_in.at(i) = (bool)is_rec_su_allowed_in[i];
                 tou.mc_dispatch_params.m_is_pc_su_allowed_in.at(i) = (bool)is_pc_su_allowed_in[i];
                 tou.mc_dispatch_params.m_is_pc_sb_allowed_in.at(i) = (bool)is_pc_sb_allowed_in[i];
+                tou.mc_dispatch_params.m_q_dot_elec_to_PAR_HTR_in.at(i) = 0.0;      // Defaults values for heater
+                tou.mc_dispatch_params.m_is_PAR_HTR_allowed_in.at(i) = false;
+            }
 
-                if (is_parallel_heater) {
+            if (is_parallel_heater) {
+                ssc_number_t* q_dot_elec_to_PAR_HTR_in, * is_PAR_HTR_allowed_in;
+
+                q_dot_elec_to_PAR_HTR_in = as_array("q_dot_elec_to_PAR_HTR_in", &inputs_len);
+                if (inputs_len != n_expect) throw exec_error("tcsmolten_salt", "The length of dispatch target q_dot_elec_to_PAR_HTR_in array does not match the value expected from the simulation start time, end time, and time steps per hour");
+
+                is_PAR_HTR_allowed_in = as_array("is_PAR_HTR_allowed_in", &inputs_len);
+                if (inputs_len != n_expect) throw exec_error("tcsmolten_salt", "The length of dispatch target is_PAR_HTR_allowed_in array does not match the value expected from the simulation start time, end time, and time steps per hour");
+
+                for (size_t i = 0; i < inputs_len; i++) {
                     tou.mc_dispatch_params.m_q_dot_elec_to_PAR_HTR_in.at(i) = q_dot_elec_to_PAR_HTR_in[i];
                     tou.mc_dispatch_params.m_is_PAR_HTR_allowed_in.at(i) = (bool)is_PAR_HTR_allowed_in[i];
-                }
-                else {
-                    tou.mc_dispatch_params.m_q_dot_elec_to_PAR_HTR_in.at(i) = 0.0;
-                    tou.mc_dispatch_params.m_is_PAR_HTR_allowed_in.at(i) = false;
                 }
             }
         }
@@ -2287,12 +2085,10 @@ public:
 
             double heater_startup_cost = 0.0;
             if (is_parallel_heater) {
-                double heater_mult = as_double("heater_mult");            //[-]
-                double q_dot_heater_des = q_dot_pc_des * heater_mult;     //[MWt]
                 heater_startup_cost = as_double("disp_hsu_cost_rel") * q_dot_heater_des;    //[$/start]
             }
 
-            dispatch.solver_params.set_user_inputs(is_dispatch, as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
+            dispatch.solver_params.set_user_inputs(is_dispatch, steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                 as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                 as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
                 as_boolean("is_write_ampl_dat"), as_boolean("is_ampl_engine"), as_string("ampl_data_dir"), as_string("ampl_exec_call"));
@@ -2301,7 +2097,7 @@ public:
             double disp_rsu_cost_calc = as_double("disp_rsu_cost_rel")*q_dot_rec_des;   //[$/start]
             dispatch.params.set_user_params(as_boolean("can_cycle_use_standby"), as_double("disp_time_weighting"),
                 disp_rsu_cost_calc, heater_startup_cost, disp_csu_cost_calc, as_double("disp_pen_ramping"),
-                as_double("disp_inventory_incentive"), as_double("q_rec_standby"), as_double("q_rec_heattrace")); // , ppa_price_year1);
+                as_double("disp_inventory_incentive"), as_double("q_rec_standby"), as_double("q_rec_heattrace"));
         }
 
         // Instantiate Solver       
@@ -2510,10 +2306,10 @@ public:
             // Thermal Energy Storage
         double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
             d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
-            Q_tes_des_calc /*MWt-hr*/;
+            Q_tes_des_calc /*MWt-hr*/, tes_total_mass /*kg*/;
 
         storage.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-            d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
+            d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
 
         assign("Q_tes_des", Q_tes_des_calc);                //[MWt-hr]
         assign("V_tes_htf_avail_des", V_tes_htf_avail_calc);    //[m3]
@@ -2594,8 +2390,6 @@ public:
             double W_dot_pc_cooling_des_for_cap_calcs = rankine_pc.get_design_input_cooling_power();
             plant_net_capacity_calc = W_dot_cycle_des - W_dot_pc_cooling_des_for_cap_calcs;
         }
-
-        double plant_net_conv_calc = plant_net_capacity_calc / W_dot_cycle_des; //[-]
 
         double system_capacity = plant_net_capacity_calc * 1.E3;         //[kWe], convert from MWe
 
@@ -2960,12 +2754,13 @@ public:
         double flux_scaling_mult = as_double("dni_des")*heliostatfield.ms_params.m_A_sf / 1000.0 /
             (A_rec / double(heliostatfield.ms_params.m_n_flux_x));
 
-        for( size_t i = 0; i < n_rows_eta_map; i++ )
-        {
-            flux_maps_out[n_cols_flux_maps*i] = eta_map_out[3 * i] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 0);        //[deg] Solar azimuth angle
-            flux_maps_out[n_cols_flux_maps*i + 1] = eta_map_out[3 * i + 1] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 1);    //[deg] Solar zenith angle
-            flux_maps_for_import[n_cols_flux_maps*i] = eta_map_out[3 * i] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 0);        //[deg] Solar azimuth angle
-            flux_maps_for_import[n_cols_flux_maps*i + 1] = eta_map_out[3 * i + 1] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 1);    //[deg] Solar zenith angle
+        for( size_t i = 0; i < n_rows_eta_map; i++ ) {
+            flux_maps_for_import[n_cols_flux_maps * i] =
+                flux_maps_out[n_cols_flux_maps*i] =
+                eta_map_out[3 * i] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 0);        //[deg] Solar azimuth angle
+            flux_maps_for_import[n_cols_flux_maps * i + 1] =
+                flux_maps_out[n_cols_flux_maps*i + 1] =
+                eta_map_out[3 * i + 1] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 1);    //[deg] Solar zenith angle
             eta_map_out[3 * i + 2] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 2);                            //[deg] Solar field optical efficiency
             for( size_t j = 2; j < n_cols_flux_maps; j++ )
             {
@@ -2979,7 +2774,7 @@ public:
         ssc_number_t *p_time_final_hr = as_array("time_hr", &count);
 
         // 'adjustment_factors' class stores factors in hourly array, so need to index as such
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if( !haf.setup(n_steps_full) )
             throw exec_error("tcsmolten_salt", "failed to setup adjustment factors: " + haf.error());
 
@@ -3123,7 +2918,7 @@ public:
         ssc_number_t* p_tdry = as_array("tdry", &count);
         if (!as_boolean("vacuum_arrays")) {
             // Capacity factors based on highest pricing hours
-            std::vector<pair<int, double>> ppa_pairs;
+            std::vector<pair<size_t, double>> ppa_pairs;
             ppa_pairs.resize(count);
             for (size_t i = 0; i < count; i++) {
                 ppa_pairs[i].first = i;
@@ -3131,7 +2926,7 @@ public:
             }
 
             std::sort(ppa_pairs.begin(), ppa_pairs.end(), SortByDouble);
-            int n_ppa_steps = 1000;
+            size_t n_ppa_steps = 1000;
 
             double total_energy_in_sub_period = 0.0;
             for (size_t i = 0; i < n_ppa_steps; i++) {
@@ -3169,9 +2964,7 @@ public:
             // **********************************************************
 
             // Capacity factors based on warmest ambient temperatures
-            ssc_number_t* p_tdry = as_array("tdry", &count);
-
-            std::vector<pair<int, double>> tdry_pairs;
+            std::vector<pair<size_t, double>> tdry_pairs;
             tdry_pairs.resize(count);
             for (size_t i = 0; i < count; i++) {
                 tdry_pairs[i].first = i;
@@ -3179,7 +2972,7 @@ public:
             }
 
             std::sort(tdry_pairs.begin(), tdry_pairs.end(), SortByDouble);
-            int n_tdry_steps = 100;
+            size_t n_tdry_steps = 100;
 
             double total_energy_in_sub_period_tdry = 0.0;
             for (size_t i = 0; i < n_tdry_steps; i++) {

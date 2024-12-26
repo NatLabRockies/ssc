@@ -148,6 +148,32 @@ public:
      */
     double adjustForDCEfficiencies(double power, double loss);
 
+    double getMaxACChargePower();
+    double getMaxACDischargePower();
+    double getMaxDCChargePower();
+    double getMaxDCDischargePower();
+    double getMaxChargeCurrent();
+    double getMaxDischargeCurrent();
+
+    void setMaxACChargePower(double power) {
+        powerBatteryChargeMaxAC = power;
+    }
+    void setMaxACDischargePower(double power) {
+        powerBatteryDischargeMaxAC = power;
+    }
+    void setMaxDCChargePower(double power) {
+        powerBatteryChargeMaxDC = power;
+    }
+    void setMaxDCDischargePower(double power) {
+        powerBatteryDischargeMaxDC = power;
+    }
+    void setMaxChargeCurrent(double current) {
+        currentChargeMax = current;
+    }
+    void setMaxDischargeCurrent(double current) {
+        currentDischargeMax = current;
+    }
+
 	/// Copy the enumeration for AC/DC connected systems from ChargeController
 	enum CONNECTION { DC_CONNECTED, AC_CONNECTED };
 
@@ -182,13 +208,9 @@ public:
 	double powerFuelCellToLoad;    ///< The power from the fuelcell to the load (kW)
 	double powerFuelCellToBattery; ///< The power from the fuelcell to the battery (kW)
 	double powerPVInverterDraw;	   ///< The power draw from the PV inverter (kW)
-	double powerBatteryChargeMaxDC;  ///< The maximum sustained power the battery can charge (kWdc)
-	double powerBatteryDischargeMaxDC; ///< The maximum sustained power the battery can discharge (kWdc)
-	double powerBatteryChargeMaxAC;   ///< The maximum sustained power the battery can charge (kWac)
-	double powerBatteryDischargeMaxAC; ///< The maximum sustained power the battery can discharge (kWac)
 	double powerSystemLoss;        ///< The auxiliary power loss in the system (kW)
 	double powerConversionLoss;    ///< The power loss due to conversions in the battery power electronics (kW)
-    double powerInterconnectionLimit; ///< The size of the grid interconnection (kW). As of July 2021 only applies to discharging, should apply to charging & dispatch
+    double powerInterconnectionLimit; ///< The size of the grid interconnection (kW).
     double powerInterconnectionLoss; ///< The power loss due to interconnection limit, outage, or curtailment (kW)
     double powerCurtailmentLimit; ///< The curtailment limit for the current step (kW)
     double voltageSystem;		   ///< The system voltage
@@ -196,7 +218,8 @@ public:
     double acXfmrLoadLoss; ///< Transformer load loss percent (%)
     double acXfmrNoLoadLoss; ///< Transformer no-load loss value (kWac)
     double acXfmrRating; ///< Transformer rating for transformer loss calculations (kWac)
-    double acLossPostBattery; ///< Expected system and daily losses. Applies to the final AC output including the battery (%)
+    double acLossSystemAvailability; ///< Expected system and daily losses. Applies power limiting to final AC output of the system (%)
+    double adjustLosses; ///< Battery availability losses (%)
 
     bool   isOutageStep;
 
@@ -214,6 +237,7 @@ public:
 
 	bool canSystemCharge;	///< A boolean specifying whether the battery is allowed to charge from PV in the timestep
 	bool canClipCharge;	///< A boolean specifying whether the battery is allowed to charge from otherwise clipped PV in the timestep
+    bool canCurtailCharge;	///< A boolean specifying whether the battery is allowed to charge from otherwise curtailed energy in the timestep
 	bool canGridCharge; ///< A boolean specifying whether the battery is allowed to charge from the Grid in the timestep
 	bool canDischarge;  ///< A boolean specifying whether the battery is allowed to discharge in the timestep
     bool canDischargeToGrid; ///< A boolean specifying whether the battery is allowed to discharge to grid in the timestep
@@ -226,11 +250,16 @@ public:
 	double stateOfChargeMin;   ///< The minimum state of charge (0-100)
 	double depthOfDischargeMax; ///< The maximum depth of discharge (0-100)
 
-	double currentChargeMax; ///< The maximum sustained current for charging [A]
-	double currentDischargeMax; ///< The maximum sustained current for discharging [A]
-
-
 	double tolerance;  ///< A numerical tolerance. Below this value, zero out the power flow
+
+private:
+    // These variables have values that require computation. Access through functions
+    double powerBatteryChargeMaxDC;  ///< The maximum sustained power the battery can charge (kWdc)
+    double powerBatteryDischargeMaxDC; ///< The maximum sustained power the battery can discharge (kWdc)
+    double powerBatteryChargeMaxAC;   ///< The maximum sustained power the battery can charge (kWac)
+    double powerBatteryDischargeMaxAC; ///< The maximum sustained power the battery can discharge (kWac)
+    double currentChargeMax; ///< The maximum sustained current for charging [A]
+    double currentDischargeMax; ///< The maximum sustained current for discharging [A]
 };
 
 

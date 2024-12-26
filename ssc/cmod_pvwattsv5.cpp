@@ -151,6 +151,7 @@ protected:
 
     double ibeam, iskydiff, ignddiff;
     double solazi, solzen, solalt, aoi, stilt, sazi, rot, btd;
+    double elevation, pressure, t_amb;
     int sunup;
 
     std::unique_ptr<pvwatts_celltemp> tccalc;
@@ -257,6 +258,8 @@ public:
         irr.get_sun(&solazi, &solzen, &solalt, 0, 0, 0, &sunup, 0, 0, 0);
         irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
         irr.get_poa(&ibeam, &iskydiff, &ignddiff, 0, 0, 0);
+        irr.get_optional(&elevation, &pressure, &t_amb);
+
 
         return code;
     }
@@ -396,6 +399,8 @@ public:
         else if (is_assigned("solar_resource_data"))
         {
             wdprov = std::unique_ptr<weather_data_provider>(new weatherdata(lookup("solar_resource_data")));
+            if (!wdprov->ok()) throw exec_error("pvwattsv5", wdprov->message());
+            if (wdprov->has_message()) log(wdprov->message(), SSC_WARNING);
         }
         else
             throw exec_error("pvwattsv5", "no weather data supplied");
@@ -466,7 +471,7 @@ public:
         size_t nrec = wdprov->nrecords();
         size_t nlifetime = nrec * nyears;
 
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if (!haf.setup(nrec, nyears))
             throw exec_error("pvwattsv5", "failed to setup adjustment factors: " + haf.error());
 
@@ -605,7 +610,7 @@ public:
         assign("lat", var_data((ssc_number_t)hdr.lat));
         assign("lon", var_data((ssc_number_t)hdr.lon));
         assign("tz", var_data((ssc_number_t)hdr.tz));
-        assign("elev", var_data((ssc_number_t)hdr.elev));
+        assign("elev", var_data((ssc_number_t)elevation));
         assign("percent_complete", var_data((ssc_number_t)percent));
 
         // for battery model, specify a number of inverters

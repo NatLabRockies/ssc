@@ -95,7 +95,6 @@ ssc_data_t tcsmolten_salt_defaults()
     ssc_data_set_number(data, "water_usage_per_wash", 0.69999999999999996);
     ssc_data_set_number(data, "washing_frequency", 63);
     ssc_data_set_number(data, "check_max_flux", 0);
-    ssc_data_set_number(data, "sf_excess", 1);
     ssc_data_set_number(data, "tower_fixed_cost", 3000000);
     ssc_data_set_number(data, "tower_exp", 0.011299999999999999);
     ssc_data_set_number(data, "rec_ref_cost", 103000000);

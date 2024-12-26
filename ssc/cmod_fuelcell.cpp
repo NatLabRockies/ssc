@@ -88,7 +88,7 @@ var_info vtab_fuelcell_input[] = {
 	{ SSC_INPUT,        SSC_MATRIX,      "dispatch_manual_fuelcell_sched_weekend",     "Dispatch schedule for weekend",          "",          "",                 "Fuel Cell",                  "",                        "",                              "" },
 
 	{ SSC_INOUT,        SSC_NUMBER,      "capacity_factor",                   "Capacity factor",                        "%",          "",                "",                           "?=0",                     "",                              "" },
-	{ SSC_INOUT,        SSC_NUMBER,      "annual_energy",                     "Annual Energy",                          "kWh",        "",                "",                           "?=0",                     "",                              "" },
+	{ SSC_INOUT,        SSC_NUMBER,      "annual_energy",                     "Annual AC energy in Year 1",                          "kWh",        "",                "",                           "?=0",                     "",                              "" },
 
 var_info_invalid };
 

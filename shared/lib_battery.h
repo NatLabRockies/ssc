@@ -151,7 +151,8 @@ private:
 */
 
 struct losses_state {
-    double loss_kw;
+    double ancillary_loss_kw;
+    double adjust_loss_percent;
 
     friend std::ostream &operator<<(std::ostream &os, const losses_state &p);
 };
@@ -166,6 +167,7 @@ struct losses_params {
     std::vector<double> monthly_discharge_loss;
     std::vector<double> monthly_idle_loss;
     std::vector<double> schedule_loss;
+    std::vector<double> adjust_loss;
 
     friend std::ostream &operator<<(std::ostream &os, const losses_params &p);
 };
@@ -181,8 +183,9 @@ public:
     * \param[in] monthly_charge vector (size 1 for annual or 12 for monthly) containing battery system losses when charging (kW) (applied to PV or grid)
     * \param[in] monthly_discharge vector (size 1 for annual or 12 for monthly) containing battery system losses when discharge (kW) (applied to battery power)
     * \param[in] monthly_idle vector (size 1 for annual or 12 for monthly) containing battery system losses when idle (kW) (applied to PV or grid)
+    * \param[in] adjust_losses vector (size 0 for constant or per timestep) containing battery system availability losses (%) (applies to both power and energy capacity - if a system has 4 packs, a 25% loss means one pack is offline)
     */
-    losses_t(const std::vector<double>& monthly_charge, const std::vector<double>& monthly_discharge, const std::vector<double>& monthly_idle);
+    losses_t(const std::vector<double>& monthly_charge, const std::vector<double>& monthly_discharge, const std::vector<double>& monthly_idle, const std::vector<double>& adjust_losses);
 
     /**
     * \function losses_t
@@ -190,8 +193,9 @@ public:
     * Construct the losses object for schedule of timeseries losses
     *
     * \param[in] schedule_loss vector (size 0 for constant or per timestep) containing battery system losses
+    * \param[in] adjust_losses vector (size 0 for constant or per timestep) containing battery system availability losses (%) (applies to both power and energy capacity - if a system has 4 packs, a 25% loss means one pack is offline)
     */
-    explicit losses_t(const std::vector<double>& schedule_loss = std::vector<double>(1, 0));
+    explicit losses_t(const std::vector<double>& schedule_loss = std::vector<double>(1, 0), const std::vector<double>& adjust_losses = std::vector<double>(1,0));
 
     explicit losses_t(std::shared_ptr<losses_params> p);
 
@@ -203,7 +207,9 @@ public:
     void run_losses(size_t lifetimeIndex, double dt_hour, double charge_operation);
 
     /// Get the loss at the specified simulation index (year 1)
-    double getLoss();
+    double getAncillaryLoss();
+
+    double getAvailabilityLoss(size_t lifetimeIndex);
 
     losses_state get_state();
 
@@ -362,7 +368,7 @@ public:
     double estimateCycleDamage();
 
     // Run a component level model
-    void runCapacityModel(double &I);
+    void runCapacityModel(double &I, size_t lifetimeIndex);
 
     void runVoltageModel();
 
@@ -409,7 +415,10 @@ public:
     double calculate_loss(double power, size_t lifetimeIndex);
 
     // Get the losses at the current step
-    double getLoss();
+    double getAncillaryLoss();
+
+    // Get the adjust loss at the current timestep
+    double getAvailabilityLoss(size_t lifetimeIndex);
 
     battery_state get_state();
 

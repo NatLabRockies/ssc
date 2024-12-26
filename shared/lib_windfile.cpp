@@ -616,8 +616,13 @@ bool windfile::read_line( std::vector<double> &values )
             // WIND Toolkit API returns "N/A" in data columns for requested heights that are not available
             // this can happen when requesting data for all available heights by not including any attributes
             // in the API call
-            if ( util::lower_case(cols[i]) == "n/a")
+            if (util::lower_case(cols[i]) == "n/a")
                 values.push_back(std::numeric_limits<double>::quiet_NaN());
+            else if (cols[i] == "") // missing data
+            {
+                m_errorMsg = util::format("data is missing from column %d", i+1);
+                return false;
+            }
             else
                 values.push_back(std::stof(cols[i]));
         }

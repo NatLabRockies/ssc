@@ -329,12 +329,12 @@ public:
     HTFProperties m_htfProps, m_airProps;
 
 	//parameters and inputs
-	int m_nSCA = std::numeric_limits<double>::quiet_NaN();				//[-] Number of SCA's in a loop
-	int m_nHCEt = std::numeric_limits<double>::quiet_NaN();			//[-] Number of HCE types
-	int m_nColt = std::numeric_limits<double>::quiet_NaN();				//[-] Number of collector types
-	int m_nHCEVar = std::numeric_limits<double>::quiet_NaN();			//[-] Number of HCE variants per type
-	int m_FieldConfig = std::numeric_limits<double>::quiet_NaN();		//[-] Number of subfield headers
-	bool m_include_fixed_power_block_runner = std::numeric_limits<double>::quiet_NaN();	//[-] True: model 50[m] of runner sized for full mass flow rate
+	int m_nSCA = std::numeric_limits<int>::quiet_NaN();				//[-] Number of SCA's in a loop
+	int m_nHCEt = std::numeric_limits<int>::quiet_NaN();			//[-] Number of HCE types
+	int m_nColt = std::numeric_limits<int>::quiet_NaN();				//[-] Number of collector types
+	int m_nHCEVar = std::numeric_limits<int>::quiet_NaN();			//[-] Number of HCE variants per type
+	int m_FieldConfig = std::numeric_limits<int>::quiet_NaN();		//[-] Number of subfield headers
+	bool m_include_fixed_power_block_runner = std::numeric_limits<bool>::quiet_NaN();	//[-] True: model 50[m] of runner sized for full mass flow rate
 	double m_L_power_block_piping = std::numeric_limits<double>::quiet_NaN();	//[m] Length of piping (full mass flow) through heat sink (if applicable)
 	double m_eta_pump = std::numeric_limits<double>::quiet_NaN();		//[-] HTF pump efficiency
 	double m_HDR_rough = std::numeric_limits<double>::quiet_NaN();		//[m] Header pipe roughness
@@ -344,7 +344,7 @@ public:
 	double m_T_startup = std::numeric_limits<double>::quiet_NaN();		//[C] The required temperature (converted to K in init) of the system before the power block can be switched on
 	double m_T_loop_in_des = std::numeric_limits<double>::quiet_NaN();	//[C] Design loop inlet temperature, converted to K in init
 	double m_T_loop_out_des = std::numeric_limits<double>::quiet_NaN();//[C] Target loop outlet temperature, converted to K in init
-	int m_Fluid = std::numeric_limits<double>::quiet_NaN();			//[-] Field HTF fluid number
+	int m_Fluid = std::numeric_limits<int>::quiet_NaN();			//[-] Field HTF fluid number
 	
 	double m_T_fp = std::numeric_limits<double>::quiet_NaN();			//[C] Freeze protection temperature (heat trace activation temperature), convert to K in init
 	double m_I_bn_des = std::numeric_limits<double>::quiet_NaN();		//[W/m^2] Solar irradiation at design
@@ -356,15 +356,15 @@ public:
 	double m_V_hdr_min = std::numeric_limits<double>::quiet_NaN();		//[m/s] Minimum HTF velocity in the header at design
 	double m_Pipe_hl_coef = std::numeric_limits<double>::quiet_NaN();	//[W/m2-K] Loss coefficient from the header, runner pipe, and non-HCE piping
 	double m_SCA_drives_elec = std::numeric_limits<double>::quiet_NaN();	//[W/SCA] Tracking power, in Watts per SCA drive
-	int m_fthrok = std::numeric_limits<double>::quiet_NaN();			//[-] Flag to allow partial defocusing of the collectors
-	int m_fthrctrl = std::numeric_limits<double>::quiet_NaN();			//[-] Defocusing strategy
+	int m_fthrok = std::numeric_limits<int>::quiet_NaN();			//[-] Flag to allow partial defocusing of the collectors
+	int m_fthrctrl = std::numeric_limits<int>::quiet_NaN();			//[-] Defocusing strategy
 	double m_ColTilt = std::numeric_limits<double>::quiet_NaN();		//[deg] Collector tilt angle (0 is horizontal, 90deg is vertical)
 	double m_ColAz = std::numeric_limits<double>::quiet_NaN();			//[deg] Collector azimuth angle
 	double m_wind_stow_speed = std::numeric_limits<double>::quiet_NaN();//[m/s] Wind speed at and above which the collectors will be stowed
 
-	int m_accept_mode = std::numeric_limits<double>::quiet_NaN();		//[-] Acceptance testing mode? (1=yes, 0=no)
+	int m_accept_mode = std::numeric_limits<int>::quiet_NaN();		//[-] Acceptance testing mode? (1=yes, 0=no)
 	bool m_accept_init = std::numeric_limits<double>::quiet_NaN();		//[-] In acceptance testing mode - require steady-state startup
-	int m_accept_loc = std::numeric_limits<double>::quiet_NaN();		//[-] In acceptance testing mode - temperature sensor location (1=hx,2=loop)
+	int m_accept_loc = std::numeric_limits<int>::quiet_NaN();		//[-] In acceptance testing mode - temperature sensor location (1=hx,2=loop)
 	bool m_is_using_input_gen = std::numeric_limits<double>::quiet_NaN();
 
 	
@@ -487,7 +487,7 @@ public:
     std::vector<double> m_T_out_scas_last_initial;
 
     // Design Point Inputs
-    int m_use_solar_mult_or_aperture_area = std::numeric_limits<double>::quiet_NaN();         // Use specified solar mult (0) or total aperture (1)
+    int m_use_solar_mult_or_aperture_area = std::numeric_limits<int>::quiet_NaN();         // Use specified solar mult (0) or total aperture (1)
     double m_specified_solar_mult = std::numeric_limits<double>::quiet_NaN();                  // User specified solar mult
     double m_specified_total_aperture = std::numeric_limits<double>::quiet_NaN();              //[m2] User specified total aperture
     bool m_is_solar_mult_designed = false;          // Flag for whether solar multiple has been calculated
@@ -528,7 +528,7 @@ public:
     double m_q_design_ideal = std::numeric_limits<double>::quiet_NaN();
     double m_q_pb_design = std::numeric_limits<double>::quiet_NaN();                           //[Wt] Power cycle thermal input at design
     double m_required_number_of_loops_for_SM1 = std::numeric_limits<double>::quiet_NaN();      //[] Required number of loops for solar mult = 1
-    int m_nLoops = std::numeric_limits<double>::quiet_NaN();			                        //[-] Number of loops in the field
+    int m_nLoops = std::numeric_limits<int>::quiet_NaN();			                        //[-] Number of loops in the field
     double m_Ap_tot = std::numeric_limits<double>::quiet_NaN();		                        //[m^2] Total field aperture area
     util::matrix_t<double> m_K_cpnt;                //[-] Minor loss coefficients of the components in each loop interconnect
     util::matrix_t<double> m_D_cpnt;                //[m] Inner diameters of the components in each loop interconnect

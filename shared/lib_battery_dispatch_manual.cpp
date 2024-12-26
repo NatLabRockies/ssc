@@ -44,12 +44,12 @@ dispatch_manual_t::dispatch_manual_t(battery_t * Battery, double dt, double SOC_
 	double t_min, int mode, int battMeterPosition,
 	util::matrix_t<size_t> dm_dynamic_sched, util::matrix_t<size_t> dm_dynamic_sched_weekend,
 	std::vector<bool> dm_charge, std::vector<bool> dm_discharge, std::vector<bool> dm_gridcharge, std::vector<bool> dm_fuelcellcharge, std::vector<bool> dm_btm_to_grid,
-	std::map<size_t, double>  dm_percent_discharge, std::map<size_t, double>  dm_percent_gridcharge, bool can_clip_charge, double interconnection_limit,
+	std::map<size_t, double>  dm_percent_discharge, std::map<size_t, double>  dm_percent_gridcharge, bool can_clip_charge, bool can_curtail_charge, double interconnection_limit,
     bool chargeOnlySystemExceedLoad, bool dischargeOnlyLoadExceedSystem, double SOC_min_outage, bool priorityChargeBattery)
 	: dispatch_t(Battery, dt, SOC_min, SOC_max, current_choice, Ic_max, Id_max, Pc_max_kwdc, Pd_max_kwdc, Pc_max_kwac, Pd_max_kwac,
 	t_min, mode, battMeterPosition, interconnection_limit, chargeOnlySystemExceedLoad, dischargeOnlyLoadExceedSystem, SOC_min_outage)
 {
-	init_with_vects(dm_dynamic_sched, dm_dynamic_sched_weekend, dm_charge, dm_discharge, dm_gridcharge, dm_fuelcellcharge, dm_btm_to_grid, dm_percent_discharge, dm_percent_gridcharge, can_clip_charge, priorityChargeBattery);
+	init_with_vects(dm_dynamic_sched, dm_dynamic_sched_weekend, dm_charge, dm_discharge, dm_gridcharge, dm_fuelcellcharge, dm_btm_to_grid, dm_percent_discharge, dm_percent_gridcharge, can_clip_charge, can_curtail_charge, priorityChargeBattery);
 }
 
 void dispatch_manual_t::init_with_vects(
@@ -63,6 +63,7 @@ void dispatch_manual_t::init_with_vects(
 	std::map<size_t, double> dm_percent_discharge,
 	std::map<size_t, double> dm_percent_gridcharge,
     bool can_clip_charge,
+    bool can_curtail_charge,
     bool priorityChargeBattery)
 {
 	_sched = dm_dynamic_sched;
@@ -75,6 +76,7 @@ void dispatch_manual_t::init_with_vects(
 	_percent_discharge_array = dm_percent_discharge;
 	_percent_charge_array = dm_percent_gridcharge;
     _can_clip_charge = can_clip_charge;
+    _can_curtail_charge = can_curtail_charge;
     _priority_charge_battery = priorityChargeBattery;
 }
 
@@ -85,7 +87,7 @@ dispatch_t(dispatch)
 	const dispatch_manual_t * tmp = dynamic_cast<const dispatch_manual_t *>(&dispatch);
 	init_with_vects(tmp->_sched, tmp->_sched_weekend,
 		tmp->_charge_array, tmp->_discharge_array, tmp->_gridcharge_array, tmp->_fuelcellcharge_array, tmp->_discharge_grid_array,
-		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_priority_charge_battery);
+		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_can_curtail_charge, tmp->_priority_charge_battery);
 }
 
 // shallow copy from dispatch to this
@@ -95,7 +97,7 @@ void dispatch_manual_t::copy(const dispatch_t * dispatch)
 	const dispatch_manual_t * tmp = dynamic_cast<const dispatch_manual_t *>(dispatch);
 	init_with_vects(tmp->_sched, tmp->_sched_weekend,
 		tmp->_charge_array, tmp->_discharge_array, tmp->_gridcharge_array, tmp->_fuelcellcharge_array, tmp->_discharge_grid_array,
-		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_priority_charge_battery);
+		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_can_curtail_charge, tmp->_priority_charge_battery);
 }
 
 void dispatch_manual_t::prepareDispatch(size_t hour_of_year, size_t )
@@ -115,6 +117,7 @@ void dispatch_manual_t::prepareDispatch(size_t hour_of_year, size_t )
 	m_batteryPower->canDischarge = _discharge_array[iprofile - 1];
 	m_batteryPower->canGridCharge = _gridcharge_array[iprofile - 1];
     m_batteryPower->canClipCharge = _can_clip_charge;
+    m_batteryPower->canCurtailCharge = _can_curtail_charge;
 
 	if (iprofile <= _fuelcellcharge_array.size()) {
 		m_batteryPower->canFuelCellCharge = _fuelcellcharge_array[iprofile - 1];
@@ -128,7 +131,7 @@ void dispatch_manual_t::prepareDispatch(size_t hour_of_year, size_t )
 	_percent_charge = 0.;
 
 	if (m_batteryPower->canDischarge){ _percent_discharge = _percent_discharge_array[iprofile]; }
-	if (m_batteryPower->canClipCharge || m_batteryPower->canSystemCharge || m_batteryPower->canFuelCellCharge){ _percent_charge = 100.; }
+	if (m_batteryPower->canCurtailCharge || m_batteryPower->canClipCharge || m_batteryPower->canSystemCharge || m_batteryPower->canFuelCellCharge){ _percent_charge = 100.; }
 	if (m_batteryPower->canGridCharge){ _percent_charge = _percent_charge_array[iprofile]; }
 }
 void dispatch_manual_t::dispatch(size_t year,
@@ -168,8 +171,8 @@ bool dispatch_manual_t::check_constraints(double &I, size_t count)
 		if (m_batteryPower->powerSystemToGrid > low_tolerance &&
             m_batteryPower->canSystemCharge &&					// only do if battery is allowed to charge
                                                               _Battery->SOC() < m_batteryPower->stateOfChargeMax - 1.0 &&		// and battery SOC is less than max
-            std::abs(I) < std::abs(m_batteryPower->currentChargeMax) &&						// and battery current is less than max charge current
-            std::abs(m_batteryPower->powerBatteryDC) < (m_batteryPower->powerBatteryChargeMaxDC - 1.0) &&// and battery power is less than max charge power
+            std::abs(I) < std::abs(m_batteryPower->getMaxChargeCurrent()) &&						// and battery current is less than max charge current
+            std::abs(m_batteryPower->powerBatteryDC) < (m_batteryPower->getMaxDCDischargePower() - 1.0) &&// and battery power is less than max charge power
 			I <= 0)											// and battery was not discharging
 		{
 			double dI = 0;
@@ -209,6 +212,13 @@ bool dispatch_manual_t::check_constraints(double &I, size_t count)
 			else
 				I -= (m_batteryPower->powerBatteryToGrid / std::abs(m_batteryPower->powerBatteryAC)) * std::abs(I);
 		}
+        // Back off discharge if we're violating interconnection limits
+        else if (m_batteryPower->powerInterconnectionLoss > 0 && m_batteryPower->powerBatteryAC > 0) {
+            I -= m_batteryPower->powerInterconnectionLoss / std::abs(m_batteryPower->powerBatteryAC) * std::abs(I);
+            if (I < 0) {
+                I = 0.0;
+            }
+        }
 		else
 			iterate = false;
 

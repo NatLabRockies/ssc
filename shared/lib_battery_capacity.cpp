@@ -140,16 +140,19 @@ capacity_params capacity_t::get_params() { return *params; }
 capacity_state capacity_t::get_state() { return *state; }
 
 void capacity_t::check_SOC() {
-    double q_upper = state->qmax_lifetime * params->maximum_SOC * 0.01;
-    double q_lower = state->qmax_lifetime * params->minimum_SOC * 0.01;
+    double max_SOC_available = params->maximum_SOC * (1 - state->percent_unavailable);
+    double min_SOC_available = params->minimum_SOC * (1 - state->percent_unavailable);
+
+    double q_upper = state->qmax_lifetime * max_SOC_available * 0.01;
+    double q_lower = state->qmax_lifetime * min_SOC_available * 0.01;
 
     // set capacity to upper thermal limit
-    if (q_upper > state->qmax_thermal * params->maximum_SOC * 0.01) {
-        q_upper = state->qmax_thermal * params->maximum_SOC * 0.01;
+    if (q_upper > state->qmax_thermal * max_SOC_available * 0.01) {
+        q_upper = state->qmax_thermal * max_SOC_available * 0.01;
     }
     // do this so battery can cycle full depth and we calculate correct SOC min
-    if (q_lower > state->qmax_thermal * params->minimum_SOC * 0.01) {
-        q_lower = state->qmax_thermal * params->minimum_SOC * 0.01;
+    if (q_lower > state->qmax_thermal * min_SOC_available * 0.01) {
+        q_lower = state->qmax_thermal * min_SOC_available * 0.01;
     }
 
     if (state->q0 > q_upper + tolerance) {
@@ -175,6 +178,7 @@ void capacity_t::check_SOC() {
 }
 
 void capacity_t::update_SOC() {
+    // Want to continue to define SOC as nameplate minus degradation (availability losses lower SOC, not nameplate)
     double max = fmin(state->qmax_lifetime, state->qmax_thermal);
     if (max == 0) {
         state->q0 = 0;
@@ -282,6 +286,8 @@ void capacity_kibam_t::replace_battery(double replacement_percent) {
     state->leadacid.q2_0 = state->q0 - state->leadacid.q1_0;
     state->SOC = params->initial_SOC;
     state->SOC_prev = 50;
+    state->percent_unavailable = 0.0;
+    state->percent_unavailable_prev = 0.0;
     update_SOC();
 }
 
@@ -438,6 +444,22 @@ void capacity_kibam_t::updateCapacityForLifetime(double capacity_percent) {
     update_SOC();
 }
 
+void capacity_kibam_t::updateCapacityForAvailability(double availability_percent) {
+    state->percent_unavailable_prev = state->percent_unavailable;
+    state->percent_unavailable = availability_percent;
+
+    double timestep_loss = state->percent_unavailable_prev - state->percent_unavailable;
+    if (timestep_loss > 1e-7) {
+        double q0_orig = state->q0;
+        state->q0 *= (1 - timestep_loss);
+        state->leadacid.q1 *= (1 - timestep_loss);
+        state->leadacid.q2 *= (1 - timestep_loss);
+        state->I_loss += (q0_orig - state->q0) / params->dt_hr;
+    }
+
+    update_SOC();
+}
+
 double capacity_kibam_t::q1() { return state->leadacid.q1_0; }
 
 double capacity_kibam_t::q2() { return state->leadacid.q2_0; }
@@ -528,6 +550,20 @@ void capacity_lithium_ion_t::updateCapacityForLifetime(double capacity_percent) 
     if (state->q0 > state->qmax_lifetime) {
         state->I_loss += (state->q0 - state->qmax_lifetime) / params->dt_hr;
         state->q0 = state->qmax_lifetime;
+    }
+
+    update_SOC();
+}
+
+void capacity_lithium_ion_t::updateCapacityForAvailability(double availability_percent) {
+    state->percent_unavailable_prev = state->percent_unavailable;
+    state->percent_unavailable = availability_percent;
+
+    double timestep_loss = state->percent_unavailable - state->percent_unavailable_prev;
+    if (timestep_loss > 1e-7) {
+        double q0_orig = state->q0;
+        state->q0 *= (1 - timestep_loss);
+        state->I_loss += (q0_orig - state->q0) / params->dt_hr;
     }
 
     update_SOC();

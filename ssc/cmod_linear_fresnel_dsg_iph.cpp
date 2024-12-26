@@ -187,11 +187,11 @@ static var_info _cm_vtab_linear_fresnel_dsg_iph[] = {
 	{ SSC_OUTPUT,   SSC_ARRAY,   "op_mode_3",            "3rd op. mode, if applicable",      "",                 "",       "Controller",     "*",        "",     "" },
 	
 		// Annual Outputs
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_energy",                   "Annual Net Thermal Energy Production w/ avail derate",     "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_field_energy",             "Annual Gross Thermal Energy Production w/ avail derate",   "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_energy",                   "Annual net thermal energy production with availability derate",     "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_field_energy",             "Annual gross thermal energy production with availability derate",   "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
 	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_thermal_consumption",      "Annual thermal freeze protection required",                "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_electricity_consumption",  "Annual electricity consumptoin w/ avail derate",           "kWe-hr",   "",   "Post-process",     "*",       "",   "" },
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_total_water_use",          "Total Annual Water Usage",                                 "m^3",      "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_electricity_consumption",  "Annual electricity consumption with availability derate",           "kWe-hr",   "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_total_water_use",          "Total annual water usage",                                 "m^3",      "",   "Post-process",     "*",       "",   "" },
 	{ SSC_OUTPUT,   SSC_NUMBER,  "capacity_factor",					"Capacity factor",											"%",        "",   "Post-process",     "*",       "",   "" },
 	{ SSC_OUTPUT,   SSC_NUMBER,  "kwh_per_kw",						"First year kWh/kW",										"kWht/kWt", "",   "Post-process",     "*",       "",   "" },
 
@@ -583,7 +583,7 @@ public:
 			throw exec_error("linear_fresnel_dsg_iph", "The number of fixed steps does not match the length of output data arrays");
 
 		// 'adjustment_factors' class stores factors in hourly array, so need to index as such
-		adjustment_factors haf(this, "adjust");
+		adjustment_factors haf(this->get_var_table(), "adjust");
 		if( !haf.setup(n_steps_fixed) )
 			throw exec_error("linear_fresnel_dsg_iph", "failed to setup adjustment factors: " + haf.error());
 

@@ -263,6 +263,8 @@ double lifetime_cycle_t::average_range() { return state->average_range; }
 
 double lifetime_cycle_t::capacity_percent() { return state->cycle->q_relative_cycle; }
 
+double lifetime_cycle_t::capacity_loss_percent() { return fmax(0, 100. - state->cycle->q_relative_cycle); }
+
 void lifetime_cycle_t::resetDailyCycles() {
     state->cycle->DOD_min = -1;
     state->cycle->DOD_max = -1;
@@ -525,6 +527,8 @@ lifetime_calendar_t *lifetime_calendar_t::clone() {
 
 double lifetime_calendar_t::capacity_percent() { return state->calendar->q_relative_calendar; }
 
+double lifetime_calendar_t::capacity_loss_percent() { return fmax(0, 100. - state->calendar->q_relative_calendar); }
+
 lifetime_state lifetime_calendar_t::get_state() { return *state; }
 
 double lifetime_calendar_t::runLifetimeCalendarModel(size_t lifetimeIndex, double T, double SOC) {
@@ -680,18 +684,15 @@ void lifetime_calendar_cycle_t::runLifetimeModels(size_t lifetimeIndex, bool cha
     double q_last = state->q_relative;
 
     if (q_last > 0) {
-        double q_cycle = cycle_model->capacity_percent();
-        double q_calendar;
-
         if (charge_changed)
-            q_cycle = cycle_model->runCycleLifetime(prev_DOD);
+            cycle_model->runCycleLifetime(prev_DOD);
         else if (lifetimeIndex == 0)
-            q_cycle = cycle_model->runCycleLifetime(DOD);
+            cycle_model->runCycleLifetime(DOD);
 
-        q_calendar = calendar_model->runLifetimeCalendarModel(lifetimeIndex, T_battery, 100. - DOD);
+        calendar_model->runLifetimeCalendarModel(lifetimeIndex, T_battery, 100. - DOD);
 
-        // total capacity is min of cycle (Q_neg) and calendar (Q_li) capacity
-        state->q_relative = fmin(q_cycle, q_calendar);
+        // total capacity is sum of cycle (Q_neg) and calendar (Q_li) capacity loss
+        state->q_relative = 100. - cycle_model->capacity_loss_percent() - calendar_model->capacity_loss_percent();
     }
     state->q_relative = fmax(state->q_relative, 0);
 
@@ -706,6 +707,6 @@ double lifetime_calendar_cycle_t::estimateCycleDamage() {
 void lifetime_calendar_cycle_t::replaceBattery(double percent_to_replace) {
     cycle_model->replaceBattery(percent_to_replace);
     calendar_model->replaceBattery(percent_to_replace);
-    state->q_relative = fmin(cycle_model->capacity_percent(), calendar_model->capacity_percent());
+    state->q_relative = 100. - cycle_model->capacity_loss_percent() - calendar_model->capacity_loss_percent();
 }
 

@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //Declare referenced classes
 class Receiver;
-class SolarField;
 class Heliostat;
 
 
@@ -145,8 +144,9 @@ public:
 	//Declare the scripts
 	void DefineFluxPoints(var_receiver &V, int rec_geom, int nx=-1, int ny=-1);
 	void Normalize();
-    void Scale(double flux_mult /*-*/);
+	void Scale(double flux_mult /*-*/);
 	void ClearFluxGrid();
+	void ClearFluxGridResetMaxFlux();
 };
 
 typedef std::vector<FluxSurface> FluxSurfaces;
@@ -187,7 +187,7 @@ public:
 	/* Define an enumeration structure for receiver geometry types */
 	struct REC_GEOM_TYPE { 
 		enum A { CYLINDRICAL_CLOSED, CYLINDRICAL_OPEN, CYLINDRICAL_CAV, PLANE_RECT, 
-			PLANE_ELLIPSE, POLYGON_CLOSED, POLYGON_OPEN, POLYGON_CAV}; 
+			PLANE_ELLIPSE, POLYGON_CLOSED, POLYGON_OPEN, POLYGON_CAV, FALL_FLAT, FALL_CURVE}; 
 	};
 
 	//Declare "GET" access functions

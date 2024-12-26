@@ -37,10 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 C_storage_node::C_storage_node()
 {
 	m_V_prev = m_T_prev = m_m_prev =
-
-		m_V_total = m_V_active = m_V_inactive = m_UA =
-
-		m_T_htr = m_max_q_htr = std::numeric_limits<double>::quiet_NaN();
+	m_V_total = m_V_active = m_V_inactive = m_UA =
+	m_T_htr = m_max_q_htr =
+    m_T_calc = m_V_calc = m_m_calc = std::numeric_limits<double>::quiet_NaN();
 }
 
 void C_storage_node::init(HTFProperties htf_class_in, double V_tank_one_temp, double h_tank, bool lid, double u_tank,
@@ -338,7 +337,7 @@ void C_csp_stratified_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_inpu
 	double d_tank_temp = std::numeric_limits<double>::quiet_NaN();
 	double q_dot_loss_temp = std::numeric_limits<double>::quiet_NaN();
 	two_tank_tes_sizing(mc_store_htfProps, Q_tes_des, ms_params.m_T_hot_des, ms_params.m_T_cold_des,
-		ms_params.m_h_tank_min, ms_params.m_h_tank, ms_params.m_tank_pairs, ms_params.m_u_tank,
+		ms_params.m_h_tank_min, ms_params.m_h_tank, ms_params.m_tank_pairs, ms_params.m_u_tank, 1.0,
 		m_V_tank_active, m_vol_tank, d_tank_temp, q_dot_loss_temp);
 
 	// 5.13.15, twn: also be sure that hx is sized such that it can supply full load to power cycle, in cases of low solar multiples

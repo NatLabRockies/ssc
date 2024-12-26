@@ -144,14 +144,14 @@ static var_info _cm_vtab_hcpv[] = {
               //	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_energy",                   "Hourly Energy",                                                   "kWh",    "",        "Hourly",          "*",                    "LENGTH=8760",                              "" },
 
                   // monthly outputs
-                  { SSC_OUTPUT,        SSC_ARRAY,      "monthly_energy",                  "Monthly Energy Gross",                                                  "kWh",    "",        "Monthly",          "*",                   "LENGTH=12",                                 "" },
+                  { SSC_OUTPUT,        SSC_ARRAY,      "monthly_energy",                  "Monthly AC energy in Year 1",                                                  "kWh",    "",        "Monthly",          "*",                   "LENGTH=12",                                 "" },
                   { SSC_OUTPUT,        SSC_ARRAY,      "monthly_beam",                    "Beam irradiance",                                                 "kW/m2",  "",        "Monthly",          "*",                   "LENGTH=12",                                 "" },
                   { SSC_OUTPUT,        SSC_ARRAY,      "monthly_input_radiation",         "Input radiation",                                                 "kWh",    "",        "Monthly",          "*",                   "LENGTH=12",                                 "" },
                   { SSC_OUTPUT,        SSC_ARRAY,      "monthly_dc_net",                  "DC net",                                                          "kWh",    "",        "Monthly",          "*",                   "LENGTH=12",                                 "" },
 
 
                   // annual outputs
-                  { SSC_OUTPUT,        SSC_NUMBER,     "annual_energy",                   "Annual Energy",                                                   "kWh",    "",        "Annual",          "*",                   "",                                         "" },
+                  { SSC_OUTPUT,        SSC_NUMBER,     "annual_energy",                   "Annual AC energy in Year 1",                                                   "kWh",    "",        "Annual",          "*",                   "",                                         "" },
                   { SSC_OUTPUT,        SSC_NUMBER,     "annual_beam",                     "Beam irradiance",                                                 "kW/m2",  "",        "Annual",          "*",                   "",                                         "" },
                   { SSC_OUTPUT,        SSC_NUMBER,     "annual_input_radiation",          "Input radiation",                                                 "kWh",    "",        "Annual",          "*",                   "",                                         "" },
                   { SSC_OUTPUT,        SSC_NUMBER,     "annual_dc",                       "DC gross",                                                        "kWh",    "",        "Annual",          "*",                   "",                                         "" },
@@ -401,7 +401,7 @@ public:
         double ac_loss_tracker = 0;
 
 
-        adjustment_factors haf(this, "adjust");
+        adjustment_factors haf(this->get_var_table(), "adjust");
         if (!haf.setup())
             throw exec_error("hcpv", "failed to setup adjustment factors: " + haf.error());
 

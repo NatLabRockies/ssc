@@ -45,12 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
+//#define FALLPARTICLE_HERMITE_VALIDATION
 #ifdef SP_USE_SOLTRACE
 
 ST_OpticalProperties::ST_OpticalProperties()
 {
 	int i;
 	for (i=0;i<4;i++) Grating[i] = 0;
+	for (i=0;i<2;i++) RefractiveIndex[i] = 0;
 	
 	OpticSurfNumber = 1;
 	ApertureStopOrGratingType = 0;
@@ -73,11 +75,8 @@ ST_OpticalProperties &ST_OpticalProperties::operator=(const ST_OpticalProperties
 	RMSSlopeError = rhs.RMSSlopeError;
 	RMSSpecError = rhs.RMSSpecError;
 	
-	for (int i=0;i<4;i++)
-	{
-		//RefractiveIndex[i] = rhs.RefractiveIndex[i];
-		Grating[i] = rhs.Grating[i];
-	}
+	for (int i=0;i<4;i++) Grating[i] = rhs.Grating[i];
+	for (int i=0;i<2;i++) RefractiveIndex[i] = rhs.RefractiveIndex[i];
 
 	return *this;
 }
@@ -94,7 +93,7 @@ void ST_OpticalProperties::Write(FILE *fdat){
 		DistributionType,
 		ApertureStopOrGratingType, OpticSurfNumber, DiffractionOrder,
 		Reflectivity, Transmissivity, RMSSlopeError, RMSSpecError,
-		0., 0.,
+		RefractiveIndex[0], RefractiveIndex[1],
 		Grating[0], Grating[1], Grating[2], Grating[3] );
 
 }
@@ -546,8 +545,10 @@ ST_System::ST_System()
 	SunRayCount = 0;
 	sim_raycount=1000;
 	sim_raymax=100000;
-	sim_errors_sunshape=true;
-	sim_errors_optical=true;
+	sim_errors_sunshape = true;
+	sim_errors_optical = true;
+	sim_dynamic_group = true;
+	aperture_virtual_stage = false;
 }
 
 ST_System::~ST_System()
@@ -586,15 +587,11 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 	/* 
 	Take the geometry specified in the SolarField SF and the heliostats listed in helios and create a 
 	SolTrace simulation object.
+
+	NOTE: If this function is modified for any reason, 
+	please update load_soltrace_structure() within copylot.py in the api directory of SolarPILOT deploy.
 	*/
 
-
-	//Resize the stage list. There will be 2 stages -- the heliostat field and the reciever
-	if(StageList.size() != 0) ClearAll();
-	for(int i=0; i<2; i++){
-		StageList.push_back( new ST_Stage() );
-	}
-	
     var_map *V = SF.getVarMap();
 
 	/*--- Configure sun shape ---*/
@@ -692,22 +689,24 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 		return false;	//Error, should have been cleared earlier
 	}
 	else{	
-		nhtemp = (int)SF.getHeliostatTemplates()->size();
+		//nhtemp = (int)SF.getHeliostatTemplates()->size();
+		nhtemp = (int)helios.size();
+		OpticsList.reserve(nhtemp);
 		for(int i=0; i<nhtemp; i++){
 			OpticsList.push_back( new ST_OpticalPropertySet() );
 		}
 	}
 
-	//int *optic = new int[nhtemp];
-	//double grating[] = {0.,0.,0.};
-	
 	//map the optics pointer to the heliostat template name
 	unordered_map<std::string, ST_OpticalPropertySet*> optics_map;
 
-	int ii=0;
-	for(htemp_map::iterator it = SF.getHeliostatTemplates()->begin(); it != SF.getHeliostatTemplates()->end(); it++){
-		Heliostat *H = it->second;
-		OpticsList.at(ii)->Name = (*H->getHeliostatName()).c_str();
+	for(int ii=0; ii<nhtemp; ii++)
+	{
+		Heliostat* H = helios.at(ii);
+		char hname[30];
+		sprintf(hname, "heliostat_%d", ii);
+
+		OpticsList.at(ii)->Name = hname;
 		optics_map[ OpticsList.at(ii)->Name ] = OpticsList.at(ii);
 		
 		/* 
@@ -719,11 +718,11 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 		*/
 		
 		double refl = H->getTotalReflectivity();	//reflectivity * soiling
+		//scale reflectance by attenuation for this heliostat
+		refl *= H->getEfficiencyAtten();
 		//Note that the reflected energy is also reduced by the fraction of inactive heliostat aperture. Since
 		//we input the actual heliostat dimensions into soltrace, apply this derate on the reflectivity.
 		var_heliostat *Hv = H->getVarMap();
-
-        refl *= Hv->reflect_ratio.val; //->getReflectiveAreaDerate();
 
         double errang[2], errsurf[2], errrefl[2];
 
@@ -790,10 +789,10 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 		OpticsList.at(ii)->Front.DiffractionOrder = 0;
 		OpticsList.at(ii)->Front.Reflectivity = refl;
 		OpticsList.at(ii)->Front.Transmissivity = 0.;
+		for(int j=0; j<2; j++) OpticsList.at(ii)->Front.RefractiveIndex[j] = 0.;
 		for(int j=0; j<4; j++) OpticsList.at(ii)->Front.Grating[j] = 0.;
 		OpticsList.at(ii)->Front.RMSSlopeError = errnorm;
 		OpticsList.at(ii)->Front.RMSSpecError = errsurface;
-		//st_optic(cxt, optic[ii], 1, 'g', 0, 0, 0, 0., 0., refl, 0., grating, errnorm, errsurf, 0, 0, NULL, NULL);
 		//add the back
 		OpticsList.at(ii)->Back.DistributionType = 'g';
 		OpticsList.at(ii)->Back.OpticSurfNumber = 0;
@@ -801,11 +800,12 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 		OpticsList.at(ii)->Back.DiffractionOrder = 0;
 		OpticsList.at(ii)->Back.Reflectivity = 0.;
 		OpticsList.at(ii)->Back.Transmissivity = 0.;
+		for(int j=0; j<2; j++) OpticsList.at(ii)->Back.RefractiveIndex[j] = 0.;
 		for(int j=0; j<4; j++) OpticsList.at(ii)->Back.Grating[j] = 0.;
 		OpticsList.at(ii)->Back.RMSSlopeError = 100.0;
 		OpticsList.at(ii)->Back.RMSSpecError = 0.;
 		
-		ii++;
+		//ii++;
 	}
 	
 	/*
@@ -813,8 +813,10 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 
 	this contains all heliostats regardless of differeing geometry or optical properties
 	*/
+	if (StageList.size() != 0) ClearAll(); //Clear the stage list.
+	StageList.push_back(new ST_Stage());
 
-	ST_Stage *h_stage = StageList.at(0);
+	ST_Stage* h_stage = StageList.back();
 	//global origin
 	h_stage->Origin[0] = 0.;
 	h_stage->Origin[1] = 0.;
@@ -879,10 +881,6 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 		return false;
 	}
 
-	/*for(int i=0; i<nh; i++){
-		h_stage->ElementList.push_back( new ST_Element() );
-	}*/
-	
 	//keep track of the heliostat area
 	double Ahtot=0.;
 	for(int i=0; i<nh; i++){
@@ -903,15 +901,28 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 		bool enabled = H->IsInLayout();
 		
 		sp_point *P; 
-		Vect *V;
 		P = H->getLocation();
-		V = H->getTrackVector();
-		
-		double zrot = R2D*Toolbox::ZRotationTransform(*V);
+		Vect V;
+		sp_point* aim = H->getAimPoint();
+		V.i = aim->x - P->x;
+		V.j = aim->y - P->y;
+		V.k = aim->z - P->z;
+		Toolbox::unitvect(V);
+		V.Add(sunvect);
+		V.Scale(0.5);
+		Toolbox::unitvect(V);
+
+		double zrot = R2D*Toolbox::ZRotationTransform(V);
 
 		char shape = Hv->is_round.mapval() == var_heliostat::IS_ROUND::ROUND ? 'c' : 'r';
 
-		string opticname = (*H->getHeliostatName()).c_str();
+		double track_zen = std::acos(V.k);
+		double track_az = std::atan2(V.i, V.j);
+
+		char hname[30];
+		sprintf(hname, "heliostat_%d", i);
+
+		string opticname = hname;
 
 		for(int j=0; j<ncantx; j++){
 			for(int k=0; k<ncanty; k++){
@@ -930,16 +941,16 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 					Toolbox::unitvect(Faim);
 
 					//Rotate to match heliostat rotation
-					Toolbox::rotation( H->getZenithTrack(), 0, Floc);
-					Toolbox::rotation( H->getZenithTrack(), 0, Faim);
-					Toolbox::rotation( H->getAzimuthTrack(), 2, Floc);
-					Toolbox::rotation( H->getAzimuthTrack(), 2, Faim);
+					Toolbox::rotation( track_zen, 0, Floc);
+					Toolbox::rotation( track_zen, 0, Faim);
+					Toolbox::rotation( track_az, 2, Floc);
+					Toolbox::rotation( track_az, 2, Faim);
 
 					element->Origin[0] = P->x + Floc.x;
 					element->Origin[1] = P->y + Floc.y;
 					element->Origin[2] = P->z + Floc.z;
 
-					element->AimPoint[0] = element->Origin[0] + Faim.i*1000.;
+					element->AimPoint[0] = element->Origin[0] + Faim.i*1000.;	// Mult. by 1000. due to numerical precision
 					element->AimPoint[1] = element->Origin[1] + Faim.j*1000.;
 					element->AimPoint[2] = element->Origin[2] + Faim.k*1000.;
 
@@ -949,9 +960,9 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 					element->Origin[1] = P->y;
 					element->Origin[2] = P->z;
 				
-					element->AimPoint[0] = P->x + V->i*1000.;
-					element->AimPoint[1] = P->y + V->j*1000.;
-					element->AimPoint[2] = P->z + V->k*1000.;
+					element->AimPoint[0] = P->x + V.i*1000.;
+					element->AimPoint[1] = P->y + V.j*1000.;
+					element->AimPoint[2] = P->z + V.k*1000.;
 				}
 
 				//element->ZRot = 0.;
@@ -993,9 +1004,11 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 			}
 		}
 	}
-		
-	/*--- Set the receiever stages ---*/
-	ST_Stage *r_stage = StageList.at(1);
+	/*--- Create a virtual stage ---*/
+
+	/*--- Set the receiver stages ---*/
+	StageList.push_back(new ST_Stage());
+	ST_Stage *r_stage = StageList.back();
 	//Global origin
 	r_stage->Origin[0] = 0.;
 	r_stage->Origin[1] = 0.;
@@ -1015,13 +1028,9 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 
 	Rvector *recs = SF.getReceivers();
 	int nrecs = (int)recs->size();
-	unordered_map<int, Receiver*> rstage_map;	//map between element number and pointer to the receiver
 	
 	if(r_stage->ElementList.size() > 0){
 		return false;	//Error
-	}
-	for(int i=0; i<nrecs; i++){
-		r_stage->ElementList.push_back( new ST_Element() );
 	}
 	
 	for(int i=0; i<nrecs; i++){
@@ -1030,13 +1039,12 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
         var_receiver *rv = rec->getVarMap();
 
 		if(! rec->isReceiverEnabled() ) continue;
-		rstage_map[i] = rec;	//keep track of the element number 
 		//Get the receiver geometry type
 		int recgeom = rec->getGeometryType();
 		
 		//append an optics set, required for the receiver
 		OpticsList.push_back( new ST_OpticalPropertySet() );
-		ST_OpticalPropertySet *copt = OpticsList.at(OpticsList.size()-1);
+		ST_OpticalPropertySet *copt = OpticsList.back();
 
 		switch (recgeom)
 		{
@@ -1066,7 +1074,8 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 			sp_point pos;
 			Vect aim;
 
-			ST_Element *element = r_stage->ElementList.at(i);
+			r_stage->ElementList.push_back(new ST_Element());
+			ST_Element *element = r_stage->ElementList.back();
 			element->Enabled = true;
 			pos.x = rv->rec_offset_x_global.Val(); 
 			pos.y = rv->rec_offset_y_global.Val() - diam/2.;
@@ -1194,7 +1203,8 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 			//Add a flat aperture to the stage
 			sp_point pos;
 			Vect aim;
-			ST_Element *element = r_stage->ElementList.at(i);
+			r_stage->ElementList.push_back(new ST_Element());
+			ST_Element* element = r_stage->ElementList.back();
 			element->Enabled = true;
 			pos.x = rv->rec_offset_x_global.Val();
 			pos.y = rv->rec_offset_y_global.Val();
@@ -1208,9 +1218,9 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 				az = rv->rec_azimuth.val*D2R,
 				el = rv->rec_elevation.val*D2R;
 			aim.Set(cos(el)*sin(az), cos(el)*cos(az), sin(el));
-			element->AimPoint[0] = pos.x + aim.i*1000.;
-			element->AimPoint[1] = pos.y + aim.j*1000.;
-			element->AimPoint[2] = pos.z + aim.k*1000.;
+			element->AimPoint[0] = pos.x + aim.i;
+			element->AimPoint[1] = pos.y + aim.j;
+			element->AimPoint[2] = pos.z + aim.k;
 			
 			element->ZRot = R2D*Toolbox::ZRotationTransform(aim);
 			
@@ -1223,6 +1233,555 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
 			element->InteractionType = 2;
 			element->OpticName = (rv->rec_name.val).c_str();
 			element->Optics = copt;
+			break;
+		}
+		case Receiver::REC_GEOM_TYPE::FALL_FLAT:
+		case Receiver::REC_GEOM_TYPE::FALL_CURVE:
+		{
+			aperture_virtual_stage = true;
+
+			sp_point rec_offset(rv->rec_offset_x_global.Val(), rv->rec_offset_y_global.Val(), rv->optical_height.Val()); //optical height includes z offset
+			ST_Element* element;
+			// Creating a stage for the SNOUT -> This must occur before the virtual aperture stage
+			if (rv->is_snout.val && rv->rec_type.mapval() == var_receiver::REC_TYPE::FALLING_PARTICLE) {
+				// Modifying last stage added
+				ST_Stage* snout_stage = StageList.back(); //Renaming r_stage
+				snout_stage->ZRot = rv->rec_azimuth.val;
+				snout_stage->Origin[0] = rec_offset.x;		// Accounting for offsets (this is different than other receiver types)
+				snout_stage->Origin[1] = rec_offset.y;
+				snout_stage->Origin[2] = rec_offset.z;
+
+				snout_stage->AimPoint[0] = snout_stage->Origin[0];
+				snout_stage->AimPoint[1] = snout_stage->Origin[1];
+				snout_stage->AimPoint[2] = snout_stage->Origin[2] + 1.0;
+
+				snout_stage->Name = "SNOUT";
+				snout_stage->Virtual = false;
+				snout_stage->MultiHitsPerRay = true;
+				snout_stage->TraceThrough = true;
+
+				//**** SNOUT Surfaces *****//
+				// Create a diffuse-like optic surface 
+				std::string snout_opt_name = "SNOUT Surface";
+				copt->Name = snout_opt_name;
+				//set the optical properties. (Front)
+				copt->Front.DistributionType = 'f'; // diffuse surface
+				copt->Front.OpticSurfNumber = 0;
+				copt->Front.ApertureStopOrGratingType = 0;
+				copt->Front.Reflectivity = 0.8;
+				copt->Front.RMSSlopeError = 0.00001;
+				copt->Front.RMSSpecError = 1000.;
+
+				//back surface optics
+				copt->Back.DistributionType = 'f';
+				copt->Back.OpticSurfNumber = 0;
+				copt->Back.ApertureStopOrGratingType = 0;
+				copt->Back.Reflectivity = 0.8;
+				copt->Back.RMSSlopeError = 0.00001;
+				copt->Back.RMSSpecError = 1000.;
+
+#ifdef FALLPARTICLE_HERMITE_VALIDATION
+				copt->Front.Reflectivity = 0.0;
+				copt->Back.Reflectivity = 0.0;
+#endif // FALLPARTICLE_HERMITE_VALIDATION
+
+				//SNOUT Top Panel
+				snout_stage->ElementList.push_back(new ST_Element());
+				element = snout_stage->ElementList.back();
+				element->Enabled = true;
+
+				element->Origin[0] = 0.0;
+				element->Origin[1] = 0.0;
+				element->Origin[2] = rv->rec_height.val / 2.;
+
+				element->AimPoint[0] = element->Origin[0];
+				element->AimPoint[1] = element->Origin[1] - sin(rv->snout_vert_top_angle.val * D2R);
+				element->AimPoint[2] = element->Origin[2] - cos(rv->snout_vert_top_angle.val * D2R);
+				element->ZRot = 0.0;
+
+				element->ShapeIndex = 'q';
+				element->Ap_A = rv->rec_width.val / 2. + rv->snout_depth.val * tan(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_B = rv->snout_depth.val / cos(rv->snout_vert_top_angle.val * D2R);
+				element->Ap_C = -rv->rec_width.val / 2. - rv->snout_depth.val * tan(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_D = rv->snout_depth.val / cos(rv->snout_vert_top_angle.val * D2R);
+				element->Ap_E = -rv->rec_width.val / 2.;
+				element->Ap_F = 0.;
+				element->Ap_G = rv->rec_width.val / 2.;
+				element->Ap_H = 0.;
+
+				element->SurfaceIndex = 'f';
+				element->InteractionType = 2;
+				element->OpticName = snout_opt_name;
+				element->Optics = copt;
+				element->Comment = "SNOUT Top Panel";
+
+				//SNOUT Bottom Panel
+				snout_stage->ElementList.push_back(new ST_Element());
+				element = snout_stage->ElementList.back();
+				element->Enabled = true;
+
+				element->Origin[0] = 0.0;
+				element->Origin[1] = 0.0;
+				element->Origin[2] = -rv->rec_height.val / 2.;
+
+				element->AimPoint[0] = element->Origin[0];
+				element->AimPoint[1] = element->Origin[1] + sin(rv->snout_vert_bot_angle.val * D2R);
+				element->AimPoint[2] = element->Origin[2] + cos(rv->snout_vert_bot_angle.val * D2R);
+				element->ZRot = 0.0;
+
+				element->ShapeIndex = 'q';
+				element->Ap_A = rv->rec_width.val / 2. + rv->snout_depth.val * tan(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_B = rv->snout_depth.val / cos(rv->snout_vert_bot_angle.val * D2R);
+				element->Ap_C = -rv->rec_width.val / 2. - rv->snout_depth.val * tan(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_D = rv->snout_depth.val / cos(rv->snout_vert_bot_angle.val * D2R);
+				element->Ap_E = -rv->rec_width.val / 2.;
+				element->Ap_F = 0.;
+				element->Ap_G = rv->rec_width.val / 2.;
+				element->Ap_H = 0.;
+
+				element->SurfaceIndex = 'f';
+				element->InteractionType = 2;
+				element->OpticName = snout_opt_name;
+				element->Optics = copt;
+				element->Comment = "SNOUT Bottom Panel";
+
+				//SNOUT East Panel
+				snout_stage->ElementList.push_back(new ST_Element());
+				element = snout_stage->ElementList.back();
+				element->Enabled = true;
+
+				element->Origin[0] = rv->rec_width.val / 2.;
+				element->Origin[1] = 0.0;
+				element->Origin[2] = 0.0;
+
+				element->AimPoint[0] = element->Origin[0] - cos(rv->snout_horiz_angle.val / 2. * D2R);
+				element->AimPoint[1] = element->Origin[1] + sin(rv->snout_horiz_angle.val / 2. * D2R);
+				element->AimPoint[2] = element->Origin[2];
+				element->ZRot = 90.;
+
+				element->ShapeIndex = 'q';
+				element->Ap_A = 0.;
+				element->Ap_B = rv->rec_height.val / 2.;
+				element->Ap_C = -rv->snout_depth.val / cos(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_D = rv->rec_height.val / 2. - rv->snout_depth.val * tan(rv->snout_vert_top_angle.val * D2R);
+				element->Ap_E = -rv->snout_depth.val / cos(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_F = -rv->rec_height.val / 2. - rv->snout_depth.val * tan(rv->snout_vert_bot_angle.val * D2R);
+				element->Ap_G = 0.;
+				element->Ap_H = -rv->rec_height.val / 2.;
+
+				element->SurfaceIndex = 'f';
+				element->InteractionType = 2;
+				element->OpticName = snout_opt_name;
+				element->Optics = copt;
+				element->Comment = "SNOUT East Panel";
+
+				//SNOUT West Panel
+				snout_stage->ElementList.push_back(new ST_Element());
+				element = snout_stage->ElementList.back();
+				element->Enabled = true;
+
+				element->Origin[0] = -rv->rec_width.val / 2.;
+				element->Origin[1] = 0.0;
+				element->Origin[2] = 0.0;
+
+				element->AimPoint[0] = element->Origin[0] + cos(rv->snout_horiz_angle.val / 2. * D2R);
+				element->AimPoint[1] = element->Origin[1] + sin(rv->snout_horiz_angle.val / 2. * D2R);
+				element->AimPoint[2] = element->Origin[2];
+				element->ZRot = -90.;
+
+				element->ShapeIndex = 'q';
+				element->Ap_A = rv->snout_depth.val / cos(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_B = rv->rec_height.val / 2. - rv->snout_depth.val * tan(rv->snout_vert_top_angle.val * D2R);
+				element->Ap_C = 0.;
+				element->Ap_D = rv->rec_height.val / 2.;
+				element->Ap_E = 0.;
+				element->Ap_F = -rv->rec_height.val / 2.;
+				element->Ap_G = rv->snout_depth.val / cos(rv->snout_horiz_angle.val / 2. * D2R);
+				element->Ap_H = -rv->rec_height.val / 2. - rv->snout_depth.val * tan(rv->snout_vert_bot_angle.val * D2R);
+
+				element->SurfaceIndex = 'f';
+				element->InteractionType = 2;
+				element->OpticName = snout_opt_name;
+				element->Optics = copt;
+				element->Comment = "SNOUT West Panel";
+
+				/*--- Re-adding receiver stage ---*/
+				StageList.push_back(new ST_Stage());
+
+				//append an optics set, required for the receiver
+				OpticsList.push_back(new ST_OpticalPropertySet());
+				copt = OpticsList.back();
+			}
+
+			// Creating a virtual stage for the aperture
+			// Modifying the last stage added
+			ST_Stage* ap_stage = StageList.back(); //Renaming r_stage
+			ap_stage->ZRot = rv->rec_azimuth.val;
+			ap_stage->Name = "Aperture";
+			ap_stage->Virtual = true;
+			ap_stage->TraceThrough = false;
+
+			//Global origin - making stage origin account for offsets
+			ap_stage->Origin[0] = rec_offset.x;
+			ap_stage->Origin[1] = rec_offset.y;
+			ap_stage->Origin[2] = rec_offset.z;
+			//Aim point
+			ap_stage->AimPoint[0] = ap_stage->Origin[0];
+			ap_stage->AimPoint[1] = ap_stage->Origin[1];
+			ap_stage->AimPoint[2] = ap_stage->Origin[2] + 1.;
+			// Accounting for azimuth angle in stage z rotation
+			ap_stage->ZRot = rv->rec_azimuth.val;
+
+			ap_stage->ElementList.push_back(new ST_Element());
+			element = ap_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = 0.0;		
+			element->Origin[1] = 0.0;
+			element->Origin[2] = 0.0;
+
+			element->AimPoint[0] = element->Origin[0];
+			element->AimPoint[1] = element->Origin[1] + 1;
+			element->AimPoint[2] = element->Origin[2];
+			element->ZRot = 0.;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = rv->rec_width.val;
+			element->Ap_B = rv->rec_height.val;
+
+			element->SurfaceIndex = 'f';
+			//element->InteractionType = 1;		 // ignored by SolTrace
+			//element->OpticName = "aperture";	 // ignored by SolTrace
+			//element->Optics = copt;			 // ignored by SolTrace
+			element->Comment = "Aperture";
+
+			/*--- Re-adding receiver stage ---*/
+			StageList.push_back(new ST_Stage());
+			ST_Stage* r_stage = StageList.back();
+			//Global origin
+			r_stage->Origin[0] = rec_offset.x;	// making stage origin account for offsets
+			r_stage->Origin[1] = rec_offset.y;
+			r_stage->Origin[2] = rec_offset.z;
+			//Aim point
+			r_stage->AimPoint[0] = r_stage->Origin[0];
+			r_stage->AimPoint[1] = r_stage->Origin[1];
+			r_stage->AimPoint[2] = r_stage->Origin[2] + 1.;
+			// Accounting for azimuth angle in stage z rotation
+			r_stage->ZRot = rv->rec_azimuth.val;
+			//{virtual stage, multiple hits per ray, trace through} UI checkboxes
+			r_stage->Virtual = false;
+			r_stage->MultiHitsPerRay = true;
+			r_stage->TraceThrough = false;
+			//Name
+			r_stage->Name = "Receiver";
+
+			//**** Add optics stage *****//
+			copt->Name = (rv->rec_name.val).c_str();
+			//set the particle curtain optical properties.
+			copt->Front.DistributionType = 'g';
+			copt->Front.OpticSurfNumber = 0;
+			copt->Front.ApertureStopOrGratingType = 0;
+			copt->Front.Transmissivity = 0.3; // TODO: Update this to change properties as a function of curtain height
+			copt->Front.RMSSlopeError = 0.00001;
+			copt->Front.RMSSpecError = 1000.;  //PI / 4.; // 10000.;
+			copt->Front.RefractiveIndex[0] = 1.0; // Real part
+			//back
+			copt->Back.DistributionType =  'g';
+			copt->Back.OpticSurfNumber = 0;
+			copt->Back.ApertureStopOrGratingType = 0;
+			copt->Back.Transmissivity = 0.3;
+			copt->Back.RMSSlopeError = 0.00001; // PI / 4.; // 0.00001;
+			copt->Back.RMSSpecError = 1000.; // PI / 4.; // 10000.;
+			copt->Back.RefractiveIndex[0] = 1.0;  // Real part
+
+#ifdef FALLPARTICLE_HERMITE_VALIDATION
+			copt->Front.Reflectivity = 1. - rv->absorptance.val;
+			copt->Front.RMSSlopeError = PI / 4.;
+			copt->Front.RMSSpecError = PI / 4.;
+
+			copt->Back.Reflectivity = 1. - rv->absorptance.val;
+			copt->Back.RMSSlopeError = PI / 4.;
+			copt->Back.RMSSpecError = PI / 4.;
+#endif // FALLPARTICLE_HERMITE_VALIDATION
+
+			sp_point* pos;
+			//**** Add particle curtain *****//
+			FluxSurfaces* fs = rec->getFluxSurfaces();
+			for (int s = 1; s < fs->size(); s++) {
+				// TODO: this has to be broken up if we want to change the transmissivity as a function of height 
+				FluxSurface surface = fs->at(s);
+				r_stage->ElementList.push_back(new ST_Element());
+				element = r_stage->ElementList.back();
+				element->Enabled = true;
+
+				pos = surface.getSurfaceOffset();
+				double curtain_depth = sqrt(pow(pos->x, 2) + pow(pos->y, 2));
+				if (recgeom == Receiver::REC_GEOM_TYPE::FALL_CURVE) {
+					// surface pos is the distance from global origin to center of curvature
+					curtain_depth = surface.getSurfaceRadius() - curtain_depth;
+				}
+
+				element->Origin[0] = 0.0;
+				element->Origin[1] = -curtain_depth;
+				element->Origin[2] = pos->z;
+
+				element->AimPoint[0] = element->Origin[0];
+				element->AimPoint[1] = element->Origin[1] + 1.;
+				element->AimPoint[2] = element->Origin[2];
+				element->ZRot = 180.0;
+
+				if (recgeom == Receiver::REC_GEOM_TYPE::FALL_FLAT) {
+					element->ShapeIndex = 'r';
+					element->Ap_A = surface.getSurfaceWidth();
+					element->Ap_B = surface.getSurfaceHeight();
+					element->SurfaceIndex = 'f';
+				}
+				else if (recgeom == Receiver::REC_GEOM_TYPE::FALL_CURVE) {
+					element->ShapeIndex = 'l';
+					element->Ap_A = -rv->max_curtain_width.Val() / 2.;
+					element->Ap_B = rv->max_curtain_width.Val() / 2.;
+					element->Ap_C = surface.getSurfaceHeight();
+					element->SurfaceIndex = 's';
+					element->Su_A = 1. / surface.getSurfaceRadius();
+				}
+
+				element->InteractionType = 1; // Refraction surface for transmissivity
+#ifdef FALLPARTICLE_HERMITE_VALIDATION
+				element->InteractionType = 2; // Reflection surface for reflectivity
+#endif // FALLPARTICLE_HERMITE_VALIDATION
+				element->OpticName = (rv->rec_name.val).c_str();
+				element->Optics = copt;
+				element->Comment = "Particle Curtain " + std::to_string(s);
+			}
+			
+			//**** Cavity Surfaces *****//
+			// Create a diffuse-like optic surface 
+			std::string cavity_opt_name = "Cavity Surface";
+			OpticsList.push_back(new ST_OpticalPropertySet());
+			copt = OpticsList.back();
+			copt->Name = cavity_opt_name;
+			//set the optical properties. (Front)
+			copt->Front.DistributionType = 'f';
+			copt->Front.OpticSurfNumber = 0;
+			copt->Front.ApertureStopOrGratingType = 0;
+			copt->Front.Reflectivity = 0.8; // TODO: we could assume absorptance
+			copt->Front.RMSSlopeError = 0.00001;
+			copt->Front.RMSSpecError = 1000.;
+			//back surface optics
+			copt->Back.DistributionType = 'f';
+			copt->Back.OpticSurfNumber = 0;
+			copt->Back.ApertureStopOrGratingType = 0;
+			copt->Back.Reflectivity = 0.8;
+			copt->Back.RMSSlopeError = 0.00001;
+			copt->Back.RMSSpecError = 1000.;
+
+#ifdef FALLPARTICLE_HERMITE_VALIDATION
+			// TODO (BILL): The reason validation requires the cavity reflectivity to equal 1 is because the current approach uses
+			// the overlap projections of the snout and the aperture and doesn't account for the curtain...
+			// Therefore, all flux entering the aperature is assumed to hit the curtain...
+			// We could improve this by using the overlap projection of the curain, aperature, and snout...
+			// This approach would make the hermite an underestimater which is currently an overestimator
+			copt->Front.Reflectivity = 1.0;  //rv->absorptance.val; // 0.0;
+			copt->Back.Reflectivity = 1.0; //rv->absorptance.val; //0.0;
+#endif // FALLPARTICLE_HERMITE_VALIDATION
+
+			double back_cavity_offset = 0.5;   // [m] assumed distance between curtain and back of cavity 
+			// TODO (BILL): This should be normalized or set by user
+			//Bottom
+			r_stage->ElementList.push_back(new ST_Element());
+			element = r_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = 0.0;
+			element->Origin[1] = -(rv->max_curtain_depth.val + back_cavity_offset) / 2.;
+			element->Origin[2] = -rv->rec_height.val / 2.;
+
+			element->AimPoint[0] = element->Origin[0];
+			element->AimPoint[1] = element->Origin[1];
+			element->AimPoint[2] = element->Origin[2] + 1;
+			element->ZRot = 0.0;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = rv->max_curtain_width.Val();
+			element->Ap_B = rv->max_curtain_depth.val + back_cavity_offset;
+
+			element->SurfaceIndex = 'f';
+			element->InteractionType = 2;
+			element->OpticName = cavity_opt_name;
+			element->Optics = copt;
+			element->Comment = "Cavity Bottom";
+
+			//Back
+			r_stage->ElementList.push_back(new ST_Element());
+			element = r_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = 0.0;
+			element->Origin[1] = -rv->max_curtain_depth.val - back_cavity_offset;
+			element->Origin[2] = -rv->rec_height.val / 2. + rv->curtain_total_height.Val() / 2.;
+
+			element->AimPoint[0] = element->Origin[0];
+			element->AimPoint[1] = element->Origin[1] + 1;
+			element->AimPoint[2] = element->Origin[2];
+			element->ZRot = 0.;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = rv->max_curtain_width.Val();
+			element->Ap_B = rv->curtain_total_height.Val();
+
+			element->SurfaceIndex = 'f';
+			element->InteractionType = 2;
+			element->OpticName = cavity_opt_name;
+			element->Optics = copt;
+			element->Comment = "Cavity Back";
+
+			//Top
+			r_stage->ElementList.push_back(new ST_Element());
+			element = r_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = 0.0;
+			element->Origin[1] = -(rv->max_curtain_depth.val + back_cavity_offset) / 2.;
+			element->Origin[2] = -rv->rec_height.val / 2. + rv->curtain_total_height.Val();
+
+			element->AimPoint[0] = element->Origin[0];
+			element->AimPoint[1] = element->Origin[1];
+			element->AimPoint[2] = element->Origin[2] - 1;
+			element->ZRot = 0.0;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = rv->max_curtain_width.Val();
+			element->Ap_B = rv->max_curtain_depth.val + back_cavity_offset;
+
+			element->SurfaceIndex = 'f';
+			element->InteractionType = 2;
+			element->OpticName = cavity_opt_name;
+			element->Optics = copt;
+			element->Comment = "Cavity Top";
+
+			//East
+			r_stage->ElementList.push_back(new ST_Element());
+			element = r_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = rv->max_curtain_width.Val() / 2.;
+			element->Origin[1] = -(rv->max_curtain_depth.val + back_cavity_offset) / 2.;
+			element->Origin[2] = -rv->rec_height.val / 2. + rv->curtain_total_height.Val() / 2.;
+
+			element->AimPoint[0] = element->Origin[0] - 1;
+			element->AimPoint[1] = element->Origin[1];
+			element->AimPoint[2] = element->Origin[2];
+			element->ZRot = 90.;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = rv->max_curtain_depth.val + back_cavity_offset;
+			element->Ap_B = rv->curtain_total_height.Val();
+
+			element->SurfaceIndex = 'f';
+			element->InteractionType = 2;
+			element->OpticName = cavity_opt_name;
+			element->Optics = copt;
+			element->Comment = "Cavity East";
+
+			//West
+			r_stage->ElementList.push_back(new ST_Element());
+			element = r_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = -rv->max_curtain_width.Val() / 2.;
+			element->Origin[1] = -(rv->max_curtain_depth.val + back_cavity_offset) / 2.;
+			element->Origin[2] = -rv->rec_height.val / 2. + rv->curtain_total_height.Val() / 2.;
+
+			element->AimPoint[0] = element->Origin[0] + 1;
+			element->AimPoint[1] = element->Origin[1];
+			element->AimPoint[2] = element->Origin[2];
+			element->ZRot = -90.;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = rv->max_curtain_depth.val + back_cavity_offset;
+			element->Ap_B = rv->curtain_total_height.Val();
+
+			element->SurfaceIndex = 'f';
+			element->InteractionType = 2;
+			element->OpticName = cavity_opt_name;
+			element->Optics = copt;
+			element->Comment = "Cavity West";
+
+			//Front Top
+			if (rv->norm_curtain_height.val > 1.) {
+				r_stage->ElementList.push_back(new ST_Element());
+				element = r_stage->ElementList.back();
+				element->Enabled = true;
+
+				element->Origin[0] = 0.0;
+				element->Origin[1] = 0.0;
+				element->Origin[2] = rv->rec_height.val / 2. + (rv->curtain_total_height.Val() - rv->rec_height.val) / 2.;
+
+				element->AimPoint[0] = element->Origin[0];
+				element->AimPoint[1] = element->Origin[1] - 1;
+				element->AimPoint[2] = element->Origin[2];
+				element->ZRot = 0.;
+
+				element->ShapeIndex = 'r';
+				element->Ap_A = rv->max_curtain_width.Val();
+				element->Ap_B = rv->curtain_total_height.Val() - rv->rec_height.val;
+
+				element->SurfaceIndex = 'f';
+				element->InteractionType = 2;
+				element->OpticName = cavity_opt_name;
+				element->Optics = copt;
+				element->Comment = "Cavity Front Top";
+			}
+
+			// Front East
+			r_stage->ElementList.push_back(new ST_Element());
+			element = r_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = rv->max_curtain_width.Val() / 2. - (rv->max_curtain_width.Val() - rv->rec_width.val) / 4.;
+			element->Origin[1] = 0.0;
+			element->Origin[2] = 0.0;
+
+			element->AimPoint[0] = element->Origin[0];
+			element->AimPoint[1] = element->Origin[1] - 1;
+			element->AimPoint[2] = element->Origin[2];
+			element->ZRot = 0.;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = (rv->max_curtain_width.Val() - rv->rec_width.val) / 2.;
+			element->Ap_B = rv->rec_height.val;
+
+			element->SurfaceIndex = 'f';
+			element->InteractionType = 2;
+			element->OpticName = cavity_opt_name;
+			element->Optics = copt;
+			element->Comment = "Cavity Front East";
+
+			// Front West
+			r_stage->ElementList.push_back(new ST_Element());
+			element = r_stage->ElementList.back();
+			element->Enabled = true;
+
+			element->Origin[0] = -rv->max_curtain_width.Val() / 2. + (rv->max_curtain_width.Val() - rv->rec_width.val) / 4.;
+			element->Origin[1] = 0.0;
+			element->Origin[2] = 0.0;
+
+			element->AimPoint[0] = element->Origin[0];
+			element->AimPoint[1] = element->Origin[1] - 1.;
+			element->AimPoint[2] = element->Origin[2];
+			element->ZRot = 0.;
+
+			element->ShapeIndex = 'r';
+			element->Ap_A = (rv->max_curtain_width.Val() - rv->rec_width.val) / 2.;
+			element->Ap_B = rv->rec_height.val;
+
+			element->SurfaceIndex = 'f';
+			element->InteractionType = 2;
+			element->OpticName = cavity_opt_name;
+			element->Optics = copt;
+			element->Comment = "Cavity Front West";
+
+
 			break;
 		}
 		case Receiver::REC_GEOM_TYPE::PLANE_ELLIPSE:
@@ -1241,7 +1800,8 @@ bool ST_System::CreateSTSystem(SolarField &SF, Hvector &helios, Vect &sunvect){
     int maxrays = V->flux.max_rays.val;
     int seed = V->flux.seed.val;
     sim_errors_sunshape = V->flux.is_sunshape_err.val && ( V->amb.sun_type.mapval() != var_ambient::SUN_TYPE::POINT_SUN );
-	sim_errors_optical = V->flux.is_optical_err.val; 
+	sim_errors_optical = V->flux.is_optical_err.val;
+	sim_dynamic_group = V->flux.is_dynamic_group.val;
 	
 	sim_raycount = minrays;
 	sim_raymax = maxrays;
@@ -1284,16 +1844,16 @@ void ST_System::LoadIntoContext(ST_System *System, st_context_t spcxt){
 		ST_OpticalProperties *f = &System->OpticsList[nopt]->Front;
 		st_optic(spcxt, idx, 1, f->DistributionType,
 			f->OpticSurfNumber, f->ApertureStopOrGratingType, f->DiffractionOrder,
-			0., 0.,
+			f->RefractiveIndex[0], f->RefractiveIndex[1],
 			f->Reflectivity, f->Transmissivity,
-			f->Grating, f->RMSSlopeError, f->RMSSpecError, 0, 0, NULL, NULL );
+			f->Grating, f->RMSSlopeError, f->RMSSpecError, 0, 0, NULL, NULL, 0, 0, NULL, NULL );
 
 		f = &System->OpticsList[nopt]->Back;
 		st_optic(spcxt, idx, 2, f->DistributionType,
 			f->OpticSurfNumber, f->ApertureStopOrGratingType, f->DiffractionOrder,
-			0., 0.,
+			f->RefractiveIndex[0], f->RefractiveIndex[1],
 			f->Reflectivity, f->Transmissivity,
-			f->Grating, f->RMSSlopeError, f->RMSSpecError, 0, 0, NULL, NULL );
+			f->Grating, f->RMSSlopeError, f->RMSSpecError, 0, 0, NULL, NULL, 0, 0, NULL, NULL );
 	}
 
 	//Add all of the elements and stages

@@ -44,6 +44,7 @@ class Reflector;
 class SolarField;
 class Receiver;
 class Ambient;
+struct sim_params;
 
 class Heliostat : public mod_base
  {
@@ -72,9 +73,7 @@ class Heliostat : public mod_base
 		_mu_G,		//Moments of the error distribution
 		_mu_M,		//Moments of the mirror shape
 		_mu_F,		//Flux moments distrubution - result
-		_hcoef,		//Hermite coefficients
-		_hc_tht; 		//Hermite coefs depending on tower height - equiv. to mu_F, reused in optimization calcs
-
+		_hcoef;		//Hermite coefficients
 	bool
 		_in_layout, // Is the heliostat included in the final layout?
 		_is_user_canted,	//Are the panels canted according to user-specified values?
@@ -114,6 +113,7 @@ public:
 	void installPanels();	//Define the cant panel locations, pointing vectors, and shape
 	void updateTrackVector(Vect &sunvect);	//Update the tracking vector for the heliostat
 	double calcTotalEfficiency();
+	void calcPowerEnergy(sim_params &P);
     static void calcAndSetAimPointFluxPlane(sp_point &aimpos_abs, Receiver &Rec, Heliostat &H);
 	void resetMetrics();
 	void CopyImageData(const Heliostat *Hsrc);

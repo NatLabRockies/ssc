@@ -78,8 +78,8 @@ static var_info _cm_vtab_snowmodel[] =
 	//{ SSC_OUTPUT,       SSC_ARRAY,      "snow_loss",				"PV loss due to snow",		"",					"",                 "PV Snow Model", "*",           "",			"" },
 	//{ SSC_OUTPUT,       SSC_ARRAY,      "snow_fall_flag",			"Snow Fall Flag",			"",					"",                 "PV Snow Model", "*",           "",			"" },
 	{ SSC_OUTPUT,       SSC_ARRAY,      "hourly_gen",			"Hourly Energy",			"kwh",				"",                 "Time Series",		"*",           "",			"" },
-	{ SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy",			"Monthly Energy",			"kwh",				"",                 "Monthly",			"*",           "",			"" },
-	{ SSC_OUTPUT,       SSC_NUMBER,     "annual_energy",			"Annual Energy",			"kwh",				"",                 "Annual",			"*",           "",								"" },
+	{ SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy",			"Monthly AC energy in Year 1",			"kwh",				"",                 "Monthly",			"*",           "",			"" },
+	{ SSC_OUTPUT,       SSC_NUMBER,     "annual_energy",			"Annual AC energy in Year 1",			"kwh",				"",                 "Annual",			"*",           "",								"" },
 	//{ SSC_OUTPUT,       SSC_ARRAY,      "smout",			"Hourly Energy",			"kwh",				"",                 "Time Series",		"*",           "",			"" },
 
 

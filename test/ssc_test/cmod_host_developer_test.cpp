@@ -148,7 +148,7 @@ TEST_F(CmodHostDeveloperTest, PVBattery) {
 }
 
 
-TEST_F(CmodHostDeveloperTest, Generic) {
+TEST_F(CmodHostDeveloperTest, CustomGeneration) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/host_developer/2023.10.27_om-expense-cash-flow_Generic_System_Host_Developer_cmod_host_developer.json";
     std::string file_outputs = SSCDIR;
@@ -160,7 +160,7 @@ TEST_F(CmodHostDeveloperTest, Generic) {
 }
 
 
-TEST_F(CmodHostDeveloperTest, GenericBattery) {
+TEST_F(CmodHostDeveloperTest, CustomGenerationBattery) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/host_developer/2023.10.27_om-expense-cash-flow_Generic_Battery_Host_Developer_cmod_host_developer.json";
     std::string file_outputs = SSCDIR;

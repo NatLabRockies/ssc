@@ -2872,7 +2872,8 @@ bool C_CO2_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_d
 	solver_code = -1;
 	i_W_par = -1;
 
-	while (solver_code != 0 || std::abs(T_hot_in_calc_2 - T_hot_in_calc) / T_hot_in_calc < 0.01)
+    while (solver_code != 0 || std::abs(T_hot_in_calc_2 - T_hot_in_calc) / T_hot_in_calc < 0.01
+        || ms_des_par_cycle_dep.m_T_hot_in_des - T_hot_in_calc_2 > 100.0)
 	{
 		i_W_par++;
 

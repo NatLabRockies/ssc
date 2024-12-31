@@ -870,7 +870,17 @@ double C_turbine::calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*
 	case C_turbine::E_CARLSON_17:
 		return 7.79*1.E-3*std::pow(W_dot, 0.6842);		//[M$] needs power in kWe
     case C_turbine::E_WEILAND_19__AXIAL:
-        return 182600*std::pow(W_dot*1.E-3, 0.5561)*1.E-6;  //[M$] needs power in MWe
+    {
+        double base_cost = 182600 * std::pow(W_dot * 1.E-3, 0.5561);  // [$] needs power in MWe
+
+        double cost_mult = 1.0;
+        double T_in_C = T_in - 273.15;  //[C]
+        if (T_in_C >= 550) {
+            cost_mult = 1.0 + ((1.106e-4) * std::pow(T_in_C - 550, 2.0));
+        }
+
+        return base_cost * cost_mult * 1e-6;  //[M$]
+    }
 	default:
 		return std::numeric_limits<double>::quiet_NaN();
 	}

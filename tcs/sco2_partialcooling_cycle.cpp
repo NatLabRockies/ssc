@@ -214,6 +214,14 @@ int C_PartialCooling_Cycle::design_core()
 		if (comp_error_code != 0)
 			return comp_error_code;
 	}
+    else
+    {
+        // No recompressor, so set all RC_OUT equal to PC_OUT
+        m_temp_last[RC_OUT] = m_temp_last[PC_OUT];
+        m_dens_last[RC_OUT] = m_dens_last[PC_OUT];
+        m_enth_last[RC_OUT] = m_enth_last[PC_OUT];
+        m_entr_last[RC_OUT] = m_entr_last[PC_OUT];
+    }
 
 	double w_t = std::numeric_limits<double>::quiet_NaN();
 	calculate_turbomachinery_outlet_1(m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], eta_t_isen, false,
@@ -1068,7 +1076,7 @@ int C_PartialCooling_Cycle::auto_opt_design_core()
 	
 
     // Is recompression fraction fixed or optimized?
-    if (ms_auto_opt_des_par.m_is_recomp_ok < 0.0)
+    if (ms_auto_opt_des_par.m_is_recomp_ok <= 0.0)
     {
         ms_opt_des_par.m_recomp_frac_guess = std::abs(ms_auto_opt_des_par.m_is_recomp_ok);  //[-]
         ms_opt_des_par.m_fixed_recomp_frac = true;  

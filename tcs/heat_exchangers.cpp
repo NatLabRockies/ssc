@@ -1792,7 +1792,14 @@ double /*M$*/ C_HX_counterflow_CRM::calculate_equipment_cost(double UA /*kWt/K*/
     case C_HX_counterflow_CRM::E_CARLSON_17_RECUP:
         return 1.25*1.E-3*UA;		//[M$] needs UA in kWt/K
     case C_HX_counterflow_CRM::E_WEILAND_19_RECUP:
-        return 49.45*std::pow(UA*1.E3, 0.7544)*1.E-6;  //[M$] needs UA in Wt/K
+        double C_recup = 49.45 * std::pow(UA * 1.E3, 0.7544) * 1.E-6; //[M$] needs UA in Wt/K
+        double T_factor = 1;
+        double T_max_C = std::max(T_hot_in, T_cold_in) - 273.15;
+        if (T_max_C >= 550)
+        {
+            T_factor = 1.0 + 0.02141 * (T_hot_in - 550);
+        }
+        return C_recup * T_factor;  //[M$]
     case C_HX_counterflow_CRM::E_CARLSON_17_PHX:
         return 3.5*1.E-3*UA;		//[M$] needs UA in kWt/K
     default:

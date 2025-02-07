@@ -112,6 +112,7 @@ public:
         int m_mc_comp_model_code;                   // Main compressor model code
         int m_rc_comp_model_code;                   // Recompressor model code
         int m_N_turbine;                            //[rpm] Turbine rpm
+        double m_f_inflation;                       //[] Inflation factor
 
         S_sco2_htrbp_in()
         {
@@ -138,6 +139,7 @@ public:
                 m_elevation =
                 m_dT_BP =
                 m_HTF_PHX_cold_approach_input =
+                m_f_inflation = 
                 std::numeric_limits<double>::quiet_NaN();
 
             m_N_nodes_pass = 0;
@@ -394,7 +396,8 @@ public:
         double eta_t, double N_turbine,
         double frac_fan_power, double eta_fan, double deltaP_cooler_frac,
         int N_nodes_pass,
-        double T_amb_des, double elevation) :
+        double T_amb_des, double elevation,
+        double f_inflation) :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -408,7 +411,8 @@ public:
             eta_t, N_turbine,
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
-            T_amb_des, elevation)
+            T_amb_des, elevation,
+            f_inflation)
     {
         m_T_target = m_T_HTF_PHX_inlet = m_set_HTF_mdot
             = m_HTF_PHX_cold_approach = m_dT_BP

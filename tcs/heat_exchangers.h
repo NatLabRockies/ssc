@@ -478,6 +478,7 @@ public:
 
     int m_cost_model;		//[-]
     int m_od_solution_type; //[-]
+    double m_f_inflation = 1.0; //[-]
 
     bool m_is_single_node_des_set;
     NS_HX_counterflow_eqs::S_hx_node_info ms_node_info_des;
@@ -663,7 +664,8 @@ public:
 
     double calculate_equipment_cost(double UA /*kWt/K*/,
         double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/,
-        double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/);
+        double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/,
+        double f_inflation /**/);
 
     double calculate_bare_erected_cost(double cost_equipment /*M$*/);
 
@@ -751,9 +753,10 @@ public:
 	void design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc_UA_par &des_par, 
 		double q_dot_design /*kWt*/, double dt_cold_approach /*C/K*/, C_HX_counterflow_CRM::S_des_solved &des_solved);
 
-	virtual void initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+	virtual void initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                            double f_inflation);
 
-	virtual void initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+	virtual void initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type, double f_inflation);
 	
 };
 
@@ -774,7 +777,8 @@ public:
 
     }
 
-    virtual void initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+    virtual void initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                            double f_inflation);
 };
 
 namespace N_compact_hx
@@ -820,10 +824,12 @@ public:
 
         double m_eta_fan;       //[-] Fan isentropic efficiency
         int m_N_nodes_pass;     //[-] Number of nodes per pass
+        double m_f_inflation;   //[] Inflation factor
 
 		S_des_par_ind()
 		{
-			m_T_amb_des = m_elev = std::numeric_limits<double>::quiet_NaN();
+			m_T_amb_des = m_elev = m_f_inflation = 
+                std::numeric_limits<double>::quiet_NaN();
 
             // Set realistic default values so model can solve without inputs for these values
             m_eta_fan = 0.5;
@@ -1327,7 +1333,8 @@ public:
 		double & k_air /*W/m-K*/, double & Pr_air);
 
 	double /*M$*/ calculate_equipment_cost(double UA /*kWt/K*/, double V_material /*m^3*/,
-		double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/);
+		double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/,
+        double f_inflation /**/);
 
     double /*M$*/ calculate_bare_erected_cost(double cost_equipment /*M$*/);
 };

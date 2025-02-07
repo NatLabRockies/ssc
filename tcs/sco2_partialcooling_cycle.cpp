@@ -63,8 +63,8 @@ int C_PartialCooling_Cycle::design_core()
 	}
 
 	// Initialize Recuperators
-    mc_LTR.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type); 
-	mc_HTR.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type);
+    mc_LTR.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_f_inflation); 
+	mc_HTR.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_f_inflation);
 
 	// Initialize known temps and pressures from design parameters
 	m_temp_last[MC_IN] = m_T_mc_in;	                //[K]
@@ -533,7 +533,8 @@ int C_PartialCooling_Cycle::finalize_design()
 										m_pres_last[MC_IN],
 										m_m_dot_mc,
 										m_temp_last[MC_OUT],
-										m_pres_last[MC_OUT], ms_des_par.m_des_tol);
+										m_pres_last[MC_OUT], ms_des_par.m_des_tol,
+                                        m_f_inflation);
 
 	if (mc_des_err != 0)
 	{
@@ -544,7 +545,8 @@ int C_PartialCooling_Cycle::finalize_design()
 										m_pres_last[PC_IN],
 										m_m_dot_pc,
 										m_temp_last[PC_OUT],
-										m_pres_last[PC_OUT], ms_des_par.m_des_tol);
+										m_pres_last[PC_OUT], ms_des_par.m_des_tol,
+                                        m_f_inflation);
 
 	if (pc_des_err != 0)
 	{
@@ -557,7 +559,8 @@ int C_PartialCooling_Cycle::finalize_design()
 										m_pres_last[PC_OUT],
 										m_m_dot_rc,
 										m_temp_last[RC_OUT],
-										m_pres_last[RC_OUT], ms_des_par.m_des_tol);
+										m_pres_last[RC_OUT], ms_des_par.m_des_tol,
+                                        m_f_inflation);
 
 		if (rc_des_err != 0)
 		{
@@ -584,6 +587,7 @@ int C_PartialCooling_Cycle::finalize_design()
 	t_des_par.m_h_out = m_enth_last[TURB_OUT];	//[kJ/kg]
 		// Mass flow
 	t_des_par.m_m_dot = m_m_dot_t;		//[kg/s]
+    t_des_par.m_f_inflation = m_f_inflation;
 
 	int turb_size_err = 0;
 	mc_t.turbine_sizing(t_des_par, turb_size_err);
@@ -621,6 +625,7 @@ int C_PartialCooling_Cycle::finalize_design()
 	s_LP_air_cooler_des_par_ind.m_elev = m_elevation;			//[m]
     s_LP_air_cooler_des_par_ind.m_eta_fan = m_eta_fan;           //[-]
     s_LP_air_cooler_des_par_ind.m_N_nodes_pass = m_N_nodes_pass; //[-]
+    s_LP_air_cooler_des_par_ind.m_f_inflation = m_f_inflation;  //[]
 
 	if (ms_des_par.m_is_des_air_cooler && std::isfinite(m_deltaP_cooler_frac) && std::isfinite(m_frac_fan_power)
 		&& std::isfinite(m_T_amb_des) && std::isfinite(m_elevation) && std::isfinite(m_eta_fan) && m_N_nodes_pass > 0)
@@ -659,6 +664,7 @@ int C_PartialCooling_Cycle::finalize_design()
 	s_IP_air_cooler_des_par_ind.m_elev = m_elevation;			//[m]
     s_IP_air_cooler_des_par_ind.m_eta_fan = m_eta_fan;           //[-]
     s_IP_air_cooler_des_par_ind.m_N_nodes_pass = m_N_nodes_pass; //[-]
+    s_IP_air_cooler_des_par_ind.m_f_inflation = m_f_inflation;  //[]
 
 	if (ms_des_par.m_is_des_air_cooler && std::isfinite(m_deltaP_cooler_frac) && std::isfinite(m_frac_fan_power)
 		&& std::isfinite(m_T_amb_des) && std::isfinite(m_elevation) && std::isfinite(m_eta_fan) && m_N_nodes_pass > 0)

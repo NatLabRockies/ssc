@@ -1168,6 +1168,8 @@ var_info vtab_sco2_design[] = {
     { SSC_INPUT,  SSC_NUMBER,  "is_turbine_split_ok",  "1 = Yes, 0 = No Second Turbine, < 0 = fix split_frac to abs(input)","",  "",    "",      "?=1",   "",       "" },
     { SSC_INPUT,  SSC_NUMBER,  "eta_isen_t2",          "Design secondary turbine isentropic efficiency (TSF only)",    "-",  "",    "",        "cycle_config=4",     "",       "" },
 
+    // Cost Inputs
+    { SSC_INPUT,  SSC_NUMBER,  "f_inflation",          "Inflation factor",                                      "",           "",   "System Design",      "?=1",        "",       "" },
 
 
     // DEBUG
@@ -1651,6 +1653,9 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
     {
         s_sco2_des_par.m_eta_t2 = s_sco2_des_par.m_eta_t;
     }
+
+    // Inflation factor
+    s_sco2_des_par.m_f_inflation = cm->as_double("f_inflation");    //[-]
 
 	// For try/catch below
 	int out_type = -1;

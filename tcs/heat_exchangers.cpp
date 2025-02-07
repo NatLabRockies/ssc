@@ -1785,12 +1785,13 @@ double C_HX_counterflow_CRM::calc_max_q_dot_enth(double h_h_in /*kJ/kg*/, double
 
 double /*M$*/ C_HX_counterflow_CRM::calculate_equipment_cost(double UA /*kWt/K*/,
     double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/,
-    double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/)
+    double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/,
+    double f_inflation /**/)
 {
     switch (m_cost_model)
     {
     case C_HX_counterflow_CRM::E_CARLSON_17_RECUP:
-        return 1.25*1.E-3*UA;		//[M$] needs UA in kWt/K
+        return 1.25*1.E-3*UA*f_inflation;		//[M$] needs UA in kWt/K
     case C_HX_counterflow_CRM::E_WEILAND_19_RECUP:
     {
         double C_recup = 49.45 * std::pow(UA * 1.E3, 0.7544) * 1.E-6; //[M$] needs UA in Wt/K
@@ -1800,10 +1801,10 @@ double /*M$*/ C_HX_counterflow_CRM::calculate_equipment_cost(double UA /*kWt/K*/
         {
             T_factor = 1.0 + 0.02141 * (T_max_C - 550);
         }
-        return C_recup * T_factor;  //[M$]
+        return C_recup * T_factor * f_inflation;  //[M$]
     }
     case C_HX_counterflow_CRM::E_CARLSON_17_PHX:
-        return 3.5*1.E-3*UA;		//[M$] needs UA in kWt/K
+        return 3.5*1.E-3*UA*f_inflation;		//[M$] needs UA in kWt/K
     default:
         return std::numeric_limits<double>::quiet_NaN();
     }
@@ -1869,7 +1870,8 @@ void C_HX_counterflow_CRM::design_calc_UA(C_HX_counterflow_CRM::S_des_calc_UA_pa
 
 	ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_UA_design,
 		ms_des_calc_UA_par.m_T_h_in, ms_des_calc_UA_par.m_P_h_in, ms_des_calc_UA_par.m_m_dot_hot_des,
-		ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_m_dot_cold_des);
+		ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_m_dot_cold_des,
+        m_f_inflation);
 
     ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);
 
@@ -1946,7 +1948,8 @@ void C_HX_counterflow_CRM::design_for_target__calc_outlet(int hx_target_code /*-
 
     ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_UA_design,
         T_h_in, P_h_in, m_dot_h,
-        T_c_in, P_c_in, m_dot_c);
+        T_c_in, P_c_in, m_dot_c,
+        m_f_inflation);
 
     ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);
 }
@@ -2560,7 +2563,8 @@ double NS_HX_counterflow_eqs::UA_scale_vs_m_dot(double m_dot_cold_over_des /*-*/
     return pow(m_dot_ratio, 0.8);
 }
 
-void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                                     double f_inflation)
 {
     // Set design parameters member structure
     ms_init_par.m_N_sub_hx = N_sub_hx;
@@ -2569,9 +2573,11 @@ void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_t
     m_is_HX_initialized = true;
 
     m_od_UA_target_type = od_UA_target_type;
+    m_f_inflation = f_inflation;
 }
 
-void C_HX_co2_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+void C_HX_co2_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                                 double f_inflation)
 {
 	// Hard-code some of the design parameters
     ms_init_par.m_N_sub_hx = N_sub_hx;  //[-]
@@ -2617,13 +2623,16 @@ void C_HX_co2_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props
 	// Class is initialized
 	m_is_HX_initialized = true;
 
+    m_f_inflation = f_inflation;
+
 }
 
-void C_HX_co2_to_htf::initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+void C_HX_co2_to_htf::initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                                 double f_inflation)
 {
 	util::matrix_t<double> null_fluid_props;
 
-	initialize(hot_fl, null_fluid_props, N_sub_hx, od_UA_target_type);
+	initialize(hot_fl, null_fluid_props, N_sub_hx, od_UA_target_type, f_inflation);
 }
 
 void C_HX_co2_to_htf::design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc_UA_par& des_par,
@@ -2965,7 +2974,7 @@ bool C_CO2_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_d
 	ms_hx_des_sol.m_W_dot_fan = ms_des_par_cycle_dep.m_W_dot_fan_des;	//[MWe]
 
 	ms_hx_des_sol.m_cost_equipment = calculate_equipment_cost(ms_hx_des_sol.m_UA_total*1.E-3, ms_hx_des_sol.m_V_total,
-		ms_hx_des_sol.m_T_in_co2, ms_hx_des_sol.m_P_in_co2, ms_hx_des_sol.m_m_dot_co2);		//[M$]
+		ms_hx_des_sol.m_T_in_co2, ms_hx_des_sol.m_P_in_co2, ms_hx_des_sol.m_m_dot_co2, des_par_ind.m_f_inflation);		//[M$]
 
     ms_hx_des_sol.m_cost_bare_erected = calculate_bare_erected_cost(ms_hx_des_sol.m_cost_equipment);
 
@@ -3552,14 +3561,14 @@ int C_CO2_to_air_cooler::C_MEQ_target_T_hot__width_parallel::operator()(double W
 }
 
 double /*M$*/ C_CO2_to_air_cooler::calculate_equipment_cost(double UA /*kWt/K*/, double V_material /*m^3*/,
-	double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/)
+	double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/, double f_inflation/**/)
 {
 	switch (m_cost_model)
 	{
 	case C_CO2_to_air_cooler::E_CARLSON_17:
-		return 2.3*1.E-3*UA;		//[M$] needs UA in kWt/K
+		return 2.3*1.E-3*UA*f_inflation;		//[M$] needs UA in kWt/K
     case C_CO2_to_air_cooler::E_WEILAND_19:
-        return 32.88*std::pow(UA*1.E3, 0.75)*1.E-6; //[M$] needs UA in Wt/K
+        return 32.88*std::pow(UA*1.E3, 0.75)*1.E-6*f_inflation; //[M$] needs UA in Wt/K
 	default:
 		return std::numeric_limits<double>::quiet_NaN();
 	}

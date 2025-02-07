@@ -61,9 +61,9 @@ int C_sco2_tsf_core::solve()
     // Initialize Recuperators
     {
         // LTR
-        m_outputs.mc_LT_recup.initialize(m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type);
+        m_outputs.mc_LT_recup.initialize(m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type, m_inputs.m_f_inflation);
         // HTR
-        m_outputs.mc_HT_recup.initialize(m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type);
+        m_outputs.mc_HT_recup.initialize(m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type, m_inputs.m_f_inflation);
     }
 
     // Initialize a few variables
@@ -388,7 +388,8 @@ int C_sco2_tsf_core::finalize_design(C_sco2_cycle_core::S_design_solved& design_
             m_outputs.m_m_dot_mc,
             m_outputs.m_temp[C_sco2_cycle_core::MC_OUT],
             m_outputs.m_pres[C_sco2_cycle_core::MC_OUT],
-            m_inputs.m_des_tol);
+            m_inputs.m_des_tol,
+            m_inputs.m_f_inflation);
 
         if (mc_design_err != 0)
         {
@@ -414,6 +415,8 @@ int C_sco2_tsf_core::finalize_design(C_sco2_cycle_core::S_design_solved& design_
         t_des_par.m_h_out = m_outputs.m_enth[C_sco2_cycle_core::TURB_OUT];
         // Mass flow
         t_des_par.m_m_dot = m_outputs.m_m_dot_t;
+        // Inflation factor
+        t_des_par.m_f_inflation = m_inputs.m_f_inflation;
 
         int turb_size_error_code = 0;
         m_outputs.m_t.turbine_sizing(t_des_par, turb_size_error_code);
@@ -442,6 +445,8 @@ int C_sco2_tsf_core::finalize_design(C_sco2_cycle_core::S_design_solved& design_
         t2_des_par.m_h_out = m_outputs.m_enth[C_sco2_cycle_core::TURB2_OUT];
         // Mass flow
         t2_des_par.m_m_dot = m_outputs.m_m_dot_t2;
+        // Inflation factor
+        t2_des_par.m_f_inflation = m_inputs.m_f_inflation;
 
         int turb_size_error_code = 0;
         m_outputs.m_t2.turbine_sizing(t2_des_par, turb_size_error_code);
@@ -477,7 +482,8 @@ int C_sco2_tsf_core::finalize_design(C_sco2_cycle_core::S_design_solved& design_
         s_air_cooler_des_par_ind.m_elev = m_inputs.m_elevation;              // [m]
         s_air_cooler_des_par_ind.m_eta_fan = m_inputs.m_eta_fan;             // [-]
         s_air_cooler_des_par_ind.m_N_nodes_pass = m_inputs.m_N_nodes_pass;   // [-]
-        
+        s_air_cooler_des_par_ind.m_f_inflation = m_inputs.m_f_inflation;     // [-]
+
         if (m_inputs.m_is_des_air_cooler && std::isfinite(m_inputs.m_deltaP_cooler_frac) && std::isfinite(m_inputs.m_frac_fan_power)
             && std::isfinite(m_inputs.m_T_amb_des) && std::isfinite(m_inputs.m_elevation) && std::isfinite(m_inputs.m_eta_fan) && m_inputs.m_N_nodes_pass > 0)
         {
@@ -777,7 +783,7 @@ int C_TurbineSplitFlow_Cycle::optimize_par(const S_auto_opt_design_parameters& a
         core_inputs.m_N_nodes_pass = m_N_nodes_pass;                // Comes from constructor (constant)
         core_inputs.m_mc_comp_model_code = m_mc_comp_model_code;    // Comes from constructor (constant)
         core_inputs.m_N_turbine = m_N_turbine;                      // Comes from constructor (constant)
-
+        core_inputs.m_f_inflation = m_f_inflation;                  // Comes from constructor (constant)
 
         // Handle design variables (check if fixed or free)
         {

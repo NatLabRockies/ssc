@@ -164,11 +164,13 @@ public:
 		// Mass flow rate
 		double m_m_dot;						//[kg/s] (cycle, not basis)
 
+        double m_f_inflation;               //[] Inflation factor
+
 		S_design_parameters()
 		{
 			m_N_design = m_N_comp_design_if_linked =
 				m_P_in = m_T_in = m_D_in = m_h_in = m_s_in = m_P_out = m_h_out =
-				m_m_dot = std::numeric_limits<double>::quiet_NaN();
+				m_m_dot = m_f_inflation = std::numeric_limits<double>::quiet_NaN();
 		}
 	};
 
@@ -248,7 +250,7 @@ public:
 	}
 
 	double calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/);
+		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double f_inflation /**/);
 
     double /*M$*/ calculate_bare_erected_cost(double cost_equipment /*M$*/);
 
@@ -661,12 +663,13 @@ public:
 	};
 
 	double calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/);
+		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/,
+        double f_inflation /**/);
 
     double calculate_bare_erected_cost(double cost_equipment /*M$*/);
 
 	int design_given_outlet_state(int comp_model_code, double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-		double T_out /*K*/, double P_out /*K*/, double tol /*-*/);
+		double T_out /*K*/, double P_out /*K*/, double tol /*-*/, double f_inflation /**/);
 
 	void off_design_given_N(double T_in /*K*/, double P_in /*kPa*/, double m_dot_cycle /*kg/s*/, double N_rpm /*rpm*/,
 		int & error_code, double & T_out /*K*/, double & P_out /*kPa*/);

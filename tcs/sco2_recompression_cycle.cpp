@@ -1851,9 +1851,9 @@ void C_RecompCycle::design_core_standard(int & error_code)
 
 	// Initialize Recuperators
 		// LTR
-    mc_LT_recup.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_f_inflation);
+    mc_LT_recup.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_yr_inflation);
 		// HTR
-	mc_HT_recup.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_f_inflation);
+	mc_HT_recup.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_yr_inflation);
 
 	// Initialize a few variables
 	double m_dot_t, m_dot_mc, m_dot_rc, Q_dot_LT, Q_dot_HT, UA_LT_calc, UA_HT_calc;
@@ -3351,7 +3351,7 @@ void C_RecompCycle::finalize_design(int & error_code)
 									m_temp_last[MC_OUT],
 									m_pres_last[MC_OUT],
                                     ms_des_par.m_des_tol,
-                                    m_f_inflation);
+                                    m_yr_inflation);
 
 	if (mc_design_err != 0)
 	{
@@ -3366,7 +3366,7 @@ void C_RecompCycle::finalize_design(int & error_code)
 										m_m_dot_rc,
 										m_temp_last[RC_OUT],
 										m_pres_last[RC_OUT], ms_des_par.m_des_tol,
-                                        m_f_inflation);
+                                        m_yr_inflation);
 		
 		if (rc_des_err != 0)
 		{
@@ -3395,8 +3395,8 @@ void C_RecompCycle::finalize_design(int & error_code)
 	t_des_par.m_h_out = m_enth_last[7-cpp_offset];
 		// Mass flow
 	t_des_par.m_m_dot = m_m_dot_t;
-        // Inflation factor
-    t_des_par.m_f_inflation = m_f_inflation;
+        // Inflation target year
+    t_des_par.m_yr_inflation = m_yr_inflation;  //[yr]
 
 	int turb_size_error_code = 0;
 	m_t.turbine_sizing(t_des_par, turb_size_error_code);
@@ -3430,7 +3430,7 @@ void C_RecompCycle::finalize_design(int & error_code)
 	s_air_cooler_des_par_ind.m_elev = m_elevation;			//[m]
     s_air_cooler_des_par_ind.m_eta_fan = m_eta_fan;          //[-]
     s_air_cooler_des_par_ind.m_N_nodes_pass = m_N_nodes_pass;    //[-]
-    s_air_cooler_des_par_ind.m_f_inflation = m_f_inflation; //[]
+    s_air_cooler_des_par_ind.m_yr_inflation = m_yr_inflation; //[yr]
 
 	if (ms_des_par.m_is_des_air_cooler && std::isfinite(m_deltaP_cooler_frac) && std::isfinite(m_frac_fan_power)
 		&& std::isfinite(m_T_amb_des) && std::isfinite(m_elevation) && std::isfinite(m_eta_fan) && m_N_nodes_pass > 0)

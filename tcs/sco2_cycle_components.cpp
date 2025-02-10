@@ -828,6 +828,20 @@ int Ph_dome(double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vec
 	return Ts_full_dome(T_P_target_solved - 273.15, T_data, s_data, P_data, h_data);
 }
 
+double calculate_inflation_factor(double yr_base, double yr_target)
+{
+    if (yr_base == 0 || yr_target == 0)
+        return 1.0;
+
+    std::vector<double> yr_vec = std::vector<double>(yr_base, yr_target);
+
+    if (yr_vec == std::vector<double>(2017, 2024)) {
+        return 1.407577;
+    }
+
+    return std::numeric_limits<double>::quiet_NaN();
+}
+
 int C_MEQ_CO2_props_at_2phase_P::operator()(double T_co2 /*K*/, double *P_calc /*kPa*/)
 {
 	int prop_err_code = CO2_TQ(T_co2, 0.0, &mc_co2_props);
@@ -863,12 +877,16 @@ void C_HeatExchanger::hxr_conductance(const std::vector<double> & m_dots, double
 }
 
 double C_turbine::calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double f_inflation/**/)
+	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double yr_inflation/*yr*/)
 {
 	switch (m_cost_model)
 	{
 	case C_turbine::E_CARLSON_17:
-		return 7.79*1.E-3*std::pow(W_dot, 0.6842)*f_inflation;		//[M$] needs power in kWe
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 7.79 * 1.E-3 * std::pow(W_dot, 0.6842) * f_inflation;		//[M$] needs power in kWe
+    }
     case C_turbine::E_WEILAND_19__AXIAL:
     {
         double base_cost = 182600 * std::pow(W_dot * 1.E-3, 0.5561);  // [$] needs power in MWe
@@ -878,7 +896,8 @@ double C_turbine::calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*
         if (T_in_C >= 550) {
             cost_mult = 1.0 + ((1.106e-4) * std::pow(T_in_C - 550, 2.0));
         }
-
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
         return base_cost * cost_mult * 1e-6 * f_inflation;  //[M$]
     }
 	default:
@@ -964,7 +983,7 @@ void C_turbine::turbine_sizing(const S_design_parameters & des_par_in, int & err
 	ms_des_solved.m_W_dot = ms_des_par.m_m_dot*(ms_des_par.m_h_in - ms_des_par.m_h_out);
 
 	ms_des_solved.m_equipment_cost = calculate_equipment_cost(ms_des_par.m_T_in, ms_des_par.m_P_in, ms_des_par.m_m_dot,
-							T_out, ms_des_par.m_P_out, ms_des_solved.m_W_dot, ms_des_par.m_f_inflation);
+							T_out, ms_des_par.m_P_out, ms_des_solved.m_W_dot, ms_des_par.m_yr_inflation);
 
     ms_des_solved.m_bare_erected_cost = calculate_bare_erected_cost(ms_des_solved.m_equipment_cost);
 }
@@ -1561,14 +1580,22 @@ int C_comp_multi_stage::C_MEQ_N_rpm__P_out::operator()(double N_rpm /*rpm*/, dou
 }
 
 double C_comp_multi_stage::calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double f_inflation /**/)
+	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double yr_inflation /*yr*/)
 {
 	switch (m_cost_model)
 	{
 	case C_comp_multi_stage::E_CARLSON_17:
-		return 6.898*1.E-3*std::pow(W_dot, 0.7865)*f_inflation;		//[M$] needs power in kWe
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 6.898 * 1.E-3 * std::pow(W_dot, 0.7865) * f_inflation;		//[M$] needs power in kWe
+    }
     case C_comp_multi_stage::E_WEILAND_19__IG:
-        return 1.23*std::pow(W_dot*1.E-3, 0.3992)*f_inflation;      //[M$] needs power in MWe
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 1.23 * std::pow(W_dot * 1.E-3, 0.3992) * f_inflation;      //[M$] needs power in MWe
+    } 
 	default:
 		return std::numeric_limits<double>::quiet_NaN();
 	}
@@ -1584,7 +1611,7 @@ double C_comp_multi_stage::calculate_bare_erected_cost(double cost_equipment /*M
 }
 
 int C_comp_multi_stage::design_given_outlet_state(int comp_model_code, double T_in /*K*/, double P_in /*kPa*/, double m_dot_cycle /*kg/s*/,
-	double T_out /*K*/, double P_out /*K*/, double tol /*-*/, double f_inflation /**/)
+	double T_out /*K*/, double P_out /*K*/, double tol /*-*/, double yr_inflation /*yr*/)
 {
     m_compressor_model = comp_model_code;   //[-]
 
@@ -1722,7 +1749,7 @@ int C_comp_multi_stage::design_given_outlet_state(int comp_model_code, double T_
 	}
 
 	ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_T_in, ms_des_solved.m_P_in, ms_des_solved.m_m_dot,
-							ms_des_solved.m_T_out, ms_des_solved.m_P_out, ms_des_solved.m_W_dot, f_inflation);
+							ms_des_solved.m_T_out, ms_des_solved.m_P_out, ms_des_solved.m_W_dot, yr_inflation);
 
     ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);    //[M$]
 

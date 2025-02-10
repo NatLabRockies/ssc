@@ -475,7 +475,7 @@ protected:
     double m_T_amb_des;		    //[K] Design point ambient temperature
     double m_elevation;			//[m] Elevation (used to calculate ambient pressure)
     int m_N_nodes_pass;         //[-] Number of nodes per pass
-    double m_f_inflation;       //[] Inflation factor
+    double m_yr_inflation;      //[yr] Inflation target year
 
 public:
 
@@ -493,7 +493,7 @@ public:
         double frac_fan_power /*-*/, double eta_fan /*-*/, double deltaP_cooler_frac /*-*/,
         int N_nodes_pass /*-*/,
         double T_amb_des /*K*/, double elevation /*m*/,
-        double f_inflation /**/)
+        double yr_inflation /*yr*/)
 	{
         m_turbo_gen_motor_config = turbo_gen_motor_config;
         m_eta_generator = eta_generator;    //[-]
@@ -526,7 +526,7 @@ public:
         m_T_amb_des = T_amb_des;                    //[K]
         m_elevation = elevation;                    //[m]
 
-        m_f_inflation = f_inflation;                //[]
+        m_yr_inflation = yr_inflation;                //[]
 
         // Set design limits!!!!
 		ms_des_limits.m_UA_net_power_ratio_max = 2.0;		//[-/K]

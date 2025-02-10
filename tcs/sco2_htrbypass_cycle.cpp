@@ -61,9 +61,9 @@ int C_sco2_htrbp_core::solve()
     // Initialize Recuperators
     {
         // LTR
-        m_outputs.mc_LT_recup.initialize(m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type, m_inputs.m_f_inflation);
+        m_outputs.mc_LT_recup.initialize(m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type, m_inputs.m_yr_inflation);
         // HTR
-        m_outputs.mc_HT_recup.initialize(m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type, m_inputs.m_f_inflation);
+        m_outputs.mc_HT_recup.initialize(m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type, m_inputs.m_yr_inflation);
     }
 
     // Initialize a few variables
@@ -490,7 +490,7 @@ int C_sco2_htrbp_core::finalize_design(C_sco2_cycle_core::S_design_solved& desig
             m_outputs.m_temp[C_sco2_cycle_core::MC_OUT],
             m_outputs.m_pres[C_sco2_cycle_core::MC_OUT],
             m_inputs.m_des_tol,
-            m_inputs.m_f_inflation);
+            m_inputs.m_yr_inflation);
 
         if (mc_design_err != 0)
         {
@@ -508,7 +508,7 @@ int C_sco2_htrbp_core::finalize_design(C_sco2_cycle_core::S_design_solved& desig
             m_outputs.m_temp[C_sco2_cycle_core::RC_OUT],
             m_outputs.m_pres[C_sco2_cycle_core::RC_OUT],
             m_inputs.m_des_tol,
-            m_inputs.m_f_inflation);
+            m_inputs.m_yr_inflation);
 
         if (rc_des_err != 0)
         {
@@ -540,8 +540,8 @@ int C_sco2_htrbp_core::finalize_design(C_sco2_cycle_core::S_design_solved& desig
         t_des_par.m_h_out = m_outputs.m_enth[C_sco2_cycle_core::TURB_OUT];
         // Mass flow
         t_des_par.m_m_dot = m_outputs.m_m_dot_t;
-        // Inflation factor
-        t_des_par.m_f_inflation = m_inputs.m_f_inflation;
+        // Inflation target yr
+        t_des_par.m_yr_inflation = m_inputs.m_yr_inflation;
 
 
         int turb_size_error_code = 0;
@@ -578,7 +578,7 @@ int C_sco2_htrbp_core::finalize_design(C_sco2_cycle_core::S_design_solved& desig
         s_air_cooler_des_par_ind.m_elev = m_inputs.m_elevation;              // [m]
         s_air_cooler_des_par_ind.m_eta_fan = m_inputs.m_eta_fan;             // [-]
         s_air_cooler_des_par_ind.m_N_nodes_pass = m_inputs.m_N_nodes_pass;   // [-]
-        s_air_cooler_des_par_ind.m_f_inflation = m_inputs.m_f_inflation;     // [-]
+        s_air_cooler_des_par_ind.m_yr_inflation = m_inputs.m_yr_inflation;     // [-]
 
         if (m_inputs.m_is_des_air_cooler && std::isfinite(m_inputs.m_deltaP_cooler_frac) && std::isfinite(m_inputs.m_frac_fan_power)
             && std::isfinite(m_inputs.m_T_amb_des) && std::isfinite(m_inputs.m_elevation) && std::isfinite(m_inputs.m_eta_fan) && m_inputs.m_N_nodes_pass > 0)
@@ -1191,7 +1191,7 @@ int C_HTRBypass_Cycle::optimize_bp(const S_auto_opt_design_parameters& auto_par,
         core_inputs.m_N_turbine = m_N_turbine;                      // Comes from constructor (constant)
 
         core_inputs.m_rc_comp_model_code = C_comp__psi_eta_vs_phi::E_snl_radial_via_Dyreby; // Constant
-        core_inputs.m_f_inflation = m_f_inflation;                  // Comes from constructor (constant)
+        core_inputs.m_yr_inflation = m_yr_inflation;                 // Comes from constructor (constant)
 
         // From special bypass fraction function (should remove)
         core_inputs.m_dT_BP = m_dT_BP;                              // Comes from bp par function (constant)

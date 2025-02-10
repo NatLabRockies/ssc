@@ -123,7 +123,7 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_f_inflation));
+            ms_des_par.m_yr_inflation));
 
 		s_cycle_config = "partial cooling";
 
@@ -146,7 +146,7 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_f_inflation));
+            ms_des_par.m_yr_inflation));
 
 		s_cycle_config = "htr bypass";
 
@@ -219,7 +219,7 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_f_inflation));
+            ms_des_par.m_yr_inflation));
 
         s_cycle_config = "turbine split flow";
 
@@ -243,7 +243,7 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_f_inflation));
+            ms_des_par.m_yr_inflation));
 
         s_cycle_config = "recompression";
 
@@ -410,7 +410,7 @@ int C_sco2_phx_air_cooler::design_core()
 
 	// Initialize the PHX
     mc_phx.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, ms_des_par.m_phx_N_sub_hx,
-        ms_des_par.m_phx_od_UA_target_type, ms_des_par.m_f_inflation);
+        ms_des_par.m_phx_od_UA_target_type, ms_des_par.m_yr_inflation);
 
     // Define state enumerable for sco2 into PHX
     int phx_cold_inlet_state = C_sco2_cycle_core::HTR_HP_OUT;
@@ -458,7 +458,7 @@ int C_sco2_phx_air_cooler::design_core()
         auto bp_od_UA_target_type = ms_des_par.m_phx_od_UA_target_type;
 
         mc_bp.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, bp_N_subs_hx, bp_od_UA_target_type,
-            ms_des_par.m_f_inflation);
+            ms_des_par.m_yr_inflation);
 
         // Calculate BP heat transfer
         double m_dot_bp_sco2 = ms_des_solved.ms_rc_cycle_solved.m_bypass_frac * (ms_des_solved.ms_rc_cycle_solved.m_m_dot_t);

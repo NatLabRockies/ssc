@@ -105,7 +105,7 @@ public:
         int m_mc_comp_model_code;                   // Main compressor model code
         int m_N_turbine;                            //[rpm] Turbine rpm
 
-        double m_f_inflation;                       //[] Inflation factor
+        double m_yr_inflation;                      //[yr] Inflation target year
 
         S_sco2_tsf_in()
         {
@@ -126,7 +126,7 @@ public:
                 m_deltaP_cooler_frac =
                 m_T_amb_des =
                 m_elevation =
-                m_f_inflation =
+                m_yr_inflation =
                 std::numeric_limits<double>::quiet_NaN();
 
             m_N_nodes_pass = 0;
@@ -340,7 +340,7 @@ public:
         double frac_fan_power, double eta_fan, double deltaP_cooler_frac,
         int N_nodes_pass,
         double T_amb_des, double elevation,
-        double f_inflation) :
+        double m_yr_inflation) :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -354,7 +354,7 @@ public:
             eta_t, N_turbine,
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
-            T_amb_des, elevation, f_inflation),
+            T_amb_des, elevation, m_yr_inflation),
             m_eta_t2(eta_t2)
     {
         m_opt_iteration_count = 0;

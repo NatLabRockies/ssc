@@ -135,8 +135,8 @@ public:
         double m_deltaT_bypass;         // [delta K] sco2 Bypass Outlet Temp - HTR_HP_OUT Temp
         double m_set_HTF_mdot;          // [kg/s] For HTR Bypass ONLY, 0 = calculate HTF mdot (need to set dT_PHX_cold_approach), > 0 = HTF mdot kg/s
 
-        // Inflation Factor
-        double m_f_inflation;           // [] Inflation factor
+        // Inflation target year
+        double m_yr_inflation;          // [yr] Inflation target year
 
 		S_des_par()
 		{
@@ -175,7 +175,7 @@ public:
 				m_PR_HP_to_LP_guess = m_f_PR_HP_to_IP_guess =
 	
 				m_phx_dt_cold_approach = m_frac_fan_power = m_deltaP_cooler_frac = m_eta_fan =
-                m_f_inflation =
+                m_yr_inflation =
 				std::numeric_limits<double>::quiet_NaN();
 	
             m_fixed_P_mc_out = false;       //[-] If false, then should default to optimizing this parameter

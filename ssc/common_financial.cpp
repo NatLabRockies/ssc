@@ -1197,8 +1197,8 @@ bool dispatch_calculations::setup()
 	schedwkend.assign(disp_weekend, nrows, ncols);
 
 	int tod[8760];
-
-	if (!util::translate_schedule(tod, schedwkday, schedwkend, 1, 9))
+    int start_day = 0;
+	if (!util::translate_schedule(tod, schedwkday, schedwkend, 1, 9, start_day))
 	{
 		m_error = "could not translate weekday and weekend schedules for dispatch values";
 		throw general_error(m_error);

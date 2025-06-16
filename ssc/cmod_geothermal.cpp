@@ -456,7 +456,8 @@ public:
 			// hybrid dispatch schedule, which will set the value for pbInputs.TOU
 			const char *sched = as_string("hybrid_dispatch_schedule");
 			int tou[8760];
-			if (!util::translate_schedule(tou, sched, sched, 0, 8))
+            int start_day = 0; // TODO: assess whether this should import the variable or not worry about it since sched is used twice, below
+			if (!util::translate_schedule(tou, sched, sched, 0, 8, start_day))
 				throw general_error("could not translate schedule for time-of-use rate");
 
 			// weather file and time-of-use data

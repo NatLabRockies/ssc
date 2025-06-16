@@ -147,7 +147,7 @@ namespace util
 
 	int schedule_char_to_int( char c );
 	std::string schedule_int_to_month( int m );
-	bool translate_schedule(int tod[8760], const char *wkday, const char *wkend, int min_val, int max_val);
+	bool translate_schedule(int tod[8760], const char *wkday, const char *wkend, int min_val, int max_val, int start_day);
 
 	bool file_exists( const char *file );
 	bool dir_exists( const char *path );
@@ -860,7 +860,7 @@ namespace util
 	double linterp_col( const matrix_t<double> &mat, size_t ixcol, double xval, size_t iycol );
     size_t nearest_col_index(const matrix_t<double>& mat, size_t col, double val);
     size_t nearest_col_index(const std::vector<std::vector<double>>& mat, size_t col, double val);
-    bool translate_schedule(int tod[8760], const matrix_t<double> &wkday, const matrix_t<double> &wkend, int min_val, int max_val);
+    bool translate_schedule(int tod[8760], const matrix_t<double> &wkday, const matrix_t<double> &wkend, int min_val, int max_val, int start_day);
 
 	std::vector<double> frequency_table(double* values, size_t n_vals, double bin_width);
 };

@@ -527,7 +527,8 @@ void rate_data::setup_energy_rates(ssc_number_t* ec_weekday, ssc_number_t* ec_we
 
     size_t max_tou_periods = 36;
 
-	if (!util::translate_schedule(ec_tod, ec_schedwkday, ec_schedwkend, 1, max_tou_periods))
+    int start_day = 0;
+	if (!util::translate_schedule(ec_tod, ec_schedwkday, ec_schedwkend, 1, max_tou_periods, start_day))
 		throw general_error("Could not translate weekday and weekend schedules for energy rates.");
 	for (i = 0; i < 8760; i++)
 	{
@@ -734,7 +735,8 @@ void rate_data::setup_demand_charges(ssc_number_t* dc_weekday, ssc_number_t* dc_
 
     size_t max_tou_periods = 36;
 
-	if (!util::translate_schedule(dc_tod, dc_schedwkday, dc_schedwkend, 1, max_tou_periods))
+    int start_day = 0;
+	if (!util::translate_schedule(dc_tod, dc_schedwkday, dc_schedwkend, 1, max_tou_periods, start_day))
 		throw general_error("Could not translate weekday and weekend schedules for demand charges");
 
 	idx = 0;

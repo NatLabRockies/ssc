@@ -45,8 +45,8 @@ C_timeseries_schedule_inputs::C_timeseries_schedule_inputs(const util::matrix_t<
     //   and does not report an error or message if this happens
 
     int tod[8760];
-
-    if (!util::translate_schedule(tod, weekdays, weekends, 1, 9)) {
+    int start_day = 0;
+    if (!util::translate_schedule(tod, weekdays, weekends, 1, 9, start_day)) {
         std::string m_error_msg = "TOU schedules must have 12 rows and 24 columns";
         throw C_csp_exception( m_error_msg, "TOU block schedule init" );
     }

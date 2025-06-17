@@ -110,7 +110,8 @@ static var_info _cm_vtab_geothermal_costs[] = {
 
 
         // Outputs	
-		{ SSC_OUTPUT,       SSC_NUMBER,     "baseline_cost",					"Baseline cost",											"$/kW",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "baseline_cost",					"Baseline cost",											"$/kW",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "engineering_cost",					"Engineering cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "total_drilling_cost",					"Total drilling cost",											"$",		"",                     "GeoHourly",				"calc_drill_costs=1",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "total_pump_cost",					"Total pumping cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "total_gathering_cost",					"Total gathering well cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
@@ -582,31 +583,28 @@ public:
             assign("stim_cost_non_drill", stim_non_drill);
 
 
-            // Exploraion and confirmation costs
-            /*
-            equations{ 'geotherm.cost.expl_total' } = define() {
-    return  ${geotherm.cost.expl_drill} + ${geotherm.cost.expl_non_drill}; };
-
-
-            equations{ 'geotherm.cost.expl_drill' } = define() {
-    return  ${geotherm.cost.expl_per_well} * ${geotherm.cost.expl_num_wells}; };
-
-        equations{ 'geotherm.cost.expl_per_well' } = define() {
-    return  ${geotherm.cost.expl_multiplier} * ${geotherm.cost.prod_per_well}; };
-
-
-            */
             double expl_non_drill = as_double("geotherm.cost.expl_non_drill");
             double expl_multiplier = as_double("geotherm.cost.expl_multiplier");
             double expl_num_wells = as_double("geotherm.cost.expl_num_wells");
             double expl_per_well = expl_multiplier * prod_well_cost;
 
-            double total_predrilling_permitting_cost = 60000 * legal_services_ppi[ppi_base_year];// Sheet2:I48 in GETEM Parameter Equation Breakout.xlsx
-            double expl_permitting_cost = 250000 * legal_services_ppi[ppi_base_year]; // Sheet2:I54 in GETEM Parameter Equation Breakout.xlsx
-            double total_expl_permitting = total_predrilling_permitting_cost + expl_permitting_cost; 
-            assign("total_expl_permitting", total_expl_permitting);
+            int resource_type = as_integer("resource_type");
+            double percent_ind_cost = 0.04;
+            if (resource_type == 1) percent_ind_cost = 0.05;
+            double expl_indirect_cost = (prod_well_cost * expl_num_wells) * (1 / (1 - percent_ind_cost) - 1); //num_wells different here
 
-            double expl_total_cost = expl_per_well * expl_num_wells + expl_non_drill + total_expl_permitting;
+
+            double total_predrilling_permitting_cost = 60000 * legal_services_ppi[ppi_base_year];// Sheet2:I48 in GETEM Parameter Equation Breakout.xlsx
+//            double total_predrilling_expl_cost = (resource_type == 0) ? 300000 : 250000 * og_support_ppi[ppi_base_year];
+            double expl_permitting_cost = 250000 * legal_services_ppi[ppi_base_year]; // Sheet2:I54 in GETEM Parameter Equation Breakout.xlsx
+            double total_expl_permitting = total_predrilling_permitting_cost + expl_permitting_cost;
+            assign("total_expl_permitting", total_expl_permitting);
+            /*
+            double lease_cost = as_double("lease_cost"); //todo add lease cost input
+            double total_leasing_cost = expl_num_wells * 2600 * lease_cost; //number of wells different here again (# of full sized expl well
+            */
+
+            double expl_total_cost = expl_per_well * expl_num_wells + expl_non_drill + total_expl_permitting + expl_indirect_cost;
             assign("expl_total_cost", expl_total_cost);
             assign("expl_drilling_cost", expl_per_well* expl_num_wells);
 
@@ -631,36 +629,10 @@ public:
 
         int ppi_base_year = as_integer("ppi_base_year");
 
-        //int resource_type = as_integer("resource_type");
+        int resource_type = as_integer("resource_type");
 
 
-
-        //Exploration costs
-        /*
-        double prod_well_cost = as_double("prod_well_cost"); //todo provide input
-        double num_expl_wells = as_double("num_expl_wells"); //todo provide input
-        double expl_cost_multiplier = as_double("expl_cost_multiplier"); //todo provide input
-        double total_drilling_cost_nodev = prod_well_cost * expl_cost_multiplier * num_expl_wells;
-
-        double expl_permitting_cost = 250000 * legal_services_ppi[ppi_base_year];
-
-        double num_wells_stimulated = as_double("num_wells_stimulated"); //todo provide input
-        double expl_stimulation_cost = num_wells_stimulated * 1250000 * drilling_ppi[ppi_base_year];
-
-        double percent_ind_cost = 0.04;
-        if (resource_type == 1) percent_ind_cost = 0.05;
-        double expl_indirect_cost = (prod_well_cost * num_expl_wells) * (1 / (1 - percent_ind_cost) - 1); //num_wells different here
-
-        double total_predrilling_expl_cost = (resource_type == 0) ? 300000 : 250000 * og_support_ppi[ppi_base_year];
-        double total_predrilling_permitting_cost = 60000 * legal_services_ppi[ppi_base_year];
-        double total_predrilling_cost = total_predrilling_expl_cost + total_predrilling_permitting_cost;
-
-        double lease_cost = as_double("lease_cost"); //todo add lease cost input
-        double total_leasing_cost = num_expl_wells * 2600 * lease_cost; //number of wells different here again (# of full sized expl wells drilled + totals wells drilled in drilling phase)
-        //2600 acres per well always
-
-        double total_expl_cost = total_drilling_cost_nodev + expl_permitting_cost + expl_stimulation_cost + expl_indirect_cost + total_predrilling_cost + total_leasing_cost;
-        */
+        
 
 		if (conversion_type == 0) {
 			//geo_inputs.me_ct = BINARY;
@@ -745,7 +717,7 @@ public:
 			dc_cost_multiplier = (sales_tax + freight)*((corrected_total_material_mult + corrected_construct_malts)*plant_size_adjustment) + direct_installation_multiplier;
 
 
-			//Total Plant Cost: 
+			//Total Plant Cost ($/kW): 
 			plant_equip_cost = hx_cost + condenser_cost + wf_pump_cost + turbine_cost;
 			corrected_equip_cost = dc_cost_multiplier * plant_equip_cost;
 
@@ -755,10 +727,13 @@ public:
             corrected_equip_cost += indirect_plant_cost;
 
 
-			// for outputs, to assign, use:
+			// for outputs, to assign, use: ($/kW)
 			//assign("dc_cost_multiplier", var_data(static_cast<ssc_number_t>(dc_cost_multiplier)));
 			assign("baseline_cost", var_data(static_cast<ssc_number_t>(corrected_equip_cost)));
-		}
+
+            double engineering_costs = corrected_equip_cost * unit_plant * 0.5; // $/kW to $ * engineering multiplier per Sheet2:E238 in GETEM Parameter Equation Breakout.xlsx
+            assign("engineering_cost", engineering_costs);
+        }
 
 		else if (conversion_type == 1) {
 			//geo_inputs.me_ct = FLASH;
@@ -911,6 +886,9 @@ public:
 
 			assign("baseline_cost", var_data(static_cast<ssc_number_t>(baseline_cost)));
 
+            double engineering_costs = baseline_cost * unit_plant * 0.5; // $/kW to $ * engineering multiplier per Sheet2:E238 in GETEM Parameter Equation Breakout.xlsx
+            assign("engineering_cost", engineering_costs);
+
 		}
 
        //Pump costs
@@ -966,7 +944,7 @@ public:
         double pipe_cost_per_foot = 0.4249 * pow(pipe_outer_diam, 2) - 0.0472 * pipe_outer_diam + 40.683;
         double pipe_cost_per_foot_adj = pipe_cost_per_foot * pipe_ppi[ppi_base_year];
         double distance_plant_to_well = 1640.4;
-        int resource_type = as_integer("resource_type");
+//        int resource_type = as_integer("resource_type");
         if (resource_type == 0) distance_plant_to_well = 2460.63;
         double piping_cost_per_well = pipe_cost_per_foot_adj * distance_plant_to_well; //average distance from well to plant (ft)?
         double prod_wells_drilled = as_double("num_wells_getem_prod_drilled");

@@ -2572,6 +2572,7 @@ bool CGeothermalAnalyzer::InterfaceOutputsFilled(void)
 	// doesn't matter, since this is called from the user interface and not repetatively.
 	GetNumberOfWells();
 	mp_geo_out->md_PlantBrineEffectiveness = GetPlantBrineEffectiveness();
+    mp_geo_out->md_dtRockWellHead = DT_prod_well(mo_geo_in.md_dtProdWellChoice); // track dT value used in calculations - input or calculated
 	ReplaceReservoir(0.0); // set the working temp so the further calculations are correct
 	mp_geo_out->md_GrossPlantOutputMW = PlantGrossPowerkW() / 1000;
     mp_geo_out->md_GrossPowerkW = GrossPowerMW();

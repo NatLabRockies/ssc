@@ -222,6 +222,7 @@ static var_info _cm_vtab_geothermal[] = {
 
     { SSC_OUTPUT,       SSC_NUMBER,		"dt_rock_well_head",                  "dT used in calculations",							 "C",		"",             "GeoHourly",				 "",                 "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,		"brine_effectiveness",                "Brine effectiveness used in calculations",							 "w-h/lb",		"",             "GeoHourly",				 "",                 "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,		"max_brine_effectiveness",                "Maximum brine effectiveness",							 "w-h/lb",		"",             "GeoHourly",				 "",                 "",                "" },
 
 
 		//Outputs Used in cmod_geothermal_costs:
@@ -414,6 +415,7 @@ public:
 
         assign("dt_rock_well_head", var_data((ssc_number_t)geo_outputs.md_dtRockWellHead));
         assign("brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
+        assign("max_brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_MaxBrineEffectiveness));
 
 
 		if (iControl == 1) {

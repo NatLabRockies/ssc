@@ -555,12 +555,10 @@ bool weatherfile::timeStepChecks(int hdr_step_sec) {
     else if (m_nRecords % 8784 == 0)
     {
         // Check if the weather file contains a leap day
-        // if so, correct the number of nrecords
-        m_nRecords = m_nRecords / 8784 * 8760;
-        nmult = (int)m_nRecords / 8760;
+        nmult = (int)m_nRecords / 8784;
         m_stepSec = 3600 / nmult;
         m_startSec = m_stepSec / 2;
-        m_hasLeapYear = true;
+        m_LeapYear = true;
     }
     else
     {
@@ -1083,7 +1081,6 @@ bool weatherfile::open(const std::string& file, bool header_only)
     // by default, subtract 1 from hour of TMY3 files to switch
     // from 1-24 standard to 0-23
     int tmy3_hour_shift = 1;
-    int n_leap_data_removed = 0;
 
     for (int i = 0; i < (int)m_nRecords; i++)
     {
@@ -1132,13 +1129,6 @@ bool weatherfile::open(const std::string& file, bool header_only)
                     &d19, f19, &u19, // aerosol optical depth
                     &d20, f20, &u20, // snow depth 0-150 cm
                     &d21, f21, &u21); // days since last snowfall 0-88
-
-                if (mn == 2 && dy == 29)
-                {
-                    // skip data lines for february 29th if they exist in the file
-                    n_leap_data_removed++;
-                    continue;
-                }
 
                 m_columns[YEAR].data[i] = (float)yr + 1900;
                 m_columns[MONTH].data[i] = (float)mn;
@@ -1216,12 +1206,6 @@ bool weatherfile::open(const std::string& file, bool header_only)
                     hour = 0;
                 }
 
-                if (month == 2 && day == 29)
-                {
-                    n_leap_data_removed++;
-                    continue;
-                }
-
                 m_columns[YEAR].data[i] = (float)year;
                 m_columns[MONTH].data[i] = (float)month;
                 m_columns[DAY].data[i] = (float)day;
@@ -1274,12 +1258,6 @@ bool weatherfile::open(const std::string& file, bool header_only)
 
                 int month = stoi(cols[1]);
                 int day = stoi(cols[2]);
-
-                if (month == 2 && day == 29)
-                {
-                    n_leap_data_removed++;
-                    continue;
-                }
 
                 m_columns[YEAR].data[i] = (float)stoi(cols[0]);
                 m_columns[MONTH].data[i] = (float)stoi(cols[1]);
@@ -1394,13 +1372,6 @@ bool weatherfile::open(const std::string& file, bool header_only)
                         else
                             m_columns[k].data[i] = col_or_nan(trimboth(cols[m_columns[k].index]));
                     }
-                }
-
-                if (m_columns[MONTH].data[i] == 2
-                    && m_columns[DAY].data[i] == 29)
-                {
-                    n_leap_data_removed++;
-                    continue;
                 }
 
                 if (m_columns[MINUTE].data[i] > 59)
@@ -1518,12 +1489,6 @@ bool weatherfile::open(const std::string& file, bool header_only)
 
         m_columns[MINUTE].index = MINUTE; //rewrite index value to allow proper checking of minute data for instantaneous definition
 
-    }
-
-    // final checks over data
-    if (m_hasLeapYear && (n_leap_data_removed < 1)) {
-        m_message = "Weather data identified as containing leap year but 2/29 entry not found.";
-        return false;
     }
 
     // make sure data is single-year

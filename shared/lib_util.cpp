@@ -843,24 +843,43 @@ int util::week_of(double time)
 }
 
 
-int util::month_of(double time)
+int util::month_of(double time, bool leapYear) //leapYear parameter is optional and is defined as "false" by default in the header file
 {
 	/* returns month number 1..12 given
 	   time: hour index in year 0..8759 */
-	if (time < 0) return 0;
-	if (time < 744) return 1;
-	if (time < 1416) return 2;
-	if (time < 2160) return 3;
-	if (time < 2880) return 4;
-	if (time < 3624) return 5;
-	if (time < 4344) return 6;
-	if (time < 5088) return 7;
-	if (time < 5832) return 8;
-	if (time < 6552) return 9;
-	if (time < 7296) return 10;
-	if (time < 8016) return 11;
-	if (time < 8760) return 12;
-	return 0;
+    if (leapYear)
+    {
+        if (time < 0) return 0;
+        if (time < 744) return 1;
+        if (time < 1440) return 2;
+        if (time < 2184) return 3;
+        if (time < 2904) return 4;
+        if (time < 3648) return 5;
+        if (time < 4368) return 6;
+        if (time < 5112) return 7;
+        if (time < 5856) return 8;
+        if (time < 6576) return 9;
+        if (time < 7320) return 10;
+        if (time < 8040) return 11;
+        if (time < 8784) return 12;
+        return 0;
+    }
+    else {
+        if (time < 0) return 0;
+        if (time < 744) return 1;
+        if (time < 1416) return 2;
+        if (time < 2160) return 3;
+        if (time < 2880) return 4;
+        if (time < 3624) return 5;
+        if (time < 4344) return 6;
+        if (time < 5088) return 7;
+        if (time < 5832) return 8;
+        if (time < 6552) return 9;
+        if (time < 7296) return 10;
+        if (time < 8016) return 11;
+        if (time < 8760) return 12;
+        return 0;
+    }
 }
 
 int util::days_in_month(int month)

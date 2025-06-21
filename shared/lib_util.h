@@ -129,21 +129,21 @@ namespace util
 	std::string read_file( const std::string &file );
 	bool read_line( FILE *fp, std::string &text, int prealloc = 256 );
 
-	size_t hours_in_month(size_t month); /* returns the number of hours in a month, as used in month_of() */
-	size_t hour_of_day(size_t hour_of_year); /* return the hour of day (0 - 23) given the hour of year (0 - 8759) */
-	size_t hour_of_year(size_t month, size_t day, size_t hour); /* returns the hour of the year (0-8759) given the current month, date, and time */
-	double percent_of_year(int month, int hours); /* returns the fraction of a year, based on months and hours */
-	int month_of(double time); /* hour: 0 = jan 1st 12am-1am, returns 1-12 */
-	int day_of(double time); /* hour: 0 = jan 1st Monday 12am-1am, returns 0-6 */
-    int day_of_year(double time); /* hour: 0 jan 1st monday 12am-1am returns 0-364 */
+	size_t hours_in_month(size_t month, bool leapYear = false); /* returns the number of hours in a month, as used in month_of() */
+	size_t hour_of_day(size_t hour_of_year, bool leapYear = false); /* return the hour of day (0 - 23) given the hour of year (0 - 8759) */
+	size_t hour_of_year(size_t month, size_t day, size_t hour, bool leapYear = false); /* returns the hour of the year (0-8759) given the current month, date, and time */
+	double percent_of_year(int month, int hours, bool leapYear = false); /* returns the fraction of a year, based on months and hours */
+	int month_of(double time, bool leapYear = false); /* returns month 1-12 given an hour 0-8760 where hour 0 = jan 1st 12am-1am. optional second parameter to define a leapYear, false by default */
+	int day_of(double time); /* day of week, hour: 0 = jan 1st Monday 12am-1am, returns 0-6 */
+    int day_of_year(double time, bool leapYear = false); /* hour: 0 jan 1st monday 12am-1am returns 0-364 */
 	int week_of(double time); /* hour: 0 = jan 1st Monday 12am-1am, returns 0-6 */
-	int day_of_month(int month, double time); /* month: 1-12 time: hours, starting 0=jan 1st 12am, returns 1-nday*/
-	int days_in_month(int month); /*month: 0-11, return 0-30, depending on the month*/
-	void month_hour(size_t hour_of_year, size_t & out_month, size_t & out_hour); /*given the hour of year, return the month, and hour of day*/
+	int day_of_month(int month, double time, bool leapYear = false); /* month: 1-12 time: hours, starting 0=jan 1st 12am, returns 1-nday*/
+	int days_in_month(int month, bool leapYear = false); /*month: 0-11, return 0-30, depending on the month*/
+	void month_hour(size_t hour_of_year, size_t & out_month, size_t & out_hour, bool leapYear = false); /*given the hour of year, return the month, and hour of day*/
 	bool weekday(size_t hour_of_year); /* return true if is a weekday, assuming first hour of year is Monday at 12 am*/
-	size_t lifetimeIndex(size_t year, size_t hour_of_year, size_t step_of_hour, size_t steps_per_hour);
-	size_t yearOneIndex(double dtHour, size_t lifetimeIndex);
-	size_t yearIndex(size_t year, size_t month, size_t day, size_t hour, double minute, size_t step_per_hour);
+	size_t lifetimeIndex(size_t year, size_t hour_of_year, size_t step_of_hour, size_t steps_per_hour, bool leapYear = false);
+	size_t yearOneIndex(double dtHour, size_t lifetimeIndex, bool leapYear = false);
+	size_t yearIndex(size_t year, size_t month, size_t day, size_t hour, double minute, size_t step_per_hour, bool leapYear = false);
 
 	int schedule_char_to_int( char c );
 	std::string schedule_int_to_month( int m );

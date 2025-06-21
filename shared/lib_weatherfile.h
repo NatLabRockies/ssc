@@ -157,11 +157,11 @@ protected:
 	// error messages
 	std::string m_message;
 
-	size_t m_startSec;
-	size_t m_stepSec;
+	size_t m_startSec; //the start time of the simulation in seconds, usually halfway through first timestep (i.e. 0030 on Jan 1 for hourly simulations)
+	size_t m_stepSec; //number of seconds in the timestep
 	size_t m_nRecords;
 	size_t m_index;
-	bool m_hasLeapYear = false;
+	bool m_LeapYear = false;
 	bool m_continuousYear = true; //boolean to identify if the provided weather data is a complete, continuous, single year with an even timestep- 
 									//OR- if it's non-annual or single timestep
 	

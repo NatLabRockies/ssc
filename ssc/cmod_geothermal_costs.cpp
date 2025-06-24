@@ -145,6 +145,9 @@ static var_info _cm_vtab_geothermal_costs[] = {
         { SSC_OUTPUT,       SSC_NUMBER,     "prod_total_cost",					"Total production well system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "inj_well_cost",					"Injection cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "inj_total_cost",					"Total injection well system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "atb_exploration_cost",					"Exploration cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "atb_drilling_cost",					"Drilling cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "atb_plant_cost",					"Plant cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
 
         var_info_invalid };
 
@@ -608,6 +611,8 @@ public:
             assign("expl_total_cost", expl_total_cost);
             assign("expl_drilling_cost", expl_per_well* expl_num_wells);
 
+            assign("atb_exploration_cost", expl_non_drill + total_expl_permitting + expl_indirect_cost);
+
             double conf_non_drill = as_double("geotherm.cost.conf_non_drill");
             double conf_multiplier = as_double("geotherm.cost.conf_multiplier");
             double conf_num_wells = as_double("geotherm.cost.conf_num_wells");
@@ -624,6 +629,7 @@ public:
             double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost + total_drilling_permitting;
             assign("total_drilling_cost", total_drilling_cost);
 
+            assign("atb_drilling_cost", expl_per_well* expl_num_wells + conf_per_well * conf_num_wells + stim_per_well * stim_num_wells + prod_wells_drilled * prod_well_cost);
         }
 		int conversion_type = as_integer("conversion_type");
 
@@ -733,6 +739,8 @@ public:
 
             double engineering_costs = corrected_equip_cost * unit_plant * 0.5; // $/kW to $ * engineering multiplier per Sheet2:E238 in GETEM Parameter Equation Breakout.xlsx
             assign("engineering_cost", engineering_costs);
+
+            assign("atb_plant_cost", corrected_equip_cost * unit_plant);
         }
 
 		else if (conversion_type == 1) {
@@ -889,6 +897,7 @@ public:
             double engineering_costs = baseline_cost * unit_plant * 0.5; // $/kW to $ * engineering multiplier per Sheet2:E238 in GETEM Parameter Equation Breakout.xlsx
             assign("engineering_cost", engineering_costs);
 
+            assign("atb_plant_cost", baseline_cost* unit_plant);
 		}
 
        //Pump costs

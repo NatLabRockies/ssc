@@ -611,8 +611,6 @@ public:
             assign("expl_total_cost", expl_total_cost);
             assign("expl_drilling_cost", expl_per_well* expl_num_wells);
 
-            assign("atb_exploration_cost", expl_non_drill + total_expl_permitting + expl_indirect_cost);
-
             double conf_non_drill = as_double("geotherm.cost.conf_non_drill");
             double conf_multiplier = as_double("geotherm.cost.conf_multiplier");
             double conf_num_wells = as_double("geotherm.cost.conf_num_wells");
@@ -621,7 +619,11 @@ public:
             assign("conf_total_cost", conf_total_cost);
             assign("conf_drilling_cost", conf_per_well* conf_num_wells);
 
-            
+            // update per email from Dayo 6/24/2025
+            assign("atb_exploration_cost", expl_per_well* expl_num_wells + conf_per_well * conf_num_wells);
+            // + expl_non_drilling which is in the NonDrillingCosts.py file in the GETEM-SAM repo
+
+
             double total_drilling_permitting = 1000000 * legal_services_ppi[ppi_base_year]; // Sheet2:I73 in GETEM Parameter Equation Breakout.xlsx
             assign("total_drilling_permitting", total_drilling_permitting);
 
@@ -629,7 +631,9 @@ public:
             double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost + total_drilling_permitting;
             assign("total_drilling_cost", total_drilling_cost);
 
-            assign("atb_drilling_cost", expl_per_well* expl_num_wells + conf_per_well * conf_num_wells + stim_per_well * stim_num_wells + prod_wells_drilled * prod_well_cost);
+            // update per email from Dayo 6/24/2025
+            assign("atb_drilling_cost", prod_wells_drilled* prod_well_cost + inj_wells_drilled * inj_well_cost + stim_per_well * stim_num_wells);//  +dev_non_drilling in nondrillingcostdev function in NonDrillingCosts.py in the GETEM-SAM repo
+            
         }
 		int conversion_type = as_integer("conversion_type");
 

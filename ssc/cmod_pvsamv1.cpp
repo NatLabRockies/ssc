@@ -1278,9 +1278,9 @@ void cm_pvsamv1::exec()
     bool en_batt = as_boolean("en_batt");
     int batt_topology = 0;
     if (en_batt && !save_full_lifetime_variables) {
-        if (nyears != 1) {
-            throw exec_error("pvsamv1", "The PV Battery configuration requires full lifetime variables to be saved when multiple years are simulated.");
-        }
+        //if (nyears != 1) {
+        //    throw exec_error("pvsamv1", "The PV Battery configuration requires full lifetime variables to be saved when multiple years are simulated.");
+        //}
     }
     if (en_batt) {
 

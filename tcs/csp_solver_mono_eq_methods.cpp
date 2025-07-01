@@ -165,7 +165,19 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             calc_offtaker_output = mc_system_metrics.get_W_dot_net();   //[MWe]
         }
 
-        if ((calc_offtaker_output - offtaker_power_max) / offtaker_power_max > 1.E-3)
+        // What if calc_offtaker_output = mc_pc_out_solver.m_q_dot_htf = 0?
+        // -- E.g. parallel heater defocus (e.g. because TES is full) when power cycle target = 0
+
+        // Set denominator in diff quotient to value close to zero with the correct sign
+        double offtaker_power_max_denom = offtaker_power_max;
+        if (offtaker_power_max_denom >= 0.0 && offtaker_power_max_denom < 0.001) {
+            offtaker_power_max_denom = 0.001;
+        }
+        else if (offtaker_power_max_denom > -0.001) {
+            offtaker_power_max_denom = -0.001;
+        }
+
+        if ((calc_offtaker_output - offtaker_power_max) / offtaker_power_max_denom > 1.E-3)
         {
             // Have defocused such that balancing mass flow rates should not result in
             //    a cycle mass flow rate greater than the max

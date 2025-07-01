@@ -1803,8 +1803,8 @@ public:
     public:
         C_CR_OFF__PC_OFF__TES_CH__HTR_ON() : C_operating_mode_core(C_csp_collector_receiver::OFF,
             C_csp_power_cycle::OFF, C_MEQ__m_dot_tes::E__CR_OUT__0, C_MEQ__timestep::E_STEP_FIXED,
+            //true, "CR_OFF__PC_OFF__TES_CH__HTR_ON", QUIETNAN, true, C_csp_collector_receiver::ON) {}
             false, "CR_OFF__PC_OFF__TES_CH__HTR_ON", QUIETNAN, true, C_csp_collector_receiver::ON) {}
-            //false, "CR_OFF__PC_OFF__TES_CH__HTR_ON", QUIETNAN, true, C_csp_collector_receiver::ON) {}
     };
 
     class C_CR_ON__PC_OFF__TES_CH__HTR_ON : public C_operating_mode_core

@@ -177,6 +177,10 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             offtaker_power_max_denom = -0.001;
         }
 
+        // What if output max and output calc are both negative? E.g. electric heater targeting net system import
+        // -- If system requires "defocus", need to turn down heater, so calc is more negative (e.g. -90) than max (e.g. -70)
+        // ----- so (calc - max) / max = (neg) / (neg) = positive
+
         if ((calc_offtaker_output - offtaker_power_max) / offtaker_power_max_denom > 1.E-3)
         {
             // Have defocused such that balancing mass flow rates should not result in

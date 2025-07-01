@@ -173,7 +173,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
         if (offtaker_power_max_denom >= 0.0 && offtaker_power_max_denom < 0.001) {
             offtaker_power_max_denom = 0.001;
         }
-        else if (offtaker_power_max_denom > -0.001) {
+        else if (offtaker_power_max_denom > -0.001 && offtaker_power_max_denom < 0.0) {
             offtaker_power_max_denom = -0.001;
         }
 

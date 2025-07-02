@@ -207,19 +207,40 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
         }
     }
     // read in the user entered snow data
-    userSpecifiedSnowDepth = cm->as_vector_double("snow_array");
-    if (userSpecifiedSnowDepth.size() != 1 && userSpecifiedSnowDepth.size() != 8760) {
-        throw exec_error(cmName, "User-specified snow depth array must be of length 1 or 8760");
+
+    std::vector<double> orig_snow_array = cm->as_vector_double("snow_array");
+    // align the user entered snow data with the weather file data
+    std::vector<double> aligned_snow_array;
+    aligned_snow_array.reserve(numberOfWeatherFileRecords);
+    if (orig_snow_array.size() == 1) {
+        aligned_snow_array.resize(numberOfWeatherFileRecords);
+        std::fill(aligned_snow_array.begin(), aligned_snow_array.end(), orig_snow_array[0]);
     }
-    // if single value, populate it to all values
-    // useful for testing
-    if (userSpecifiedSnowDepth.size() == 1) {
-        userSpecifiedSnowDepth.reserve(8760);
-        double val = userSpecifiedSnowDepth.front();
-        for (size_t i = 0; i < 8759; i++) {
-            userSpecifiedSnowDepth.push_back(val);
+    else if (orig_snow_array.size() < numberOfWeatherFileRecords) {
+        if (numberOfWeatherFileRecords % orig_snow_array.size() != 0) {
+            throw exec_error(cmName, "Snow depth array and weather file must have divisible periods.");
+        }
+        size_t mult = numberOfWeatherFileRecords / orig_snow_array.size();
+        for (double depth : orig_snow_array) {
+            for (size_t j = 0; j < mult; j++) {
+                aligned_snow_array.push_back(depth);
+            }
         }
     }
+    else if (orig_snow_array.size() == numberOfWeatherFileRecords) {
+        aligned_snow_array = orig_snow_array;
+    }
+    else {
+        if (orig_snow_array.size() % numberOfWeatherFileRecords != 0) {
+            throw exec_error(cmName, "Snow depth array and weather file must have divisible periods.");
+        }
+        size_t mult = orig_snow_array.size() / numberOfWeatherFileRecords;
+        for (size_t i = 0; i < orig_snow_array.size(); i += mult) {
+            aligned_snow_array.push_back(orig_snow_array[i]);
+        }
+    }
+    userSpecifiedSnowDepth = aligned_snow_array;
+
 
     checkWeatherFile(cm, cmName);
 }

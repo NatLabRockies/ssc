@@ -246,7 +246,7 @@ struct Irradiance_IO
 	ssc_number_t * p_weatherFileAmbientTemp;	/// The ambient temperature from the weather file [C]
 	ssc_number_t * p_weatherFileAlbedo;			/// The ground albedo from the weather file
     ssc_number_t* p_weatherFileAlbedoSpatial;	/// The ground albedo from the weather file and spatial matrix input
-	ssc_number_t * p_weatherFileSnowDepth;		/// The snow depth from the weather file
+	ssc_number_t * p_snowDepth;		            /// The snow depth from the weather file or user input array
 	ssc_number_t * p_IrradianceCalculated[3];	/// The calculated components of the irradiance [W/m2]
 	ssc_number_t * p_sunZenithAngle;			/// The calculate sun zenith angle [degrees]
 	ssc_number_t * p_sunAltitudeAngle;			/// The calculated sun altitude angle [degrees]

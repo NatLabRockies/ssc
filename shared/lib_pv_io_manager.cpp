@@ -342,7 +342,7 @@ void Irradiance_IO::AllocateOutputs(compute_module* cm)
     else {
         p_weatherFileAlbedo = cm->allocate("alb", numberOfWeatherFileRecords);
     }
-    p_weatherFileSnowDepth = cm->allocate("snowdepth", numberOfWeatherFileRecords);
+    p_snowDepth = cm->allocate("snowdepth", numberOfWeatherFileRecords);
 
     // If using input POA, must have POA for every subarray or assume POA applies to each subarray
     for (size_t subarray = 0; subarray != numberOfSubarrays; subarray++) {

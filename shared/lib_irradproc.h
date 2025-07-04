@@ -1036,6 +1036,9 @@ protected:
     int year, month, day, hour;
     double minute, delt;
 
+    // Intervals for skyconfig, shade, irradiances
+    size_t const intervals = 100;
+
     //Error messages
     std::string errorMessage;
 

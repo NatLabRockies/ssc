@@ -1880,7 +1880,8 @@ irrad::irrad(weather_header hdr,
     setup();
 
     delt = instantaneousWeather ? IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET : dtHour;
-
+    // Set sky_model takes in the already set skyModel member and sets it to itself.
+    // it also takes in unset albedo parameter and sets it to itself. 
     set_sky_model(skyModel, albedo, albedoSpatial);
 
     set_subhourly_clipping(enableSubhourlyClipping);
@@ -2585,7 +2586,7 @@ void irrad::getSkyConfigurationFactors(double rowToRow, double verticalHeight, d
                                        std::vector<double> &rearSkyConfigFactors,
                                        std::vector<double> &frontSkyConfigFactors) {
     // Calculate sky configuration factors using 100 intervals
-    size_t intervals = 100;
+    //size_t intervals = 100;
     double deltaInterval = static_cast<double>(rowToRow / intervals);
     double x = -deltaInterval / 2.0;
 
@@ -2650,7 +2651,7 @@ irrad::getGroundShadeFactors(double rowToRow, double verticalHeight, double clea
                              std::vector<int> &rearGroundShade, std::vector<int> &frontGroundShade, double &maxShadow,
                              double &pvBackSurfaceShadeFraction, double &pvFrontSurfaceShadeFraction) {
     // calculate ground shade factors using 100 intervals
-    size_t intervals = 100;
+    //size_t intervals = 100;
     double deltaInterval = static_cast<double>(rowToRow / intervals);
     double surfaceAzimuthAngleRadians = surfaceAnglesRadians[2];
     double shadingStart1, shadingStart2, shadingEnd1, shadingEnd2;
@@ -2767,7 +2768,7 @@ void irrad::getGroundGHI(double transmissionFactor, std::vector<double> rearSkyC
     double circumsolarDiffuse = diffuseIrradianceRear[1];
 
     // Sum the irradiance components for each of the ground segments to the front and rear of the front of the PV row
-    for (size_t i = 0; i != 100; i++) {
+    for (size_t i = 0; i != intervals; i++) {
         // Isotropic diffuse irradiance incident on ground
         rearGroundGHI.push_back(rearSkyConfigFactors[i] * isotropicDiffuse);
         frontGroundGHI.push_back(frontSkyConfigFactors[i] * isotropicDiffuse);
@@ -2798,7 +2799,7 @@ void irrad::getFrontSurfaceIrradiances(double pvFrontShadeFraction, double rowTo
     // front surface assumed to be glass
     double n2 = 1.526;
 
-    size_t intervals = 100;
+    //size_t intervals = 100;
     double solarAzimuthRadians = sunAnglesRadians[0];
     double solarZenithRadians = sunAnglesRadians[1];
     double tiltRadians = surfaceAnglesRadians[1];
@@ -2922,8 +2923,8 @@ void irrad::getFrontSurfaceIrradiances(double pvFrontShadeFraction, double rowTo
                                 reflectedGroundGHI += frontGroundGHI[k] * (projectedX2 - k) * albedoAligned[k];
                             }
                             else {
-                                actualGroundGHI += frontGroundGHI[k - 100] * (projectedX2 - k);
-                                reflectedGroundGHI += frontGroundGHI[k - 100] * (projectedX2 - k) * albedoAligned[k - 100];
+                                actualGroundGHI += frontGroundGHI[k - intervals] * (projectedX2 - k);
+                                reflectedGroundGHI += frontGroundGHI[k - intervals] * (projectedX2 - k) * albedoAligned[k - intervals];
                             }
                         }
                         else {
@@ -2932,8 +2933,8 @@ void irrad::getFrontSurfaceIrradiances(double pvFrontShadeFraction, double rowTo
                                 reflectedGroundGHI += frontGroundGHI[k] * albedoAligned[k];
                             }
                             else {
-                                actualGroundGHI += frontGroundGHI[k - 100];
-                                reflectedGroundGHI += frontGroundGHI[k - 100] * albedoAligned[k - 100];
+                                actualGroundGHI += frontGroundGHI[k - intervals];
+                                reflectedGroundGHI += frontGroundGHI[k - intervals] * albedoAligned[k - intervals];
                             }
                         }
                     }
@@ -2981,7 +2982,7 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
     // front surface assumed to be glass
     double n2 = 1.526;
 
-    size_t intervals = 100;
+    //size_t intervals = 100;
     double solarAzimuthRadians = sunAnglesRadians[0];
     double solarZenithRadians = sunAnglesRadians[1];
     double tiltRadians = surfaceAnglesRadians[1];
@@ -3141,8 +3142,8 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
 
                 if (index1 == index2) {
                     if (index1 < 0) {
-                        actualGroundGHI = frontGroundGHI[index1 + 100];
-                        reflectedGroundGHI = frontGroundGHI[index1 + 100] * albedoAligned[index1 + 100];
+                        actualGroundGHI = frontGroundGHI[index1 + intervals];
+                        reflectedGroundGHI = frontGroundGHI[index1 + intervals] * albedoAligned[index1 + intervals];
                     }
                     else {
                         actualGroundGHI = rearGroundGHI[index1];
@@ -3174,8 +3175,8 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
                         }
                         else {
                             if (k < 0) {
-                                actualGroundGHI += frontGroundGHI[k + 100];
-                                reflectedGroundGHI += frontGroundGHI[k + 100] * albedoAligned[k + 100];
+                                actualGroundGHI += frontGroundGHI[k + intervals];
+                                reflectedGroundGHI += frontGroundGHI[k + intervals] * albedoAligned[k + intervals];
                             }
                             else {
                                 actualGroundGHI += rearGroundGHI[k];
@@ -3242,7 +3243,7 @@ void irrad::getBackSurfaceIrradiancesCS(double pvBackShadeFraction, double rowTo
     // front surface assumed to be glass
     double n2 = 1.526;
 
-    size_t intervals = 100;
+    //size_t intervals = 100;
     double solarAzimuthRadians = sunAnglesRadians[0];
     double solarZenithRadians = sunAnglesRadians[1];
     double tiltRadians = surfaceAnglesRadians[1];
@@ -3402,8 +3403,8 @@ void irrad::getBackSurfaceIrradiancesCS(double pvBackShadeFraction, double rowTo
 
                 if (index1 == index2) {
                     if (index1 < 0) {
-                        actualGroundGHI = frontGroundGHI[index1 + 100];
-                        reflectedGroundGHI = frontGroundGHI[index1 + 100] * albedoAligned[index1 + 100];
+                        actualGroundGHI = frontGroundGHI[index1 + intervals];
+                        reflectedGroundGHI = frontGroundGHI[index1 + intervals] * albedoAligned[index1 + intervals];
                     }
                     else {
                         actualGroundGHI = rearGroundGHI[index1];
@@ -3435,8 +3436,8 @@ void irrad::getBackSurfaceIrradiancesCS(double pvBackShadeFraction, double rowTo
                         }
                         else {
                             if (k < 0) {
-                                actualGroundGHI += frontGroundGHI[k + 100];
-                                reflectedGroundGHI += frontGroundGHI[k + 100] * albedoAligned[k + 100];
+                                actualGroundGHI += frontGroundGHI[k + intervals];
+                                reflectedGroundGHI += frontGroundGHI[k + intervals] * albedoAligned[k + intervals];
                             }
                             else {
                                 actualGroundGHI += rearGroundGHI[k];

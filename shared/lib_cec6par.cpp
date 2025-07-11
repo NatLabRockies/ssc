@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lib_cec6par.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 #include "lib_util.h"
 
 static const double KB = 8.618e-5; // Boltzmann constant [eV/K] note units

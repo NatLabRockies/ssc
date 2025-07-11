@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_util.h"
 #include "lib_irradproc.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 #include "lib_util.h"
 #include "lib_weatherfile.h"
 

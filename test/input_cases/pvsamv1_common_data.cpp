@@ -68,6 +68,9 @@ void pvsamv_nofinancial_default(ssc_data_t& data)
     ssc_data_set_number(data, "transformer_no_load_loss", 0);
     ssc_data_set_number(data, "transformer_load_loss", 0);
     ssc_data_set_number(data, "en_snow_model", 0);
+    ssc_data_set_number(data, "use_snow_weather_file", 1);
+    ssc_number_t snow_array[1] = { 0 };
+    ssc_data_set_array(data, "snow_array", snow_array, 1);
     ssc_data_set_number(data, "system_capacity", 4.6928696632385254);
     ssc_data_set_number(data, "use_wf_albedo", 0);
     ssc_number_t p_albedo[12] = { 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224 };
@@ -568,6 +571,9 @@ void pvsamv1_with_residential_default(ssc_data_t& data)
     ssc_data_set_number(data, "use_wf_albedo", 0);
     ssc_number_t p_albedo[12] = { 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224 };
     ssc_data_set_array(data, "albedo", p_albedo, 12);
+    ssc_data_set_number(data, "use_snow_weather_file", 1);
+    ssc_number_t snow_array[1] = { 0 };
+    ssc_data_set_array(data, "snow_array", snow_array, 1);
     ssc_data_set_number(data, "irrad_mode", 0);
     ssc_data_set_number(data, "sky_model", 2);
     ssc_data_set_number(data, "inverter_count", 1);

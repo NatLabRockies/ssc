@@ -1044,6 +1044,63 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, SnowModel)
 
 }
 
+
+/// Test PVSAMv1 with Snow Model enabled and set to 1-axis Tracking
+TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, UserArraySnowModel)
+{
+
+
+    std::map<std::string, double> pairs;
+
+    pairs["en_snow_model"] = 1;
+    pairs["subarray1_track_mode"] = 1;
+
+    // initial sim to get output snow data;
+    int pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
+    EXPECT_FALSE(pvsam_errors);
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+
+    // pull the wf snow data and put it into an array
+    int l = 8760;
+    ssc_number_t* snowdepth = ssc_data_get_array(data, "snowdepth", &l);
+    ssc_data_set_array(data, "snow_array", snowdepth, 8760);
+    // Use the snow data from the snow depth array
+    pairs["use_snow_weather_file"] = 0;
+    pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
+    EXPECT_FALSE(pvsam_errors);
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+
+    // Check handling of upsampled data
+    std::vector<ssc_number_t> upsampled;
+    upsampled.reserve(8760 * 2);
+    for (size_t i = 0; i < 8760; i++) {
+        upsampled.push_back(snowdepth[i]);
+        upsampled.push_back(snowdepth[i]);
+    }
+    ssc_data_set_array(data, "snow_array", upsampled.data(), 8760*2);
+    pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
+    EXPECT_FALSE(pvsam_errors);
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+
+    // Check handling of downsampled data
+    std::vector<ssc_number_t> downsampled;
+    downsampled.reserve(8760 / 2);
+    for (size_t i = 0; i < 8760/2; i++) {
+        downsampled.push_back(snowdepth[2*i]);
+    }
+    ssc_data_set_array(data, "snow_array", downsampled.data(), 8760 / 2);
+    pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
+    EXPECT_FALSE(pvsam_errors);
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 11377, m_error_tolerance_hi) << "Annual energy.";
+
+
+}
+
 TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, SubhourlyClippingCorrectionModel)
 {
     std::map<std::string, double> pairs;

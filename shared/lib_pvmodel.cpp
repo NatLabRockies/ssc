@@ -104,7 +104,7 @@ pvoutput_t::pvoutput_t( double p, double v,
 }
 
 
-std::string pvmodule_t::error()
+std::string pvmodule_t::error() const
 {
 	return m_err;
 }
@@ -122,7 +122,7 @@ spe_module_t::spe_module_t( )
 }
 
 	
-double spe_module_t::eff_interpolate( double irrad, double rad[5], double eff[5] )
+double spe_module_t::eff_interpolate( double const irrad, double const rad[5], double const eff[5] )
 {
 	if ( irrad < rad[0] )
 		return eff[0];
@@ -139,7 +139,7 @@ double spe_module_t::eff_interpolate( double irrad, double rad[5], double eff[5]
 	return (1-wx)*eff[i1]+wx*eff[i];
 }
 
-bool spe_module_t::operator() ( pvinput_t &input, double TcellC, double , pvoutput_t &output)
+bool spe_module_t::operator() ( pvinput_t const &input, double TcellC, double , pvoutput_t &output) const
 {
 	double idiff = fd*(input.Idiff + input.Ignd);
 

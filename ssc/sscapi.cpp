@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 SSCEXPORT int ssc_version()
 {
-	return 302;
+	return 303;
 }
 
 SSCEXPORT const char *ssc_build_info()

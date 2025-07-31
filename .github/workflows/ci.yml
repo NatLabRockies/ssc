@@ -55,7 +55,8 @@ jobs:
     - name: Checkout SSC
       uses: actions/checkout@v4
       with:
-         path: ssc
+         path: ssc   # UserArraySnowModel fails on macos-latest but reported successful
+         ref: test_coveralls
 
     - name: Configure CMake
       # Configure cmake to build ssc tests but not tools

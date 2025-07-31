@@ -165,7 +165,7 @@ jobs:
       run: |
         set -e
         exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
-        ${SSCDIR}/build/test/Test | tee /dev/fd/3
+        ${SSCDIR}/build/test/Test | tee 
         
     - name: Compare Test Times
       run: |

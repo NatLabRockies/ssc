@@ -66,8 +66,6 @@ jobs:
       uses: actions/checkout@v4
       with:
          path: ssc
-         ref: test_coveralls # UserArraySnowModel passes
-      #   ref: ${{github.ref_name}} - UserArraySnowModel fails
 
     - name: Configure CMake
       # Configure cmake to build ssc tests but not tools
@@ -83,7 +81,6 @@ jobs:
         make -j4
 
     - name: Test
-      # Turn off fast fail for when the landbosse tests write to cerr
       shell: bash
       run: |
         set -e

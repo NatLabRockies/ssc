@@ -1054,6 +1054,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, UserArraySnowModel)
 
     pairs["en_snow_model"] = 1;
     pairs["subarray1_track_mode"] = 1;
+    pairs["subarray1_tilt"] = 0;
 
     // initial sim to get output snow data;
     int pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);

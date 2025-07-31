@@ -160,12 +160,15 @@ jobs:
         cd ${SSCDIR}/build
         make -j3
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # e.g., '3.9', '3.10', '3.11'
+
     - name: Test
-      # Turn off fast fail for when the landbosse tests write to cerr
       run: |
-        set -e
         ${SSCDIR}/build/test/Test | tee ${SSCDIR}/build/test/gtest.log 
-        
+    
     - name: Compare Test Times
       run: |
         pip install pandas requests

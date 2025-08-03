@@ -76,6 +76,7 @@ jobs:
       run: |
         set -e
         ${SSCDIR}/build/test/Test | tee ${SSCDIR}/build/test/gtest.log 
+        exit ${PIPESTATUS[0]}
         
     - name: Compare Test Times
       run: |
@@ -166,7 +167,9 @@ jobs:
 
     - name: Test
       run: |
+        set -e
         ${SSCDIR}/build/test/Test | tee ${SSCDIR}/build/test/gtest.log 
+        exit ${PIPESTATUS[0]}
     
     - name: Compare Test Times
       run: |

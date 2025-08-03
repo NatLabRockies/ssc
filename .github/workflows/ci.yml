@@ -72,8 +72,12 @@ jobs:
         make -j4
 
     - name: Test
+      # Turn off fast fail for when the landbosse tests write to cerr
       run: |
-        ${SSCDIR}/build/test/Test 
+        set -e
+#        exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
+        ${SSCDIR}/build/test/Test > ${SSCDIR}/build/test/gtest.log 
+        #| tee /dev/fd/3
         
     - name: Compare Test Times
       run: |

@@ -75,7 +75,7 @@ jobs:
       # Turn off fast fail for when the landbosse tests write to cerr
       run: |
         set -e
-        ${SSCDIR}/build/test/Test > ${SSCDIR}/build/test/gtest.log 
+        ${SSCDIR}/build/test/Test | tee ${SSCDIR}/build/test/gtest.log 
         
     - name: Compare Test Times
       run: |

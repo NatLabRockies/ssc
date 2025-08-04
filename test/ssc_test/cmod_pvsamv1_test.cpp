@@ -1060,21 +1060,23 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, UserArraySnowModel)
      * from the weather file to set the snow_array.
      */
     /*if the debug build in coverage.yml fails with message
-error during simulation.Subarray 1 has one-axis tracking with a tilt angle of 20 degrees. SAM can simulate one-axis tracking with non-zero tilt angles, but large one-axis tracking arrays typically have a tilt angle of zero. This message is a reminder in case you forgot to set the tilt angle to zero.
-exec fail(pvsamv1): The weather file contains no snow depth data or the data is not valid. Found (500) bad snow depth values.
 
-then uncomment the next line to set the tilt angle to zero. and run the test again with expected results
-change 11395 to 10689
-change 11377 to 10663
+    error during simulation.Subarray 1 has one-axis tracking with a tilt angle of 20 degrees. SAM can simulate one-axis tracking with non-zero tilt angles, but large one-axis tracking arrays typically have a tilt angle of zero. This message is a reminder in case you forgot to set the tilt angle to zero.
+    exec fail(pvsamv1): The weather file contains no snow depth data or the data is not valid. Found (500) bad snow depth values.
+
+    then uncomment the next line to set the tilt angle to zero. and run the test again with expected results
+    change 11395 to 10689
+    change 11377 to 10663
     */
-     // pairs["subarray1_tilt"] = 0;
+    pairs["subarray1_tilt"] = 0;
 
     // initial sim to get output snow data;
     int pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
     EXPECT_FALSE(pvsam_errors);
     ssc_number_t annual_energy;
     ssc_data_get_number(data, "annual_energy", &annual_energy);
-    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+//    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+    EXPECT_NEAR(annual_energy, 10689, m_error_tolerance_hi) << "Annual energy.";
 
     // pull the wf snow data and put it into an array
     int l = 8760;
@@ -1085,7 +1087,8 @@ change 11377 to 10663
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
     EXPECT_FALSE(pvsam_errors);
     ssc_data_get_number(data, "annual_energy", &annual_energy);
-    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+//    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+    EXPECT_NEAR(annual_energy, 10689, m_error_tolerance_hi) << "Annual energy.";
 
     // Check handling of upsampled data
     std::vector<ssc_number_t> upsampled;
@@ -1098,7 +1101,8 @@ change 11377 to 10663
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
     EXPECT_FALSE(pvsam_errors);
     ssc_data_get_number(data, "annual_energy", &annual_energy);
-    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+//    EXPECT_NEAR(annual_energy, 11395, m_error_tolerance_hi) << "Annual energy.";
+    EXPECT_NEAR(annual_energy, 10689, m_error_tolerance_hi) << "Annual energy.";
 
     // Check handling of downsampled data
     std::vector<ssc_number_t> downsampled;
@@ -1110,8 +1114,8 @@ change 11377 to 10663
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
     EXPECT_FALSE(pvsam_errors);
     ssc_data_get_number(data, "annual_energy", &annual_energy);
-    EXPECT_NEAR(annual_energy, 11377, m_error_tolerance_hi) << "Annual energy.";
-
+//    EXPECT_NEAR(annual_energy, 11377, m_error_tolerance_hi) << "Annual energy.";
+    EXPECT_NEAR(annual_energy, 10663, m_error_tolerance_hi) << "Annual energy.";
 
 }
 

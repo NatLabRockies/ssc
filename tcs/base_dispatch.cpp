@@ -194,6 +194,15 @@ void base_dispatch_opt::print_dispatch_update()
     not_implemented_function((std::string)__func__);
 }
 
+void base_dispatch_opt::print_log_to_file()
+{
+    std::stringstream outname;
+    outname << "Dispatch.log";
+    std::ofstream fout(outname.str().c_str());
+    fout << solver_params.log_message.c_str();
+    fout.close();
+}
+
 // -----------------------------------------
 // s_efftable class implementation
 

@@ -29,8 +29,6 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-//#pragma once
-//#pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
 
 #ifndef __base_dispatch_
 #define __base_dispatch_
@@ -220,6 +218,9 @@ public:
 
     //Dispatch update and result print to screen
     virtual void print_dispatch_update();
+
+    // Print dispatch solver log to file for debugging solver
+    void print_log_to_file();
 };
 
 struct s_efftable

@@ -80,8 +80,6 @@ public:
     // simple string compare
     bool strcompare(std::string a, std::string b);
 
-    // Print dispatch solver log to file for debugging solver
-    void print_log_to_file();
 };
 
 #endif //__base_dispatch_lpsolve_

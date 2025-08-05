@@ -481,12 +481,3 @@ bool base_dispatch_lpsolve::strcompare(std::string a, std::string b)
 {
     return util::lower_case(a) < util::lower_case(b);
 }
-
-void base_dispatch_lpsolve::print_log_to_file()
-{
-    std::stringstream outname;
-    outname << "Dispatch.log";
-    std::ofstream fout(outname.str().c_str());
-    fout << solver_params.log_message.c_str();
-    fout.close();
-}

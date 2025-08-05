@@ -34,8 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <algorithm>
 #include "etes_dispatch.h"
-#include "lp_lib.h" 
-#include "lib_util.h"
 
 #undef min
 #undef max

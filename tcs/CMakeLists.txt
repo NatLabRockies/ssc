@@ -8,6 +8,7 @@ include_directories(. ../nlopt ../shared ../lpsolve ../solarpilot $ENV{ORTOOLSDI
 
 set(TCS_SRC
 		base_dispatch.cpp
+        base_dispatch_lpsolve.cpp
 		co2_compressor_library.cpp
 		CO2_properties.cpp
 		csp_dispatch.cpp
@@ -83,6 +84,7 @@ set(TCS_SRC
 		tou_translator.cpp
 		flat_plate_solar_collector.cpp
 		base_dispatch.h
+        base_disptach_lpsolve.h
 		cavity_calcs.h
 		co2_compressor_library.h
 		CO2_properties.h

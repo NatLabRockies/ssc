@@ -33,9 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
 
 
-#include "base_dispatch.h"
+#include "base_dispatch_lpsolve.h"
 
-class etes_dispatch_opt : public base_dispatch_opt
+class etes_dispatch_opt : public base_dispatch_lpsolve
 {
 public:
     struct s_params

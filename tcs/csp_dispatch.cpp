@@ -250,7 +250,6 @@ bool csp_dispatch_opt::predict_performance(int step_start, int ntimeints, int di
 
             //get thermal efficiency
             double therm_eff = pointers.col_rec->calculate_thermal_efficiency_approx(pointers.m_weather.ms_outputs, q_inc, simloc);
-            therm_eff *= params.sf_effadj;
             therm_eff_ave += therm_eff * ave_weight;
 
             //C_csp_fresnel_collector_receiver x;
@@ -342,10 +341,6 @@ static void calculate_parameters(csp_dispatch_opt *optinst, unordered_map<std::s
         pars["y0"] = (optinst->params.is_pb_operating0 ? 1 : 0);
         pars["ycsb0"] = (optinst->params.is_pb_standby0 ? 1 : 0);
         pars["q0"] =  optinst->params.q_pb0;
-
-        pars["qrecmaxobs"] = 1.;
-        for(int i=0; i<(int)optinst->params.q_sfavail_expected.size(); i++)
-            pars["qrecmaxobs"] = optinst->params.q_sfavail_expected.at(i) > pars["qrecmaxobs"] ? optinst->params.q_sfavail_expected.at(i) : pars["qrecmaxobs"];
 
         pars["Qrsb"] = optinst->params.q_rec_standby; // * dq_rsu;
         pars["W_dot_cycle"] = optinst->params.q_pb_des * optinst->params.eta_pb_des;

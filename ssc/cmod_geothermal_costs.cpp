@@ -92,6 +92,8 @@ static var_info _cm_vtab_geothermal_costs[] = {
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_non_drill",                      "Exploration non drilling costs",                      "$",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=750000" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_non_drill",                      "Confirmation non drilling costs",                      "$",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=250000" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_multiplier",                      "Exploration cost multiplier",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=0.5" },
+        // added per email from Dayo 8/6/2025
+        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_lump_sum",                      "Exploration cost lump sum",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=0" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_multiplier",                      "Confirmation cost multiplier",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=1.2" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_num_wells",                      "Number of exploration wells",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=2" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_num_wells",                      "Number of confirmation wells",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=2" },
@@ -589,7 +591,14 @@ public:
             double expl_non_drill = as_double("geotherm.cost.expl_non_drill");
             double expl_multiplier = as_double("geotherm.cost.expl_multiplier");
             double expl_num_wells = as_double("geotherm.cost.expl_num_wells");
-            double expl_per_well = expl_multiplier * prod_well_cost;
+
+            // expl_multiplier is the Oil and Gas PPI for the base year per Dayo's email 8/6/2025
+            //expl_multiplier = og_support_ppi[ppi_base_year]; values do not match with Dayo's pptx hard code for 2023 ATB in GETEM_ATB.py
+
+            // update per email from Dayo 8/6/2025
+            //double expl_per_well = expl_multiplier * prod_well_cost;
+            double expl_lump_sum = as_double("geotherm.cost.expl_lump_sum"); // TODO will need to add this input to the UI
+            double expl_per_well = expl_multiplier * expl_lump_sum;
 
             int resource_type = as_integer("resource_type");
             double percent_ind_cost = 0.04;
@@ -606,16 +615,18 @@ public:
             double lease_cost = as_double("lease_cost"); //todo add lease cost input
             double total_leasing_cost = expl_num_wells * 2600 * lease_cost; //number of wells different here again (# of full sized expl well
             */
-
-            double expl_total_cost = expl_per_well * expl_num_wells + expl_non_drill + total_expl_permitting + expl_indirect_cost;
+            // update per email from Dayo 8/6/2025
+            double expl_total_cost = expl_per_well * expl_num_wells; // +expl_non_drill + total_expl_permitting + expl_indirect_cost;
             assign("expl_total_cost", expl_total_cost);
             assign("expl_drilling_cost", expl_per_well* expl_num_wells);
 
             double conf_non_drill = as_double("geotherm.cost.conf_non_drill");
             double conf_multiplier = as_double("geotherm.cost.conf_multiplier");
+            // update per email from Dayo 8/6/2025
             double conf_num_wells = as_double("geotherm.cost.conf_num_wells");
             double conf_per_well = conf_multiplier * prod_well_cost;
-            double conf_total_cost = conf_per_well * conf_num_wells + conf_non_drill;
+            // update per email from Dayo 8/6/2025
+            double conf_total_cost = conf_per_well * conf_num_wells;// +conf_non_drill;
             assign("conf_total_cost", conf_total_cost);
             assign("conf_drilling_cost", conf_per_well* conf_num_wells);
 
@@ -627,8 +638,8 @@ public:
             double total_drilling_permitting = 1000000 * legal_services_ppi[ppi_base_year]; // Sheet2:I73 in GETEM Parameter Equation Breakout.xlsx
             assign("total_drilling_permitting", total_drilling_permitting);
 
-
-            double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost + total_drilling_permitting;
+            // update per email from Dayo 8/6/2025
+            double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost;// +total_drilling_permitting;
             assign("total_drilling_cost", total_drilling_cost);
 
             // update per email from Dayo 6/24/2025

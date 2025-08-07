@@ -1724,7 +1724,11 @@ void cm_pvsamv1::exec()
                         if (Subarrays[nn]->useCustomCellTemp == 1)
                             tcell = Subarrays[nn]->customCellTempArray[inrec];
                         else
-                            (*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, -1.0, tcell);
+                        {
+                            if (!(*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, -1.0, tcell)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
+                        }
                     }
                     double shadedb_str_vmp_stc = Subarrays[nn]->nModulesPerString * Subarrays[nn]->Module->voltageMaxPower;
                     double shadedb_mppt_lo = PVSystem->Inverter->mpptLowVoltage;
@@ -2159,7 +2163,11 @@ void cm_pvsamv1::exec()
                                 if (Subarrays[nn]->useCustomCellTemp == 1)
                                     tcell = Subarrays[nn]->customCellTempArray[inrec];
                                 else
-                                    (*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, V, tcell);
+                                {
+                                    if (!(*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, V, tcell)) {
+                                        throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                                    }
+                                }
                                 // calculate module power output using conversion model previously specified
                                 (*Subarrays[nn]->Module->moduleModel)(in, tcell, V, out);
                             }
@@ -2224,9 +2232,17 @@ void cm_pvsamv1::exec()
                         if (Subarrays[nn]->useCustomCellTemp == 1)
                             tcell = Subarrays[nn]->customCellTempArray[inrec];
                         else {
-                            (*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell);
-                            if (std::isnan(tcell)) throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
-                            (*Subarrays[nn]->Module->cellTempModel)(in_cs[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell_cs);
+                            if (!(*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
+                            // Checking if isnan here is insufficient. The function above could have returned
+                            // without modifying tcell from the assignment of tdry into tcell earlier. 
+                            if (std::isnan(tcell)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
+                            if (!(*Subarrays[nn]->Module->cellTempModel)(in_cs[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell_cs)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
                         }
                         // begin Transient Thermal model
                         // steady state cell temperature - confirm modification from module model to cell temp
@@ -2346,8 +2362,12 @@ void cm_pvsamv1::exec()
                                 double module_voltage = avgVoltage / (double)Subarrays[nn]->nModulesPerString;
                                 if (Subarrays[nn]->useCustomCellTemp == 1)
                                     tcell = Subarrays[nn]->customCellTempArray[inrec];
-                                else
-                                    (*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell);
+                                else {
+                                    if (!(*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell)) {
+                                        throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                                    }
+                                }
+                                    
                                 (*Subarrays[nn]->Module->moduleModel)(in[nn], tcell, module_voltage, out[nn]);
 
                                 if (iyear == 0 || save_full_lifetime_variables == 1)	mpptVoltageClipping[nn] -= out[nn].Power; //subtract the power that remains after voltage clipping in order to get the total loss. if no power was lost, all the power will be subtracted away again.

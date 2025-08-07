@@ -62,13 +62,13 @@ public:
 
 	cec6par_module_t();
 
-	virtual double AreaRef() { return Area; }
-	virtual double VmpRef() { return Vmp; }
-	virtual double ImpRef() { return Imp; }
-	virtual double VocRef() { return Voc; }
-	virtual double IscRef() { return Isc; }
+	virtual double AreaRef() const { return Area; }
+	virtual double VmpRef() const { return Vmp; }
+	virtual double ImpRef() const { return Imp; }
+	virtual double VocRef() const { return Voc; }
+	virtual double IscRef() const { return Isc; }
 
-	virtual bool operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &output );
+	virtual bool operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &output ) const;
 
 	virtual ~cec6par_module_t() {};
 };
@@ -81,7 +81,7 @@ public:
 	double ffv_wind;
 	double Tnoct;
 
-	virtual bool operator() ( pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell );
+	virtual bool operator() ( pvinput_t const &input, pvmodule_t const &module, double opvoltage, double &Tcell ) const;
 
 	virtual ~noct_celltemp_t(){}
 };
@@ -105,7 +105,7 @@ public:
     double ground_clearance_height; //Ground clearance height used in Calaf heat transfer coefficient h fit
     int lacunarity_enable;
     double GCR;
-	virtual bool operator() ( pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell );
+	virtual bool operator() ( pvinput_t const &input, pvmodule_t const &module, double opvoltage, double &Tcell ) const;
 
 	virtual ~mcsp_celltemp_t() {};
 };

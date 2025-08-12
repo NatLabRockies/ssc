@@ -231,6 +231,11 @@ elseif(MSVC)
     find_ortools_package(protobuf)
     set_library_by_config(shared protobuf::libprotobuf TRUE)
 
+     if(USE_GLPK)
+        find_ortools_package(glpk)
+        set_library_by_config(shared GLPK::GLPK FALSE)
+    endif()
+
     if(USE_COINOR)
         find_ortools_package(CoinUtils)
         find_ortools_package(Osi)

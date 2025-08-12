@@ -1550,7 +1550,7 @@ bool csp_dispatch_opt::optimize()
 
         setup_solver_presolve_bbrules(lp);
         bool return_ok = problem_scaling_solve_loop(lp);
-        set_lp_solve_outputs(lp);
+        set_solver_outputs(lp);
 
         // Saving problem and solution for DEBUGGING formulation
         //save_problem_solution_debug(lp);
@@ -1752,8 +1752,8 @@ bool csp_dispatch_opt::optimize_ampl()
     outputs.clear();
     outputs.resize(nt);
     
-    util::to_double(F.at(0), &lp_outputs.objective);
-    util::to_double(F.at(1), &lp_outputs.objective_relaxed);
+    util::to_double(F.at(0), &solver_outputs.objective);
+    util::to_double(F.at(1), &solver_outputs.objective_relaxed);
     
     std::vector< std::string > svals;
 
@@ -1880,7 +1880,7 @@ void csp_dispatch_opt::set_outputs_from_lp_solution(lprec* lp, unordered_map<std
 
 bool csp_dispatch_opt::set_dispatch_outputs()
 {
-    if (lp_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
+    if (solver_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
     {
         //calculate the current read step, account for number of dispatch steps per hour and the simulation time step
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)

@@ -116,7 +116,7 @@ void base_dispatch_opt::not_implemented_function(std::string function_name)
 void base_dispatch_opt::clear_output()
 {
     m_current_read_step = 0;
-    lp_outputs.clear_output();
+    solver_outputs.clear_output();
 }
 
 void base_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)

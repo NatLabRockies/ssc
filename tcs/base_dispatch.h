@@ -121,6 +121,15 @@ public:
 
     } pointers;
 
+    enum termination_flags {
+        optimal,
+        iteration,
+        timelimit,
+        mipgap,
+        mipgap_lpsolve,
+        failed
+    };
+
     struct s_solver_outputs
     {
         bool last_opt_successful;       //last optimization run was successful?
@@ -128,8 +137,8 @@ public:
         double objective_relaxed;
         double rel_mip_gap;
         int solve_iter;                 //Number of iterations required to solve
-        int solve_state;
-        int subopt_flag;                //Flag specifying information about LPSolve suboptimal result
+        int solve_state;                // TODO: Set this to NOTRUN or NOT_SOLVED depending on solver
+        termination_flags termination_flag;                //Flag specifying information about termination result
         double solve_time;
         int presolve_nconstr;
         int presolve_nvar;
@@ -141,7 +150,7 @@ public:
             rel_mip_gap = std::numeric_limits<double>::quiet_NaN();
             solve_iter = 0;
             solve_state = -1;
-            subopt_flag = -1;
+            termination_flag = termination_flags::failed;
             presolve_nconstr = 0;
             solve_time = 0.;
             presolve_nvar = 0;
@@ -151,7 +160,7 @@ public:
             s_solver_outputs();
         }
 
-    } lp_outputs;
+    } solver_outputs;
 
     struct s_disp_outputs
     {

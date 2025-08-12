@@ -36,13 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "base_dispatch.h"
 #include "dispatch_builder.h"
 
-/* Suboptimal dispatch flags */
-#define INTERATION              1
-#define TIMELIMIT               2
-#define MIPGAP                  3
-#define MIPGAPLPSOLVE           4
-#define FAILED                  5
-
 void __WINAPI opt_logfunction(lprec* lp, void* userhandle, char* buf);
 int __WINAPI opt_abortfunction(lprec* lp, void* userhandle);
 void __WINAPI opt_iter_function(lprec* lp, void* userhandle, int msg);
@@ -60,7 +53,7 @@ public:
     bool problem_scaling_solve_loop(lprec* lp);
 
     //Set LPsolve outputs
-    void set_lp_solve_outputs(lprec* lp);
+    void set_solver_outputs(lprec* lp);
 
     //Used by cmod to get dispatch annual stats on solves
     void count_solutions_by_type(std::vector<int>& flag, int dispatch_freq, std::string& log_msg);

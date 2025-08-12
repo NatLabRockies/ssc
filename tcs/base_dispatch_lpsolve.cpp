@@ -222,16 +222,16 @@ bool base_dispatch_lpsolve::problem_scaling_solve_loop(lprec* lp)
         }
 
         //record the solve state
-        lp_outputs.solve_state = solve(lp);
+        solver_outputs.solve_state = solve(lp);
 
-        is_opt_or_subopt = lp_outputs.solve_state == OPTIMAL || lp_outputs.solve_state == SUBOPTIMAL;
+        is_opt_or_subopt = solver_outputs.solve_state == OPTIMAL || solver_outputs.solve_state == SUBOPTIMAL;
 
         if (is_opt_or_subopt)
             break;      //break the scaling loop
 
         //If the problem was reported as unbounded, this probably has to do with poor scaling. Try again with no scaling.
         std::string fail_type;
-        switch (lp_outputs.solve_state)
+        switch (solver_outputs.solve_state)
         {
         case UNBOUNDED:
             fail_type = "... Unbounded";
@@ -259,60 +259,60 @@ bool base_dispatch_lpsolve::problem_scaling_solve_loop(lprec* lp)
     return is_opt_or_subopt;
 }
 
-void base_dispatch_lpsolve::set_lp_solve_outputs(lprec* lp)
+void base_dispatch_lpsolve::set_solver_outputs(lprec* lp)
 {
-    if (lp_outputs.solve_state == NOTRUN)
+    if (solver_outputs.solve_state == NOTRUN)
     {
-        throw std::runtime_error("LPSolve must be solved and solve_state must be set before running set_lp_solve_outputs()");
+        throw std::runtime_error("LPSolve must be solved and solve_state must be set before running set_solver_outputs()");
     }
 
     //keep track of problem efficiency
-    lp_outputs.presolve_nconstr = get_Nrows(lp);
-    lp_outputs.presolve_nvar = get_Ncolumns(lp);
-    lp_outputs.solve_time = time_elapsed(lp);
-    lp_outputs.solve_iter = (int)get_total_iter(lp);         //get number of iterations
+    solver_outputs.presolve_nconstr = get_Nrows(lp);
+    solver_outputs.presolve_nvar = get_Ncolumns(lp);
+    solver_outputs.solve_time = time_elapsed(lp);
+    solver_outputs.solve_iter = (int)get_total_iter(lp);         //get number of iterations
 
 
-    if (lp_outputs.solve_state == OPTIMAL || lp_outputs.solve_state == SUBOPTIMAL)
+    if (solver_outputs.solve_state == OPTIMAL || solver_outputs.solve_state == SUBOPTIMAL)
     {
-        lp_outputs.objective = get_objective(lp);
-        lp_outputs.objective_relaxed = get_bb_relaxed_objective(lp);
+        solver_outputs.objective = get_objective(lp);
+        solver_outputs.objective_relaxed = get_bb_relaxed_objective(lp);
     }
     else
     {
         //if the optimization wasn't successful, just set the objective values to zero - otherwise they are NAN
-        lp_outputs.objective = 0.;
-        lp_outputs.objective_relaxed = 0.;
+        solver_outputs.objective = 0.;
+        solver_outputs.objective_relaxed = 0.;
     }
 
     // When solve_state is 0, I believe this is the last known gap before tree was prune. Therefore, not reporting
-    if (lp_outputs.solve_state == SUBOPTIMAL)
-        lp_outputs.rel_mip_gap = std::abs(lp_outputs.objective - lp_outputs.objective_relaxed) / (1.0 + std::abs(lp_outputs.objective_relaxed));
+    if (solver_outputs.solve_state == SUBOPTIMAL)
+        solver_outputs.rel_mip_gap = std::abs(solver_outputs.objective - solver_outputs.objective_relaxed) / (1.0 + std::abs(solver_outputs.objective_relaxed));
     else
-        lp_outputs.rel_mip_gap = get_mip_gap(lp, FALSE);
+        solver_outputs.rel_mip_gap = get_mip_gap(lp, FALSE);
 
     // Set suboptimal state flag
-    if ((lp_outputs.solve_state == SUBOPTIMAL) && (solver_params.is_abort_flag)) {
-        if (lp_outputs.solve_iter > solver_params.max_bb_iter) {
-            lp_outputs.subopt_flag = INTERATION;    // stop due to iteration count
+    if ((solver_outputs.solve_state == SUBOPTIMAL) && (solver_params.is_abort_flag)) {
+        if (solver_outputs.solve_iter > solver_params.max_bb_iter) {
+            solver_outputs.termination_flag = termination_flags::iteration;    // stop due to iteration count
         }
         else {
-            lp_outputs.subopt_flag = MIPGAP;   // stop due to mip gap from abort function
+            solver_outputs.termination_flag = termination_flags::mipgap;   // stop due to mip gap from abort function
         }
     }
-    else if (lp_outputs.solve_state == SUBOPTIMAL) {
-        if (lp_outputs.solve_time > solver_params.solution_timeout) {
-            lp_outputs.subopt_flag = TIMELIMIT;   // stop due to time limit
+    else if (solver_outputs.solve_state == SUBOPTIMAL) {
+        if (solver_outputs.solve_time > solver_params.solution_timeout) {
+            solver_outputs.termination_flag = termination_flags::timelimit;   // stop due to time limit
         }
         else {
-            lp_outputs.subopt_flag = MIPGAPLPSOLVE;   // stop due to mip gap internal of LPSolve
+            solver_outputs.termination_flag = termination_flags::mipgap_lpsolve;   // stop due to mip gap internal of LPSolve
         }
     }
-    else if (lp_outputs.solve_state == OPTIMAL) {
-        lp_outputs.subopt_flag = OPTIMAL;
+    else if (solver_outputs.solve_state == OPTIMAL) {
+        solver_outputs.termination_flag = termination_flags::optimal;
     }
     else {
-        lp_outputs.subopt_flag = FAILED;
+        solver_outputs.termination_flag= termination_flags::failed;
     }
 }
 
@@ -322,19 +322,19 @@ void base_dispatch_lpsolve::count_solutions_by_type(std::vector<int>& flag, int 
     for (size_t i = 0; i < flag.size(); i += dispatch_freq)
     {
         // Mapping flags to solve state condition
-        if (flag[i] == OPTIMAL) {
+        if (flag[i] == termination_flags::optimal) {
             opt += 1;
         }
-        else if (flag[i] == INTERATION) {
+        else if (flag[i] == termination_flags::iteration) {
             iter += 1;
         }
-        else if (flag[i] == TIMELIMIT) {
+        else if (flag[i] == termination_flags::timelimit) {
             timeout += 1;
         }
-        else if (flag[i] == MIPGAP) {
+        else if (flag[i] == termination_flags::mipgap) {
             user_gap += 1;
         }
-        else if (flag[i] == MIPGAPLPSOLVE) {
+        else if (flag[i] == termination_flags::mipgap_lpsolve) {
             lpsolve_gap += 1;
         }
         else {
@@ -385,7 +385,7 @@ void base_dispatch_lpsolve::print_dispatch_update()
 
     int type = OPTIMAL;
 
-    switch (lp_outputs.solve_state)
+    switch (solver_outputs.solve_state)
     {
     case UNKNOWNERROR:
         type = C_csp_messages::WARNING;

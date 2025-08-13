@@ -71,6 +71,11 @@ void __WINAPI opt_iter_function(lprec* lp, void* userhandle, int msg)
         par->is_abort_flag = true;
 }
 
+void base_dispatch_lpsolve::set_default_solver_parameters()
+{
+    not_implemented_function((std::string)__func__);
+}
+
 
 lprec* base_dispatch_lpsolve::construct_lp_model(optimization_vars* opt_vars)
 {

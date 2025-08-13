@@ -43,7 +43,6 @@ protected:
     
     void clear_output();
 
-private:
     void not_implemented_function(std::string function_name);
 
 public:
@@ -192,9 +191,6 @@ public:
     base_dispatch_opt();
 
     virtual void init(double cycle_q_dot_des, double cycle_eta_des);
-
-    // Set default solver parameters if user did not set them
-    virtual void set_default_solver_parameters();
 
     //check parameters and inputs to make sure everything has been set up correctly
     bool check_setup();

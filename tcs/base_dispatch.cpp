@@ -124,11 +124,6 @@ void base_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
     not_implemented_function((std::string)__func__);
 }
 
-void base_dispatch_opt::set_default_solver_parameters()
-{
-    not_implemented_function((std::string)__func__);
-}
-
 bool base_dispatch_opt::check_setup()
 {
     //check parameters and inputs to make sure everything has been set up correctly

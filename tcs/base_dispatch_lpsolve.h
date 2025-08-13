@@ -43,6 +43,9 @@ void __WINAPI opt_iter_function(lprec* lp, void* userhandle, int msg);
 class base_dispatch_lpsolve : public base_dispatch_opt
 {
 public:
+    // Set default solver parameters if user did not set them
+    virtual void set_default_solver_parameters();
+
     //Constructs lp model
     lprec* construct_lp_model(optimization_vars* opt_vars);
 

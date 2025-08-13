@@ -1492,7 +1492,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
             send_callback((float)calc_frac_current * 100.f);
             ss.flush();
 
-            // Update horizon parameter values and inital condition parameters
+            // Update horizon parameter values
             if (!mc_dispatch.update_horizon_parameters(mc_tou)) {
                 throw(C_csp_exception("Dispatch failed to update horizon parameter values"));
             }
@@ -1506,6 +1506,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
                 )
                 )
             {
+                // initial condition parameters
                 mc_dispatch.update_initial_conditions(pc_heat_prev, m_T_htf_cold_des, pc_state_persist);
 
                 //call the optimize method

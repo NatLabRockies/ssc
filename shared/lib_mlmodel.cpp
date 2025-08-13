@@ -92,7 +92,7 @@ double IAMvalue_ASHRAE(double b0, double theta)
 {
 	return (1 - b0 * (1 / cos(theta) - 1));
 }
-double IAMvalue_SANDIA(double coeff[], double theta)
+double IAMvalue_SANDIA(double const coeff[], double const theta)
 {
 	return coeff[0] + coeff[1] * theta + coeff[2] * pow(theta, 2) + coeff[3] * pow(theta, 3) + coeff[4] * pow(theta, 4) + coeff[5] * pow(theta, 5);
 }
@@ -141,7 +141,7 @@ void mlmodel_module_t::initializeManual()
 }
 
 // Main module model
-bool mlmodel_module_t::operator() (pvinput_t &input, double T_C, double opvoltage, pvoutput_t &out)
+bool mlmodel_module_t::operator() (pvinput_t const &input, double T_C, double opvoltage, pvoutput_t &out) const
 {
 	// initialize output first
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;
@@ -283,7 +283,7 @@ bool mlmodel_module_t::operator() (pvinput_t &input, double T_C, double opvoltag
 
 // mockup cell temperature model
 // to be used in cases when Tcell is calculated within the module model
-bool mock_celltemp_t::operator() (pvinput_t &, pvmodule_t &, double, double &Tcell)
+bool mock_celltemp_t::operator() (pvinput_t const &, pvmodule_t const &, double, double &Tcell) const
 {
 	Tcell = -999;
 	return true;

@@ -1960,11 +1960,11 @@ public:
         double heater_spec_cost = 0.0;
         if (is_parallel_heater) {
 
-            if (!is_dispatch && sim_type == 1) {
-                if (!as_boolean("allow_heater_no_dispatch_opt")) {
-                    throw exec_error("tcsmolten_salt", "When the molten salt power tower case has an electric HTF charger, dispatch optimization must be selected");
-                }
-            }
+            //if (!is_dispatch && sim_type == 1) {
+            //    if (!as_boolean("allow_heater_no_dispatch_opt")) {
+            //        throw exec_error("tcsmolten_salt", "When the molten salt power tower case has an electric HTF charger, dispatch optimization must be selected");
+            //    }
+            //}
 
             double heater_mult = as_double("heater_mult");      //[-]
             heater_spec_cost = as_double("heater_spec_cost");   //[$/kWt]

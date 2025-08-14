@@ -1583,6 +1583,13 @@ public:
             Q_DOT_PC_MAX
         };
 
+        enum defocus_types
+        {
+            NEVER_DEFOCUS,
+            ALWAYS_DEFOCUS,
+            ONLY_DEFOCUS_IF_NET_POWER_TARGET
+        };
+
     protected:
 
         // Constructor arguments

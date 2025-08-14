@@ -1397,21 +1397,34 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
             }
         }
 
-        // After rules, reset booleans if necessary
-        if (q_dot_pc_target < q_dot_pc_min || q_dot_pc_target <= 0.)
-        {
-            is_pc_su_allowed = false;
-            is_pc_sb_allowed = false;
-            q_dot_pc_target = 0.0;
-        }
-
+        // Checks on q_dot_pc_target
         q_dot_elec_to_PAR_HTR = 0.0;
         is_PAR_HTR_allowed = false;
-        if (m_is_parallel_heater && !is_pc_su_allowed && !is_pc_sb_allowed &&
-            purchase_mult < 1.0 && q_dot_tes_ch > 0.0) {
 
-            is_PAR_HTR_allowed = true;
-            q_dot_elec_to_PAR_HTR = m_PAR_HTR_q_dot_rec_des;    //[MWt]
+        // If less than q_pc min, then need to determine whether importing or off
+        if (q_dot_pc_target < q_dot_pc_min) {
+
+            is_pc_su_allowed = false;
+            is_pc_sb_allowed = false;
+
+            // if positive target, then sitting in zone between 0 and min, so keep heater off
+            if (q_dot_pc_target >= 0.0) {
+                
+                q_dot_pc_target = 0.0;
+                W_dot_system_max = 0.0;
+            }
+            // if negative target, is heater allowed and tes available?
+            else if(m_is_parallel_heater && q_dot_tes_ch) {
+
+                is_PAR_HTR_allowed = true;
+                q_dot_elec_to_PAR_HTR = std::min(std::abs(q_dot_pc_target), m_PAR_HTR_q_dot_rec_des);    //[MWt]
+            }
+            // negative target, but no heater or no tes
+            else {
+
+                q_dot_pc_target = 0.0;
+                W_dot_system_max = 0.0;
+            }
         }
     }
     // Use simply policy to govern arbitrage operation

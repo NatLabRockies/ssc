@@ -1841,6 +1841,8 @@ void irrad::setup() {
     elevation = 0;
     pressure = 1013.25;
     tamb = 15;
+    pwater = 0;
+    pwater = 0;
 
     globalHorizontal = directNormal = diffuseHorizontal = -999;
 
@@ -2145,7 +2147,7 @@ void irrad::set_location(double latDegrees, double longDegrees, double tz) {
     this->timezone = tz;
 }
 
-void irrad::set_optional(double elev, double pres, double t_amb) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
+void irrad::set_optional(double elev, double pres, double t_amb, double prec_water) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
 {
     if (!std::isnan(elev) && elev >= 0)
         this->elevation = elev;
@@ -2153,13 +2155,16 @@ void irrad::set_optional(double elev, double pres, double t_amb) //defaults of 0
         this->pressure = pres;
     if (!std::isnan(t_amb))
         this->tamb = t_amb;
+    if (!std::isnan(prec_water))
+        this->pwater = prec_water;
 }
 
-void irrad::get_optional(double *elev, double *pres, double *t_amb) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
+void irrad::get_optional(double *elev, double *pres, double *t_amb, double *prec_water) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
 {
     *elev = this->elevation;
     *pres = this->pressure;
     *t_amb = this->tamb;
+    *prec_water = this->pwater;
 }
 
 void irrad::set_subhourly_clipping(bool enable)

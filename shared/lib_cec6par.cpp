@@ -45,7 +45,6 @@ static const double KB = 8.618e-5; // Boltzmann constant [eV/K] note units
 static const double k_air=0.02676, mu_air=1.927E-5, Pr_air=0.724;  // !Viscosity in units of N-s/m^2
 static const double EmisC = 0.84, EmisB = 0.7;  // Emissivities of glass cover, backside material
 static const double sigma = 5.66961E-8, cp_air = 1005.5;
-static double amavec[5] = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };	// !Air mass modifier coefficients as indicated for polycrystalline modules in Table A1 of DeSoto paper published in Solar Energy  Vol 80 Issue 1 January 2006
 
 static const double Tc_ref = (25+273.15); // 25 'C
 static const double I_ref = 1000; // 1000 W/m2
@@ -148,7 +147,8 @@ bool cec6par_module_t::operator() ( pvinput_t &input, double TcellC, double opvo
 		if (theta_z > 86.0) theta_z = 86.0; // !Zenith angle must be < 90 (?? why 86?)
 		if (theta_z < 0) theta_z = 0; // Zenith angle must be >= 0
 
-		Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );
+		//Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );
+        Geff_total *= input.SCF;
 	
 	}
     else { // Even though we're using POA ref. data, we may still need to use the decomposed poa
@@ -241,7 +241,8 @@ bool noct_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 			tau_al *= Geff_total/G_total;
 			
 		// !Calculation of Air Mass Modifier
-		Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );	
+		//Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );
+        Geff_total *= input.SCF;
 
 	} else { // Even though we're using POA ref. data, we may still need to use the decomposed poa
 		if( input.usePOAFromWF )
@@ -436,8 +437,10 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 	//!Calculation of Air Mass Modifier
 	if  (THETAZ < 0) THETAZ=0;
 	//double AMASS      = 1/(cosd(THETAZ)+0.5057*pow(96.080-THETAZ,-1.634));
-	double MAM        = //a0+a1*AMASS+a2*pow(AMASS,2)+a3*pow(AMASS,3)+a4*pow(AMASS,4);
-		air_mass_modifier( THETAZ, input.Elev, amavec );
+	//double MAM        = //a0+a1*AMASS+a2*pow(AMASS,2)+a3*pow(AMASS,3)+a4*pow(AMASS,4);
+	//	air_mass_modifier( THETAZ, input.Elev, amavec );
+    double MAM = //a0+a1*AMASS+a2*pow(AMASS,2)+a3*pow(AMASS,3)+a4*pow(AMASS,4);
+        input.SCF;
 	SUNEFF     = SUNEFF*MAM;
 
 	if (SUNEFF < 1)

@@ -81,6 +81,7 @@ static var_info _cm_vtab_wfreader[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,       "pres",                    "Atmospheric Pressure",             "millibar", "",                    "Weather Reader",      "header_only=0",                        "LENGTH_EQUAL=year",     "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,       "snow",                    "Snow Depth",                       "cm",    "",                       "Weather Reader",      "header_only=0",                        "LENGTH_EQUAL=year",     "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,       "albedo",                  "Ground Reflectance",               "frac",  "0..1",                   "Weather Reader",      "header_only=0",                        "LENGTH_EQUAL=year",     "" },
+    { SSC_OUTPUT,        SSC_ARRAY,       "pwater",                  "Precipitable Water",               "cm",    "",                       "Weather Reader",      "header_only=0",                        "LENGTH_EQUAL=year",     "" },
 
 // annual statistics
 	{ SSC_OUTPUT,        SSC_NUMBER,      "annual_glob",           "Average daily global horizontal",  "kWh/m2/day",   "",                "Weather Reader",      "header_only=0",                        "",     "" },
@@ -93,6 +94,7 @@ static var_info _cm_vtab_wfreader[] = {
 
 	{ SSC_OUTPUT, SSC_NUMBER, "annual_snow", "Maximum snow depth", "cm", "", "Weather Reader", "header_only=0", "", "" },
 	{ SSC_OUTPUT, SSC_NUMBER, "annual_albedo", "Average albedo", "", "", "Weather Reader", "header_only=0", "", "" },
+    { SSC_OUTPUT, SSC_NUMBER, "annual_precipiation", "Annual precipitation", "cm", "", "Weather Reader", "header_only=0", "", "" },
 
 var_info_invalid };
 
@@ -173,9 +175,11 @@ public:
 		ssc_number_t *p_pres = allocate( "pres", records );
 		ssc_number_t *p_snow = allocate( "snow", records );
 		ssc_number_t *p_albedo = allocate( "albedo", records );
+        ssc_number_t* p_pwater = allocate("pwater", records);
 
 		double gh_sum = 0.0, dn_sum = 0.0, df_sum = 0.0;
 		double temp_sum = 0.0, twet_sum = 0.0, wind_sum = 0.0, albedo_sum = 0.0;
+        double pwater_sum = 0.0;
 		double snow_max = -1;
 
 		double ts_hour = wfile.step_sec() / 3600.0;
@@ -207,6 +211,7 @@ public:
 			p_pres[i] = (ssc_number_t)wf.pres;
 			p_snow[i] = (ssc_number_t)wf.snow;
 			p_albedo[i] = (ssc_number_t)wf.alb;
+            p_pwater[i] = (ssc_number_t)wf.pwater;
 
 			gh_sum += wf.gh * ts_hour;
 			dn_sum += wf.dn * ts_hour;
@@ -215,6 +220,7 @@ public:
             twet_sum += wf.twet;
 			wind_sum += wf.wspd;
 			albedo_sum += wf.alb;
+            pwater_sum += wf.pwater;
 			if (!std::isnan(wf.snow) && (wf.snow > snow_max))
 				snow_max = wf.snow;
 		}
@@ -231,6 +237,7 @@ public:
 		assign("annual_wspd", var_data((ssc_number_t)(wind_sum / records)));
 		assign("annual_snow", var_data((ssc_number_t)snow_max));
 		assign("annual_albedo", var_data((ssc_number_t)(albedo_sum / records)));
+        assign("annual_precipiation", var_data((ssc_number_t)(pwater_sum)));
 
 	}
 };

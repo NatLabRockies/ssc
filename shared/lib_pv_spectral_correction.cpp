@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 
 #include "lib_pv_incidence_modifier.h"
+#include "lib_util.h"
+#include "../ssc/vartab.h"
+#include "../ssc/core.h"
 
 //def spectral_factor_firstsolar(precipitable_water, airmass_absolute,
 //    module_type = None, coefficients = None,
@@ -221,13 +224,13 @@ static double coeffs[6] = { 0.86273, -0.038948, -0.012506, 0.098871, 0.084658, -
 static double amavec[5] = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };	// !Air mass modifier coefficients as indicated for polycrystalline modules in Table A1 of DeSoto paper published in Solar Energy  Vol 80 Issue 1 January 2006
 
 
-double spectral_correction_first_solar(double prec_water, double abs_airmass, int celltech, std::vector<double> coeff_inputs = { 0.0 },
+double spectral_correction_lee(double prec_water, double abs_airmass, int celltech, std::vector<double> coeff_inputs,
     double min_prec_water, double max_prec_water, double min_abs_airmass, double max_abs_airmass) {
     //Check for bounds of precipitable water
     double pw = prec_water;
     if (pw < min_prec_water) {
         pw = min_prec_water;
-        log("Precipatble water below minimum threshold. Replacing with minimum threshold");
+        //log("Precipatble water below minimum threshold. Replacing with minimum threshold");
     }
     else if (pw > max_prec_water) {
         pw = max_prec_water;
@@ -259,7 +262,9 @@ double spectral_correction_first_solar(double prec_water, double abs_airmass, in
         case 5: // Amorphous
             coeff = { 1.12094, -0.047620, -0.0083627, -0.10443, 0.098382, -0.0033818 };
         default:
-            m_err = "Invalid cell technology type provided.";
+            //m_err = "Invalid cell technology type provided.";
+            coeff = { 0.85914, -0.020880, -0.0058853, 0.12029, 0.026814, -0.0017810 };
+
         }
 
     }
@@ -271,18 +276,20 @@ double spectral_correction_first_solar(double prec_water, double abs_airmass, in
 
 }
 
-double spectral_correction_king(double abs_airmass, double Zenith_deg, double Elev_m, double a[5] = amavec)
+double spectral_correction_king(double abs_airmass, double Zenith_deg, double Elev_m, std::vector<double> a)
 {
     // !Calculation of Air Mass Modifier
     double air_mass = abs_airmass;
-    air_mass *= exp(-0.0001184 * Elev_m); // 'optional' correction for elevation (m), as applied in Sandia PV model
+    //air_mass *= exp(-0.0001184 * Elev_m); // 'optional' correction for elevation (m), as applied in Sandia PV model
     double f1 = a[0] + a[1] * air_mass + a[2] * pow(air_mass, 2) + a[3] * pow(air_mass, 3) + a[4] * pow(air_mass, 4);
     return f1 > 0.0 ? f1 : 0.0;
 }
 
-double spectral_correction_pelland(double abs_airmass, double csky_index, int celltech, vector<double> coeff_inputs = { 0.0 }) {
+double spectral_correction_pelland(double abs_airmass, double csky_index, int celltech, std::vector<double> coeff_inputs = { 0.0 }) {
+
+    std::vector<double> coeff;
     if (coeff_inputs.size() != 3) {
-        switch (type)
+        switch (celltech)
         {
         case 0: //monoSi
             coeff = { 0.9845, -0.05169, 0.03034 };
@@ -298,7 +305,8 @@ double spectral_correction_pelland(double abs_airmass, double csky_index, int ce
         case 5: // Amorphous
             coeff = { 1.051, -0.1033, 0.009838 };
         default:
-            m_err = "Invalid cell technology type provided.";
+            coeff = { 0.9845, -0.05169, 0.03034 };
+            //m_err = "Invalid cell technology type provided.";
         }
 
     }
@@ -324,3 +332,62 @@ static double sandia_absolute_air_mass(double SolZen, double Altitude)
     else
         return 999;
 }
+
+double spectral_correction_factor(compute_module* cm, double pwater, double solzen = 0.0, double alt = 0.0, double csky_index = 0.0) {
+
+    if (!cm)
+        return 0;
+    //Spectral correction functions
+    int model_type = cm->as_integer("spectral_correction_model_choice");
+    int celltech = cm->as_integer("celltech");
+    double prec_water = pwater;
+    double min_prec_water = cm->as_double("min_prec_water");
+    double max_prec_water = cm->as_double("max_prec_water");
+    double min_abs_airmass = cm->as_double("min_abs_airmass");
+    double max_abs_airmass = cm->as_double("max_abs_airmass");
+    std::vector<double> coeff_inputs;
+    size_t* coeff_size;
+    //Check if precipitable water exists
+    if(isnan(pwater)) model_type = 1; //King, no precipitation data needed
+    if(model_type == 0) {
+        coeff_inputs = cm->as_vector_double("coeff_inputs_fs");
+    }
+    else if (model_type == 1) {
+        coeff_inputs = cm->as_vector_double("coeff_inputs_king");
+    }
+    else if (model_type == 2) {
+        coeff_inputs = cm->as_vector_double("coeff_inputs_pelland");
+    }
+
+    double abs_airmass = sandia_absolute_air_mass(solzen, alt);
+    double scf = 0;
+    if (model_type == 0) { //Default First Solar (TODO: rename with author of paper)
+        scf = spectral_correction_lee(prec_water, abs_airmass, celltech, coeff_inputs,
+            min_prec_water, max_prec_water, min_abs_airmass, max_abs_airmass);
+    }
+    else if (model_type == 1) { //King
+        scf = spectral_correction_king(abs_airmass, solzen, alt, coeff_inputs);
+    }
+    else if (model_type == 2) { //Pelland
+        scf = spectral_correction_pelland(abs_airmass, csky_index, celltech, coeff_inputs);
+    }
+    else {
+        scf = 1; //How to handle errors
+    }
+    return scf;
+}
+
+var_info vtab_spectral_correction[] = {
+    // instantaneous power at each timestep - consistent with sun position
+{ SSC_INPUT, SSC_NUMBER , "spectral_correction_model_choice",                 "Spectral correction model choice",                        "0/1/2",         "", "Spectral Correction",      "?=0",     "",    ""},
+{ SSC_INPUT, SSC_NUMBER , "celltech",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=0",     "",    ""},
+{ SSC_INPUT, SSC_NUMBER , "min_prec_water",                 "Minimum precipitable water",                        "",         "", "Spectral Correction",      "?=0.1",     "",    ""},
+{ SSC_INPUT, SSC_NUMBER , "max_prec_water",                 "Maximum precipitable water",                        "",         "", "Spectral Correction",      "?=8",     "",    ""},
+{ SSC_INPUT, SSC_NUMBER , "min_abs_airmass",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=0.58",     "",    ""},
+{ SSC_INPUT, SSC_NUMBER , "max_abs_airmass",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=10",     "",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_lee",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_king",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_pelland",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "",    ""},
+{ SSC_OUTPUT, SSC_MATRIX, "annual_energy_distribution_time",	   "Annual energy production as function of time",	"kW",		  "", "Heatmaps",		  "",	   "",	  ""},
+
+    var_info_invalid };

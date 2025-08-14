@@ -998,6 +998,7 @@ bool weatherfile::open(const std::string& file, bool header_only)
                 else if (lowname == "snow" || lowname == "snow cover" || lowname == "snow depth") m_columns[SNOW].index = i;
                 else if (lowname == "alb" || lowname == "albedo" || lowname == "surface albedo") m_columns[ALB].index = i;
                 else if (lowname == "aod" || lowname == "aerosol" || lowname == "aerosol optical depth") m_columns[AOD].index = i;
+                else if (lowname == "pwater" || lowname == "precipitable water" || lowname == "precipitation" || lowname == "rainfall") m_columns[PWATER].index = i;
             }
         }
     }

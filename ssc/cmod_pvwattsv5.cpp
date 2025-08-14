@@ -152,7 +152,7 @@ protected:
 
     double ibeam, iskydiff, ignddiff;
     double solazi, solzen, solalt, aoi, stilt, sazi, rot, btd;
-    double elevation, pressure, t_amb;
+    double elevation, pressure, t_amb, pwater;
     int sunup;
 
     std::unique_ptr<pvwatts_celltemp> tccalc;
@@ -259,7 +259,7 @@ public:
         irr.get_sun(&solazi, &solzen, &solalt, 0, 0, 0, &sunup, 0, 0, 0);
         irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
         irr.get_poa(&ibeam, &iskydiff, &ignddiff, 0, 0, 0);
-        irr.get_optional(&elevation, &pressure, &t_amb);
+        irr.get_optional(&elevation, &pressure, &t_amb, &pwater);
 
 
         return code;

@@ -46,7 +46,7 @@ public:
 		double ta, double td, double ws, double wd, double patm,
 		double zen, double inc, 
 		double elv, double tlt, double azi,
-		double hrday, int rmode , bool up);
+		double hrday, double scf, int rmode , bool up);
 
 	double Ibeam; // beam irradiance, W/m2
 	double Idiff; // sky diffuse irradiance, W/m2
@@ -64,6 +64,7 @@ public:
 	double Tilt; // surface tilt angle, deg +from horizontal
 	double Azimuth; // surface azimuth angle, deg +from north (E=90,S=180)
 	double HourOfDay; // hour of the day 0=12am, 23=11pm
+    double SCF; //spectral correction factor 
 	int radmode; //radiation mode
 	bool usePOAFromWF; // use poa directly flag
 };

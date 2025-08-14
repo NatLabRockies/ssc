@@ -818,7 +818,7 @@ public:
         size_t idx_life = 0;
         float percent = 0;
         int n_alb_errs = 0;
-        double elev, pres, t_amb;
+        double elev, pres, t_amb, pwater;
         irrad irr;
         if (nyears > 1)
             irr.setup_solarpos_outputs_for_lifetime(nrec);
@@ -936,7 +936,7 @@ public:
                 irr.get_sun(&solazi, &solzen, &solalt, nullptr, nullptr, nullptr, &sunup, nullptr, nullptr, nullptr); //nullptr used when you don't need to retrieve the output
                 irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
                 irr.get_poa(&ibeam, &iskydiff, &ignddiff, nullptr, nullptr, nullptr); //nullptr used when you don't need to retrieve the output
-                irr.get_optional(&elev, &pres, &t_amb);
+                irr.get_optional(&elev, &pres, &t_amb, &pwater);
 
                 if (module.bifaciality > 0)
                 {
@@ -1240,11 +1240,12 @@ public:
                     // set up inputs to module model for both temperature and subsequent CEC module model calculations
                     // bifaciality is applied to irear on line 885 above for fixed arrays and line 962 for trackers - so, module.bifaciality should not be applied again here - SAM issue 1151
                     //pvinput_t in((f_nonlinear < 1.0 && poa > 0.0) ? ibeam_unselfshaded : ibeam, iskydiff, ignddiff, irear* module.bifaciality, poa_for_power,
+                    double scf = 1.0; //todo replace
                     pvinput_t in((f_nonlinear < 1.0 && poa > 0.0) ? ibeam_unselfshaded : ibeam, iskydiff, ignddiff, irear, poa_for_power,
                         wf.tdry, wf.tdew, wf.wspd, wf.wdir, wf.pres,
                         solzen, aoi, elev,
                         stilt, sazi,
-                        ((double)wf.hour) + wf.minute / 60.0,
+                        ((double)wf.hour) + wf.minute / 60.0, scf,
                         irrad::DN_DF, false);
 
                     // module temperature calculations

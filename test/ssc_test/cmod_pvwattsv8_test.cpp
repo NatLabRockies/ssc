@@ -660,7 +660,7 @@ TEST_F(CmodPVWattsv8Test, ManyRunsEPW) {
     file_outputs += "/test/input_json/TechnologyModels/pvwattsv8/PVWatts_None_cmod_pvwattsv8_outputs.json";
     std::vector<std::string> compare_number_variables = { "annual_energy" };
     std::vector<std::string> compare_array_variables = { "gen", "inv_eff_output" };
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 20000; i++) {
         EXPECT_NO_THROW(
             Test("pvwattsv8", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 0.01,"G1300450.epw")
         );

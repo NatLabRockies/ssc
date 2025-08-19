@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __lib_ptes_chp_dispatch_
+#define __lib_ptes_chp_dispatch_
 
 #include <vector>
 #include "ortools/linear_solver/linear_solver.h"
@@ -474,3 +475,5 @@ public:
 
 
 };
+
+#endif // !__lib_ptes_chp_dispatch_

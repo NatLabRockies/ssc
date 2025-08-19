@@ -29,10 +29,8 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-#pragma once
-#pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
+#ifndef __dispatch_builder_
+#define __dispatch_builder_
 
 #include <vector>
 #include <string>
@@ -95,3 +93,5 @@ public:
     opt_var* get_var(const std::string& varname);
     opt_var* get_var(int varindex);
 };
+
+#endif //__dispatch_builder_

@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include <lib_ortools.h>
 #include "ortools/linear_solver/linear_solver.h"
+#include "ortools/math_opt/cpp/math_opt.h"
 #include <lib_ptes_chp_dispatch.h>
 
 using namespace operations_research;
@@ -82,6 +83,7 @@ TEST(lib_ptes_chp_dispatch_test, test)
     };
 
     std::vector<run_time> times;
+    times.clear();
     run_time run;
     run.opt_horizon = data->n_periods;
     run.roll_horizon = 0;
@@ -112,28 +114,175 @@ TEST(lib_ptes_chp_dispatch_test, test)
         }
     }
 
-    LOG(INFO) << std::setfill(' ') << std::left << std::setw(15) << "Opt. Horizon"
-        << std::left << std::setw(15) << "Roll Horizon"
-        << std::left << std::setw(15) << "Time (sec)"
-        << std::endl;
-    for (int i = 0; i < times.size(); i++) {
-        LOG(INFO) << std::setfill(' ') << std::left << std::setw(15) << times[i].opt_horizon
-            << std::left << std::setw(15) << times[i].roll_horizon
-            << std::left << std::setw(15) << times[i].time
-            << std::endl;
-    }
+    //LOG(INFO) << std::setfill(' ') << std::left << std::setw(15) << "Opt. Horizon"
+    //    << std::left << std::setw(15) << "Roll Horizon"
+    //    << std::left << std::setw(15) << "Time (sec)"
+    //    << std::endl;
+    //for (int i = 0; i < times.size(); i++) {
+    //    LOG(INFO) << std::setfill(' ') << std::left << std::setw(15) << times[i].opt_horizon
+    //        << std::left << std::setw(15) << times[i].roll_horizon
+    //        << std::left << std::setw(15) << times[i].time
+    //        << std::endl;
+    //}
 
-    std::ofstream outputfile;
-    outputfile.open(input_dir + res_dir + "times.txt", std::ios_base::app);
-    std::string var_header = "Opt. Horizon, Roll Horizon, Time (sec)";
-    outputfile << var_header << std::endl;
-    for (int i = 0; i < times.size(); i++) {
-        outputfile << times[i].opt_horizon
-            << ", " << times[i].roll_horizon
-            << ", " << times[i].time
-            << std::endl;
-    }
-    outputfile.close();
+    //std::ofstream outputfile;
+    //outputfile.open(input_dir + res_dir + "times.txt", std::ios_base::app);
+    //std::string var_header = "Opt. Horizon, Roll Horizon, Time (sec)";
+    //outputfile << var_header << std::endl;
+    //for (int i = 0; i < times.size(); i++) {
+    //    outputfile << times[i].opt_horizon
+    //        << ", " << times[i].roll_horizon
+    //        << ", " << times[i].time
+    //        << std::endl;
+    //}
+    //outputfile.close();
 
     // return EXIT_SUCCESS;
 }
+
+TEST(math_opt_test, basic_example_test) {
+
+    // Simple test to build a math_opt model and solve using multiple solvers
+
+    math_opt::Model model("basic_example");
+    const math_opt::Variable x = model.AddContinuousVariable(-1.0, 1.5, "x");
+    const math_opt::Variable y = model.AddContinuousVariable(0.0, 1.0, "y");
+    //const math_opt::Variable z = model.AddBinaryVariable("z");                  // Adding a binary to make it a MILP
+
+    // TODO: Fails due to linking issues with absl_dll? Seems to be a problem with ABSL_DLL macro
+    //model.AddLinearConstraint(x + y <= 1.5, "c1");
+    // Another try same result
+    //math_opt::LinearConstraint c1 = model.AddLinearConstraint(0.0, 1.5, "c1");
+    //model.set_coefficient(c1, x, 1.0);
+    //model.set_coefficient(c1, y, 1.0);
+
+    //model.AddLinearConstraint(x <= 1.5 * z, "c2");
+
+
+    //model.Maximize(x + 2 * y);
+
+    // Set parameters, e.g., turn on logging
+    //math_opt::SolveArguments args;
+    //args.parameters.enable_output = true;
+
+    // Solve the model using the GLOP solver
+    //const absl::StatusOr<math_opt::SolveResult> result = math_opt::Solve(model, math_opt::SolverType::kGlop, args);
+    //const absl::StatusOr<math_opt::SolveResult> result = math_opt::Solve(model, math_opt::SolverType::kXpress);
+
+
+    //ASSERT_TRUE(result.ok()) << result.status().ToString();
+    //CHECK_OK(result.status());
+    //CHECK_OK(result->termination.EnsureIsOptimal());
+
+    // Print some information from the result.
+    //std::cout << "MathOpt solve succeeded" << std::endl;
+    //std::cout << "Objective value: " << result->objective_value() << std::endl;
+    //std::cout << "x: " << result->variable_values().at(x) << std::endl;
+    //std::cout << "y: " << result->variable_values().at(y) << std::endl;
+    //std::cout << "z: " << result->variable_values().at(z) << std::endl;
+}
+
+TEST(linear_solver_test, basic_example_test) {
+    // Create the linear solver with the GLOP backend.
+    //std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("GLOP"));     // LP
+    //std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("XPRESS"));   // LP or MILP
+    //std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("SCIP"));
+    //std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("GLPK"));
+    //std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("CLP"));
+    std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("CBC"));
+    //std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("HIGHS"));
+
+    // Removes HIGHS naming error
+    //MPSolver solver_obj = MPSolver("testing", MPSolver::OptimizationProblemType::HIGHS_MIXED_INTEGER_PROGRAMMING);
+    //MPSolver* solver = &solver_obj; // Using MPSolver object directly instead of unique_ptr
+
+    if (!solver) {
+        LOG(WARNING) << "Could not create solver";
+        return;
+    }
+
+    // Create the variables x and y.
+    MPVariable* const x = solver->MakeNumVar(0.0, 1, "x");
+    MPVariable* const y = solver->MakeNumVar(0.0, 2, "y");
+
+    LOG(INFO) << "Number of variables = " << solver->NumVariables();
+
+    // Create a linear constraint, x + y <= 2.
+    const double infinity = solver->infinity();
+    MPConstraint* const ct = solver->MakeRowConstraint(-infinity, 2.0, "ct");
+    ct->SetCoefficient(x, 1);
+    ct->SetCoefficient(y, 1);
+
+    LOG(INFO) << "Number of constraints = " << solver->NumConstraints();
+
+    // Create the objective function, 3 * x + y.
+    MPObjective* const objective = solver->MutableObjective();
+    objective->SetCoefficient(x, 3);
+    objective->SetCoefficient(y, 1);
+    objective->SetMaximization();
+
+    LOG(INFO) << "Solving with " << solver->SolverVersion();
+    MPSolver::ResultStatus result_status = solver->Solve();
+    // Check that the problem has an optimal solution.
+    LOG(INFO) << "Status: " << result_status;
+    if (result_status != MPSolver::OPTIMAL) {
+        LOG(INFO) << "The problem does not have an optimal solution!";
+        if (result_status == MPSolver::FEASIBLE) {
+            LOG(INFO) << "A potentially suboptimal solution was found";
+        }
+        else {
+            LOG(WARNING) << "The solver could not solve the problem.";
+            return;
+        }
+    }
+
+    LOG(INFO) << "Solution:";
+    LOG(INFO) << "Objective value = " << objective->Value();
+    LOG(INFO) << "x = " << x->solution_value();
+    LOG(INFO) << "y = " << y->solution_value();
+
+
+    LOG(INFO) << "Changing the x bounds and solving again";
+    //solver->variables();
+    x->SetBounds(0.5, 3); // Updating bounds
+    result_status = solver->Solve();
+    LOG(INFO) << "Solution:";
+    LOG(INFO) << "Objective value = " << objective->Value();
+    LOG(INFO) << "x = " << x->solution_value();
+    LOG(INFO) << "y = " << y->solution_value();
+
+    LOG(INFO) << "Changing the constraint and solving again";
+    //solver->constraints();
+    ct->SetCoefficient(x, 2);
+    result_status = solver->Solve();
+    LOG(INFO) << "Solution:";
+    LOG(INFO) << "Objective value = " << objective->Value();
+    LOG(INFO) << "x = " << x->solution_value();
+    LOG(INFO) << "y = " << y->solution_value();
+
+    LOG(INFO) << "Changing the objective and solving again";
+    solver->MutableObjective()->SetCoefficient(x, 1);
+    result_status = solver->Solve();
+    LOG(INFO) << "Solution:";
+    LOG(INFO) << "Objective value = " << objective->Value();
+    LOG(INFO) << "x = " << x->solution_value();
+    LOG(INFO) << "y = " << y->solution_value();
+
+
+    //LOG(INFO) << "Waiting 60 seconds...";
+    //std::this_thread::sleep_for(std::chrono::seconds(60));
+    //LOG(INFO) << "Done...";
+}
+
+
+// TODO: Can't get this working due to linking issues...
+//namespace operations_research::math_opt {
+//
+//    using ::testing::status::IsOkAndHolds;
+//
+//    TEST(SmallModelTest, Integer) {
+//        const std::unique_ptr<const Model> model = SmallModel(/*integer=*/true);
+//        Solve(*model, SolverType::kGscip);
+//        //EXPECT_THAT(Solve(*model, SolverType::kGscip), IsOkAndHolds(IsOptimal(9.0)));
+//    }
+//}

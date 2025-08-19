@@ -62,7 +62,7 @@ GTEST_API_ int main(int argc, char **argv) {
     //::testing::GTEST_FLAG(filter) = "CmodCashLoanTest*:CmodSingleOwnerTest*";
     //::testing::GTEST_FLAG(filter) = "Solesca*";
 
-    ::testing::GTEST_FLAG(filter) = "lib_ptes_chp_dispatch_test*";
+    ::testing::GTEST_FLAG(filter) = "lib_ptes_chp_dispatch_test.test:math_opt_test.basic_example_test:linear_solver_test.basic_example_test:SmallModelTest.Integer";
     //::testing::GTEST_FLAG(filter) = "CmodFresnelPhysicalTest.MSLFDefault";
 
     //    filter to exclude

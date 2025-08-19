@@ -53,7 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_pc_Rankine_indirect_224.h"
 #include "csp_solver_two_tank_tes.h"
 
-#include "csp_dispatch.h"
+//#include "csp_dispatch.h"
+#include "csp_dispatch_ortools.h"
 
 #include "csp_solver_cr_electric_resistance.h"
 #include "csp_solver_cavity_receiver.h"
@@ -2263,7 +2264,8 @@ public:
 
         // *****************************************************
         // System dispatch
-        csp_dispatch_opt dispatch;
+        csp_dispatch_ortools dispatch;
+        //csp_dispatch_opt dispatch;
 
         if (is_dispatch && sim_type == 1){
 

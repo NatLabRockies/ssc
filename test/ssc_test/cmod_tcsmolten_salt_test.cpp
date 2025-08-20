@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 #include "tcsmolten_salt_defaults.h"
+#include "cmod_tcsmolten_salt_test.h"
 #include "csp_common_test.h"
 #include "vs_google_test_explorer_namespace.h"
 
@@ -360,6 +361,47 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, Dispatch_Targets_Default_NoFinancial) 
         EXPECT_FALSE(true); //needed to make the test fail for output
     }
 }
+
+TEST_F(CmodMSPTTest, ELEC_HEATER) {
+    std::string file_inputs = SSCDIR;
+    // Had to decrease default freeze protection temp to get empirical field + steam heat sink to solve
+    file_inputs += "/test/input_json/TechnologyModels/mspt/25.06.03-dev-mspt-electric-heater.json";
+    std::string file_outputs = SSCDIR;
+
+    char solar_resource_path[256];
+    std::string sWeatherFile = "%s/test/input_cases/general_data/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv";
+    int npvy1 = sprintf(solar_resource_path, sWeatherFile.c_str(), std::getenv("SSCDIR")); // TODO - update for robustness
+    std::ifstream file(file_inputs);
+    std::ostringstream tmp;
+    tmp << file.rdbuf();
+    file.close();
+    ssc_data_t dat_inputs = json_to_ssc_data(tmp.str().c_str());
+    ssc_data_set_string(dat_inputs, "solar_resource_file", solar_resource_path);
+
+    // Requires dispatch optimization, which takes forever, so let's just simulate a few days
+    ssc_data_set_number(dat_inputs, "time_start", 0);
+    ssc_data_set_number(dat_inputs, "time_stop", 3600 * 10 * 24);   // first 10 days
+
+    std::string cmod = "tcsmolten_salt";
+
+    tmp.str("");
+    int errors = run_module(dat_inputs, cmod);
+
+    EXPECT_FALSE(errors);
+    if (!errors)
+    {
+        ssc_data_t dat_outputs = json_to_ssc_data(tmp.str().c_str());
+
+        double annual_energy_calc = std::numeric_limits<double>::quiet_NaN();
+        ssc_data_get_number(dat_inputs, "annual_energy", &annual_energy_calc);
+
+        // annual electricity is negative from so much grid charging - convert to positive values
+        EXPECT_NEAR_FRAC(-annual_energy_calc, 9047502., 0.001);
+    }
+    ssc_data_free(dat_inputs);
+    dat_inputs = nullptr;
+}
+
 
 /// Test tcsmolten_salt with alternative condenser type: Evaporative
 /// Rest default configurations with respect to the single owner financial model

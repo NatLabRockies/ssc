@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 #include "trough_physical_iph_defaults.h"
+#include "cmod_trough_physical_iph.h"
 #include "csp_common_test.h"
 #include "vs_google_test_explorer_namespace.h"
 
@@ -65,4 +66,39 @@ NAMESPACE_TEST(csp_trough, HeatTroughCmod, Default_NoFinancial)
         EXPECT_NEAR_FRAC(heat_trough.GetOutput("annual_total_water_use"), 176.3, kErrorToleranceHi);
 
     }
+}
+
+TEST_F(CmodPhysicalTroughIPHTest, TROUGH_IPH_NOFIN_THERMOCLINE) {
+    std::string file_inputs = SSCDIR;
+    // Had to decrease default freeze protection temp to get empirical field + steam heat sink to solve
+    file_inputs += "/test/input_json/TechnologyModels/physical_trough/2025.06.02_develop_phys_trough_iph_nofin_thermocline.json";
+    std::string file_outputs = SSCDIR;
+
+    char solar_resource_path[256];
+    std::string sWeatherFile = "%s/test/input_cases/general_data/tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv";
+    int npvy1 = sprintf(solar_resource_path, sWeatherFile.c_str(), std::getenv("SSCDIR")); // TODO - update for robustness
+    std::ifstream file(file_inputs);
+    std::ostringstream tmp;
+    tmp << file.rdbuf();
+    file.close();
+    ssc_data_t dat_inputs = json_to_ssc_data(tmp.str().c_str());
+    ssc_data_set_string(dat_inputs, "file_name", solar_resource_path);
+
+    std::string cmod = "trough_physical_iph";
+
+    tmp.str("");
+    int errors = run_module(dat_inputs, cmod);
+
+    EXPECT_FALSE(errors);
+    if (!errors)
+    {
+        ssc_data_t dat_outputs = json_to_ssc_data(tmp.str().c_str());
+
+        double annual_energy_calc = std::numeric_limits<double>::quiet_NaN();
+        ssc_data_get_number(dat_inputs, "annual_energy", &annual_energy_calc);
+
+        EXPECT_NEAR_FRAC(annual_energy_calc, 20655216.0, 0.001);
+    }
+    ssc_data_free(dat_inputs);
+    dat_inputs = nullptr;
 }

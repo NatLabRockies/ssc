@@ -1595,8 +1595,14 @@ void cm_pvsamv1::exec()
                 double ibeam_csky, iskydiff_csky, ignddiff_csky;
                 double ghi_cs, dni_cs, dhi_cs;
                 double aoi, stilt, sazi, rot, btd;
-
-                irr->get_clearsky_irrad(&ghi_cs, &dni_cs, &dhi_cs);
+                if (isnan(wf.csky_dn)) {
+                    irr->get_clearsky_irrad(&ghi_cs, &dni_cs, &dhi_cs);
+                }
+                else {
+                    ghi_cs = wf.csky_gh;
+                    dni_cs = wf.csky_dn;
+                    dhi_cs = wf.csky_df;
+                }
 
                 // Ensure that the usePOAFromWF flag is false unless a reference cell has been used.
                 //  This will later get forced to false if any shading has been applied (in any scenario)

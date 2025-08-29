@@ -92,9 +92,14 @@ static var_info _cm_vtab_wfreader[] = {
 
     { SSC_OUTPUT, SSC_NUMBER, "annual_wspd", "Average wind speed", "m/s", "", "Weather Reader", "header_only=0", "", "" },
 
+    { SSC_OUTPUT,        SSC_NUMBER,      "annual_csky_glob",           "Average daily clear sky global horizontal",  "kWh/m2/day",   "",                "Weather Reader",      "header_only=0",                        "",     "" },
+    { SSC_OUTPUT,        SSC_NUMBER,      "annual_csky_beam",             "Average daily clear sky beam normal",        "kWh/m2/day",   "",                "Weather Reader",      "header_only=0",                        "",     "" },
+    { SSC_OUTPUT,        SSC_NUMBER,      "annual_csky_diff",          "Average clear sky daily diffuse",            "kWh/m2/day",   "",                "Weather Reader",      "header_only=0",                        "",     "" },
+
+
 	{ SSC_OUTPUT, SSC_NUMBER, "annual_snow", "Maximum snow depth", "cm", "", "Weather Reader", "header_only=0", "", "" },
 	{ SSC_OUTPUT, SSC_NUMBER, "annual_albedo", "Average albedo", "", "", "Weather Reader", "header_only=0", "", "" },
-    { SSC_OUTPUT, SSC_NUMBER, "annual_precipiation", "Annual precipitation", "cm", "", "Weather Reader", "header_only=0", "", "" },
+    { SSC_OUTPUT, SSC_NUMBER, "annual_precipitation", "Annual precipitation", "cm", "", "Weather Reader", "header_only=0", "", "" },
 
 var_info_invalid };
 
@@ -178,6 +183,7 @@ public:
         ssc_number_t* p_pwater = allocate("pwater", records);
 
 		double gh_sum = 0.0, dn_sum = 0.0, df_sum = 0.0;
+        double csky_dn_sum = 0.0, csky_df_sum = 0.0, csky_gh_sum = 0.0;
 		double temp_sum = 0.0, twet_sum = 0.0, wind_sum = 0.0, albedo_sum = 0.0;
         double pwater_sum = 0.0;
 		double snow_max = -1;
@@ -216,6 +222,9 @@ public:
 			gh_sum += wf.gh * ts_hour;
 			dn_sum += wf.dn * ts_hour;
 			df_sum += wf.df * ts_hour;
+            csky_dn_sum += wf.csky_dn * ts_hour;
+            csky_df_sum += wf.csky_df * ts_hour;
+            csky_gh_sum += wf.csky_gh * ts_hour;
 			temp_sum += wf.tdry;
             twet_sum += wf.twet;
 			wind_sum += wf.wspd;
@@ -237,8 +246,10 @@ public:
 		assign("annual_wspd", var_data((ssc_number_t)(wind_sum / records)));
 		assign("annual_snow", var_data((ssc_number_t)snow_max));
 		assign("annual_albedo", var_data((ssc_number_t)(albedo_sum / records)));
-        assign("annual_precipiation", var_data((ssc_number_t)(pwater_sum)));
-
+        assign("annual_precipitation", var_data((ssc_number_t)(pwater_sum)));
+        assign("annual_csky_glob", var_data((ssc_number_t)(0.001 * gh_sum / 365)));
+        assign("annual_csky_beam", var_data((ssc_number_t)(0.001 * dn_sum / 365)));
+        assign("annual_csky_diff", var_data((ssc_number_t)(0.001 * df_sum / 365)));
 	}
 };
 

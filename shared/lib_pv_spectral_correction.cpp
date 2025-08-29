@@ -221,7 +221,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //    return modifier
 enum { monoSi, multiSi, CdTe, CIS, CIGS, Amorphous };
 static double coeffs[6] = { 0.86273, -0.038948, -0.012506, 0.098871, 0.084658, -0.0042948 };
-static double amavec[5] = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };	// !Air mass modifier coefficients as indicated for polycrystalline modules in Table A1 of DeSoto paper published in Solar Energy  Vol 80 Issue 1 January 2006
+//std::vector<double> amavec[5] = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };	// !Air mass modifier coefficients as indicated for polycrystalline modules in Table A1 of DeSoto paper published in Solar Energy  Vol 80 Issue 1 January 2006
 
 
 double spectral_correction_lee(double prec_water, double abs_airmass, int celltech, std::vector<double> coeff_inputs,
@@ -280,6 +280,14 @@ double spectral_correction_king(double abs_airmass, double Zenith_deg, double El
 {
     // !Calculation of Air Mass Modifier
     double air_mass = abs_airmass;
+    std::vector<double> amavec;
+    amavec.resize(5);
+    amavec = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };
+
+    if (a.size() != 5) {
+        a = amavec; // Default coefficients from DeSoto paper
+            
+    }
     //air_mass *= exp(-0.0001184 * Elev_m); // 'optional' correction for elevation (m), as applied in Sandia PV model
     double f1 = a[0] + a[1] * air_mass + a[2] * pow(air_mass, 2) + a[3] * pow(air_mass, 3) + a[4] * pow(air_mass, 4);
     return f1 > 0.0 ? f1 : 0.0;
@@ -349,14 +357,17 @@ double spectral_correction_factor(compute_module* cm, double pwater, double solz
     size_t* coeff_size;
     //Check if precipitable water exists
     if(isnan(pwater)) model_type = 1; //King, no precipitation data needed
-    if(model_type == 0) {
-        coeff_inputs = cm->as_vector_double("coeff_inputs_fs");
+    if(model_type == 0 && cm->is_assigned("coeff_inputs_lee")) {
+        coeff_inputs = cm->as_vector_double("coeff_inputs_lee");
     }
-    else if (model_type == 1) {
+    else if (model_type == 1 && cm->is_assigned("coeff_inputs_king")) {
         coeff_inputs = cm->as_vector_double("coeff_inputs_king");
     }
-    else if (model_type == 2) {
+    else if (model_type == 2 && cm->is_assigned("coeff_inputs_pelland")) {
         coeff_inputs = cm->as_vector_double("coeff_inputs_pelland");
+    }
+    else {
+        coeff_inputs = { 0.0 }; //How to handle errors
     }
 
     double abs_airmass = sandia_absolute_air_mass(solzen, alt);
@@ -385,9 +396,9 @@ var_info vtab_spectral_correction[] = {
 { SSC_INPUT, SSC_NUMBER , "max_prec_water",                 "Maximum precipitable water",                        "",         "", "Spectral Correction",      "?=8",     "",    ""},
 { SSC_INPUT, SSC_NUMBER , "min_abs_airmass",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=0.58",     "",    ""},
 { SSC_INPUT, SSC_NUMBER , "max_abs_airmass",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=10",     "",    ""},
-{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_lee",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "",    ""},
-{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_king",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "",    ""},
-{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_pelland",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_lee",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=6",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_king",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=5",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_pelland",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=3",    ""},
 { SSC_OUTPUT, SSC_MATRIX, "annual_energy_distribution_time",	   "Annual energy production as function of time",	"kW",		  "", "Heatmaps",		  "",	   "",	  ""},
 
     var_info_invalid };

@@ -276,7 +276,7 @@ sandia_module_t::sandia_module_t( )
 }
 
 
-bool sandia_module_t::operator() ( pvinput_t &in, double TcellC, double opvoltage, pvoutput_t &out )
+bool sandia_module_t::operator() ( pvinput_t const &in, double TcellC, double opvoltage, pvoutput_t &out ) const
 {
 	
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;
@@ -517,7 +517,7 @@ C b   = empirical constant
 	return E * exp(a + b * Ws) + Ta;
 }
 
-bool sandia_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &, double , double &Tcell )
+bool sandia_celltemp_t::operator() ( pvinput_t const &input, pvmodule_t const &, double , double &Tcell ) const
 {
 	//Sev 2015-09-14: changed to permit direct poa data
 	double Itotal;

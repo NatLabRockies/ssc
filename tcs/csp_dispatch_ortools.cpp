@@ -1297,7 +1297,14 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
         }
         MPConstraint* c = constraints.cycle_maximum_net_power[t];
 
-        if (ts_params.w_lim.at(t) > 0.) {	// Power cycle operation is possible
+        if (ts_params.w_lim.at(t) < 0.) { // Power cycle operation is impossible at current constrained w_lim
+            c->SetCoefficient(cont_vars.wdot[t], 1.0);
+            c->SetBounds(0.0, 0.0);
+        }
+        else if (ts_params.w_lim.at(t) > ts_params.f_pb_op_limit.at(t) * P["W_dot_cycle"]) { // Net limit is greater than gross
+            continue;
+        }
+        else { // Power cycle operation is possible
             c->SetCoefficient(cont_vars.wdot[t], 1.0 - ts_params.w_condf_expected.at(t));
             c->SetCoefficient(cont_vars.xr[t], -P["Lr"]);
             c->SetCoefficient(cont_vars.xrsu[t], -P["Lr"]);
@@ -1308,10 +1315,6 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
 
             c->SetCoefficient(cont_vars.x[t], -P["Lc"]);
             c->SetUB(ts_params.w_lim.at(t));
-        }
-        else { // Power cycle operation is impossible at current constrained w_lim
-            c->SetCoefficient(cont_vars.wdot[t], 1.0);
-            c->SetBounds(0.0, 0.0);
         }
     }
 
@@ -1467,12 +1470,13 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
         }
 
         // Calculate approximate upper limit for power cycle thermal input at current electricity generation limit
-        if (ts_params.w_lim.at(m_current_read_step) < 1.e-6)
-        {
+        if (ts_params.w_lim.at(m_current_read_step) < 1.e-6) {
             disp_outputs.q_dot_pc_max = 0.0;
         }
-        else
-        {
+        else if (ts_params.w_lim.at(m_current_read_step) / params.eta_pb_des > params.q_pb_max) { // Output limit is greater than max
+            disp_outputs.q_dot_pc_max = fmax(params.q_pb_max, disp_outputs.q_pc_target);
+        }
+        else {
             double wcond;
             double eta_corr = pointers.mpc_pc->get_efficiency_at_TPH(pointers.m_weather.ms_outputs.m_tdry, 1., 30., &wcond) / params.eta_pb_des;
             double eta_calc = params.eta_pb_des * eta_corr;
@@ -1480,14 +1484,14 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
             int i = 0;
             while (eta_diff > 0.001 && i < 20)
             {
-                double q_pc_est = ts_params.w_lim.at(m_current_read_step) * 1.e-3 / eta_calc;			// Estimated power cycle thermal input at w_lim
+                double q_pc_est = ts_params.w_lim.at(m_current_read_step) / eta_calc;			// Estimated power cycle thermal input at w_lim
                 double eta_new = pointers.mpc_pc->get_efficiency_at_load(q_pc_est / params.q_pb_des) * eta_corr;		// Calculated power cycle efficiency
                 eta_diff = std::abs(eta_calc - eta_new);
                 eta_calc = eta_new;
                 i++;
             }
             disp_outputs.q_dot_pc_max = fmin(disp_outputs.q_dot_pc_max, ts_params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitic)
-            disp_outputs.q_dot_pc_max = fmax(disp_outputs.q_dot_pc_max, disp_outputs.q_pc_target);								  // calculated q_pc_target accounts for parasitic --> can be higher than approximate limit 
+            disp_outputs.q_dot_pc_max = fmax(disp_outputs.q_dot_pc_max, disp_outputs.q_pc_target);				             // calculated q_pc_target accounts for parasitic --> can be higher than approximate limit 
         }
 
         disp_outputs.etasf_expect = ts_params.eta_sf_expected.at(m_current_read_step);

@@ -864,7 +864,7 @@ bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, i
 	return true;
 }
 
-bool iec61853_module_t::operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &out )
+bool iec61853_module_t::operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &out ) const
 {
 	/* initialize output first */
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;

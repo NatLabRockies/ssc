@@ -76,6 +76,7 @@ jobs:
         set -e
         exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
         ${SSCDIR}/build/test/Test | tee /dev/fd/3
+        exit ${PIPESTATUS[0]}
         
     - name: Compare Test Times
       run: |
@@ -165,7 +166,8 @@ jobs:
         set -e
         exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
         ${SSCDIR}/build/test/Test | tee /dev/fd/3
-        
+        exit ${PIPESTATUS[0]}
+    
     - name: Compare Test Times
       run: |
         pip install pandas requests
@@ -206,7 +208,7 @@ jobs:
             ${{env.SSCDIR}}/build/ssc/ssc.dylib 
 
   build-on-windows:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - name: Setup cmake

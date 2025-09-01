@@ -91,10 +91,10 @@ class pvmodule_t; // forward decl
 class pvcelltemp_t
 {
 protected:
-	std::string m_err;
+	mutable std::string m_err;
 public:
 	
-	virtual bool operator() ( pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell ) = 0;
+	virtual bool operator() ( pvinput_t const &input, pvmodule_t const &module, double opvoltage, double &Tcell ) const = 0;
 	std::string error();
 
 	virtual ~pvcelltemp_t() {};
@@ -103,18 +103,18 @@ public:
 class pvmodule_t
 {
 protected:
-	std::string m_err;
+	mutable std::string m_err;
 public:
 
-	virtual double AreaRef() = 0;
-	virtual double VmpRef() = 0;
-	virtual double ImpRef() = 0;
-	virtual double VocRef() = 0;
-	virtual double IscRef() = 0;
+	virtual double AreaRef() const = 0;
+	virtual double VmpRef() const = 0;
+	virtual double ImpRef() const = 0;
+	virtual double VocRef() const = 0;
+	virtual double IscRef() const = 0;
 
 
-	virtual bool operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &output ) = 0;
-	std::string error();
+	virtual bool operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &output ) const = 0;
+	std::string error() const;
 
 	virtual ~pvmodule_t() {};
 };
@@ -134,16 +134,16 @@ public:
 	double Rad[5]; // W/m2
 
 	spe_module_t( );	
-	static double eff_interpolate( double irrad, double rad[5], double eff[5] );
+	static double eff_interpolate( double const irrad, double const rad[5], double const eff[5] );
 	
-	double WattsStc() { return Eff[Reference] * Rad[Reference] * Area; }
+	double WattsStc() const { return Eff[Reference] * Rad[Reference] * Area; }
 
-	virtual double AreaRef() { return Area; }
-	virtual double VmpRef() { return VmpNominal; }
-	virtual double ImpRef() { return WattsStc()/VmpRef(); }
-	virtual double VocRef() { return VocNominal; }
-	virtual double IscRef() { return ImpRef()*1.3; }
-	virtual bool operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &output);
+	virtual double AreaRef() const { return Area; }
+	virtual double VmpRef() const { return VmpNominal; }
+	virtual double ImpRef() const { return WattsStc()/VmpRef(); }
+	virtual double VocRef() const { return VocNominal; }
+	virtual double IscRef() const { return ImpRef()*1.3; }
+	virtual bool operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &output) const;
 
 	virtual ~spe_module_t() {};
 };
@@ -157,7 +157,7 @@ double openvoltage_5par( double Voc0, double a, double IL, double IO, double Rsh
 double openvoltage_5par_rec(double Voc0, double a, double IL, double IO, double Rsh, double D2MuTau, double Vbi);
 double maxpower_5par( double Voc_ubound, double a, double Il, double Io, double Rs, double Rsh, double *Vmp=0, double *Imp=0);
 double maxpower_5par_rec(double Voc_ubound, double a, double Il, double Io, double Rs, double Rsh, double D2MuTau, double Vbi, double *__Vmp=0, double *__Imp=0);
-double air_mass_modifier( double Zenith_deg, double Elev_m, double a[5] );
+double air_mass_modifier( double Zenith_deg, double Elev_m, double const a[5] );
 
 
 

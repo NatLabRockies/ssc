@@ -182,7 +182,7 @@ public:
 class general_error : public std::exception
 {
 public:
-    explicit general_error(std::string s, float t=-1.0) : err_text(move(s)), time(t) { }
+    explicit general_error(std::string s, float t=-1.0) : err_text(std::move(s)), time(t) { }
     std::string err_text;
     float time;
 };

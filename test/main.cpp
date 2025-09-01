@@ -57,6 +57,7 @@ GTEST_API_ int main(int argc, char **argv) {
     //::testing::GTEST_FLAG(filter) = "CmodHybridTest*";
     //::testing::GTEST_FLAG(filter) = "CMPvsamv1BatteryIntegration_cmod_pvsamv1.ResidentialDCBatteryModelPriceSignalDispatchGridExport";
     //::testing::GTEST_FLAG(filter) = "CMPvsamv1BatteryIntegration_cmod_pvsamv1.*";
+//    ::testing::GTEST_FLAG(filter) = "CMPvsamv1PowerIntegration_cmod_pvsamv1.UserArraySnowModel";
     //::testing::GTEST_FLAG(filter) = "CMPvsamv1PowerIntegration_cmod_pvsamv1.*";
     //::testing::GTEST_FLAG(filter) = "CMGeothermal.*";
     //::testing::GTEST_FLAG(filter) = "save_as_JSON_test_run.*";

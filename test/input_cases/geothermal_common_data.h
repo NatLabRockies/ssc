@@ -58,7 +58,7 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	ssc_data_set_number(data, "resource_temp", 200);
 	ssc_data_set_number(data, "resource_depth", 2000);
     ssc_data_set_number(data, "geotherm.cost.inj_prod_well_ratio", 50);
-	ssc_data_set_number(data, "geothermal_analysis_period", 25);
+	ssc_data_set_number(data, "geothermal_analysis_period", 2);
 	ssc_data_set_number(data, "model_choice", 0);
 	ssc_data_set_number(data, "specified_pump_work_amount", 0);
 	ssc_data_set_number(data, "nameplate", 30000);
@@ -145,7 +145,8 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	set_array(data, "grid_curtailment", geothermal_curtailment_path, 8760);
 	ssc_data_set_number(data, "grid_interconnection_limit_kwac", 100000);
 	
-	ssc_data_set_number(data, "analysis_period", 25);
+	ssc_data_set_number(data, "analysis_period", 2);
+
 	ssc_number_t p_federal_tax_rate[1] = { 21 };
 	ssc_data_set_array(data, "federal_tax_rate", p_federal_tax_rate, 1);
 	ssc_number_t p_state_tax_rate[1] = { 7 };

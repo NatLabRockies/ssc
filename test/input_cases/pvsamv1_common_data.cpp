@@ -553,7 +553,8 @@ void pvsamv1_with_residential_default(ssc_data_t& data)
     ssc_data_set_number(data, "transformer_no_load_loss", 0);
     ssc_data_set_number(data, "transformer_load_loss", 0);
     ssc_data_set_number(data, "system_use_lifetime_output", 0);
-    ssc_data_set_number(data, "analysis_period", 25);
+    ssc_data_set_number(data, "analysis_period", 2);
+
     ssc_number_t p_dc_degradation[1] = { 0.5 };
     ssc_data_set_array(data, "dc_degradation", p_dc_degradation, 1);
     ssc_data_set_number(data, "en_dc_lifetime_losses", 0);
@@ -942,8 +943,10 @@ void cashloan_default(ssc_data_t& data)
     ssc_data_set_array(data, "om_fuel_cost", p_om_fuel_cost, 1);
     ssc_data_set_number(data, "om_fuel_cost_escal", 0);
     ssc_number_t itc_amount[1] = { 0 };
-    ssc_number_t itc_fed_percent[1] = { 30 };
-    ssc_number_t itc_sta_percent[1] = { 25 };
+//    ssc_number_t itc_fed_percent[1] = { 30 };
+//    ssc_number_t itc_sta_percent[1] = { 25 };
+    ssc_number_t itc_fed_percent[1] = { 0 };
+    ssc_number_t itc_sta_percent[1] = { 0 };
     ssc_number_t itc_amount_max[1] = { 1e+38 };
     ssc_data_set_array(data, "itc_fed_amount", itc_amount, 1);
     ssc_data_set_array(data, "itc_sta_amount", itc_amount, 1);

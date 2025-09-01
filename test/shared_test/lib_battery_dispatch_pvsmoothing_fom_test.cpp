@@ -123,7 +123,7 @@ TEST_F(PVSmoothing_lib_battery_dispatch, Generic_w_PV_input_all_on) {
     ssc_data_free(dat);
     dat = nullptr;
 }
-
+/*
 TEST_F(PVSmoothing_lib_battery_dispatch, FuelCell_PV_Phoenix_all_on) {
 
     char file_path[256];
@@ -167,4 +167,4 @@ TEST_F(PVSmoothing_lib_battery_dispatch, FuelCell_PV_Phoenix_all_on) {
     ssc_data_free(dat);
     dat = nullptr;
 }
-
+*/

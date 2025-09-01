@@ -30,33 +30,28 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
 #include <gtest/gtest.h>
-#include "etes_ptes_defaults.h"
-#include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
+#include "vartab.h"
+#include "../input_cases/sscapi.h"
+#include "../input_cases/code_generator_utilities.h"
 
-namespace etes_ptes_test {}
-using namespace etes_ptes_test;
 
-//========Tests===================================================================================
-NAMESPACE_TEST(etes_ptes_test, EtesPtesCmod, Default_NoFinancial)
-{
-    ssc_data_t defaults = etes_ptes_defaults();
-    CmodUnderTest ptes_system = CmodUnderTest("etes_ptes", defaults);
-    
-    ptes_system.SetInput("is_dispatch", 0);
-    int errors = ptes_system.RunModule();
-    double ann_energy = ptes_system.GetOutput("annual_energy");
+TEST(CM6ParSolve_cmod_6parsolve, TestStep) {
+    var_table data;
+
+    std::string celltype = "monoSi";
+    data.assign("celltype", var_data(celltype.c_str()));
+    data.assign("Vmp", 1.742004);
+    data.assign("Imp", 0.021152);
+    data.assign("Voc", 2.011138);
+    data.assign("Isc", 0.021909);
+    data.assign("alpha_isc", 0.000002);
+    data.assign("beta_voc", -0.003693);
+    data.assign("gamma_pmp", -0.22757);
+    data.assign("Nser", 1);
+    data.assign("Tref", 25);
+
+    auto ssc_dat = static_cast<ssc_data_t>(&data);
+    int errors = run_module(ssc_dat, "6parsolve");
     EXPECT_FALSE(errors);
-    if (!errors) {
-        EXPECT_NEAR_FRAC(std::abs(ptes_system.GetOutput("annual_energy")), std::abs(264339255.), kErrorToleranceHi);
-    }
-    ptes_system.SetInput("is_dispatch", 1);
-    errors = ptes_system.RunModule();
-    ann_energy = ptes_system.GetOutput("annual_energy");
-    EXPECT_FALSE(errors);
-    if (!errors) {
-        EXPECT_NEAR_FRAC(std::abs(ptes_system.GetOutput("annual_energy")), std::abs(202929176.), kErrorToleranceHi);
-    }
 }

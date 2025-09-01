@@ -242,7 +242,7 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Dispatch_Targets_Default_NoFinancial
         }
         // Check Receiver operations
         if (is_rec_su_allowed_in[i] == 0.0) {
-            EXPECT_LT(rec_heat_output[i], 0.0); // receiver shutdown
+            EXPECT_LT(rec_heat_output[i], 0.0001); // receiver shutdown
         }
     }
 

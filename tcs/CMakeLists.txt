@@ -4,7 +4,7 @@
 #
 #####################################################################################################################
 
-include_directories(. ../nlopt ../shared ../lpsolve ../solarpilot $ENV{ORTOOLSDIR}/include/eigen3)
+include_directories(. ../nlopt ../shared ../lpsolve ../solarpilot $ENV{ORTOOLSDIR}/include/eigen3 $ENV{ORTOOLSDIR}/include )
 
 set(TCS_SRC
 		base_dispatch.cpp

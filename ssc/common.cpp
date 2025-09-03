@@ -1404,6 +1404,8 @@ var_info vtab_utility_rate_common[] = {
     { SSC_INPUT,        SSC_MATRIX,     "ur_dc_billing_demand_periods",           "Billing demand applicability to a given demand charge time of use period",     "",    "",                   "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
     { SSC_INPUT,        SSC_ARRAY,      "ur_yearzero_usage_peaks",                "Peak usage by month for year zero",                                            "kW",  "12",                 "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
 
+    // Day of week for weekday/weekend schedules
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Electricity Rates", "?=0", "", "" },
 
     var_info_invalid
 };

@@ -289,6 +289,8 @@ static var_info _cm_vtab_mspt_iph[] = {
 { SSC_INPUT,     SSC_ARRAY,  "dispatch_tod_factors",               "TOD factors for periods 1 through 9",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",   "SIMULATION_PARAMETER" },
 { SSC_INPUT,     SSC_ARRAY,  "ppa_price_input_heat_btu",           "PPA prices - yearly",			                                                                                                          "$/MMBtu",	  "",	                               "Revenue",			                       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1",                  "",   "" },
 
+// Day of week for weekday/weekend schedules
+{ SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",           "Start day of year for TOD periods",                                                                                                     "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors", "?=0", "", "" },
 
 // Costs
 { SSC_INPUT,     SSC_NUMBER, "tower_fixed_cost",                   "Tower fixed cost",                                                                                                                        "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
@@ -1686,7 +1688,7 @@ public:
         }
         else {      // Block schedules
             C_timeseries_schedule_inputs offtaker_block = C_timeseries_schedule_inputs(as_matrix("weekday_schedule"),
-                as_matrix("weekend_schedule"), as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN());
+                as_matrix("weekend_schedule"), as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN(), as_number("start_day_of_week"));
             offtaker_schedule = offtaker_block;
         }
 
@@ -1753,7 +1755,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"),
-                            as_matrix("dispatch_sched_weekend"), as_vector_double("dispatch_tod_factors"), ppa_price_year1);
+                            as_matrix("dispatch_sched_weekend"), as_vector_double("dispatch_tod_factors"), ppa_price_year1, as_number("start_day_of_week"));
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule

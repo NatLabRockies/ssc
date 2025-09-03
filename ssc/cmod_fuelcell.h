@@ -77,7 +77,7 @@ public:
 		discharge_units(cm.as_vector_unsigned_long("dispatch_manual_units_fc_discharge")),
 		scheduleWeekday(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched")),
 		scheduleWeekend(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend")),
-        startDayOfYear(0) // TODO: link to vartable
+        startDayOfYear(cm.as_number("start_day_of_year"))
 	{
 		numberOfYears = 1;
 		if (systemUseLifetimeOutput) {

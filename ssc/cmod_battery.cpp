@@ -215,6 +215,8 @@ var_info vtab_battery_inputs[] = {
     // Powerflow calculation inputs
     { SSC_INPUT,       SSC_ARRAY,       "fuelcell_power",                              "Electricity from fuel cell AC",                           "kW",     "", "FuelCell",              "",                           "",                         "" },
 
+    // Start day of week for manual dispatch arrays
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "BatteryDispatch", "?=0", "", "" },
 
     var_info_invalid
 };
@@ -1230,7 +1232,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
 
     battery_metrics = new battery_metrics_t(dt_hr);
 
-    size_t start_day_of_year = 0; // TODO read from vt
+    size_t start_day_of_year = vt.as_number("start_day_of_year");
 
     /*! Process the dispatch options and create the appropriate model */
     if ((batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL) ||

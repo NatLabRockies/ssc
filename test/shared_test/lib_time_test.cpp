@@ -247,8 +247,8 @@ TEST_F(libTimeTest_lib_time, single_year_to_lifetime_interpolated_DownsampleSing
 // Test diurnal to flat
 TEST_F(libTimeTest_lib_time, flatten_diurnal_Schedule)
 {
-	std::vector<double> flat = flatten_diurnal(schedule, schedule, 1, sched_values, multiplier);
-	std::vector<double> flat30min = flatten_diurnal(schedule, schedule, 2, sched_values, multiplier);
+	std::vector<double> flat = flatten_diurnal(schedule, schedule, 1, sched_values, start_day_of_year, multiplier);
+	std::vector<double> flat30min = flatten_diurnal(schedule, schedule, 2, sched_values, start_day_of_year, multiplier);
 
 	EXPECT_EQ(flat.size(), util::hours_per_year);
 	EXPECT_EQ(flat30min.size(), util::hours_per_year * 2);
@@ -277,7 +277,7 @@ TEST_F(libTimeTest_lib_time, flatten_diurnal_Schedule)
 // Test diurnal to flat
 TEST_F(libTimeTest_lib_time, flatten_diurnal_ScheduleTOD)
 {
-    std::vector<double> flat = flatten_diurnal(schedule, schedule, 1, sched_values, multiplier);
+    std::vector<double> flat = flatten_diurnal(schedule, schedule, 1, sched_values, start_day_of_year, multiplier);
 
     EXPECT_EQ(flat.size(), util::hours_per_year);
     for (size_t h = 0; h < flat.size(); h++) {
@@ -298,7 +298,7 @@ TEST_F(libTimeTest_lib_time, TestDiurnalToFlat)
     util::matrix_t<size_t> weekend(12, 24, &we);
     std::vector<double> sched_values = { 2.2304, 0.8067, 0.9569, 1.1982, 0.7741, 0.9399, 1.1941, 0.6585, 0.9299};
 
-    std::vector<double> flat = flatten_diurnal(weekday, weekend, 1, sched_values, 1.0);
+    std::vector<double> flat = flatten_diurnal(weekday, weekend, 1, sched_values, start_day_of_year, 1.0);
 
 
     EXPECT_EQ(flat.size(), util::hours_per_year);

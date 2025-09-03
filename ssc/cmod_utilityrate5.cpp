@@ -280,7 +280,7 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
     ssc_number_t* parr = 0;
     ssc_number_t* ts_sr = NULL; ssc_number_t* ts_br = NULL;
 
-    size_t start_day_of_year = 0; // TODO: replace with vt variable
+    size_t start_day_of_year = vt->as_number("start_day_of_year");
 
     rate.init(num_recs_yearly);
 

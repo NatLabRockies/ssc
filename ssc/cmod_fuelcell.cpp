@@ -141,7 +141,7 @@ void cm_fuelcell::construct()
 	fuelCell = std::move(tmp2);
 
 	std::unique_ptr<FuelCellDispatch> tmp3(new FuelCellDispatch(fuelCell.get(), fcVars->numberOfUnits,
-		fcVars->dispatchOption, fcVars->shutdownOption, fcVars->dt_hour, fcVars->fixed_percent, fcVars->dispatch_kW,
+		fcVars->dispatchOption, fcVars->shutdownOption, fcVars->dt_hour, fcVars->fixed_percent, fcVars->startDayOfYear, fcVars->dispatch_kW,
 		fcVars->canCharge, fcVars->canDischarge, fcVars->discharge_percentByPeriod, fcVars->discharge_unitsByPeriod,
 		fcVars->scheduleWeekday,fcVars->scheduleWeekend));
 	fuelCellDispatch = std::move(tmp3);

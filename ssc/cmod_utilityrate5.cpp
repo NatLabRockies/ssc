@@ -280,6 +280,8 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
     ssc_number_t* parr = 0;
     ssc_number_t* ts_sr = NULL; ssc_number_t* ts_br = NULL;
 
+    size_t start_day_of_year = 0; // TODO: replace with vt variable
+
     rate.init(num_recs_yearly);
 
     double inflation_rate = vt->as_double("inflation_rate") * 0.01;
@@ -363,7 +365,7 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
 
     bool sell_eq_buy = vt->as_boolean("ur_sell_eq_buy");
 
-    rate.setup_energy_rates(ec_weekday, ec_weekend, tou_rows, ec_tou_in, sell_eq_buy);
+    rate.setup_energy_rates(ec_weekday, ec_weekend, tou_rows, ec_tou_in, sell_eq_buy, start_day_of_year);
 
     ssc_number_t* dc_weekday = NULL; ssc_number_t* dc_weekend = NULL; ssc_number_t* dc_tou_in = NULL; ssc_number_t* dc_flat_in = NULL;
     size_t dc_tier_rows = 0; size_t dc_flat_rows = 0;
@@ -403,7 +405,7 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
             throw exec_error(cm_name, ss.str());
         }
         dc_flat_rows = nrows;
-        rate.setup_demand_charges(dc_weekday, dc_weekend, dc_tier_rows, dc_tou_in, dc_flat_rows, dc_flat_in);
+        rate.setup_demand_charges(dc_weekday, dc_weekend, dc_tier_rows, dc_tou_in, dc_flat_rows, dc_flat_in, start_day_of_year);
     }
 
     int metering_option = vt->as_integer("ur_metering_option");

@@ -1230,6 +1230,8 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
 
     battery_metrics = new battery_metrics_t(dt_hr);
 
+    size_t start_day_of_year = 0; // TODO read from vt
+
     /*! Process the dispatch options and create the appropriate model */
     if ((batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL) ||
         (batt_vars->batt_meter_position == dispatch_t::FRONT && batt_vars->batt_dispatch == dispatch_t::FOM_MANUAL))
@@ -1285,6 +1287,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
         if ((batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL) ||
             (batt_vars->batt_meter_position == dispatch_t::FRONT && batt_vars->batt_dispatch == dispatch_t::FOM_MANUAL))
         {
+            // TODO: add start day of year here
             dispatch_model = new dispatch_manual_t(battery_model, dt_hr, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
                 batt_vars->batt_current_choice,
                 batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
@@ -1295,6 +1298,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                 batt_vars->batt_discharge_schedule_weekday, batt_vars->batt_discharge_schedule_weekend,
                 batt_vars->batt_can_charge, batt_vars->batt_can_discharge, batt_vars->batt_can_gridcharge, batt_vars->batt_can_fuelcellcharge, batt_vars->batt_btm_can_discharge_to_grid,
                 dm_percent_discharge, dm_percent_gridcharge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_curtailcharge, batt_vars->grid_interconnection_limit_kW,
+                start_day_of_year,
                 batt_vars->batt_dispatch_charge_only_system_exceeds_load,
                 batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
                 batt_vars->batt_minimum_outage_SOC,
@@ -1315,7 +1319,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
 
         // Create UtilityRate object only if utility rate is defined
         if (batt_vars->ec_rate_defined) {
-            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
+            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, start_day_of_year, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
         }
 
         // PV Smoothing dispatch model

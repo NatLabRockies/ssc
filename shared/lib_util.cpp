@@ -949,10 +949,10 @@ size_t util::hour_of_year(size_t month, size_t day, size_t hour)
 	return h;
 }
 
-bool util::weekday(size_t hour_of_year)
+bool util::weekday(size_t hour_of_year, size_t start_day_of_year)
 {
 	int day_of_year = (int)(floor((float)(hour_of_year) / 24));
-	int day_of_week = day_of_year;
+	int day_of_week = day_of_year + start_day_of_year;
 
 	if (day_of_week > 6)
 		day_of_week = day_of_year % 7;

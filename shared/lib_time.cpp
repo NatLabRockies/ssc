@@ -152,7 +152,7 @@ template void single_year_to_lifetime_interpolated<float>(bool, size_t, size_t, 
 * \param[out] flat_vector - The 8760*steps per hour values at each hour
 */
 template <class T>
-std::vector<T> flatten_diurnal(util::matrix_t<size_t> weekday_schedule, util::matrix_t<size_t> weekend_schedule, size_t steps_per_hour, std::vector<T> period_values, T multiplier)
+std::vector<T> flatten_diurnal(util::matrix_t<size_t> weekday_schedule, util::matrix_t<size_t> weekend_schedule, size_t steps_per_hour, std::vector<T> period_values, size_t start_day_of_year, T multiplier)
 {
 	std::vector<T> flat_vector;
 	flat_vector.reserve(8760 * steps_per_hour);
@@ -162,7 +162,7 @@ std::vector<T> flatten_diurnal(util::matrix_t<size_t> weekday_schedule, util::ma
 	for (size_t hour_of_year = 0; hour_of_year != 8760; hour_of_year++)
 	{
 		util::month_hour(hour_of_year % 8760, month, hour);
-		if (util::weekday(hour_of_year))
+		if (util::weekday(hour_of_year, start_day_of_year))
 			iprofile = weekday_schedule(month - 1, hour - 1);
 		else
 			iprofile = weekend_schedule(month - 1, hour - 1);
@@ -175,7 +175,7 @@ std::vector<T> flatten_diurnal(util::matrix_t<size_t> weekday_schedule, util::ma
 	return flat_vector;
 }
 
-template std::vector<double> flatten_diurnal(util::matrix_t<size_t> weekday_schedule, util::matrix_t<size_t> weekend_schedule, size_t steps_per_hour, std::vector<double> period_values, double multiplier);
+template std::vector<double> flatten_diurnal(util::matrix_t<size_t> weekday_schedule, util::matrix_t<size_t> weekend_schedule, size_t steps_per_hour, std::vector<double> period_values, size_t start_day_of_year, double multiplier);
 
 
 /**

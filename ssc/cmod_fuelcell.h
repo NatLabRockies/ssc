@@ -76,7 +76,8 @@ public:
 		discharge_percent(cm.as_vector_double("dispatch_manual_percent_fc_discharge")),
 		discharge_units(cm.as_vector_unsigned_long("dispatch_manual_units_fc_discharge")),
 		scheduleWeekday(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched")),
-		scheduleWeekend(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend"))
+		scheduleWeekend(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend")),
+        startDayOfYear(0) // TODO: link to vartable
 	{
 		numberOfYears = 1;
 		if (systemUseLifetimeOutput) {
@@ -157,6 +158,7 @@ public:
 	size_t numberOfRecordsPerYear;
 	size_t numberOfLifetimeRecords;
 	size_t stepsPerHour;
+    size_t startDayOfYear;
 
 	// generation input
 	std::vector<double> systemGeneration_kW;

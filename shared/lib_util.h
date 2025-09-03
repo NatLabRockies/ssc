@@ -140,7 +140,7 @@ namespace util
 	int day_of_month(int month, double time); /* month: 1-12 time: hours, starting 0=jan 1st 12am, returns 1-nday*/
 	int days_in_month(int month); /*month: 0-11, return 0-30, depending on the month*/
 	void month_hour(size_t hour_of_year, size_t & out_month, size_t & out_hour); /*given the hour of year, return the month, and hour of day*/
-	bool weekday(size_t hour_of_year); /* return true if is a weekday, assuming first hour of year is Monday at 12 am*/
+	bool weekday(size_t hour_of_year, size_t start_day_of_year); /* return true if is a weekday, start day of year = 0 is Monday at 12 am*/
 	size_t lifetimeIndex(size_t year, size_t hour_of_year, size_t step_of_hour, size_t steps_per_hour);
 	size_t yearOneIndex(double dtHour, size_t lifetimeIndex);
 	size_t yearIndex(size_t year, size_t month, size_t day, size_t hour, double minute, size_t step_per_hour);

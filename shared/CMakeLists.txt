@@ -180,7 +180,6 @@ if (UNIX)
 elseif(MSVC)
     find_package(ortools NO_MODULE REQUIRED)
     target_link_libraries(shared ortools::ortools)
-    
 endif()
 
 if (UNIX)

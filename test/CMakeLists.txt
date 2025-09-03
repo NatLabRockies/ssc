@@ -109,12 +109,13 @@ endif()
 if(MSVC)
     set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
 
-	foreach( file_i ${LIBCURL_FILES})
+	file(GLOB ORTOOLS_DLLS "$ENV{ORTOOLSDIR}/bin/*.dll")
+	foreach( file_i ${ORTOOLS_DLLS})
 		add_custom_command(
 		TARGET Test
 		POST_BUILD
 		COMMAND ${CMAKE_COMMAND}
-		ARGS -E copy $ENV{WEXDIR}/build_resources/libcurl_ssl_x64/bin/${file_i} ${TEST_DIR}
+		ARGS -E copy ${file_i} ${TEST_DIR}
 	)
 	endforeach( file_i )
 endif()

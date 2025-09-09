@@ -1729,11 +1729,18 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
         throw(C_csp_exception("Unknown cycle target type"));
     }
 
+    bool is_defocus_local = m_is_defocus;
+
+    if (m_htr_mode == C_csp_collector_receiver::ON && pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+        is_defocus_local = true;
+    }
+
+
     int solve_error_code = pc_csp_solver->solve_operating_mode(m_cr_mode,
         m_pc_mode, m_htr_mode, pc_target_type_at_operating_mode,
         m_solver_mode, m_step_target_mode,
         q_dot_pc_solve, max_power,
-        m_is_defocus, is_rec_outlet_to_hottank,
+        is_defocus_local, is_rec_outlet_to_hottank,
         q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
         m_op_mode_name, defocus_solved);
 

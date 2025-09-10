@@ -1455,7 +1455,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
                         m_factors[nsteps * a + i] *= (1.0 - p[a*nsteps + i]/100.0); //convert from percentages to factors
                 }
             }
-            else if ((n % 8760 == 0 || n % 2920 == 0) && n != (size_t)(nsteps * analysis_period)) // give a helpful error for timestep mismatch
+            else if ((n % 8760 == 0 || n % 8784 == 0 || n % 2920 == 0) && n != (size_t)(nsteps * analysis_period)) // give a helpful error for timestep mismatch
             {
                 m_error = util::format("Adjustment factor number of time series loss time steps (%d) must be the same as the number of simulation time steps (%d) unless losses were defined as daily, weekly, monthly, annual, or single values.",(int)n,(int)nsteps*(int)analysis_period);
             }
@@ -2035,11 +2035,17 @@ weatherdata::weatherdata( var_data *data_table )
 	size_t nmult = 0;
 	bool is_leap_year = false;
 	// Check if the weather file contains a leap day
-	// if so, correct the number of nrecords
 	if (m_nRecords % 8784 == 0)
 	{
-		m_nRecords = m_nRecords / 8784 * 8760;
 		is_leap_year = true;
+        if (check_continuous_single_year(is_leap_year))
+        {
+            nmult = nrec / 8784;
+            m_stepSec = 3600 / nmult;
+            m_startSec = m_stepSec / 2;
+        }
+        else
+            m_continuousYear = false;
 	}
 	if (m_nRecords % 8760 == 0)
 	{

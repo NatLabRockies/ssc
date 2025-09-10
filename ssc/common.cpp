@@ -1246,7 +1246,9 @@ bool forecast_price_signal::setup(size_t step_per_hour)
                     vartab->as_matrix_unsigned_long("dispatch_sched_weekday"),
                     vartab->as_matrix_unsigned_long("dispatch_sched_weekend"),
                     step_per_hour,
-                    vartab->as_vector_double("dispatch_tod_factors"), ppa);
+                    vartab->as_vector_double("dispatch_tod_factors"),
+                    vartab->as_number("start_day_of_year"),
+                    ppa);
             }
             else
             { // assumption on size - check that is requested size.

@@ -83,6 +83,10 @@ static var_info _cm_vtab_belpe[] =
 
             { SSC_INPUT,		SSC_ARRAY,		"Monthly_util",		"Monthly consumption from utility bill",	"kWh",	"",			"Load Profile Estimator", "en_belpe=1",			"LENGTH=12",	"" },
 
+            // Day of week for weekday/weekend schedules
+            { SSC_INPUT,  SSC_NUMBER,   "start_day_of_year",           "Start day of year for TOD periods",  "0..6", "0=Monday, 6=Sunday",    "Load Profile Estimator", "?=0", "", "" },
+
+
 
             //OUTPUTS
         //	{ SSC_OUTPUT,       SSC_ARRAY,		"HVAC_load",		"Electric Load due to HVAC",		"Wh",       "",		"Load Profile Estimator", "en_belpe=1",			"LENGTH=8760",	"" },
@@ -346,6 +350,8 @@ public:
         ssc_number_t en_wash = as_number("en_wash"); // boolean, so will be 0 or 1
         ssc_number_t en_dry = as_number("en_dry"); // boolean, so will be 0 or 1
         ssc_number_t en_mels = as_number("en_mels"); // boolean, so will be 0 or 1
+
+        ssc_number_t start_day_of_year = as_number("start_day_of_year"); // 0 = Monday, 6 = Sunday
 
         //Possible other input options include color, construction, WWR, bldg L&W, wall
         //height per floor
@@ -703,8 +709,8 @@ public:
             SEER = 10;
         //END COOLING SEER
 
-        //day of the week: Days 1-7.
-        int D = 1; //somehow I am one day off BEOPT so compensating here(this is days of the week)
+        //day of the week: Days 0-6.
+        int D = start_day_of_year - 1; // First day will get incremented below immediately, compensate here
         // TMY DEFAULT IS MONDAY!!!!!!!
         //Sol - Air -- This part is ALL SI -- get effective envelope temperatures for the heat transfer.
         std::vector<double> Vacay(8760), Hset(8760), Cset(8760);
@@ -762,8 +768,8 @@ public:
             if (Hr == 0) //first hour of a new day
             {
                 D = D + 1; //increment the day of the week
-                if (D > 7)
-                    D = 1;
+                if (D > 6)
+                    D = 0;
             }
             int Mon = month[i];
             int Dy = day[i];
@@ -861,7 +867,7 @@ public:
                 EquipRadHrLoad[inext] = SensibleEquipRadorConvVacay[NextHr];
                 EquipConvHrLoad[inext] = SensibleEquipRadorConvVacay[NextHr];
             }
-            else if ((D == 2 && Hr < 23) || (D == 7 && Hr == 23) || D == 1) // weekend!(hour inext)
+            else if ((D == 6 && Hr <= 23) || D == 5) // weekend!(hour inext)
             {
                 EquipElecHrLoad[inext] = TotalPlugHourlyWkend[NextHr];
                 EquipRadHrLoad[inext] = SensibleEquipRadorConvWkend[NextHr];   //These are just 50 / 50 rad and conv, but the multipliers are BLDG AM sensible load fractions

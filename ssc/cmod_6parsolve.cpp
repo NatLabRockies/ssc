@@ -112,8 +112,8 @@ public:
         for (int i = 0; i < 10; i++)
             if (err_keys[i] == err)
                 x = i;
-        std::string err_values[10] = { "a < 0.05 || a > 15.0",
-            "Il < 0.5 || Il > 20.0" ,
+        std::string err_values[10] = { "a < 0.01 || a > 15.0",
+            "Il < 0.01 || Il > 20.0" ,
             "Io < 1e-16 || Io > 1e-7",
             "Rs < 0.001 || Rs > 75.0",
             "Rsh < 1.0 || Rsh > 100001.0",

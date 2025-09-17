@@ -234,6 +234,7 @@ struct Irradiance_IO
     flag useSpatialAlbedos;									      /// Specify whether to use spatial albedos
 	std::vector<double> userSpecifiedMonthlyAlbedo;				  /// User can provide monthly uniform ground albedo values (0-1)
     util::matrix_t<double> userSpecifiedMonthlySpatialAlbedos;	  /// User can provide monthly spatial ground albedo values (0-1), [month, location]
+    std::vector<double> userSpecifiedSnowDepth;                   /// User can provide hourly snow depth data (cm)
 
 	// Irradiance data Outputs (p_ is just a convention to organize all pointer outputs)
 	ssc_number_t * p_weatherFileGHI;			/// The Global Horizonal Irradiance from the weather file [W/m2]
@@ -245,7 +246,7 @@ struct Irradiance_IO
 	ssc_number_t * p_weatherFileAmbientTemp;	/// The ambient temperature from the weather file [C]
 	ssc_number_t * p_weatherFileAlbedo;			/// The ground albedo from the weather file
     ssc_number_t* p_weatherFileAlbedoSpatial;	/// The ground albedo from the weather file and spatial matrix input
-	ssc_number_t * p_weatherFileSnowDepth;		/// The snow depth from the weather file
+	ssc_number_t * p_snowDepth;		            /// The snow depth from the weather file or user input array
 	ssc_number_t * p_IrradianceCalculated[3];	/// The calculated components of the irradiance [W/m2]
 	ssc_number_t * p_sunZenithAngle;			/// The calculate sun zenith angle [degrees]
 	ssc_number_t * p_sunAltitudeAngle;			/// The calculated sun altitude angle [degrees]
@@ -297,6 +298,7 @@ struct PVSystem_IO
 	flag enableDCLifetimeLosses;
 	flag enableACLifetimeLosses;
 	flag enableSnowModel;
+    flag useWeatherFileSnow;
 
 	int stringsInParallel;
 	double ratedACOutput;  ///< AC Power rating for whole system (all inverters)

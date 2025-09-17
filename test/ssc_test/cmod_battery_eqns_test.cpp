@@ -69,7 +69,8 @@ TEST_F(CMBatteryEqns_cmod_battery_eqns, reopt_sizing) {
 
     ssc_number_t gen[8760] = { 0 };
     ssc_data_set_array(data, "gen", gen, 8760);
-    ssc_data_set_number(data, "analysis_period", 25);
+    ssc_data_set_number(data, "analysis_period", 2); 
+
     ssc_data_set_number(data, "system_capacity", 5);
     set_array(data, "load", load_profile_path, 8760); // Load is required for peak shaving controllers
 

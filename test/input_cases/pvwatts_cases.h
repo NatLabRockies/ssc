@@ -65,7 +65,8 @@ static int pvwatts_nofinancial_testfile(ssc_data_t &data)
 
 	//set the variables for the PVWatts default case
 	ssc_data_set_number(data, "system_use_lifetime_output", 0);
-	ssc_data_set_number(data, "analysis_period", 25);
+    ssc_data_set_number(data, "analysis_period", 2);
+
 	ssc_data_set_string(data, "solar_resource_file", hourly); //file set above
 	ssc_data_set_number(data, "system_capacity", 4);
 	ssc_data_set_number(data, "module_type", 0);

@@ -44,6 +44,7 @@ NAMESPACE_TEST(etes_etes_test, EtesEtesCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = etes_etes_defaults();
     CmodUnderTest etes_system = CmodUnderTest("etes_electric_resistance", defaults);
+
     etes_system.SetInput("is_dispatch", 0);
     int errors = etes_system.RunModule();
     double ann_energy = etes_system.GetOutput("annual_energy");

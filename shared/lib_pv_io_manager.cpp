@@ -206,6 +206,41 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
             throw exec_error(cmName, "Albedos must be greater than zero and less than one in the monthly uniform albedo matrix.");
         }
     }
+    // read in the user entered snow data
+
+    std::vector<double> orig_snow_array = cm->as_vector_double("snow_array");
+    // align the user entered snow data with the weather file data
+    std::vector<double> aligned_snow_array;
+    aligned_snow_array.reserve(numberOfWeatherFileRecords);
+    if (orig_snow_array.size() == 1) {
+        aligned_snow_array.resize(numberOfWeatherFileRecords);
+        std::fill(aligned_snow_array.begin(), aligned_snow_array.end(), orig_snow_array[0]);
+    }
+    else if (orig_snow_array.size() < numberOfWeatherFileRecords) {
+        if (numberOfWeatherFileRecords % orig_snow_array.size() != 0) {
+            throw exec_error(cmName, "Snow depth array and weather file must have divisible periods.");
+        }
+        size_t mult = numberOfWeatherFileRecords / orig_snow_array.size();
+        for (double depth : orig_snow_array) {
+            for (size_t j = 0; j < mult; j++) {
+                aligned_snow_array.push_back(depth);
+            }
+        }
+    }
+    else if (orig_snow_array.size() == numberOfWeatherFileRecords) {
+        aligned_snow_array = orig_snow_array;
+    }
+    else {
+        if (orig_snow_array.size() % numberOfWeatherFileRecords != 0) {
+            throw exec_error(cmName, "Snow depth array and weather file must have divisible periods.");
+        }
+        size_t mult = orig_snow_array.size() / numberOfWeatherFileRecords;
+        for (size_t i = 0; i < orig_snow_array.size(); i += mult) {
+            aligned_snow_array.push_back(orig_snow_array[i]);
+        }
+    }
+    userSpecifiedSnowDepth = aligned_snow_array;
+
 
     checkWeatherFile(cm, cmName);
 }
@@ -307,7 +342,7 @@ void Irradiance_IO::AllocateOutputs(compute_module* cm)
     else {
         p_weatherFileAlbedo = cm->allocate("alb", numberOfWeatherFileRecords);
     }
-    p_weatherFileSnowDepth = cm->allocate("snowdepth", numberOfWeatherFileRecords);
+    p_snowDepth = cm->allocate("snowdepth", numberOfWeatherFileRecords);
 
     // If using input POA, must have POA for every subarray or assume POA applies to each subarray
     for (size_t subarray = 0; subarray != numberOfSubarrays; subarray++) {
@@ -725,6 +760,7 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO* 
     enableDCLifetimeLosses = cm->as_boolean("en_dc_lifetime_losses");
     enableACLifetimeLosses = cm->as_boolean("en_ac_lifetime_losses");
     enableSnowModel = cm->as_boolean("en_snow_model");
+    useWeatherFileSnow = cm->as_boolean("use_snow_weather_file");
 
     // The shared inverter of the PV array and a tightly-coupled DC connected battery
     std::unique_ptr<SharedInverter> tmpSharedInverter(new SharedInverter(Inverter->inverterType, numberOfInverters, &Inverter->sandiaInverter, &Inverter->partloadInverter, &Inverter->ondInverter, numberOfInvertersClipping));

@@ -56,13 +56,21 @@ GTEST_API_ int main(int argc, char **argv) {
     //    ::testing::GTEST_FLAG(filter) = "CmodPVWatts*:CMPvwatts*";
     //::testing::GTEST_FLAG(filter) = "CmodHybridTest*";
     //::testing::GTEST_FLAG(filter) = "CMPvsamv1BatteryIntegration_cmod_pvsamv1.ResidentialDCBatteryModelPriceSignalDispatchGridExport";
-
+    //::testing::GTEST_FLAG(filter) = "CMPvsamv1BatteryIntegration_cmod_pvsamv1.*";
+//    ::testing::GTEST_FLAG(filter) = "CMPvsamv1PowerIntegration_cmod_pvsamv1.UserArraySnowModel";
+    //::testing::GTEST_FLAG(filter) = "CMPvsamv1PowerIntegration_cmod_pvsamv1.*";
+    //::testing::GTEST_FLAG(filter) = "CMGeothermal.*";
+    //::testing::GTEST_FLAG(filter) = "save_as_JSON_test_run.*";
     //::testing::GTEST_FLAG(filter) = "csp_tower.PowerTowerCmod.Default_NoFinancial";
-
+    //::testing::GTEST_FLAG(filter) = "CMPvsamv1PowerIntegration_cmod_pvsamv1.NoFinancialModelSystemDesign";
     //::testing::GTEST_FLAG(filter) = "CmodCashLoanTest*:CmodSingleOwnerTest*";
+    //::testing::GTEST_FLAG(filter) = "CmodSaleLeasebackTest*:CmodThirdPartyOwnershipTest*:CmodHostDeveloperTest*:CmodMerchantPlantTest*:CmodLCOEFCRTest*";
+    //::testing::GTEST_FLAG(filter) = "CmodLeveragedPartnershipFlipTest*:CmodAllEquityPartnershipFlipTest*";
     //::testing::GTEST_FLAG(filter) = "Solesca*";
 
     ::testing::GTEST_FLAG(filter) = "lib_ptes_chp_dispatch_test.test:math_opt_test.basic_example_test:linear_solver_test.basic_example_test:SmallModelTest.Integer";
+    //::testing::GTEST_FLAG(filter) = "etes_ptes_test*";
+    //::testing::GTEST_FLAG(filter) = "csp_tower.PowerTowerCmod*";
     //::testing::GTEST_FLAG(filter) = "CmodFresnelPhysicalTest.MSLFDefault";
 
     //    filter to exclude

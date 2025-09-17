@@ -230,7 +230,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             }
 
             // Solve for defocus
-            double defocus_solved, tol_solved;
+            double tol_solved;
             defocus_solved = tol_solved = std::numeric_limits<double>::quiet_NaN();
             int iter_solved = -1;
 

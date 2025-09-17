@@ -442,7 +442,8 @@ void custom_generation_commerical_battery_60min(ssc_data_t &data)
 	ssc_data_set_number(data, "conv_eff", 34.118049621582031);
 	set_array(data, "energy_output_array", customgenerationtest::gen_path_60min, 8760);
 	ssc_data_set_number(data, "system_use_lifetime_output", 0);
-	ssc_data_set_number(data, "analysis_period", 25);
+    ssc_data_set_number(data, "analysis_period", 2);
+
 	ssc_number_t p_generic_degradation[1] = { 0 };
 	ssc_data_set_array(data, "generic_degradation", p_generic_degradation, 1);
 

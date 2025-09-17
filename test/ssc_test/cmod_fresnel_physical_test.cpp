@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 
+#include "csp_common_test.h"
+
 #include "cmod_fresnel_physical_test.h"
 
 
@@ -46,3 +48,51 @@ TEST_F(CmodFresnelPhysicalTest, MSLFDefault) {
 
     Test("fresnel_physical", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 0.001, "tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv");
 }
+
+TEST_F(CmodFresnelPhysicalTest, MSLF_IPH_LCOH_Default) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/TechnologyModels/fresnel_physical/2025.06.02_develop_branch_MSLF_IPH_LCOH.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/TechnologyModels/fresnel_physical/2025.06.02_develop_branch_MSLF_IPH_LCOH_outputs.json";
+    std::vector<std::string> compare_number_variables = { "annual_energy" };
+    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+
+    // Using absolute differences for test, so need to be careful with this input...
+    Test("fresnel_physical_iph", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100., "tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv");
+}
+
+TEST_F(CmodFresnelPhysicalTest, MSLF_IPH_LCOH_EMP_STEAM) {
+    std::string file_inputs = SSCDIR;
+    // Had to decrease default freeze protection temp to get empirical field + steam heat sink to solve
+    file_inputs += "/test/input_json/TechnologyModels/fresnel_physical/2025.06.02_develop_branch_MSLF_IPH_LCOH_emp_steam.json";
+    std::string file_outputs = SSCDIR;
+   
+    char solar_resource_path[256];
+    std::string sWeatherFile = "%s/test/input_cases/general_data/tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv";
+    int npvy1 = sprintf(solar_resource_path, sWeatherFile.c_str(), std::getenv("SSCDIR")); // TODO - update for robustness
+    std::ifstream file(file_inputs);
+    std::ostringstream tmp;
+    tmp << file.rdbuf();
+    file.close();
+    ssc_data_t dat_inputs = json_to_ssc_data(tmp.str().c_str());
+    ssc_data_set_string(dat_inputs, "file_name", solar_resource_path);
+
+    std::string cmod = "fresnel_physical_iph";
+
+    tmp.str("");
+    int errors = run_module(dat_inputs, cmod);
+
+    EXPECT_FALSE(errors);
+    if (!errors)
+    {
+        ssc_data_t dat_outputs = json_to_ssc_data(tmp.str().c_str());
+
+        double annual_energy_calc = std::numeric_limits<double>::quiet_NaN();
+        ssc_data_get_number(dat_inputs, "annual_energy", &annual_energy_calc);
+
+        EXPECT_NEAR_FRAC(annual_energy_calc, 16651416.0, 0.001);
+    }
+    ssc_data_free(dat_inputs);
+    dat_inputs = nullptr;
+}
+

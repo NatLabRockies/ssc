@@ -35,7 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(__WINDOWS__)||defined(WIN32)||defined(_WIN32)||defined(__MINGW___)||defined(_MSC_VER)
 #include <Windows.h>
-void *dll_open(const char *name) { return (void*) ::LoadLibraryA( name ); }
+void *dll_open(const char *name) {
+    auto x = (void*) ::LoadLibraryExA(name, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+    auto e = GetLastError();
+    return x;
+}
 void dll_close( void *handle ) { ::FreeLibrary( (HMODULE)handle ); }
 void *dll_sym( void *handle, const char *name ) { return (void*) ::GetProcAddress( (HMODULE)handle, name ); }
 #else

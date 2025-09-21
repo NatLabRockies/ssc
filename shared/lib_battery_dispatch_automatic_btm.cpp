@@ -727,7 +727,7 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
             }
         }
     }
-    // Get max grid use during charging. Choose highest percentile < 25% where we aren't planning on discharging
+    // Get max grid use during charging.
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
     bool lookingForGridUse = true;
     double peakDesiredGridUse = 0.0;
@@ -818,7 +818,7 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
             if (requiredPower < 0)
             {
                 check_power_restrictions(requiredPower);
-                // Restrict to up to 25th percentile grid use to avoid creating new peaks
+                // Restrict to up to max grid use pre-dispatch to avoid creating new peaks
                 double projectedGrid = sorted_grid[i].Grid() - requiredPower;
                 if (projectedGrid > peakDesiredGridUse)
                 {

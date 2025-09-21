@@ -731,7 +731,7 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
     bool lookingForGridUse = true;
     double peakDesiredGridUse = 0.0;
-    i = _num_steps / 4;
+    i = 0;
     while (lookingForGridUse && i < _num_steps)
     {
         index = sorted_grid[i].Hour() * _steps_per_hour + sorted_grid[i].Step();

@@ -332,8 +332,6 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
 
 	mv_time_local.reserve(10);
 
-    m_allow_elec_target = true;
-
 	// Solved Controller Variables
 	m_defocus = std::numeric_limits<double>::quiet_NaN();
     m_q_dot_pc_max = std::numeric_limits<double>::quiet_NaN();  //[MWt]
@@ -541,11 +539,8 @@ void C_csp_solver::init()
 
 
 
-    // ****** HARDCODE ELEC mode off for now
-    m_allow_elec_target = false;
-
     if (m_cycle_W_dot_des == 115.1234) {
-        m_allow_elec_target = true;
+        ms_system_params.m_is_control_target_elec = true;
     }
 
 

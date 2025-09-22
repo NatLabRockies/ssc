@@ -1063,6 +1063,10 @@ public:
         //   calculate T_htf_hot_tank_in_min = f*T_hot_des + (1-f)*T_cold_des
         double f_htf_hot_des__T_htf_hot_tank_in_min;   //[-]
 
+        // Is controller controlling HTF flows to achieve a net system electricity target (true)
+        //     or a target heat input to the cycle (false, and default/only method through 2025 spring release)
+        bool m_is_control_target_elec;
+
 		S_csp_system_params()
 		{
 			m_pb_fixed_par =
@@ -1074,6 +1078,8 @@ public:
             m_is_rec_to_coldtank_allowed = false;
 
             m_is_field_freeze_protection_electric = true;
+
+            m_is_control_target_elec = false;
 		}
 	};
 
@@ -1199,10 +1205,9 @@ private:
         bool& is_rec_su_allowed, bool& is_pc_su_allowed, bool& is_pc_sb_allowed,
         double& q_dot_elec_to_PAR_HTR /*MWt*/, bool& is_PAR_HTR_allowed);
 
-    bool m_allow_elec_target;
     C_csp_power_cycle::E_csp_power_cycles_types get_system_offtaker_type() {
 
-        if (m_allow_elec_target) {
+        if (ms_system_params.m_is_control_target_elec) {
             return mc_power_cycle.get_off_taker_type();
         }
         else {

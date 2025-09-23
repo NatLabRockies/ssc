@@ -680,7 +680,7 @@ TEST_F(ManualTest_lib_battery_dispatch, OutageWithManualDispatch) {
     batteryPower->powerLoad = 50;
     dispatchManual->dispatch(year, hour_of_year, step_of_hour);
     hour_of_year += 1;
-    EXPECT_NEAR(batteryPower->powerBatteryDC, -50.0, 0.1);
+    EXPECT_NEAR(batteryPower->powerBatteryDC, -47.7, 0.1);
 
     // Turn outage back on, should charge to 100%
     batteryPower->powerSystem = 700; batteryPower->voltageSystem = 600; batteryPower->powerLoad = 50;
@@ -691,7 +691,7 @@ TEST_F(ManualTest_lib_battery_dispatch, OutageWithManualDispatch) {
         soc = dispatchManual->battery_soc();
     }
     EXPECT_NEAR(100, dispatchManual->battery_soc(), 0.1);
-    EXPECT_NEAR(17, hour_of_year, 0.1);
+    EXPECT_NEAR(19, hour_of_year, 0.1);
 
     // With outage off, can discharge above max SOC
     batteryPower->powerSystem = 0; batteryPower->voltageSystem = 600; batteryPower->powerLoad = 14;
@@ -701,7 +701,7 @@ TEST_F(ManualTest_lib_battery_dispatch, OutageWithManualDispatch) {
     EXPECT_NEAR(batteryPower->powerBatteryDC, 14.6, 0.1);
 
     // With outage off, cannot charge above max soc
-    EXPECT_NEAR(95, dispatchManual->battery_soc(), 0.1);
+    EXPECT_NEAR(97.42, dispatchManual->battery_soc(), 0.1);
     batteryPower->powerSystem = 700; batteryPower->voltageSystem = 600; batteryPower->powerLoad = 14;
     batteryPower->powerCritLoad = 14; batteryPower->isOutageStep = false;
     dispatchManual->dispatch(year, hour_of_year, step_of_hour);

@@ -335,7 +335,7 @@ void cm_windpower::exec()
 	if (!wt.isInitialized())
 		throw exec_error("windpower", util::format("wind turbine class not properly initialized"));
 	if (wpc.nTurbines < 1)
-		throw exec_error("windpower", util::format("the number of wind turbines was zero."));
+		throw exec_error("windpower", util::format("the number of wind turbines was zero"));
 
     // check for maximum number of turbines
     int newMaxTurbines = 0;
@@ -345,17 +345,16 @@ void cm_windpower::exec()
         wpc.SetMaxTurbines(newMaxTurbines);
     }
 	if (wpc.nTurbines > wpc.GetMaxTurbines())
-		throw exec_error("windpower", util::format("the wind model is only configured to handle up to %d turbines.", wpc.GetMaxTurbines()));
+		throw exec_error("windpower", util::format("the wind model is only configured to handle up to %d turbines", (int)wpc.GetMaxTurbines()));
 
-	// create adjustment factors and losses - set them up initially here for the Weibull distribution method, rewrite them later with nrec for the time series method
+	// create adjustment factors and losses here, set up later in context for Weibull distribution resource, constant wake loss, and time series wind resource
+    // calls to setup() are separated to avoid double-counting issue reported in SSC Issue 1283
 	adjustment_factors haf(this->get_var_table(), "adjust");
-	if (!haf.setup())
-		throw exec_error("windpower", "failed to setup adjustment factors: " + haf.error());
-
+        
     // add up all the percent losses, except for wind_int_loss, which will be applied by the turbine
     double lossMultiplier = get_fixed_losses(this);
     if (lossMultiplier > 1 || lossMultiplier < 0){
-        throw exec_error("windpower", "Total percent losses must be between 0 and 100.");
+        throw exec_error("windpower", util::format("total percent losses (%g) must be between 0 and 100", lossMultiplier));
     }
     double annual_wake_int_loss_percent = 0.; //this is the wake loss due to INTERNAL wakes, either calculated or specified by user depending on the wake model chosen
 
@@ -366,7 +365,7 @@ void cm_windpower::exec()
     double icingRHCutoffValue = icingCutoff ? as_double("icing_cutoff_rh") : -1;
     int icingPersistenceTimesteps = as_integer("icing_persistence_timesteps");
 
-	// Run Weibull Statistical model (single outputs) if selected
+	// Run Weibull Statistical model (single outputs) if selected, requires hourly simulation
 	if (as_integer("wind_resource_model_choice") == 1 ){
 		ssc_number_t *turbine_output = allocate("turbine_output_by_windspeed_bin", wt.powerCurveArrayLength);
 		std::vector<double> turbine_outkW(wt.powerCurveArrayLength);
@@ -393,7 +392,11 @@ void cm_windpower::exec()
 		turbine_kw = turbine_kw * lossMultiplier * (1. - annual_wake_int_loss_percent/100.);
 
 		int nstep = 8760;
-		ssc_number_t farm_kw = (ssc_number_t)turbine_kw * wpc.nTurbines / (ssc_number_t)nstep;
+        // set up adjustment loss for Weibull distribution wind resource
+        if (!haf.setup())
+            throw exec_error("windpower", "failed to set up adjustment factors for Weibull distribution wind resource: " + haf.error());
+
+        ssc_number_t farm_kw = (ssc_number_t)turbine_kw * wpc.nTurbines / (ssc_number_t)nstep;
 		ssc_number_t *farmpwr = allocate("gen", nstep);
 		for (int i = 0; i < nstep; i++) //nstep is always 8760 for Weibull
 		{
@@ -477,6 +480,10 @@ void cm_windpower::exec()
             annual_wake_int_loss_percent = (1. - farmPower / farmPowerGross) * 100.;
             assign("annual_wake_loss_internal_percent", var_data((ssc_number_t)annual_wake_int_loss_percent));
         }
+
+        // set up adjustment factors for constant wake loss option
+        if (!haf.setup())
+            throw exec_error("windpower", "failed to set up adjustment factors for wind resource probability table: " + haf.error());
 
         int nstep = 8760;
         ssc_number_t farm_kw = farmPower / (ssc_number_t)nstep;
@@ -565,9 +572,9 @@ void cm_windpower::exec()
 	if (steps_per_hour * 8760 != nstep  && !contains_leap_day)
 		throw exec_error("windpower", util::format("invalid number of data records (%d): must be an integer multiple of 8760", (int)nstep));
 
-    // overwrite adjustment factors setup using the correct value for nrec, which we don't have until this part of the code
+    // set up adjustment factors for time series simulation
     if (!haf.setup(nstep))
-        throw exec_error("windpower", "failed to setup adjustment factors: " + haf.error());
+        throw exec_error("windpower", "failed to set up adjustment factors for time series wind resource data: " + haf.error());
 
 	// allocate output data
 	ssc_number_t *farmpwr = allocate("gen", nstep);
@@ -685,8 +692,9 @@ void cm_windpower::exec()
 
 			farmp *= lossMultiplier;
 			// apply and track cutoff losses
-			withoutCutOffLosses += farmp * haf(hr) / (ssc_number_t)steps_per_hour;
-			if (lowTempCutoff){
+            withoutCutOffLosses += farmp * haf(i) / (ssc_number_t)steps_per_hour;
+
+            if (lowTempCutoff){
 				if (temp < lowTempCutoffValue) farmp = 0.0;
 			}
 			if (icingCutoff){
@@ -702,8 +710,8 @@ void cm_windpower::exec()
                 }
 			}
 
-			farmpwr[i] = (ssc_number_t)farmp*haf(hr); //adjustment factors are constrained to be hourly, not sub-hourly, so it's correct for this to be indexed on the hour
-			wspd[i] = (ssc_number_t)wind;
+            farmpwr[i] = (ssc_number_t)farmp * haf(i);
+            wspd[i] = (ssc_number_t)wind;
 			wdir[i] = (ssc_number_t)dir;
 			air_temp[i] = (ssc_number_t)temp;
             if (pres > 1.1) pres = pres / physics::Pa_PER_Atm; // assumes that value greater than 1.1 is i Pa

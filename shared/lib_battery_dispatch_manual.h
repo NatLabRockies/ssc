@@ -85,6 +85,8 @@ public:
 		size_t hour_of_year,
 		size_t step) override;
 
+    size_t get_dispatch_period() override;
+
 protected:
 
 	/// Helper function to internally set up the dispatch model
@@ -118,6 +120,8 @@ protected:
     bool _can_clip_charge;
     bool _can_curtail_charge;
     bool _priority_charge_battery;
+
+    size_t _iprofile;
 
 	double _percent_discharge;
 	double _percent_charge;

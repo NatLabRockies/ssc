@@ -79,7 +79,13 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR "Debug" IN_LIST CMAKE_CONFIGURATION_TYP
     find_library( GTESTD_LIB
             NAMES libgtest.a gtest.lib libgtest.so
             PATHS $ENV{GTEST_DIR} ${GTDIR}/build/lib ${GTDIR}/build/lib/Debug)
-    target_link_libraries(Test debug ${GTESTD_LIB})
+    if(UNIX AND ENABLE_COVERAGE)
+        target_link_options(Test PRIVATE --coverage)
+        target_link_libraries(Test debug gcov ${GTESTD_LIB})
+    else()
+        target_link_libraries(Test debug ${GTESTD_LIB})
+    endif()
+
 endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR "Release" IN_LIST CMAKE_CONFIGURATION_TYPES)
     find_library( GTEST_LIB
@@ -88,10 +94,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR "Release" IN_LIST CMAKE_CONFIGURATION_
     target_link_libraries(Test optimized ${GTEST_LIB})
 endif()
 target_link_libraries(Test ssc splinter)
-
 if (UNIX)
     find_package(Threads REQUIRED)
-    target_link_libraries(Test Threads::Threads ${CMAKE_DL_LIBS}) 
+    target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
 endif()
 
 

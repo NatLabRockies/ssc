@@ -1430,7 +1430,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
                     m_factors[i] *= (1.0 - p[i] / 100.0); //convert from percentages to factors
             }
             else {
-                m_error = util::format("Hourly loss factor array length %d does not equal length of weather file %d", (int)n, nsteps);
+                m_error = util::format("Adjustment factor hourly loss array length (%d) does not equal length of weather file (%d) ", (int)n, (int)nsteps);
             }
         }
     }
@@ -1457,7 +1457,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
             }
             else if ((n % 8760 == 0 || n % 2920 == 0) && n != (size_t)(nsteps * analysis_period)) // give a helpful error for timestep mismatch
             {
-                m_error = util::format("Time series availability losses must have the same time step as the simulation time step unless losses are daily, weekly, monthly, annual, or single value.");
+                m_error = util::format("Adjustment factor number of time series loss time steps (%d) must be the same as the number of simulation time steps (%d) unless losses were defined as daily, weekly, monthly, annual, or single values.",(int)n,(int)nsteps*(int)analysis_period);
             }
             else if (n == (size_t)( 12 * analysis_period)) { //Monthly 
                 for (int a = 0; a < analysis_period; a++) {
@@ -1493,7 +1493,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
                 }
             }
             else {
-                m_error = util::format("Error in length of lifetime availability losses.");
+                m_error = util::format("Adjustment factor number of lifetime availability loss values (%d) must be time series, daily, weekly, monthly, annual or single value.", (int)n);
             }
         }
     }
@@ -1512,7 +1512,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
 
 				if ( start < 0 || start >= nsteps || end < start )
 				{
-					m_error = util::format( "period %d is invalid ( start: %d, end %d )", (int)r, start, end );
+					m_error = util::format( "Adjustment factor period %d is invalid ( start: %d, end %d )", (int)r, start, end );
 					continue;
 				}
 

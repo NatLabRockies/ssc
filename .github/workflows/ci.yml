@@ -72,12 +72,25 @@ jobs:
 
     - name: Test
       # Turn off fast fail for when the landbosse tests write to cerr
-      shell: bash
       run: |
         set -e
-        ${SSCDIR}/build/test/Test
+        exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
+        ${SSCDIR}/build/test/Test | tee /dev/fd/3
+        exit ${PIPESTATUS[0]}
+        
+    - name: Compare Test Times
+      run: |
+        pip install pandas requests
+        python ${SSCDIR}/test/compare_elapsed_time.py gtest_log ${SSCDIR}/build/test/gtest.log
     
-    - name: Upload Artifacts
+    - name: Upload Test Times CSV
+      uses: actions/upload-artifact@v4
+      with:
+          name: SSC Linux Test Time Elapsed
+          path: |
+            ${{env.SSCDIR}}/build/test/gtest_elapsed_times.csv
+
+    - name: Upload Shared Libraries
       uses: actions/upload-artifact@v4
       with:
           name: SSC Linux Shared Libraries
@@ -151,10 +164,32 @@ jobs:
       # Turn off fast fail for when the landbosse tests write to cerr
       run: |
         set -e
-        ${SSCDIR}/build/test/Test
-      shell: bash      
+        exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
+        ${SSCDIR}/build/test/Test | tee /dev/fd/3
+        exit ${PIPESTATUS[0]}
     
-    - name: Upload Artifacts
+    - name: Compare Test Times
+      run: |
+        pip install pandas requests
+        python ${SSCDIR}/test/compare_elapsed_time.py gtest_log ${SSCDIR}/build/test/gtest.log
+
+    - name: Upload Test Times CSV
+      if: ${{ matrix.os == 'macos-latest' }}
+      uses: actions/upload-artifact@v4
+      with:
+          name: SSC Mac Arm Test Time Elapsed
+          path: |
+            ${{env.SSCDIR}}/build/test/gtest_elapsed_times.csv 
+
+    - name: Upload Test Times CSV
+      if: ${{ matrix.os != 'macos-latest' }}
+      uses: actions/upload-artifact@v4
+      with:
+          name: SSC Mac Intel Test Time Elapsed
+          path: |
+            ${{env.SSCDIR}}/build/test/gtest_elapsed_times.csv 
+
+    - name: Upload Shared Libraries
       if: ${{ matrix.os == 'macos-latest' }}
       uses: actions/upload-artifact@v4
       with:
@@ -163,7 +198,7 @@ jobs:
             ${{env.SSCDIR}}/build/ssc/libssc.dylib
             ${{env.SSCDIR}}/build/ssc/ssc.dylib 
 
-    - name: Upload Artifacts
+    - name: Upload Shared Libraries
       if: ${{ matrix.os != 'macos-latest' }}
       uses: actions/upload-artifact@v4
       with:
@@ -173,7 +208,7 @@ jobs:
             ${{env.SSCDIR}}/build/ssc/ssc.dylib 
 
   build-on-windows:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - name: Setup cmake
@@ -236,8 +271,23 @@ jobs:
       # Turn off fast fail for when the landbosse tests write to cerr
       run: |
         cd ${SSCDIR}/build/test/Release
+        LOG_FILE=${SSCDIR}/build/test/gtest.log
+        exec > >(tee ${LOG_FILE}) 2>&1
         ./Test.exe
+        
+    - name: Compare Test Times
+      run: |
+        pip install pandas requests
+        python ${SSCDIR}/test/compare_elapsed_time.py gtest_log ${SSCDIR}/build/test/gtest.log
+      shell: bash
   
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+          name: SSC Windows Test Time Elapsed
+          path: |
+            ${{env.SSCDIR}}\build\test\gtest_elapsed_times.csv
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:

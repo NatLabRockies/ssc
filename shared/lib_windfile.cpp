@@ -115,7 +115,7 @@ static float col_or_nan(const std::string& s)
         }
     }
     else
-        return std::numeric_limits<float>::quiet_NaN();;
+        return std::numeric_limits<float>::quiet_NaN();
 }
 
 static int locate2(std::string buf, std::vector<std::string> &vstring, char delim)
@@ -479,7 +479,12 @@ bool windfile::open( const std::string &file )
         std::vector<std::string> hdr;
         int ncols = locate2(m_buf, hdr, ',');
 
-        for (size_t i = 0; (int)i < ncols; i++)
+        lat = std::numeric_limits<float>::quiet_NaN();
+        lon = std::numeric_limits<float>::quiet_NaN();
+        elev = std::numeric_limits<float>::quiet_NaN();
+
+//        for (size_t i = 0; (int)i < ncols; i++) SAM issue 1990
+        for (size_t i = 0; (int)i < ncols && (i+1) < hdr.size(); i++)
         {
             hdr_item = util::lower_case(trimboth(hdr[i]));
 
@@ -509,13 +514,18 @@ bool windfile::open( const std::string &file )
             }
 
         }
-
-        // time stamps expected to be in local time
-        // wind data files provide both site timezone and data timezone in header
-        // if the values are different, we can't determine the time zone of the time stamps
-        if (tz_data != tz_site)
+        // if elevation not in weather file, set to zero
+        // TO DO check to see where and whether elevation is used (check SSC and SAM and UI callbacks)
+        if (isnan(elev)) {
+            elev = 0;
+        }
+ 
+        // time stamps expected to be in local time. wind data files provide both site timezone and data timezone in header
+        // if the values are different, we can't determine the time zone of the time stamps for financial model time-dependent features (TOU, TOD, etc.)
+        if (tz_data != tz_site) {
             m_errorMsg = util::format("data must be in local time: data time zone %s and site time zone %s are not the same", tz_data.c_str(), tz_site.c_str());
-
+            return false;
+        }
         // line 2 data column headings
         getline(m_ifs, m_buf);
         nhdrs++;

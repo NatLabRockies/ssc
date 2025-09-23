@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 #include <algorithm>
+#include <cstdint>
 
 /*
 Dispatch base class
@@ -1152,4 +1153,13 @@ bool byLowestMarginalCost::operator() (grid_point const& a, grid_point const& b)
 
     return a.MarginalCost() < b.MarginalCost();
 
+}
+
+bool byExportPerKWh::operator() (grid_point const& a, grid_point const& b)
+{
+    if (a.ExportPerKWh() == b.ExportPerKWh())
+    {
+        return a.ExportPrice() > b.ExportPrice();
+    }
+    return a.ExportPerKWh() > b.ExportPerKWh();
 }

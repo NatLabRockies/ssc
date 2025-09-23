@@ -44,11 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_pc_heat_sink.h"
 #include "csp_solver_pc_heat_sink_physical.h"
 #include "csp_solver_two_tank_tes.h"
-#include "cst_iph_dispatch.h"
+
 #include "csp_solver_piston_cylinder_tes.h"
 #include "csp_solver_packedbed_tes.h"
 #include "csp_system_costs.h"
-//#include "cmod_csp_common_eqns.h"
+
+//#include "cst_iph_dispatch.h"
+#include "csp_dispatch.h"
 
 #include "csp_solver_cr_electric_resistance.h"
 
@@ -167,12 +169,15 @@ static var_info _cm_vtab_trough_physical_iph[] = {
     { SSC_INPUT,        SSC_MATRIX,      "Design_loss",               "Receiver heat loss at design",                                                     "W/m",          "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "rec_su_delay",              "Fixed startup delay time for the receiver",                                        "hr",           "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "rec_qf_delay",              "Energy-based receiver startup delay (fraction of rated thermal power)",            "-",            "",               "solar_field",    "*",                       "",                      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "p_start",                   "Collector startup energy, per SCA",                                                "kWhe",       "",               "solar_field",    "*",                       "",                      "" },
+    { SSC_INPUT,        SSC_NUMBER,      "p_start",                   "Collector startup energy, per SCA",                                                "kWhe",       "",                 "solar_field",    "*",                       "",                      "" },
 
     // Heat Sink
     { SSC_INPUT,     SSC_NUMBER,         "pb_pump_coef",              "Pumping power to move 1kg of HTF through PB loop",                                 "kW/kg",        "",               "Heat Sink",      "*",                       "",                      "" },
 
     { SSC_INPUT,     SSC_NUMBER,         "hs_type",                   "0: ideal model, 1: physical steam model",                                          "",             "",               "Heat Sink",      "?=0",                     "",                      "" },
+    { SSC_INPUT,     SSC_NUMBER,         "hs_htf_mdot_max_frac",      "Maximum HTF mass flow to heat sink relative to design point",                      "",             "",               "Heat Sink",      "*",                       "",                      "" },
+
+        
     //{ SSC_INPUT,     SSC_NUMBER,         "hs_phys_N_sub",             "Number physical heat sink HX nodes",                                               "",             "",               "Heat Sink",      "hs_type=1",               "",                      "" },
     //{ SSC_INPUT,     SSC_NUMBER,         "hs_phys_tol",               "Physical heat sink solve tolerance",                                               "",             "",               "Heat Sink",      "hs_type=1",               "",                      "" },
     //{ SSC_INPUT,     SSC_NUMBER,         "hs_phys_f_mdot_steam_min",  "Min steam mdot fraction for physical heat sink",                                   "",             "",               "Heat Sink",      "hs_type=1",               "",                      "" },
@@ -245,19 +250,21 @@ static var_info _cm_vtab_trough_physical_iph[] = {
     { SSC_INPUT,        SSC_NUMBER,      "disp_reporting",            "Dispatch optimization reporting level",                                                 "-",                   "",                             "tou",                                      "?=-1",                    "",                      "SIMULATION_PARAMETER" },
     { SSC_INPUT,        SSC_NUMBER,      "disp_spec_scaling",         "Dispatch optimization scaling heuristic",                                               "-",                   "",                             "tou",                                      "?=-1",                    "",                      "SIMULATION_PARAMETER" },
 
+    { SSC_INPUT,        SSC_NUMBER,      "disp_inventory_incentive",  "Dispatch storage terminal inventory incentive multiplier",                         "",             "",               "System Control", "?=0.0",                   "",                      "SIMULATION_PARAMETER" },
+
     { SSC_INPUT,        SSC_NUMBER,      "csp_financial_model",       "",                                                                                 "1-8",          "",               "Financial Model",        "?=1",                                                      "INTEGER,MIN=0",  "" },
 
     // Prices for *electricity* purchases
-    { SSC_INPUT,        SSC_NUMBER,      "ppa_multiplier_model",      "PPA multiplier model 0: dispatch factors dispatch_factorX, 1: hourly multipliers dispatch_factors_ts", "0/1", "0=diurnal,1=timestep", "tou",    "?=0",  /*need a default so this var works in required_if*/  "INTEGER,MIN=0", "SIMULATION_PARAMETER" },
-    { SSC_INPUT,        SSC_NUMBER,      "ppa_soln_mode",             "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                    "",             "",               "Financial Solution Mode", "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "SIMULATION_PARAMETER" },
-    { SSC_INPUT,        SSC_ARRAY,       "ppa_price_input_heat_btu",  "PPA prices - yearly",			                                                  "$/MMBtu",	  "",	            "Revenue",			       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",      	     "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_NUMBER,      "ppa_multiplier_model",      "PPA multiplier model 0: dispatch factors dispatch_factorX, 1: hourly multipliers dispatch_factors_ts", "0/1", "0=diurnal,1=timestep", "tou",    "?=0",  /*need a default so this var works in required_if*/  "INTEGER,MIN=0", "" },
+    { SSC_INPUT,        SSC_NUMBER,      "ppa_soln_mode",             "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                    "",             "",               "Financial Solution Mode", "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "" },
+    { SSC_INPUT,        SSC_ARRAY,       "ppa_price_input_heat_btu",  "PPA prices - yearly",			                                                  "$/MMBtu",	  "",	            "Revenue",			       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",      	     "" },
         // *Electricity* hourly price multipliers from Block Schedule                                                                                                                                                                                                                                
-    { SSC_INPUT,        SSC_MATRIX,      "dispatch_sched_weekday",    "12x24 PPA pricing Weekday schedule",                                               "",             "",               "tou",                     "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "SIMULATION_PARAMETER" },
-    { SSC_INPUT,        SSC_MATRIX,      "dispatch_sched_weekend",    "12x24 PPA pricing Weekend schedule",                                               "",             "",               "tou",                     "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_MATRIX,      "dispatch_sched_weekday",    "12x24 PPA pricing Weekday schedule",                                               "",             "",               "tou",                     "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "" },
+    { SSC_INPUT,        SSC_MATRIX,      "dispatch_sched_weekend",    "12x24 PPA pricing Weekend schedule",                                               "",             "",               "tou",                     "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "" },
     { SSC_INPUT,        SSC_ARRAY,       "dispatch_tod_factors",      "TOD factors for periods 1 through 9",                                              "",                                                                                                                                        
-        "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                              "Time of Delivery Factors","ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "SIMULATION_PARAMETER" },
+        "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                              "Time of Delivery Factors","ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1","",              "" },
         // *Electricity* hourly price multipliers from time series input
-    { SSC_INPUT,        SSC_ARRAY,       "dispatch_factors_ts",       "Time series electricity price multipliers",                                        "",             "",               "tou",                     "ppa_multiplier_model=1&csp_financial_model<5&is_dispatch=1","",              "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_ARRAY,       "dispatch_factors_ts",       "Time series electricity price multipliers",                                        "",             "",               "tou",                     "ppa_multiplier_model=1&csp_financial_model<5&is_dispatch=1","",              "" },
                                                                                                                                                                                                                        
     // Control for *heat* output                                                                                                                                                                                       
     { SSC_INPUT,        SSC_NUMBER,      "is_timestep_load_fractions","0: block dispatch, 1: hourly load fraction, 2: absolute load",                     "",             "",               "tou",                     "?=0",                                                       "",              "" },
@@ -556,7 +563,9 @@ static var_info _cm_vtab_trough_physical_iph[] = {
     { SSC_OUTPUT,       SSC_ARRAY,       "e_dot_field_int_energy",    "Field change in material/htf internal energy",                                     "MWt",          "",               "solar_field",    "sim_type=1",                       "",                      "" }, 
     { SSC_OUTPUT,       SSC_ARRAY,       "q_dot_htf_sf_out",          "Field thermal power leaving in HTF",                                               "MWt",          "",               "solar_field",    "sim_type=1",                       "",                      "" },  
     { SSC_OUTPUT,       SSC_ARRAY,       "q_dot_freeze_prot",         "Field freeze protection required",                                                 "MWt",          "",               "solar_field",    "sim_type=1",                       "",                      "" },
-                                                                                                                                                                                                                                                               
+
+    { SSC_OUTPUT,       SSC_ARRAY,       "rec_time_in_startup",       "Field time at startup",                                                            "min",          "",               "solar_field",    "sim_type=1",                       "",                      "" },
+
     { SSC_OUTPUT,       SSC_ARRAY,       "m_dot_loop",                "Receiver mass flow rate",                                                          "kg/s",         "",               "solar_field",    "sim_type=1",                       "",                      "" },  
     { SSC_OUTPUT,       SSC_ARRAY,       "m_dot_field_recirc",        "Field total mass flow recirculated",                                               "kg/s",         "",               "solar_field",    "sim_type=1",                       "",                      "" },  
     { SSC_OUTPUT,       SSC_ARRAY,       "m_dot_field_delivered",     "Field total mass flow delivered",                                                  "kg/s",         "",               "solar_field",    "sim_type=1",                       "",                      "" },  
@@ -864,6 +873,7 @@ public:
         // Solar field, trough
         // ********************************
         // ********************************
+        double q_dot_rec_des_ideal_pre_init = std::numeric_limits<double>::quiet_NaN();
         C_csp_trough_collector_receiver c_trough;
         {
             // Collect Inputs
@@ -1124,6 +1134,7 @@ public:
             if (success == false)
                 throw exec_error("trough_physical_iph", "Negative solar mult or total aperture.");
 
+            q_dot_rec_des_ideal_pre_init = c_trough.m_q_design_ideal / 1e6; // [MWt]
 
 
             // Allocate trough outputs
@@ -1146,6 +1157,8 @@ public:
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_E_DOT_INTERNAL_ENERGY, allocate("e_dot_field_int_energy", n_steps_fixed), n_steps_fixed);
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_Q_DOT_HTF_OUT, allocate("q_dot_htf_sf_out", n_steps_fixed), n_steps_fixed);
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_Q_DOT_FREEZE_PROT, allocate("q_dot_freeze_prot", n_steps_fixed), n_steps_fixed);
+
+                c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_TIME_IN_STARTUP, allocate("rec_time_in_startup", n_steps_fixed), n_steps_fixed);
 
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_M_DOT_LOOP, allocate("m_dot_loop", n_steps_fixed), n_steps_fixed);
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_IS_RECIRCULATING, allocate("recirculating", n_steps_fixed), n_steps_fixed);
@@ -1531,9 +1544,9 @@ public:
             //for (size_t i = 0; i < n_f_turbine1; i++) {
             //    f_turbine_max1 = max(f_turbine_max1, p_f_turbine1[i]);
             //}
-            double f_turbine_max1 = 1.0;
-            for (S_timeseries_schedule_data data : offtaker_schedule.mv_timeseries_schedule_data)
-                f_turbine_max1 = max(f_turbine_max1, data.nondim_value);
+            //double f_turbine_max1 = 1.0;
+            //for (S_timeseries_schedule_data data : offtaker_schedule.mv_timeseries_schedule_data)
+            //    f_turbine_max1 = max(f_turbine_max1, data.nondim_value);
 
 
             c_heat_sink.ms_params.m_T_htf_hot_des = T_htf_hot_des;		//[C] FIELD design outlet temperature
@@ -1541,7 +1554,7 @@ public:
             c_heat_sink.ms_params.m_q_dot_des = q_dot_hs_des;			//[MWt] HEAT SINK design thermal power (could have field solar multiple...)
             // 9.18.2016 twn: assume for now there's no pressure drop though heat sink
             c_heat_sink.ms_params.m_htf_pump_coef = as_double("pb_pump_coef");		//[kWe/kg/s]
-            c_heat_sink.ms_params.m_max_frac = f_turbine_max1;
+            c_heat_sink.ms_params.m_max_frac = as_double("hs_htf_mdot_max_frac");  // f_turbine_max1;
 
             c_heat_sink.ms_params.m_pc_fl = as_integer("Fluid");
             c_heat_sink.ms_params.m_pc_fl_props = as_matrix("field_fl_props");
@@ -1558,19 +1571,22 @@ public:
         }
         else if (hs_type == 1)
         {
-            size_t n_f_turbine1 = 0;
-            ssc_number_t* p_f_turbine1 = as_array("f_turb_tou_periods", &n_f_turbine1);   // heat sink, not turbine
-            double f_turbine_max1 = 1.0;
-            for (size_t i = 0; i < n_f_turbine1; i++) {
-                f_turbine_max1 = max(f_turbine_max1, p_f_turbine1[i]);
-            }
+            //size_t n_f_turbine1 = 0;
+            //ssc_number_t* p_f_turbine1 = as_array("f_turb_tou_periods", &n_f_turbine1);   // heat sink, not turbine
+            //double f_turbine_max1 = 1.0;
+            //for (size_t i = 0; i < n_f_turbine1; i++) {
+            //    f_turbine_max1 = max(f_turbine_max1, p_f_turbine1[i]);
+            //}
 
             c_heat_sink_phys.ms_params.m_T_htf_hot_des = T_htf_hot_des;		//[C] FIELD design outlet temperature
             c_heat_sink_phys.ms_params.m_T_htf_cold_des = T_htf_cold_des;	//[C] FIELD design inlet temperature
             c_heat_sink_phys.ms_params.m_q_dot_des = q_dot_hs_des;			//[MWt] HEAT SINK design thermal power (could have field solar multiple...)
             // 9.18.2016 twn: assume for now there's no pressure drop though heat sink
             c_heat_sink_phys.ms_params.m_htf_pump_coef = as_double("pb_pump_coef");		//[kWe/kg/s]
-            c_heat_sink_phys.ms_params.m_max_frac = f_turbine_max1;
+
+
+            c_heat_sink_phys.ms_params.m_max_frac = as_double("hs_htf_mdot_max_frac");  // f_turbine_max1;
+
 
             c_heat_sink_phys.ms_params.m_pc_fl = as_integer("Fluid");
             c_heat_sink_phys.ms_params.m_pc_fl_props = as_matrix("field_fl_props");
@@ -1739,15 +1755,29 @@ public:
 
         // *****************************************************
         // System dispatch
-        cst_iph_dispatch_opt dispatch;
+        //cst_iph_dispatch_opt dispatch;
+        csp_dispatch_opt dispatch;
 
         if (is_dispatch && sim_type == 1) {
+
+            double heater_startup_cost = 0.0;
 
             dispatch.solver_params.set_user_inputs(as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
                 as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                 as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"));
 
-            dispatch.params.set_user_params(as_double("disp_time_weighting"), 0.0);
+            bool can_cycle_use_standby = false;
+            double disp_csu_cost_calc = 0.0;
+            double disp_pen_ramping = 0.0;
+            double q_rec_standby = 0.0;
+            double q_rec_heattrace = 0.0;
+
+            double disp_rsu_cost_calc = 0.0;
+
+            dispatch.params.set_user_params(can_cycle_use_standby, as_double("disp_time_weighting"),
+                disp_rsu_cost_calc, heater_startup_cost, disp_csu_cost_calc, disp_pen_ramping,
+                as_double("disp_inventory_incentive"), q_rec_standby, q_rec_heattrace);
+
         }
 
         // Instantiate Solver

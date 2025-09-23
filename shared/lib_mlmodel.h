@@ -94,12 +94,12 @@ public:
 
 	mlmodel_module_t();
 
-	virtual double AreaRef() { return (Width * Length); }
-	virtual double VmpRef() { return V_mp_ref; }
-	virtual double ImpRef() { return I_mp_ref; }
-	virtual double VocRef() { return V_oc_ref; }
-	virtual double IscRef() { return I_sc_ref; }
-	virtual bool operator() (pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &output);
+	virtual double AreaRef() const { return (Width * Length); }
+	virtual double VmpRef() const { return V_mp_ref; }
+	virtual double ImpRef() const { return I_mp_ref; }
+	virtual double VocRef() const { return V_oc_ref; }
+	virtual double IscRef() const { return I_sc_ref; }
+	virtual bool operator() (pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &output) const;
 	virtual void initializeManual();
 
 private:
@@ -116,7 +116,7 @@ private:
 class mock_celltemp_t : public pvcelltemp_t
 {
 public:
-	virtual bool operator() (pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell);
+	virtual bool operator() (pvinput_t const &input, pvmodule_t const &module, double opvoltage, double &Tcell) const;
 };
 
 #endif

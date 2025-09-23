@@ -81,8 +81,6 @@ static var_info vtab_thirdpartyownership[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,      "cf_cumulative_payback_with_expenses",      "Cumulative simple payback with expenses",         "$",            "",                      "Cash Flow",      "*",                     "LENGTH_EQUAL=cf_length",                "" },
 	
 // NTE additions 8/10/17
-	{ SSC_INPUT,        SSC_ARRAY,       "elec_cost_with_system",             "Energy value",                       "$",            "",                      "Electricity Cost",      "*",                       "",                                         "" },
-	{ SSC_INPUT,        SSC_ARRAY,       "elec_cost_without_system",             "Energy value",                       "$",            "",                      "Electricity Cost",      "*",                       "",                                         "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "cf_nte",      "Host indifference point by year",         "cents/kWh",            "",                      "Cash Flow",      "*",                     "LENGTH_EQUAL=cf_length",                "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "year1_nte",                "Host indifference point in Year 1",                          "cents/kWh",    "",                      "Financial Metrics",      "*",                       "",                                         "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "lnte_real",                "Host indifference point nominal levelized value",                          "cents/kWh",    "",                      "Financial Metrics",      "*",                       "",                                         "" },
@@ -281,11 +279,11 @@ public:
 
 		// NTE
 		ssc_number_t *ub_w_sys = 0;
-		ub_w_sys = as_array("elec_cost_with_system", &count);
+		ub_w_sys = as_array("utility_bill_w_sys", &count);
 		if (count != nyears+1)
 			throw exec_error("third party ownership", util::format("utility bill with system input wrong length (%d) should be (%d)",count, nyears+1));
 		ssc_number_t *ub_wo_sys = 0;
-		ub_wo_sys = as_array("elec_cost_without_system", &count);
+		ub_wo_sys = as_array("utility_bill_wo_sys", &count);
 		if (count != nyears+1)
 			throw exec_error("third party ownership", util::format("utility bill without system input wrong length (%d) should be (%d)",count, nyears+1));
 

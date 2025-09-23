@@ -67,7 +67,6 @@ OBJECTS = \
 		cmod_dsg_flux_preprocess.o \
 		cmod_equpartflip.o \
 		cmod_financial_eqns.o \
-		cmod_fossilgen.o \
 		cmod_fuelcell.o \
 		cmod_generic_system-builder.o \
 		cmod_generic_system.o \
@@ -79,7 +78,6 @@ OBJECTS = \
 		cmod_iec61853par.o \
 		cmod_inv_cec_cg.o \
 		cmod_iph_to_lcoefcr.o \
-		cmod_ippppa.o \
 		cmod_irradproc.o \
 		cmod_iscc_design_point.o \
 		cmod_layoutarea.o \
@@ -134,10 +132,6 @@ OBJECTS = \
 		cmod_ui_tes_calcs.o \
 		cmod_ui_udpc_checks.o \
 		cmod_user_htf_comparison.o \
-		cmod_utilityrate.o \
-		cmod_utilityrate2.o \
-		cmod_utilityrate3.o \
-		cmod_utilityrate4.o \
 		cmod_utilityrate5.o \
 		cmod_wavefile.o \
 		cmod_utilityrate5_eqns.o \

@@ -79,6 +79,10 @@ public:
         ssc_data_t dat_inputs = json_to_ssc_data(tmp.str().c_str());
         ssc_data_set_string(dat_inputs, "solar_resource_file", solar_resource_path);
 
+        // Some cmods use "file_name" instead of "solar_resource_file"
+        // Brute force approach - define both
+        ssc_data_set_string(dat_inputs, "file_name", solar_resource_path);
+
         tmp.str("");
         int errors = run_module(dat_inputs, compute_module);
 

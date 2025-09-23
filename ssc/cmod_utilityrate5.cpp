@@ -70,17 +70,12 @@ static var_info vtab_utility_rate5[] = {
     { SSC_OUTPUT,       SSC_ARRAY,      "annual_energy_value",             "Energy value in each year",     "$",    "",                      "Annual",             "*",                         "",   "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,      "annual_electric_load",            "Electricity load total in each year",  "kWh",    "",                      "Annual",             "*",                         "",   "" },
 
-	// outputs from Paul, Nate and Sean 9/9/13
-    { SSC_OUTPUT, SSC_ARRAY, "elec_cost_with_system",    "Electricity bill with system",    "$/yr", "", "Annual", "*", "", "" },
-	{ SSC_OUTPUT, SSC_ARRAY, "elec_cost_without_system", "Electricity bill without system", "$/yr", "", "Annual", "*", "", "" },
 
 	// year 1 values for metrics
-	{ SSC_OUTPUT, SSC_NUMBER, "elec_cost_with_system_year1",    "Electricity bill with system (year 1)",    "$/yr", "",    "Financial Metrics", "*", "", "" },
-	{ SSC_OUTPUT, SSC_NUMBER, "elec_cost_without_system_year1", "Electricity bill without system (year 1)", "$/yr", "",    "Financial Metrics", "*", "", "" },
+	{ SSC_OUTPUT, SSC_NUMBER, "utility_bill_w_sys_year1",    "Electricity bill with system (year 1)",    "$/yr", "",    "Financial Metrics", "*", "", "" },
+	{ SSC_OUTPUT, SSC_NUMBER, "utility_bill_wo_sys_year1", "Electricity bill without system (year 1)", "$/yr", "",    "Financial Metrics", "*", "", "" },
 	{ SSC_OUTPUT, SSC_NUMBER, "savings_year1",                  "Electricity bill savings with system (year 1)",             "$/yr",    "", "Financial Metrics", "*", "", "" },
 	{ SSC_OUTPUT, SSC_NUMBER, "year1_electric_load",            "Electricity load total (year 1)",                "kWh/yr",  "", "Financial Metrics", "*", "", "" },
-
-
 
 	{ SSC_OUTPUT, SSC_ARRAY, "year1_hourly_e_tofromgrid", "Electricity to/from grid (year 1 hourly)", "kWh", "", "Time Series", "*", "", "" },
 	{ SSC_OUTPUT, SSC_ARRAY, "year1_hourly_e_togrid", "Electricity to grid (year 1 hourly)", "kWh", "", "Time Series", "*", "", "" },
@@ -446,7 +441,13 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
             throw exec_error(cm_name, ss.str());
         }
 
-        rate.setup_ratcheting_demand(ratchet_matrix, bd_tou_matrix);
+        bool error = rate.setup_ratcheting_demand(ratchet_matrix, bd_tou_matrix);
+
+        if (error) {
+            std::ostringstream ss;
+            ss << "ur_dc_billing_demand_periods should have at least one period where billing demand calculations are enabled.";
+            throw exec_error(cm_name, ss.str());
+        }
     }
 
 
@@ -637,8 +638,6 @@ public:
 		ssc_number_t *energy_net = allocate("scaled_annual_energy", nyears+1);
 		ssc_number_t *annual_revenue_w_sys = allocate("revenue_with_system", nyears+1);
 		ssc_number_t *annual_revenue_wo_sys = allocate("revenue_without_system", nyears+1);
-		ssc_number_t *annual_elec_cost_w_sys = allocate("elec_cost_with_system", nyears+1);
-		ssc_number_t *annual_elec_cost_wo_sys = allocate("elec_cost_without_system", nyears+1);
 
 		// matrices
 		ssc_number_t *utility_bill_w_sys_ym = allocate("utility_bill_w_sys_ym", nyears + 1, 12);
@@ -1529,11 +1528,6 @@ public:
 				annual_revenue_wo_sys[i + 1] += revenue_wo_sys[j];
 			}
 
-			//Outputs from Paul, Nate and Sean 9/9/13
-			annual_elec_cost_w_sys[i + 1] = -annual_revenue_w_sys[i+1];
-			annual_elec_cost_wo_sys[i + 1] = -annual_revenue_wo_sys[i+1];
-
-
 			for (j = 0; j < 12; j++)
 			{
 				utility_bill_w_sys_ym[(i+1)*12 + j] = monthly_bill[j];
@@ -1583,10 +1577,9 @@ public:
 
 		}
 
-		assign("elec_cost_with_system_year1", annual_elec_cost_w_sys[1]);
-		assign("elec_cost_without_system_year1", annual_elec_cost_wo_sys[1]);
-		assign("savings_year1", annual_elec_cost_wo_sys[1] - annual_elec_cost_w_sys[1]);
-
+        assign("utility_bill_w_sys_year1", utility_bill_w_sys[1]);
+        assign("utility_bill_wo_sys_year1", utility_bill_wo_sys[1]);
+        assign("savings_year1", utility_bill_wo_sys[1] - utility_bill_w_sys[1]);
 
         if (!dc_enabled) {
             unassign("monthly_tou_demand_peak_w_sys");
@@ -2373,6 +2366,16 @@ public:
 
 
 								// cumulative energy used to determine tier for credit of entire surplus amount
+
+                                // check for vlid tier structure per https://github.com/NREL/SAM/issues/1834
+                                size_t max_tier = curr_month.ec_tou_ub.ncols() - 1;
+                                if (cumulative_energy > curr_month.ec_tou_ub.at(row, max_tier)) {
+                                    std::ostringstream ss;
+                                    ss << "cumulative energy  " << cumulative_energy << "kWh exceeds maximum usage specified for all tiers for period " << row;
+                                    throw exec_error("utilityrate5", ss.str());
+                                }
+
+
 								ssc_number_t credit_amt = 0;
 
                                 ssc_number_t tier_credit = 0.0, sr = 0.0, tier_energy = 0.0;
@@ -2689,8 +2692,7 @@ public:
 	void ur_update_ec_monthly(int month, util::matrix_t<double>& charge, util::matrix_t<double>& energy, util::matrix_t<double>& surplus)
 
 	{
-		if (month < 0 || month > (int)rate.m_month.size())
-		{
+		if (month < 0 || month > (int)rate.m_month.size()) {
 			std::ostringstream ss;
 			ss << "ur_update_ec_monthly month not found for Month " << month;
 			throw exec_error("utilityrate5", ss.str());

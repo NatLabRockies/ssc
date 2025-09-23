@@ -1,0 +1,49 @@
+name: Update Elapsed Test Times
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update_elapsed_test_times:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest]
+      fail-fast: false
+
+    steps:
+    - name: Get Release SHA
+      run: |
+        echo $GITHUB_SHA
+
+    - name: Checkout SSC
+      uses: actions/checkout@v4
+      with:
+          path: ssc
+
+    - name: Create SSC branch
+      shell: bash
+      run: | 
+        cd ${{ github.workspace }}/ssc
+        git checkout -b update_test_times
+        pip install pandas requests
+
+    - name: Download Release Test Times
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      shell: bash
+      run: |
+        python '${{ github.workspace }}/ssc/test/compare_elapsed_time.py' download_csv $GITHUB_SHA '${{ github.workspace }}/ssc/test/elapsed_time_release'
+
+    - name: create pull request
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: |
+        cd ${{ github.workspace }}/ssc
+        ls ${{ github.workspace }}/ssc/test/elapsed_time_release
+        git add '${{ github.workspace }}/ssc/test/elapsed_time_release'
+        git commit -m "Update Test Elapsed Time CSVs for new Release"
+        git push origin update_test_times
+        gh pr create -B develop -H update_test_times --title 'Merge update_test_times into develop' --body 'Created by Github action'

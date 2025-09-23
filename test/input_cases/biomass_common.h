@@ -149,7 +149,8 @@ void biomass_commondata(ssc_data_t &data) {
 
     ssc_data_set_number(data, "adjust_constant", 0.0);
 
-	ssc_data_set_number(data, "analysis_period", 25);
+    ssc_data_set_number(data, "analysis_period", 2);
+
 	ssc_number_t p_federal_tax_rate[1] = { 21 };
 	ssc_data_set_array(data, "federal_tax_rate", p_federal_tax_rate, 1);
 	ssc_number_t p_state_tax_rate[1] = { 7 };

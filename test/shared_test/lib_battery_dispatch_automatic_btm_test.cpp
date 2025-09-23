@@ -564,7 +564,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, TestCommercialPeakForecasting) {
     batteryPower = dispatchAutoBTM->getBatteryPower();
     batteryPower->connectionMode = ChargeController::AC_CONNECTED;
 
-    std::vector<double> expectedPower = { 50.02, 44.22, 44.0, 45.24, 4.44, 0, 0, 0, 0, 0.0, 0, -46.0, -46.0, -45.39, -30.26, 50.08, 50.06, 50.15, 14.76,
+    std::vector<double> expectedPower = { 50.02, 44.22, 44.0, 45.24, 4.44, 0, 0, 0, 0, 0.0, 0, -46.0, -46.0, -45.39, 0, 50.08, 50.06, 34.720, 0,
                                          0, 0, -46.0, -46.0, -46.0 };
     for (size_t h = 0; h < 24; h++) {
         batteryPower->powerSystem = pv_prediction[h]; // Match the predicted PV
@@ -867,7 +867,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutagePeakShavingDai
     // Battery will discharge as much as possible for the outage, charge when PV is available, then discharge when load increases at 7 pm
     std::vector<double> expectedPower = { 52.1, 52.1, 52.1, 52.1, 39.4, 3.7, // 0 - 5
                                            0, -48, -48, -48, -48, -48, // Able to charge when SOC at 0, 6- 11
-                                        -48, -48, -48, -48.0, -11, 0, // 12 - 17
+                                        -48, -48, -48, -48.0, -48, -38.57, // 12 - 17
                                         0, 52.1, 52.1, 52.1, 52.1, 52.1, // 18 - 23
                                         52.1, 52.1, 52.1, 52.1 };
 
@@ -938,7 +938,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageWithAvailabili
     std::vector<double> expectedPower = { 52.1, 52.1, 52.1, 52.1, 39.4, 3.7,
                                             0, 0, 0, 0, 0, 0,
                                         0, -48, -48, -48.0, -48.0, -48.0,
-                                        0, 52.1, 52.1, 52.28, 52.48, 27.6 };
+                                        0, 52.22, 52.34, 52.28, 4.47, 0 };
 
     std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.19, 46.46,
                                                 50, 50, 50, 50, 50, 50, // Losses below prevent any crit load from being met in hrs 6 - 12 while battery is discharged
@@ -1085,7 +1085,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageWithInverterLo
     // Battery will discharge as much as possible for the outage, charge when PV is available, then discharge when load increases at 7 pm
     std::vector<double> expectedPower = { 52.1, 52.1, 52.1, 52.1, 39.4, 3.7,
                                             0, -48, -48, -48, -48, -48,
-                                        -48, -48, -48, -48.0, -11, 0,
+                                        -48, -48, -48, -48.0, -48, -38.57,
                                         0, 52.16, 52.16, 52.16, 52.16, 52.16, 52.16, };
 
     std::vector<double> expectedCritLoadUnmet = { 50, 50, 50, 50, 50, 50, // Losses below prevent any crit load from being met in first hours
@@ -1206,20 +1206,20 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutagePeakShavingEmp
         SOC = batteryModel->SOC();
     }
 
-    EXPECT_NEAR(batteryModel->SOC(), 100, 0.01);
-    EXPECT_EQ(h, 17);
+    EXPECT_NEAR(batteryModel->SOC(), 96.67, 0.01);
+    EXPECT_EQ(h, 18);
 
     // Show that the battery can discharge above max SOC after outage
-    batteryPower->powerLoad = 680;
+    batteryPower->powerLoad = 670;
     batteryPower->powerSystem = 0;
     batteryPower->isOutageStep = false;
     batteryPower->powerCritLoad = 14;
-    dispatchAutoBTM->dispatch(0, h, 0);
+    dispatchAutoBTM->dispatch(0, h-1, 0);
     h++;
 
-    EXPECT_NEAR(batteryPower->powerBatteryDC, 12.84, 0.5) << " error in expected at hour " << h;
+    EXPECT_NEAR(batteryPower->powerBatteryDC, 2.08, 0.5) << " error in expected at hour " << h;
 
-    EXPECT_NEAR(batteryModel->SOC(), 95, 0.01);
+    EXPECT_NEAR(batteryModel->SOC(), 96.31, 0.01);
 
     // Battery cannot charge above max SOC
     batteryPower->powerLoad = 700;
@@ -1327,7 +1327,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageRetailRAteEmpt
         SOC = batteryModel->SOC();
     }
 
-    EXPECT_NEAR(batteryModel->SOC(), 100, 0.01);
+    EXPECT_NEAR(batteryModel->SOC(), 96.67, 0.01);
     EXPECT_EQ(h, 18);
 
     // Show that the battery can discharge above max SOC after outage
@@ -1338,9 +1338,9 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageRetailRAteEmpt
     dispatchAutoBTM->dispatch(0, h, 0);
     h++;
 
-    EXPECT_NEAR(batteryPower->powerBatteryDC, 14.6, 0.5) << " error in expected at hour " << h;
+    EXPECT_NEAR(batteryPower->powerBatteryDC, 9.80, 0.5) << " error in expected at hour " << h;
 
-    EXPECT_NEAR(batteryModel->SOC(), 95, 0.01);
+    EXPECT_NEAR(batteryModel->SOC(), 94.93, 0.01);
 
     // Battery cannot charge above max SOC
     batteryPower->powerLoad = 700;
@@ -1450,20 +1450,20 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageCustomEmptyAnd
         SOC = batteryModel->SOC();
     }
 
-    EXPECT_NEAR(batteryModel->SOC(), 100, 0.01);
+    EXPECT_NEAR(batteryModel->SOC(), 96.67, 0.01);
     EXPECT_EQ(h, 17);
 
     // Show that the battery can discharge above max SOC after outage
-    batteryPower->powerLoad = 700;
+    batteryPower->powerLoad = 8;
     batteryPower->powerSystem = 0;
     batteryPower->isOutageStep = false;
-    batteryPower->powerCritLoad = 50;
+    batteryPower->powerCritLoad = 8;
     dispatchAutoBTM->dispatch(0, h, 0);
     h++;
 
-    EXPECT_NEAR(batteryPower->powerBatteryDC, 14.8, 0.5) << " error in expected at hour " << h;
+    EXPECT_NEAR(batteryPower->powerBatteryDC, 9.45, 0.5) << " error in expected at hour " << h;
 
-    EXPECT_NEAR(batteryModel->SOC(), 95, 0.01);
+    EXPECT_NEAR(batteryModel->SOC(), 95.01, 0.01);
 
     // Battery cannot charge above max SOC
     batteryPower->powerLoad = 700;
@@ -1716,7 +1716,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageWithBatteryAva
     std::vector<double> expectedPower = { 0, 0, 0, 0, 0, 0,
                                             52.1, 52.1, 52.1, 52.1, 39.4, 3.7,
                                         0, -48, -48, -48.0, -48.0, -48.0,
-                                        0, 52.1, 52.1, 52.28, 52.48, 27.6 };
+                                        0, 52.22, 52.34, 52.28, 4.46, 0 };
 
     std::vector<double> expectedCritLoadUnmet = { 50, 50, 50, 50, 50, 50, // Losses below prevent any crit load from being met in hrs 0 - 5 while battery is unavailable
                                                 0, 0, 0, 0, 12.2, 46.5, // Battery meets losses until it runs out of SOC

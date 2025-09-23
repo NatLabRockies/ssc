@@ -185,8 +185,6 @@ static var_info vtab_cashloan_heat[] = {
 	{ SSC_OUTPUT,        SSC_NUMBER,     "effective_tax_rate",                 "Effective tax rate",                       "%",    "",                      "Financial Metrics",      "*",                       "",                                         "" },
 
 // NTE additions 8/10/17
-	{ SSC_INPUT,        SSC_ARRAY,       "elec_cost_with_system",             "Energy value",                       "$",            "",                      "ThirdPartyOwnership",      "*",                       "",                                         "" },
-	{ SSC_INPUT,        SSC_ARRAY,       "elec_cost_without_system",             "Energy value",                       "$",            "",                      "ThirdPartyOwnership",      "*",                       "",                                         "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "cf_nte",      "NTE Not to exceed",         "cents/kWh",            "",                      "Cash Flow",      "*",                     "LENGTH_EQUAL=cf_length",                "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "year1_nte",                "NTE Not to exceed Year 1",                          "cents/kWh",    "",                      "Cash Flow",      "*",                       "",                                         "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "lnte_real",                "NTE Not to exceed real",                          "cents/kWh",    "",                      "Cash Flow",      "*",                       "",                                         "" },
@@ -1342,11 +1340,11 @@ public:
 
 		// NTE
 		ssc_number_t *ub_w_sys = 0;
-		ub_w_sys = as_array("elec_cost_with_system", &count);
+		ub_w_sys = as_array("utility_bill_w_sys", &count);
 		if (count != (size_t)(nyears+1))
 			throw exec_error("cashloan_heat", util::format("utility bill with system input wrong length (%d) should be (%d)",count, nyears+1));
 		ssc_number_t *ub_wo_sys = 0;
-		ub_wo_sys = as_array("elec_cost_without_system", &count);
+		ub_wo_sys = as_array("utility_bill_wo_sys", &count);
 		if (count != (size_t)(nyears+1))
 			throw exec_error("cashloan_heat", util::format("utility bill without system input wrong length (%d) should be (%d)",count, nyears+1));
 

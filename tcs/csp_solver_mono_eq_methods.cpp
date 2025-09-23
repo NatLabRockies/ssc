@@ -200,17 +200,44 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             xy_q_dot_1.x = defocus_guess;
             xy_q_dot_1.y = q_dot_pc_1;
 
-            // Solve for defocus
-            double defocus_guess_q_dot = (std::max)(0.7*defocus_guess, (std::min)(0.99*defocus_guess, defocus_guess * (m_q_dot_pc_max / mc_pc_out_solver.m_q_dot_htf)));
+            C_monotonic_eq_solver::S_xy_pair xy_q_dot_2;
 
-            double defocus_solved, tol_solved;
+            double defocus_guess_q_dot = (std::max)(0.7 * defocus_guess, (std::min)(0.99 * defocus_guess, defocus_guess * (m_q_dot_pc_max / mc_pc_out_solver.m_q_dot_htf)));
+            while (true) {
+
+                q_dot_df_code = c_q_dot_solver.test_member_function(defocus_guess_q_dot, &q_dot_pc_1);
+
+                if (q_dot_df_code != 0 || defocus_guess_q_dot < 0.1) {
+                    // Weird that controller chose Defocus operating mode, so report message and shut down CR and PC
+                    error_msg = util::format("At time = %lg the controller chose %s operating mode, but the code"
+                        " failed to converge.",
+                        mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, op_mode_str.c_str());
+                    mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+
+                    reset_time(t_ts_initial);
+                    return -5;
+                }
+                else if(q_dot_pc_1 / xy_q_dot_1.y < 0.99) {
+                    xy_q_dot_2.x = defocus_guess_q_dot;
+                    xy_q_dot_2.y = q_dot_pc_1;
+                    break;
+                }
+                else {
+                    xy_q_dot_1.x = defocus_guess_q_dot;
+                    xy_q_dot_1.y = q_dot_pc_1;
+                    defocus_guess_q_dot *= 0.95;
+                }
+            }
+
+            // Solve for defocus
+            double tol_solved;
             defocus_solved = tol_solved = std::numeric_limits<double>::quiet_NaN();
             int iter_solved = -1;
 
             int solver_code = 0;
             try
             {
-                solver_code = c_q_dot_solver.solve(xy_q_dot_1, defocus_guess_q_dot, m_q_dot_pc_max, defocus_solved, tol_solved, iter_solved);
+                solver_code = c_q_dot_solver.solve(xy_q_dot_1, xy_q_dot_2, m_q_dot_pc_max, defocus_solved, tol_solved, iter_solved);
             }
             catch (C_csp_exception)
             {
@@ -1255,8 +1282,15 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
 
             if (f_m_dot_code != C_monotonic_eq_solver::CONVERGED)
             {
-                if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+                // One scenario is that E__CR_OUT__ITER_Q_DOT_TARGET_CH_ONLY can't reduce mass flow enough to hit low target
+                if (m_solver_mode == C_MEQ__m_dot_tes::E__CR_OUT__ITER_Q_DOT_TARGET_CH_ONLY && c_solver.is_no_negative_error(f_m_dot_code))
                 {
+                    return -5;
+                }
+                else if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+                {
+                    
+
                     std::string msg = util::format("At time = %lg power cycle mass flow for startup "
                         "iteration to find a defocus resulting in the maximum power cycle mass flow rate only reached a convergence "
                         "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",

@@ -40,8 +40,6 @@ static var_info _cm_vtab_host_developer[] = {
 // -------------------
 // Host specific inputs and outputs
 	{ SSC_INPUT,        SSC_ARRAY,       "annual_energy_value",             "Host energy value",                       "$",            "",                      "Host",      "*",                       "",                                         "" },
-	{ SSC_INPUT,        SSC_ARRAY,       "elec_cost_with_system",             "Host energy bill with system",                       "$",            "",                      "Host",      "*",                       "",                                         "" },
-	{ SSC_INPUT,        SSC_ARRAY,       "elec_cost_without_system",             "Host energy bill without system",                       "$",            "",                      "Host",      "*",                       "",                                         "" },
 	{ SSC_INPUT,        SSC_NUMBER,       "host_real_discount_rate",             "Host real discount rate",                       "%",            "",                      "Host",      "*",                       "",                                         "" },
 
     { SSC_INPUT, SSC_ARRAY, "year1_hourly_ec_with_system", "Energy charge with system (year 1 hourly)", "$", "", "Time Series", "*", "", "" },
@@ -2943,11 +2941,11 @@ public:
 
 	// NTE
 	ssc_number_t *ub_w_sys = 0;
-	ub_w_sys = as_array("elec_cost_with_system", &count);
+	ub_w_sys = as_array("utility_bill_w_sys", &count);
 	if ((int)count != nyears + 1)
 		throw exec_error("host developer", util::format("utility bill with system input wrong length (%d) should be (%d)", count, nyears + 1));
 	ssc_number_t *ub_wo_sys = 0;
-	ub_wo_sys = as_array("elec_cost_without_system", &count);
+	ub_wo_sys = as_array("utility_bill_wo_sys", &count);
 	if ((int)count != nyears + 1)
 		throw exec_error("host developer", util::format("utility bill without system input wrong length (%d) should be (%d)", count, nyears + 1));
 

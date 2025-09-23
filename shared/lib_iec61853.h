@@ -94,12 +94,12 @@ public:
 	bool tcoeff( util::matrix_t<double> &input, size_t icol, double irr, 
 		double *tempc, bool verbose );
 
-	virtual double AreaRef() { return Area; }
-	virtual double VmpRef() { return Vmp0; }
-	virtual double ImpRef() { return Imp0; }
-	virtual double VocRef() { return Voc0; }
-	virtual double IscRef() { return Isc0; }
-	virtual bool operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &output );
+	virtual double AreaRef() const { return Area; }
+	virtual double VmpRef() const { return Vmp0; }
+	virtual double ImpRef() const { return Imp0; }
+	virtual double VocRef() const { return Voc0; }
+	virtual double IscRef() const { return Isc0; }
+	virtual bool operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &output ) const;
 };
 
 

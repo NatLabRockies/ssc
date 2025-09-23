@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void geothermal_costs_default(ssc_data_t &data) {
 
-	ssc_data_set_number(data, "gross_output", 5435.705);
-    ssc_data_set_number(data, "gross_cost_output", 5.4);
+	ssc_data_set_number(data, "gross_output", 5.435705);
+    ssc_data_set_number(data, "gross_cost_output", 5400);
 	ssc_data_set_number(data, "design_temp", 200.0);
     ssc_data_set_number(data, "dt_prod_well", 0.0);
 	ssc_data_set_number(data, "eff_secondlaw", 0.405130);
@@ -70,6 +70,19 @@ void geothermal_costs_default(ssc_data_t &data) {
 	ssc_data_set_number(data, "x_lp", 0.089993);
 	ssc_data_set_number(data, "lp_flash_pressure", 15.700000);
 	ssc_data_set_number(data, "flash_count", 2);
+    ssc_data_set_number(data, "geotherm.cost.pump_casing_cost", 0.0);
+    ssc_data_set_number(data, "geotherm.cost.pump_per_foot", 0.0);
+    ssc_data_set_number(data, "geotherm.cost.pump_fixed", 0.0);
+    ssc_data_set_number(data, "pump_depth_ft", 0.0);
+    ssc_data_set_number(data, "num_wells_getem", 5.0);
+    ssc_data_set_number(data, "pump_size_hp", 2000.0);
+    ssc_data_set_number(data, "inj_pump_hp", 2000.0);
+    ssc_data_set_number(data, "stimulation_type", 0);
+    ssc_data_set_number(data, "geotherm.cost.prod_cost_curve_welldiam", 0);
+    ssc_data_set_number(data, "resource_type", 0);
+    ssc_data_set_number(data, "num_wells_getem_prod_drilled", 3);
+    ssc_data_set_number(data, "num_wells_getem_inj_drilled", 1.0);
+    ssc_data_set_number(data, "num_wells_getem_prod_failed", 1);
 	//ssc_data_set_number(data, "baseline_cost", -1);
 }
 

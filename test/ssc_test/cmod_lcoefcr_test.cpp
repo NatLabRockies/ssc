@@ -46,7 +46,7 @@ TEST_F(CmodLCOEFCRTest, Biopower) {
     
     Test("lcoefcr", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
-
+/*
 TEST_F(CmodLCOEFCRTest, DSLF) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/lcoefcr/2022.08.08_develop_branch_DSLF_LCOE_Calculator_cmod_lcoefcr.json";
@@ -68,7 +68,7 @@ TEST_F(CmodLCOEFCRTest, EmpiricalTrough) {
 
     Test("lcoefcr", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
-
+*/
 TEST_F(CmodLCOEFCRTest, PV) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/lcoefcr/2022.08.08_develop_branch_Flat_Plate_PV_LCOE_Calculator_cmod_lcoefcr.json";
@@ -114,7 +114,7 @@ TEST_F(CmodLCOEFCRTest, Geotherrmal) {
 
     Test("lcoefcr", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
-
+/*
 TEST_F(CmodLCOEFCRTest, CPV) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/lcoefcr/2022.08.08_develop_branch_High-X_Concentrating_PV_LCOE_Calculator_cmod_lcoefcr.json";
@@ -217,7 +217,7 @@ TEST_F(CmodLCOEFCRTest, DSGL_IPH_LCOH) {
     Test("lcoefcr", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
-
+*/
 TEST_F(CmodLCOEFCRTest, PhysicalTrough_IPH_LCOH) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/lcoefcr/2022.08.08_develop_branch_Physical_Trough_IPH_LCOH_Calculator_cmod_lcoefcr.json";

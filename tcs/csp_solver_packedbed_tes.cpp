@@ -832,16 +832,21 @@ bool C_csp_packedbed_tes::charge(double timestep /*s*/, double T_amb /*K*/, doub
             // Charge INLET
             if (i == 0)
             {
+                double T_in_prev = T_prev_vec_subtime[i];   // Replace T_htf_in with current node previous timestep
+                /*if (m_dot_htf_in > 0)
+                    T_in_dummy = T_htf_hot_in;*/
                 T_calc_vec[i] = (T_prev_vec_subtime[0] + (alpha * T_htf_hot_in)
-                    + (beta * (T_prev_vec_subtime[i + 1] - (2.0 * T_prev_vec_subtime[i]) + T_htf_hot_in)))
+                    + (beta * (T_prev_vec_subtime[i + 1] - (2.0 * T_prev_vec_subtime[i]) + T_in_prev)))
                     / (1.0 + alpha);
             }
 
             // Charge OUTLET
             else if (i == m_n_xstep)
             {
+
+                double T_out_prev = T_prev_vec_subtime[i - 1];  // Replace T_prev_vec_subtime[i - 2] with current node previous timestep
                 T_calc_vec[i] = (T_prev_vec_subtime[i] + (alpha * T_calc_vec[i - 1])
-                    + (beta * (T_prev_vec_subtime[i] - 2.0 * T_prev_vec_subtime[i - 1] + T_prev_vec_subtime[i - 2])))
+                    + (beta * (T_prev_vec_subtime[i - 1] - T_prev_vec_subtime[i])))
                     / (1.0 + alpha);
             }
             else
@@ -905,7 +910,7 @@ bool C_csp_packedbed_tes::charge(double timestep /*s*/, double T_amb /*K*/, doub
     double cp_fluid_avg = mc_external_htfProps.Cp_ave(m_T_cold_des, m_T_hot_des) * 1.E3; //[J/kg-K]
     for (double T_out : T_out_vec)
     {
-        q_dot_ch_from_htf += m_dot_htf_in * cp_fluid_avg * (T_htf_hot_in - T_out) * 1.E-3 * (dt / timestep);  // [MWt]
+        q_dot_ch_from_htf += m_dot_htf_in * cp_fluid_avg * (T_htf_hot_in - T_out) * 1.E-6 * (dt / timestep);  // [MWt]
     }
 
     return true;
@@ -952,15 +957,16 @@ bool C_csp_packedbed_tes::discharge(double timestep /*s*/, double T_amb /*K*/, d
             if (i == 0)
             {
                 T_calc_vec[i] = (T_prev_vec_subtime[i] + (alpha * T_calc_vec[i + 1])
-                    + (beta * (T_prev_vec_subtime[i] - 2.0 * T_prev_vec_subtime[i + 1] + T_prev_vec_subtime[i + 2])))
+                    + (beta * (T_prev_vec_subtime[i + 1] - T_prev_vec_subtime[i])))
                     / (1.0 + alpha);
             }
 
             // Discharge INLET
             else if (i == m_n_xstep)
             {
+                double T_in_prev = T_prev_vec_subtime[i];   // Replace T_htf_in with current node previous timestep
                 T_calc_vec[i] = (T_prev_vec_subtime[i] + (alpha * T_htf_cold_in)
-                    + (beta * (T_prev_vec_subtime[i - 1] - (2.0 * T_prev_vec_subtime[i]) + T_htf_cold_in)))
+                    + (beta * (T_prev_vec_subtime[i - 1] - (2.0 * T_prev_vec_subtime[i]) + T_in_prev)))
                     / (1.0 + alpha);
             }
 
@@ -1011,7 +1017,7 @@ bool C_csp_packedbed_tes::discharge(double timestep /*s*/, double T_amb /*K*/, d
     double cp_fluid_avg = mc_external_htfProps.Cp_ave(m_T_cold_des, m_T_hot_des) * 1.E3; //[J/kg-K]
     for (double T_out : T_out_vec)
     {
-        q_dot_dc_to_htf += m_dot_htf_in * cp_fluid_avg * (T_out - T_htf_cold_in) * 1.E-3 * (dt / timestep);  // [MWt]
+        q_dot_dc_to_htf += m_dot_htf_in * cp_fluid_avg * (T_out - T_htf_cold_in) * 1.E-6 * (dt / timestep);  // [MWt]
     }
 
     // Average Hot Temperature in Tank

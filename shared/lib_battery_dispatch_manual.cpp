@@ -78,6 +78,7 @@ void dispatch_manual_t::init_with_vects(
     _can_clip_charge = can_clip_charge;
     _can_curtail_charge = can_curtail_charge;
     _priority_charge_battery = priorityChargeBattery;
+    _iprofile = 0;
 }
 
 // deep copy from dispatch to this
@@ -105,34 +106,34 @@ void dispatch_manual_t::prepareDispatch(size_t hour_of_year, size_t )
 	size_t m, h;
 	util::month_hour(hour_of_year, m, h);
 	size_t column = h - 1;
-	size_t iprofile = 0;
+	_iprofile = 0;
 
 	bool is_weekday = util::weekday(hour_of_year);
 	if (!is_weekday && _mode == MANUAL)
-		iprofile = _sched_weekend(m - 1, column);
+        _iprofile = _sched_weekend(m - 1, column);
 	else
-		iprofile = _sched(m - 1, column);  // 1-based
+        _iprofile = _sched(m - 1, column);  // 1-based
 
-	m_batteryPower->canSystemCharge = _charge_array[iprofile - 1];
-	m_batteryPower->canDischarge = _discharge_array[iprofile - 1];
-	m_batteryPower->canGridCharge = _gridcharge_array[iprofile - 1];
+	m_batteryPower->canSystemCharge = _charge_array[_iprofile - 1];
+	m_batteryPower->canDischarge = _discharge_array[_iprofile - 1];
+	m_batteryPower->canGridCharge = _gridcharge_array[_iprofile - 1];
     m_batteryPower->canClipCharge = _can_clip_charge;
     m_batteryPower->canCurtailCharge = _can_curtail_charge;
 
-	if (iprofile <= _fuelcellcharge_array.size()) {
-		m_batteryPower->canFuelCellCharge = _fuelcellcharge_array[iprofile - 1];
+	if (_iprofile <= _fuelcellcharge_array.size()) {
+		m_batteryPower->canFuelCellCharge = _fuelcellcharge_array[_iprofile - 1];
 	}
 
-    if (iprofile <= _discharge_grid_array.size()) {
-        m_batteryPower->canDischargeToGrid = _discharge_grid_array[iprofile - 1];
+    if (_iprofile <= _discharge_grid_array.size()) {
+        m_batteryPower->canDischargeToGrid = _discharge_grid_array[_iprofile - 1];
     }
 
 	_percent_discharge = 0.;
 	_percent_charge = 0.;
 
-	if (m_batteryPower->canDischarge){ _percent_discharge = _percent_discharge_array[iprofile]; }
+	if (m_batteryPower->canDischarge){ _percent_discharge = _percent_discharge_array[_iprofile]; }
 	if (m_batteryPower->canCurtailCharge || m_batteryPower->canClipCharge || m_batteryPower->canSystemCharge || m_batteryPower->canFuelCellCharge){ _percent_charge = 100.; }
-	if (m_batteryPower->canGridCharge){ _percent_charge = _percent_charge_array[iprofile]; }
+	if (m_batteryPower->canGridCharge){ _percent_charge = _percent_charge_array[_iprofile]; }
 }
 void dispatch_manual_t::dispatch(size_t year,
 	size_t hour_of_year,
@@ -290,4 +291,8 @@ void dispatch_manual_t::SOC_controller()
         else
             _charging = _prev_charging;
     }
+}
+
+size_t dispatch_manual_t::get_dispatch_period() {
+    return _iprofile;
 }

@@ -36,7 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static var_info _cm_vtab_mhk_tidal[] = {
 	//   VARTYPE			DATATYPE			NAME									LABEL																		UNITS           META            GROUP              REQUIRED_IF					CONSTRAINTS				UI_HINTS	
-	{ SSC_INPUT,			SSC_MATRIX,			"tidal_resource",					    "Frequency distribution of resource as a function of stream speeds",		"",				"",             "MHKTidal",			"*",						"",						"" },	
+    { SSC_INPUT,         SSC_NUMBER,      "tidal_resource_model_choice",           "Resource distribution or time series tidal resource data",                                 "0/1",             "",             "MHKTidal",          "?=0",                         "INTEGER",                  "" },
+    { SSC_INPUT,			SSC_MATRIX,			"tidal_resource",					    "Frequency distribution of resource as a function of stream speeds",		"",				"",             "MHKTidal",			"tidal_resource_model_choice=0",						"",						"" },	
 	{ SSC_INPUT,			SSC_MATRIX,			"tidal_power_curve",					"Power curve of tidal energy device as function of stream speeds",			"kW",			"",             "MHKTidal",			"*",						"",						"" },	
 	//{ SSC_INPUT,			SSC_NUMBER,			"calculate_capacity",					"Calculate device rated capacity from power curve",							"0/1",			"",             "MHKTidal",         "?=1",                      "INTEGER,MIN=0,MAX=1",	"" },
 	{ SSC_INPUT,			SSC_NUMBER,			"number_devices",						"Number of tidal devices in the system",									"",				"",             "MHKTidal",         "?=1",                      "INTEGER",				"" },
@@ -46,8 +47,7 @@ static var_info _cm_vtab_mhk_tidal[] = {
     { SSC_INPUT,			SSC_NUMBER,			"financial_cost_total",						"Financial costs",									"$",				"",             "MHKTidal",         "?=1",                      "",				"" },
     { SSC_INPUT,			SSC_NUMBER,			"total_operating_cost",						"O&M costs",									"$",				"",             "MHKTidal",         "?=1",                      "",				"" },
     { SSC_INPUT,			SSC_NUMBER,			"system_capacity",						"System Nameplate Capacity",										"kW",			"",				"MHKTidal",			"?=0",						"",							"" },
-    { SSC_INPUT,         SSC_NUMBER,      "tidal_resource_model_choice",           "Resource distribution or time series tidal resource data",                                 "0/1",             "",             "MHKTidal",          "?=0",                         "INTEGER",                  "" },
-    { SSC_INPUT,        SSC_ARRAY,       "tidal_velocity",           "Tidal velocity",                                        "m/s",     "",                       "MHKTidal",      "?",                        "",                            "" },
+    { SSC_INPUT,        SSC_ARRAY,       "tidal_velocity",           "Tidal velocity",                                        "m/s",     "",                       "MHKTidal",      "tidal_resource_model_choice=1",                        "",                            "" },
 
 
 	// losses
@@ -105,23 +105,26 @@ public:
 	void exec() {
 
 	//Read and store tidal resource and power curve:
-		util::matrix_t<double>  tidal_resource_matrix = as_matrix("tidal_resource");
+		
 		util::matrix_t<double>  tidal_power_curve = as_matrix("tidal_power_curve");
         int tidal_resource_model_choice = as_integer("tidal_resource_model_choice");
+        util::matrix_t<double> tidal_resource_matrix;
+        if (tidal_resource_model_choice == 0) {
+            tidal_resource_matrix = as_matrix("tidal_resource");
+            if (tidal_resource_matrix.ncols() < (size_t)2)
+                throw exec_error("mhk_tidal", "Resource matrix must have at least two columns");
+        }
 		//Check to ensure size of _power_vect == _speed_vect : 
 		if ( tidal_resource_model_choice == 0 && tidal_power_curve.nrows() != tidal_resource_matrix.nrows() )
 			throw exec_error("mhk_tidal", "Size of Power Curve is not equal to Tidal Resource");
 
 		//Store the number of rows- this will have to change if resource and power curve can have different stream speeds
-		int number_rows = (int)tidal_resource_matrix.nrows();
+		int number_rows = (int)tidal_power_curve.nrows();
 
 		//Check that the power matrix only has two columns
 		if (tidal_power_curve.ncols() != (size_t)2)
 			throw exec_error("mhk_tidal", "Power curve must contain two columns");
 
-		//Check that the resource matrix has at least two columns
-		if (tidal_power_curve.ncols() < (size_t)2)
-			throw exec_error("mhk_tidal", "Resource matrix must have at least two columns");
 
 
 		//Create vectors to store individual columns from the user input matrix "tidal_resource"
@@ -261,6 +264,7 @@ public:
         
                     }
                 }
+
                 p_gen[i] = tidal_power_curve.at(power_bin, 1) * (1 - total_loss/100.0) * number_devices * haf(i); //kW
                 //p_annual_energy_dist[i] = p_gen[i] * 8760.0 / number_records;
                 annual_energy += p_gen[i] * 8760.0 / number_records;

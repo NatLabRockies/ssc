@@ -107,6 +107,7 @@ struct SGeothermal_Inputs
     double md_ProdWellFriction;
 	double md_NumberOfWells;								// entered or calculated, depending on 'cb'
     double md_NumberofWellsInj;
+    int md_WellsStimulated;                                 // 0 - Injection only, 1 - Production only, 2 - both, 3 - neither
 	double md_PlantEfficiency;								// not in GETEM - essentially the ratio of plant brine effectiveness to max possible brine effectiveness
 	double md_TemperatureDeclineRate;						// '% per year, 3% is default
 	double md_MaxTempDeclineC;								// degrees C, default = 30
@@ -166,13 +167,13 @@ struct SGeothermal_Outputs
 	SGeothermal_Outputs()
 	{
 		md_PumpWorkKW = md_NumberOfWells = md_NumberOfWellsInj = md_FlashBrineEffectiveness = md_PressureHPFlashPSI = md_PressureLPFlashPSI = 0.0;
-		md_GrossPlantOutputMW = md_GrossPowerMW = md_PlantBrineEffectiveness = md_PressureChangeAcrossReservoir = md_AverageReservoirTemperatureF = 0;
+		md_GrossPlantOutputMW = md_GrossPowerkW = md_PlantBrineEffectiveness = md_PressureChangeAcrossReservoir = md_AverageReservoirTemperatureF = 0;
 		md_PumpDepthFt = md_PumpHorsePower = md_BottomHolePressure = 0;
 		maf_ReplacementsByYear = maf_monthly_resource_temp = maf_monthly_power = maf_monthly_energy = maf_timestep_resource_temp = NULL;
 		maf_timestep_power = maf_timestep_test_values = maf_timestep_pressure = maf_timestep_dry_bulb = maf_timestep_wet_bulb = NULL;
 		mb_BrineEffectivenessCalculated = mb_FlashPressuresCalculated = false;
 		maf_hourly_power = NULL;
-        md_NumberOfWellsProdExp = md_NumberOfWellsProdDrilled = md_NumberOfWellsInjDrilled = md_FailedWells = md_StimSuccessRate = md_DrillSuccessRate = 0;
+        md_NumberOfWellsProdExp = md_NumberOfWellsProdDrilled = md_NumberOfWellsProdFailed = md_NumberOfWellsInjDrilled = md_FailedWells = md_StimSuccessRate = md_DrillSuccessRate = 0;
         md_FailedInjFlowRatio = md_FailedProdFlowRatio = 0;
         ElapsedHours = ElapsedMonths = 0;
 
@@ -181,7 +182,10 @@ struct SGeothermal_Outputs
 	//Following list of variables used as inputs in cmod_geothermal_costs.cpp for calculating direct geothermal plant cost:
 	double md_NumberOfWells;
     double md_NumberOfWellsProdExp;
+    double ProdWellsExploration;
+    double InjWellsExploration;
     double md_NumberOfWellsProdDrilled;
+    double md_NumberOfWellsProdFailed;
     double md_NumberOfWellsInjDrilled;
     double md_FailedWells;
     double md_FailedInjFlowRatio;
@@ -234,7 +238,7 @@ struct SGeothermal_Outputs
 	// only for use in the interface to show 'calculated' values
 	double md_PlantBrineEffectiveness;
 	double md_GrossPlantOutputMW;	//double GetGrossPlantOutputMW(void) { return this->PlantOutputKW()/1000; }
-    double md_GrossPowerMW;
+    double md_GrossPowerkW;
 	double md_PumpDepthFt;
 	double md_PumpHorsePower;
 	double md_PressureChangeAcrossReservoir; //double GetPressureChangeAcrossReservoir(void) { return moPPC.GetPressureChangeAcrossReservoir(); }
@@ -368,6 +372,7 @@ private:
 	double flowRatePerWell(void);		// take Kg/second input and translate to lbs/hour
 	double flowRateTotal(void);			// flow rate per well * number of wells
 	double GetNumberOfWells(void);
+    void WellCountDecisionTable(void);
 	double GetPlantBrineEffectiveness(void);
 
 	// turbine output

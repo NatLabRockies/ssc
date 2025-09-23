@@ -111,7 +111,7 @@ void ensure_outputs_line_up(ssc_data_t& data) {
     util::matrix_t<double> bill_matrix_ub(nrows, ncols);
     bill_matrix_ub.assign(annual_bills, nrows, ncols);
 
-    ssc_number_t* annual_bills_ec = ssc_data_get_array(data, "elec_cost_with_system", &nrows);
+    ssc_number_t* annual_bills_ec = ssc_data_get_array(data, "utility_bill_w_sys", &nrows);
     std::vector<double> annual_bill_ec(nrows);
     annual_bill_ec = util::array_to_vector(annual_bills_ec, nrows);
 
@@ -327,11 +327,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
     
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-11.9, cost_with_system, 0.1);
 
     int length;
@@ -362,11 +362,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_net_metering_credits_in_may) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(36.6, cost_with_system, 0.1);
 
     int length;
@@ -408,14 +408,14 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_net_metering_credits_in_may_with_r
 
     int nrows;
     int ncols;
-    ssc_number_t* annual_bills_ub = ssc_data_get_array(data, "elec_cost_with_system", &nrows);
+    ssc_number_t* annual_bills_ub = ssc_data_get_array(data, "utility_bill_w_sys", &nrows);
     std::vector<double> annual_bill_w_sys(nrows);
     annual_bill_w_sys = util::array_to_vector(annual_bills_ub, nrows);
 
     EXPECT_NEAR(36.6, annual_bill_w_sys[1], 0.1);
     EXPECT_NEAR(13.8, annual_bill_w_sys[2], 0.1);
 
-    ssc_number_t* annual_bills_ub_no_sys = ssc_data_get_array(data, "elec_cost_without_system", &nrows);
+    ssc_number_t* annual_bills_ub_no_sys = ssc_data_get_array(data, "utility_bill_wo_sys", &nrows);
     std::vector<double> annual_bill_wo_sys(nrows);
     annual_bill_wo_sys = util::array_to_vector(annual_bills_ub_no_sys, nrows);
 
@@ -460,11 +460,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_subhourly_gen) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); // Same as hourly, good!
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-27.94, cost_with_system, 0.1);
     
     ssc_data_free(data);
@@ -487,11 +487,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_subhourly_gen_and_load) 
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); // Same as hourly, good!
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-27.94, cost_with_system, 0.1);
     
     ssc_data_free(data);
@@ -516,14 +516,14 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_metering_credits) {
     ensure_outputs_line_up(data);
     int nrows;
     int ncols;
-    ssc_number_t* annual_bills_ub = ssc_data_get_array(data, "elec_cost_with_system", &nrows);
+    ssc_number_t* annual_bills_ub = ssc_data_get_array(data, "utility_bill_w_sys", &nrows);
     std::vector<double> annual_bill_w_sys(nrows);
     annual_bill_w_sys = util::array_to_vector(annual_bills_ub, nrows);
 
     EXPECT_NEAR(0, annual_bill_w_sys[1], 0.1);
     EXPECT_NEAR(0, annual_bill_w_sys[2], 0.1);
 
-    ssc_number_t* annual_bills_ub_no_sys = ssc_data_get_array(data, "elec_cost_without_system", &nrows);
+    ssc_number_t* annual_bills_ub_no_sys = ssc_data_get_array(data, "utility_bill_wo_sys", &nrows);
     std::vector<double> annual_bill_wo_sys(nrows);
     annual_bill_wo_sys = util::array_to_vector(annual_bills_ub_no_sys, nrows);
 
@@ -565,14 +565,14 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_metering_credits_w_s
 
     int nrows;
     int ncols;
-    ssc_number_t* annual_bills_ub = ssc_data_get_array(data, "elec_cost_with_system", &nrows);
+    ssc_number_t* annual_bills_ub = ssc_data_get_array(data, "utility_bill_w_sys", &nrows);
     std::vector<double> annual_bill_w_sys(nrows);
     annual_bill_w_sys = util::array_to_vector(annual_bills_ub, nrows);
 
     EXPECT_NEAR(-19600.58, annual_bill_w_sys[1], 0.1);
     EXPECT_NEAR(-37439.55, annual_bill_w_sys[2], 0.1);
 
-    ssc_number_t* annual_bills_ub_no_sys = ssc_data_get_array(data, "elec_cost_without_system", &nrows);
+    ssc_number_t* annual_bills_ub_no_sys = ssc_data_get_array(data, "utility_bill_wo_sys", &nrows);
     std::vector<double> annual_bill_wo_sys(nrows);
     annual_bill_wo_sys = util::array_to_vector(annual_bills_ub_no_sys, nrows);
 
@@ -607,11 +607,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); // Same as hourly, good!
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(441.4, cost_with_system, 0.1);
 
     int nrows;
@@ -650,11 +650,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_w_sell_rates
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); // Same as hourly, good!
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-150.02, cost_with_system, 0.1);
 
     int nrows;
@@ -687,11 +687,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_subhourly_ge
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); // Same as hourly, good!
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(441.4, cost_with_system, 0.1);
     
     ssc_data_free(data);
@@ -721,11 +721,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_subhourly_ge
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); // Same as hourly, good!
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-156.95, cost_with_system, 0.1); // Subhourly data allows for increased sales - consistent with net metering
     
     ssc_data_free(data);
@@ -756,11 +756,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); 
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-150.02, cost_with_system, 0.01);
 
     int nrows;
@@ -815,11 +815,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_ap
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-57.12, cost_with_system, 0.1);
 
     int nrows;
@@ -879,11 +879,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_ja
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(19.12, cost_with_system, 0.1);
 
     int nrows;
@@ -941,11 +941,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_lo
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(136.77, cost_with_system, 0.01);
 
     int nrows;
@@ -999,11 +999,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_mo
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-40.02, cost_with_system, 0.01);
 
     int nrows;
@@ -1067,11 +1067,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_an
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-81.77, cost_with_system, 0.01);
 
     int nrows;
@@ -1163,11 +1163,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_buyall_sellall) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1); // Same as hourly, good!
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-157.0, cost_with_system, 0.1);
 
     int nrows;
@@ -1201,11 +1201,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_no_credit) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(64.03, cost_with_system, 0.1);
     
     ssc_data_free(data);
@@ -1231,11 +1231,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_annual_minimum) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(100.0, cost_with_system, 0.1);
     
     ssc_data_free(data);
@@ -1291,11 +1291,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_w_tiers) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(1839.7, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(286.2, cost_with_system, 0.1);
     
     ssc_data_free(data);
@@ -1351,11 +1351,11 @@ TEST(cmod_utilityrate5_eqns, Test_Commercial_Demand_Charges) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(104614.5, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(92538.1, cost_with_system, 0.1);
 
     ssc_data_free(data);
@@ -1752,7 +1752,17 @@ TEST(cmod_utilityrate5_eqns, Test_seasonal_per_kw_charge_w_no_demand_charge) {
                                          2, 1, 200, 0, 0.028812999999999998, 0,
                                          2, 2, 9.9999999999999998e+37, 0, 0.132655, 0 };
     ssc_data_set_matrix(data, "ur_ec_tou_mat", p_ur_ec_tou_mat, 10, 6);
-    ssc_data_set_number(data, "ur_dc_enable", 0);
+    ssc_data_set_number(data, "ur_dc_enable", 1);
+
+    // Demand charge data required as of https://github.com/NREL/ssc/pull/1293 
+    ssc_number_t p_ur_dc_sched_weekday[288] = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
+    ssc_data_set_matrix(data, "ur_dc_sched_weekday", p_ur_dc_sched_weekday, 12, 24);
+    ssc_number_t p_ur_dc_sched_weekend[288] = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
+    ssc_data_set_matrix(data, "ur_dc_sched_weekend", p_ur_dc_sched_weekend, 12, 24);
+    ssc_number_t p_ur_dc_tou_mat[8] = { 1, 1, 9.9999999999999998e+37, 0, 2, 1, 9.9999999999999998e+37, 0 };
+    ssc_data_set_matrix(data, "ur_dc_tou_mat", p_ur_dc_tou_mat, 2, 4);
+    ssc_number_t p_ur_dc_flat_mat[48] = { 0, 1, 9.9999999999999998e+37, 0, 1, 1, 9.9999999999999998e+37, 0, 2, 1, 9.9999999999999998e+37, 0, 3, 1, 9.9999999999999998e+37, 0, 4, 1, 9.9999999999999998e+37, 0, 5, 1, 9.9999999999999998e+37, 0, 6, 1, 9.9999999999999998e+37, 0, 7, 1, 9.9999999999999998e+37, 0, 8, 1, 9.9999999999999998e+37, 0, 9, 1, 9.9999999999999998e+37, 0, 10, 1, 9.9999999999999998e+37, 0, 11, 1, 9.9999999999999998e+37, 0 };
+    ssc_data_set_matrix(data, "ur_dc_flat_mat", p_ur_dc_flat_mat, 12, 4);
 
 
     ssc_data_set_number(data, "ur_enable_billing_demand", 1);
@@ -1773,8 +1783,8 @@ TEST(cmod_utilityrate5_eqns, Test_seasonal_per_kw_charge_w_no_demand_charge) {
                                       60, 0 };
     ssc_data_set_matrix(data, "ur_billing_demand_lookback_percentages", p_ur_billing_demand_lookback_percentages, 12, 2);
 
-    ssc_number_t p_ur_billing_demand_tou_matrix[2] = { 1, 1 };
-    ssc_data_set_matrix(data, "ur_dc_billing_demand_periods", p_ur_billing_demand_tou_matrix, 1, 2);
+    ssc_number_t p_ur_billing_demand_tou_matrix[4] = { 1, 1, 2, 1 };
+    ssc_data_set_matrix(data, "ur_dc_billing_demand_periods", p_ur_billing_demand_tou_matrix, 2, 2);
 
     ssc_number_t year_zero_power[12] = { -1200,
                                         -1100,
@@ -1900,11 +1910,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_w_36_periods) {
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(475.56, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-173.25, cost_with_system, 0.1);
 
     ssc_data_free(data);
@@ -2024,11 +2034,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_in
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(0.0, cost_with_system, 0.01);
 
     int nrows;
@@ -2083,11 +2093,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_in
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-150.02, cost_with_system, 0.01);
 
     int nrows;
@@ -2142,11 +2152,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_in
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(771.8, cost_without_system, 0.1);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(-150.02, cost_with_system, 0.01);
 
     int nrows;
@@ -2312,11 +2322,11 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_buyall_sellall_ts_buy_ra
     ensure_outputs_line_up(data);
 
     ssc_number_t cost_without_system;
-    ssc_data_get_number(data, "elec_cost_without_system_year1", &cost_without_system);
+    ssc_data_get_number(data, "utility_bill_wo_sys_year1", &cost_without_system);
     EXPECT_NEAR(0.0, cost_without_system, 0.01);
 
     ssc_number_t cost_with_system;
-    ssc_data_get_number(data, "elec_cost_with_system_year1", &cost_with_system);
+    ssc_data_get_number(data, "utility_bill_w_sys_year1", &cost_with_system);
     EXPECT_NEAR(0.0, cost_with_system, 0.0);
 
     int nrows;

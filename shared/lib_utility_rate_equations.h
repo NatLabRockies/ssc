@@ -158,8 +158,8 @@ public:
 	void setup_energy_rates(ssc_number_t* ec_weekday, ssc_number_t* ec_weekend, size_t ec_tou_rows, ssc_number_t* ec_tou_in, bool sell_eq_buy);
     /* Optional function if demand charges are present */
 	void setup_demand_charges(ssc_number_t* dc_weekday, ssc_number_t* dc_weekend, size_t dc_tou_rows, ssc_number_t* dc_tou_in, size_t dc_flat_rows, ssc_number_t* dc_flat_in);
-    /* Optional function if energy charges use a ratchet for the billing demand */
-    void setup_ratcheting_demand(ssc_number_t* ratchet_percent_matrix, ssc_number_t* bd_tou_period_matrix);
+    /* Optional function if energy charges use a ratchet for the billing demand - returns error code based on data validitiy (at least one active period) */
+    bool setup_ratcheting_demand(ssc_number_t* ratchet_percent_matrix, ssc_number_t* bd_tou_period_matrix);
 
     void setup_prev_demand(ssc_number_t* prev_demand);
     /* call ur_month.update_net_and_peak before this, otherwise you'll get low values back */

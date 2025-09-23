@@ -19,6 +19,8 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
     {C_csp_fresnel_collector_receiver::E_Q_DOT_HTF_OUT, C_csp_reported_outputs::TS_WEIGHTED_AVE},
     {C_csp_fresnel_collector_receiver::E_Q_DOT_FREEZE_PROT, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 
+    {C_csp_fresnel_collector_receiver::E_TIME_IN_STARTUP, C_csp_reported_outputs::SUMMED},
+
     {C_csp_fresnel_collector_receiver::E_M_DOT_LOOP, C_csp_reported_outputs::TS_WEIGHTED_AVE},
     {C_csp_fresnel_collector_receiver::E_IS_RECIRCULATING, C_csp_reported_outputs::TS_WEIGHTED_AVE},
     {C_csp_fresnel_collector_receiver::E_M_DOT_FIELD_RECIRC, C_csp_reported_outputs::TS_WEIGHTED_AVE},
@@ -293,7 +295,7 @@ void C_csp_fresnel_collector_receiver::set_output_value()
         m_E_dot_xover_summed_fullts +
         m_E_dot_HR_cold_fullts +
         m_E_dot_HR_hot_fullts);			//[MWt]
-    mc_reported_outputs.value(E_Q_DOT_HTF_OUT, m_q_dot_htf_to_sink_fullts);				//[MWt]
+    mc_reported_outputs.value(E_Q_DOT_HTF_OUT, m_q_dot_thermal_reported);				//[MWt]
     mc_reported_outputs.value(E_Q_DOT_FREEZE_PROT, m_q_dot_freeze_protection);			//[MWt]
 
     mc_reported_outputs.value(E_M_DOT_LOOP, m_m_dot_htf_tot / (double)m_nLoops);		//[kg/s]
@@ -317,6 +319,8 @@ void C_csp_fresnel_collector_receiver::set_output_value()
 
     mc_reported_outputs.value(E_W_DOT_SCA_TRACK, m_W_dot_sca_tracking);		//[MWe]
     mc_reported_outputs.value(E_W_DOT_PUMP, m_W_dot_pump);					//[MWe]
+
+    mc_reported_outputs.value(E_TIME_IN_STARTUP, m_time_at_startup / 60.0);         //[min] convert from s
 
     return;
 }
@@ -1490,8 +1494,14 @@ C_csp_fresnel_collector_receiver::C_csp_fresnel_collector_receiver()
     m_q_dot_htf_to_sink_fullts = std::numeric_limits<double>::quiet_NaN();	//[MWt]
     m_q_dot_freeze_protection = std::numeric_limits<double>::quiet_NaN();	//[MWt]
 
+    m_q_dot_thermal_reported = std::numeric_limits<double>::quiet_NaN();    //[MWt]
+
     m_dP_total = std::numeric_limits<double>::quiet_NaN();		//[bar]
     m_W_dot_pump = std::numeric_limits<double>::quiet_NaN();	//[MWe]
+
+    m_time_at_off = std::numeric_limits<double>::quiet_NaN();       //[s]
+    m_time_at_startup = std::numeric_limits<double>::quiet_NaN();   //[s]
+    m_time_at_on = std::numeric_limits<double>::quiet_NaN();        //[s]
 
     m_is_m_dot_recirc = false;
 
@@ -2339,7 +2349,7 @@ void C_csp_fresnel_collector_receiver::off(const C_csp_weatherreader::S_outputs&
         m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts =
         m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts =
         m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts =
-        m_q_dot_htf_to_sink_fullts = 0.0;
+        m_q_dot_htf_to_sink_fullts = m_q_dot_thermal_reported = 0.0;
 
     // Simulate through time steps
     for (int i = 0; i < n_steps_recirc; i++)
@@ -2421,7 +2431,8 @@ void C_csp_fresnel_collector_receiver::off(const C_csp_weatherreader::S_outputs&
     //cr_out_solver.m_m_dot_salt_tot = m_dot_htf_loop*3600.0*(double)m_nLoops;	//[kg/hr] Total HTF mass flow rate
     cr_out_solver.m_m_dot_salt_tot = 0.0;	//[kg/hr] Total HTF mass flow rate
 
-    cr_out_solver.m_q_thermal = 0.0;						//[MWt] No available receiver thermal output
+    m_q_dot_thermal_reported = 0.0;
+    cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;				//[MWt] No available receiver thermal output
     // 7.12.16: Return timestep-end or timestep-integrated-average?
     // If multiple recirculation steps, then need to calculate average of timestep-integrated-average
     cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int_fullts - 273.15;		//[C]
@@ -2432,6 +2443,10 @@ void C_csp_fresnel_collector_receiver::off(const C_csp_weatherreader::S_outputs&
     cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;   //[MWt]
 
     m_operating_mode = C_csp_collector_receiver::OFF;
+
+    m_time_at_off = sim_info.ms_ts.m_step;
+    m_time_at_startup = 0.0;
+    m_time_at_on = 0.0;
 
     set_output_value();
 
@@ -2489,7 +2504,7 @@ void C_csp_fresnel_collector_receiver::startup(const C_csp_weatherreader::S_outp
         m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts =
         m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts =
         m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts =
-        m_q_dot_htf_to_sink_fullts = 0.0;
+        m_q_dot_htf_to_sink_fullts = m_q_dot_thermal_reported = 0.0;
 
     sim_info_temp.ms_ts.m_time = time_start;
 
@@ -2602,7 +2617,8 @@ void C_csp_fresnel_collector_receiver::startup(const C_csp_weatherreader::S_outp
     cr_out_solver.m_m_dot_salt_tot = 0.0;	//[kg/hr]
 
     // Should not be available thermal output if receiver is in start up, but controller doesn't use it in CR_SU (confirmed)
-    cr_out_solver.m_q_thermal = 0.0;						//[MWt] No available receiver thermal output
+    m_q_dot_thermal_reported = 0.0;
+    cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;				//[MWt] No available receiver thermal output
     // 7.12.16: Return timestep-end or timestep-integrated-average?
     // If multiple recirculation steps, then need to calculate average of timestep-integrated-average
     cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int_fullts - 273.15;		//[C]
@@ -2613,6 +2629,10 @@ void C_csp_fresnel_collector_receiver::startup(const C_csp_weatherreader::S_outp
     cr_out_solver.m_W_dot_elec_in_tot = m_W_dot_sca_tracking + m_W_dot_pump;    //[MWe]
     // Shouldn't need freeze protection if in startup, but may want a check on this
     cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;    //[MWt]
+
+    m_time_at_off = 0.0;
+    m_time_at_startup = sim_info.ms_ts.m_step;
+    m_time_at_on = 0.0;
 
     set_output_value();
 
@@ -2808,7 +2828,8 @@ void C_csp_fresnel_collector_receiver::on(const C_csp_weatherreader::S_outputs& 
         // The controller also requires the receiver thermal output
         // 7.12.16 Now using the timestep-integrated-average temperature
         double c_htf_ave = m_htfProps.Cp((m_T_sys_h_t_int + T_cold_in) / 2.0);  //[kJ/kg-K]
-        cr_out_solver.m_q_thermal = (cr_out_solver.m_m_dot_salt_tot / 3600.0) * c_htf_ave * (m_T_sys_h_t_int - T_cold_in) / 1.E3;	//[MWt]
+        m_q_dot_thermal_reported = (cr_out_solver.m_m_dot_salt_tot / 3600.0) * c_htf_ave * (m_T_sys_h_t_int - T_cold_in) / 1.E3;	//[MWt]
+        cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;
 
         // Finally, the controller need the HTF outlet temperature from the field
         cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int - 273.15;		//[C]
@@ -2836,12 +2857,12 @@ void C_csp_fresnel_collector_receiver::on(const C_csp_weatherreader::S_outputs& 
             m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts =
             m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts =
             m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts =
-            m_q_dot_htf_to_sink_fullts = m_q_dot_freeze_protection = 0.0;
+            m_q_dot_htf_to_sink_fullts = m_q_dot_freeze_protection = m_q_dot_thermal_reported = 0.0;
 
         cr_out_solver.m_q_startup = 0.0;			//[MWt-hr]
         cr_out_solver.m_time_required_su = 0.0;		//[s]
         cr_out_solver.m_m_dot_salt_tot = 0.0;		//[kg/hr]
-        cr_out_solver.m_q_thermal = 0.0;			//[MWt]
+        cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;			//[MWt]
         cr_out_solver.m_T_salt_hot = 0.0;			//[C]
         cr_out_solver.m_component_defocus = 1.0;	//[-]
         cr_out_solver.m_is_recirculating = false;
@@ -2852,6 +2873,10 @@ void C_csp_fresnel_collector_receiver::on(const C_csp_weatherreader::S_outputs& 
 
         cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;    //[MWt]
     }
+
+    m_time_at_off = 0.0;
+    m_time_at_startup = 0.0;
+    m_time_at_on = sim_info.ms_ts.m_step;
 
     set_output_value();
 

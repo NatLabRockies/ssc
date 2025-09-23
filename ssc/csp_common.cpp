@@ -813,10 +813,10 @@ var_info vtab_sco2_design[] = {
     { SSC_INPUT,  SSC_NUMBER,  "N_nodes_air_cooler_pass", "Number of nodes in single air cooler pass",           "",           "",    "Air Cooler Design",      "?=10",  "",       "" },
 
     // HTR Bypass Design
-    { SSC_INPUT,  SSC_NUMBER,  "is_bypass_ok",         "1 = Yes, 0 = No Bypass, < 0 = fix bp_frac to abs(input)","",  "High temperature recuperator",    "Heat Exchanger Design",      "?=1",   "",       "" },
+    { SSC_INPUT,  SSC_NUMBER,  "is_bypass_ok",         "1 = Yes, 0 = No Bypass, < 0 = fix bp_frac to abs(input)","",          "",    "System Design",      "?=1",   "",       "" },
     { SSC_INPUT,  SSC_NUMBER,  "T_bypass_target",      "HTR BP Cycle Target Temperature",                       "C",          "",    "System Design",      "cycle_config=3",     "",       "" },
     { SSC_INPUT,  SSC_NUMBER,  "T_target_is_HTF",      "Target Temperature is HTF (1) or cold sco2 at BP",      "",           "",    "System Design",      "?=1",     "",       "" },
-    { SSC_INPUT,  SSC_NUMBER,  "deltaT_bypass",        "sco2 Bypass Outlet Temp - HTR_HP_OUT Temp",             "C",          "",    "System Design",      "cycle_config=3",     "",       "" },
+    { SSC_INPUT,  SSC_NUMBER,  "deltaT_bypass",        "sco2 Bypass Outlet Temp - HTR_HP_OUT Temp",             "C",          "",    "System Design",      "?=0",     "",       "" },
     { SSC_INPUT,  SSC_NUMBER,  "set_HTF_mdot",         "For HTR Bypass ONLY, 0 = calculate HTF mdot (need to set dT_PHX_cold_approach), > 0 = HTF mdot kg/s",   "kg/s",       "",    "System Design",      "?=0",     "",       "" },
 
     // Turbine Split Flow Design

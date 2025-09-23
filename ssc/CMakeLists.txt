@@ -84,7 +84,6 @@ set(SSC_SRC
 		cmod_sco2_air_cooler.cpp
 		cmod_sco2_csp_system.cpp
 		cmod_sco2_csp_ud_pc_tables.cpp
-        cmod_sco2_helper.cpp
 		cmod_singlediode.cpp
 		cmod_singleowner.cpp
 		cmod_singleowner_heat.cpp

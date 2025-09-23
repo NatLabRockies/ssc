@@ -852,6 +852,8 @@ var_info vtab_sco2_design[] = {
     { SSC_OUTPUT, SSC_NUMBER,  "T_htf_bp_out_des",     "HTF design htr bypass cold temperature (BPX outlet)",    "C",          "System Design Solution",    "",      "error_int=0&cycle_config=3",     "",       "" },
     { SSC_OUTPUT, SSC_NUMBER,  "dT_htf_des",           "HTF temperature difference",                             "C",          "System Design Solution",    "",      "error_int=0",     "",       "" },
     { SSC_OUTPUT, SSC_NUMBER,  "q_dot_in_total",       "Total heat from HTF into cycle",                         "MW",         "System Design Solution",    "",      "error_int=0",     "",       "" },
+    { SSC_OUTPUT, SSC_NUMBER,  "turbine_split_frac",   "Turbine Split Fraction Solved",                          "",           "System Design Solution",    "",      "error_int=0&cycle_config=4",     "",       "" },
+
         // Compressor
 	{ SSC_OUTPUT, SSC_NUMBER,  "T_comp_in",            "Compressor inlet temperature",                           "C",          "Compressor",    "",      "error_int=0",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "P_comp_in",            "Compressor inlet pressure",                              "MPa",        "Compressor",    "",      "error_int=0",     "",       "" },
@@ -1909,6 +1911,12 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
             c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_m_dot_t));
         cost_equip_sum += c_sco2_cycle.get_design_solved()->ms_bp_des_solved.m_cost_equipment;	//[M$]
         cost_bare_erected_sum += c_sco2_cycle.get_design_solved()->ms_bp_des_solved.m_cost_bare_erected;	//[M$];
+    }
+
+    // Add turbine split flow specific outputs
+    if (s_sco2_des_par.m_cycle_config == 4)
+    {
+        cm->assign("turbine_split_frac", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_turbine_split_frac);
     }
 
         // Low Pressure Cooler

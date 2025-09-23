@@ -41,16 +41,15 @@ using namespace operations_research;
 csp_dispatch_ortools::csp_dispatch_ortools()
 {
     outputs.clear();
-
-
 }
 
 void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
 {
     // Moved to the init call because solver is not being initialized when in debug mode
     // TODO: Create a switch to select the solver type based on input
-    //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("XPRESS"));     // Requires license
     solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("CBC"));          // Best open-source solver available
+    //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("XPRESS"));     // Requires license
+    //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("GUROBI"));     // Requires license
     //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("SCIP"));
     //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("GLPK"));
 
@@ -74,7 +73,6 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
     solver->set_time_limit(solver_params.solution_timeout * 1000); //micro-seconds
     MPsolver_params.SetDoubleParam(MPSolverParameters::DoubleParam::RELATIVE_MIP_GAP, solver_params.mip_gap);
     // Maximum number of iterations cannot be set easily in OR-Tools, I believe we can set it specific to the solver.
-
 
     params.dt = 1. / (double)solver_params.steps_per_hour;  //hr
 
@@ -162,6 +160,10 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
             objective->SetCoefficient(bin_vars.yhsup[t], -(1. / tadj) * P["hsu_cost"]);
         }
 
+        if (params.is_pv_included) {
+            objective->SetCoefficient(cont_vars.w_pv[t], P["delta"] * ts_params.sell_price.at(t) * tadj);
+        }
+
         tadj *= P["disp_time_weighting"];
     }
     // Add the final term to value storage at end of optimization horizon
@@ -211,6 +213,10 @@ void csp_dispatch_ortools::build_dispatch_model()
         solver->MakeBoolVarArray(m_nstep_opt, "y_hsup", &bin_vars.yhsup);
     }
 
+    if (params.is_pv_included) {
+        solver->MakeNumVarArray(m_nstep_opt, 0.0, P["w_pv_max"], "w_pv", &cont_vars.w_pv);
+    }
+
     // Objective function
     update_objective_function(P);
 
@@ -234,6 +240,7 @@ void csp_dispatch_ortools::build_dispatch_model()
             constraints.receiver_startup_inventory0 = c;
         }
     }
+
     // Receiver inventory bound when starting
     // ursu[t] <= Er * yrsu[t]
     for (int t = 0; t < m_nstep_opt; ++t) {
@@ -687,7 +694,6 @@ void csp_dispatch_ortools::build_dispatch_model()
             c->SetUB(rhs);
         }
 
-
         // Cycle operation and standby cannot coincide
         // y[t] + ycsb[t] <= 1
         for (int t = 0; t < m_nstep_opt; ++t) {
@@ -834,6 +840,16 @@ void csp_dispatch_ortools::build_dispatch_model()
         constraints.storage_minimum_cycle_operating[t] = c;
     }
 
+    if (params.is_pv_included) {
+        // PV generation limit (a take it or leave it policy)
+        // w_pv[t] < W_pv_avail[t]
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            std::string name = "pv_generation_limit_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            constraints.pv_generation_limit[t] = c;
+        }
+    }
+
 }
 
 bool csp_dispatch_ortools::check_setup(int nstep)
@@ -849,6 +865,8 @@ bool csp_dispatch_ortools::check_setup(int nstep)
 
     if ((int)ts_params.wnet_lim_min.size() < nstep)   return false;
     if ((int)ts_params.delta_rs.size() < nstep)   return false;
+
+    if ((int)ts_params.pv_generation.size() < nstep) return false;
     
     // TODO: add other checks
 
@@ -875,6 +893,8 @@ bool csp_dispatch_ortools::update_horizon_parameters(C_csp_tou& mc_tou)
         // Set the maximum net power cycle output
         double w_lim_temp = tou_outputs.m_wlim_dispatch * W_dot_max; // MWe
         if (w_lim_temp < ts_params.w_lim.at(t)) ts_params.w_lim.at(t) = w_lim_temp;       // update if lower than default value
+
+        ts_params.pv_generation.at(t) = tou_outputs.m_pv_gen / 1.e3; // kWe -> MWe
     }
     return true;
 }
@@ -1083,6 +1103,11 @@ void csp_dispatch_ortools::s_params::create_parameter_map(unordered_map<std::str
     param_map["rsu_cost"] = rsu_cost;
     param_map["csu_cost"] = csu_cost;
     param_map["pen_delta_w"] = pen_delta_w;
+
+    if (is_pv_included) {
+        param_map["w_pv_max"] = w_pv_max;
+        param_map["pv_op_cost"] = pv_op_cost;
+    }
 }
 
 void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>& P) {
@@ -1314,6 +1339,11 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
             if (params.can_cycle_use_standby) c->SetCoefficient(bin_vars.ycsb[t], -P["Wb"]);
 
             c->SetCoefficient(cont_vars.x[t], -P["Lc"]);
+
+            if (params.is_parallel_heater) c->SetCoefficient(cont_vars.qeh[t], - (1 / P["eta_eh"]));
+
+            if (params.is_pv_included) c->SetCoefficient(cont_vars.w_pv[t], 1.0);
+
             c->SetUB(ts_params.w_lim.at(t));
         }
     }
@@ -1344,6 +1374,14 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
     // update receiver startup
     for (int t = 0; t < m_nstep_opt - 1; ++t) {
         constraints.storage_minimum_cycle_operating[t]->SetCoefficient(cont_vars.s[t], -1.0 / (ts_params.delta_rs.at(t) * P["delta"]));
+    }
+
+    // ******************* PV Generation *******************
+    // PV generation limit (a take it or leave it policy)
+    // w_pv[t] < W_pv_avail[t]
+    for (int t = 0; t < m_nstep_opt; ++t) {
+        constraints.pv_generation_limit[t]->SetCoefficient(cont_vars.w_pv[t], 1.);
+        constraints.pv_generation_limit[t]->SetUB(ts_params.pv_generation.at(t));
     }
 }
 
@@ -1522,6 +1560,9 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
         // Only print header when not appending
         outputfile.open(filepath);
         std::string var_header = "Time, Objective, Objective_wo_weight, Price, y_rsu, y_rsup, yr, u_rsu, x_rsu, x_r, y_csu, y_csup, y, u_csu, x, w_dot, delta_w, s, w_lim, wnet_lim_min";
+        if (params.is_pv_included) {
+            var_header += ", w_pv, w_pv_avail";
+        }
         outputfile << var_header << std::endl;
     }
 
@@ -1541,6 +1582,11 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
 
         objective_value += common_coeff * ts_params.sell_price.at(t) * (1. - ts_params.w_condf_expected.at(t)) * cont_vars.wdot[t]->solution_value();
         obj_wo_weight += coeff_wo_weight * ts_params.sell_price.at(t) * (1. - ts_params.w_condf_expected.at(t)) * cont_vars.wdot[t]->solution_value();
+
+        // TODO: Update this
+        if (params.is_pv_included) {
+            objective_value += common_coeff * ts_params.sell_price.at(t) * cont_vars.w_pv[t]->solution_value();
+        }
 
         // Cost terms
         common_coeff = - params.dt * ts_params.sell_price.at(t) * (1. / std::pow(params.time_weighting, t));
@@ -1618,8 +1664,12 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
             << ", " << ((std::abs(cont_vars.delta_w[t]->solution_value()) < tol) ? 0.0 : cont_vars.delta_w[t]->solution_value())
             << ", " << ((std::abs(cont_vars.s[t]->solution_value()) < tol) ? 0.0 : cont_vars.s[t]->solution_value())
             << ", " << ts_params.w_lim.at(t)
-            << ", " << ts_params.wnet_lim_min.at(t)
-            << std::endl;
+            << ", " << ts_params.wnet_lim_min.at(t);
+        if (params.is_pv_included) {
+            outputfile << ", " << ((std::abs(cont_vars.w_pv[t]->solution_value()) < tol) ? 0.0 : cont_vars.w_pv[t]->solution_value())
+                << ", " << ts_params.pv_generation.at(t);
+        }
+        outputfile << std::endl;
     }
     outputfile.close();
 }

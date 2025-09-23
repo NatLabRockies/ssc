@@ -309,6 +309,10 @@ public:
         double m_price_mult;    //[-]
         double m_elec_price;    //[$/kWhe]
 
+        int m_pv_tou;
+        double m_pv_mult;       //[-]
+        double m_pv_gen;        //[kWe]
+
         int m_heat_tou;
         double m_heat_mult;     //[-]
         double m_heat_price;    //[$/kWh-t]
@@ -317,9 +321,9 @@ public:
 
 		S_csp_tou_outputs()
 		{
-            m_csp_op_tou = m_pricing_tou = m_heat_tou = -1;
+            m_csp_op_tou = m_pricing_tou = m_pv_tou = m_heat_tou = -1;
 
-			m_f_turbine = m_price_mult = m_elec_price =
+            m_f_turbine = m_price_mult = m_elec_price = m_pv_mult = m_pv_gen =
                 m_heat_mult = m_heat_price = m_wlim_dispatch = std::numeric_limits<double>::quiet_NaN();
 		}
 	};
@@ -341,18 +345,21 @@ public:
 
     C_timeseries_schedule_inputs mc_offtaker_schedule;
     C_timeseries_schedule_inputs mc_elec_pricing_schedule;
+    C_timeseries_schedule_inputs mc_pv_generation_profile;
 
     C_timeseries_schedule_inputs mc_heat_pricing_schedule;
 
     C_csp_tou(C_timeseries_schedule_inputs c_offtaker_schedule,
         C_timeseries_schedule_inputs c_elec_pricing_schedule,
         C_csp_tou::C_dispatch_model_type::E_dispatch_model_type dispatch_model_type,
-        bool is_offtaker_frac_also_max)
+        bool is_offtaker_frac_also_max,
+        C_timeseries_schedule_inputs c_pv_generation_profile)
     {
         mc_offtaker_schedule = c_offtaker_schedule;
         mc_elec_pricing_schedule = c_elec_pricing_schedule;
         m_dispatch_model_type = dispatch_model_type;
         m_is_tod_pc_target_also_pc_max = is_offtaker_frac_also_max;
+        mc_pv_generation_profile = c_pv_generation_profile;
 
         mc_heat_pricing_schedule = C_timeseries_schedule_inputs(std::numeric_limits<double>::quiet_NaN(),
             std::numeric_limits<double>::quiet_NaN());
@@ -363,6 +370,14 @@ public:
         m_use_rule_2 = false;
         m_q_dot_rec_des_mult = -1.23;
         m_f_q_dot_pc_overwrite = -1.23;
+    }
+
+    // Overloaded constructor for when no PV profile is used
+    C_csp_tou(C_timeseries_schedule_inputs c_offtaker_schedule,
+        C_timeseries_schedule_inputs c_elec_pricing_schedule,
+        C_csp_tou::C_dispatch_model_type::E_dispatch_model_type dispatch_model_type,
+        bool is_offtaker_frac_also_max) : C_csp_tou(c_offtaker_schedule, c_elec_pricing_schedule, dispatch_model_type, is_offtaker_frac_also_max,
+            C_timeseries_schedule_inputs(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN())) {
     }
 
 	~C_csp_tou(){};

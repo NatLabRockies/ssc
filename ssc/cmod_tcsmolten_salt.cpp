@@ -334,7 +334,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "disp_mip_gap",                       "Dispatch optimization solution tolerance",                                                                                                "",             "",                                  "System Control",                           "is_dispatch=1",                                                    "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "disp_spec_bb",                       "Dispatch optimization B&B heuristic",                                                                                                     "",             "",                                  "System Control",                           "?=-1",                                                             "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "disp_reporting",                     "Dispatch optimization reporting level",                                                                                                   "",             "",                                  "System Control",                           "?=-1",                                                             "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_NUMBER, "disp_spec_presolve",                 "Dispatch optimization pre-solve heuristic",                                                                                                "",             "",                                  "System Control",                           "?=-1",                                                             "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_NUMBER, "disp_spec_presolve",                 "Dispatch optimization pre-solve heuristic",                                                                                               "",             "",                                  "System Control",                           "?=-1",                                                             "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "disp_spec_scaling",                  "Dispatch optimization scaling heuristic",                                                                                                 "",             "",                                  "System Control",                           "?=-1",                                                             "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "disp_time_weighting",                "Dispatch optimization future time discounting factor",                                                                                    "",             "",                                  "System Control",                           "?=0.99",                                                           "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "is_write_ampl_dat",                  "Write AMPL data files for dispatch run",                                                                                                  "",             "",                                  "System Control",                           "?=0",                                                              "",              "SIMULATION_PARAMETER"},
@@ -347,6 +347,8 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "disp_inventory_incentive",           "Dispatch storage terminal inventory incentive multiplier",                                                                                "",             "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "q_rec_standby",                      "Receiver standby energy consumption",                                                                                                     "kWt",          "",                                  "System Control",                           "?=9e99",                                                           "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "q_rec_heattrace",                    "Receiver heat trace energy consumption during startup",                                                                                   "kWhe",         "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_ARRAY,  "pv_generation_profile",              "Co-located PV generation for CSP to dispatch around.",                                                                                    "kWe",          "",                                  "System Control",                           "",                                                                 "",              "SIMULATION_PARAMETER" },
+
 
     // Pricing schedules and multipliers
         // Ideally this would work with sim_type = 2, but UI inputs availability depends on financial mode
@@ -2039,6 +2041,22 @@ public:
         // *************************************************************************
         // Schedules
 
+        // PV generation for hybridization
+        C_timeseries_schedule_inputs pv_schedule;
+        double max_pv_gen = 0.0;
+        if (is_assigned("pv_generation_profile")) {
+            // TODO: Should we normalize the input profile?
+            std::vector<double> pv_generation_profile = as_vector_double("pv_generation_profile");  //[MWe] PV generation profile at the same time steps as the simulation
+            C_timeseries_schedule_inputs pv_profile = C_timeseries_schedule_inputs(pv_generation_profile, 1.0);
+            pv_schedule = pv_profile;
+            max_pv_gen = *std::max_element(pv_generation_profile.begin(), pv_generation_profile.end());
+        }
+        else {
+            C_timeseries_schedule_inputs no_pv_profile = C_timeseries_schedule_inputs(0.0, std::numeric_limits<double>::quiet_NaN());
+            pv_schedule = no_pv_profile;
+            max_pv_gen = 0.0;
+        }
+
         // Off-taker schedule
         C_timeseries_schedule_inputs offtaker_schedule;
         bool assigned_is_timestep_fractions = is_assigned("is_timestep_load_fractions");
@@ -2165,11 +2183,9 @@ public:
             }
         }
         else if (sim_type == 2) {
-
             elec_pricing_schedule = C_timeseries_schedule_inputs(1.0, std::numeric_limits<double>::quiet_NaN());
         }
         // *****************************************************
-        //
 
         // Figure out dispatch model type
         // User-specified dispatch targets (specified at weather-file resolution)
@@ -2192,7 +2208,7 @@ public:
 
         bool is_offtaker_frac_also_max = as_boolean("is_tod_pc_target_also_pc_max");
 
-        C_csp_tou tou(offtaker_schedule, elec_pricing_schedule, dispatch_model_type, is_offtaker_frac_also_max);
+        C_csp_tou tou(offtaker_schedule, elec_pricing_schedule, dispatch_model_type, is_offtaker_frac_also_max, pv_schedule);
 
         if (is_dispatch_targets) {
             int n_expect = (int)ceil((sim_setup.m_sim_time_end - sim_setup.m_sim_time_start) / 3600. * steps_per_hour);
@@ -2286,7 +2302,9 @@ public:
             double disp_rsu_cost_calc = as_double("disp_rsu_cost_rel")*q_dot_rec_des;   //[$/start]
             dispatch.params.set_user_params(as_boolean("can_cycle_use_standby"), as_double("disp_time_weighting"),
                 disp_rsu_cost_calc, heater_startup_cost, disp_csu_cost_calc, as_double("disp_pen_ramping"),
-                as_double("disp_inventory_incentive"), as_double("q_rec_standby"), as_double("q_rec_heattrace")); // , ppa_price_year1);
+                as_double("disp_inventory_incentive"), 0.001, max_pv_gen,
+                as_double("q_rec_standby"), as_double("q_rec_heattrace"));
+
         }
 
         // Instantiate Solver       

@@ -912,7 +912,8 @@ C_csp_piston_cylinder_tes::C_csp_piston_cylinder_tes(
 
     m_vol_tank = m_V_tank_active = m_q_pb_design = m_ts_hours =
         m_V_tank_hot_ini = m_mass_total_active = m_h_tank_calc = m_d_tank_calc = m_q_dot_loss_des =
-        m_cp_external_avg = m_rho_store_avg = m_m_dot_tes_des_over_m_dot_external_des = std::numeric_limits<double>::quiet_NaN();
+        m_cp_external_avg = m_rho_store_avg = m_W_dot_pumping_des =
+        m_m_dot_tes_des_over_m_dot_external_des = std::numeric_limits<double>::quiet_NaN();
 
     mc_reported_outputs.construct(S_output_info);
 }
@@ -932,6 +933,7 @@ void C_csp_piston_cylinder_tes::init(const C_csp_tes::S_csp_tes_init_inputs init
     if (!(m_Q_tes_des > 0.0))
     {
         m_is_tes = false;
+        m_W_dot_pumping_des = 0.0;
         return;		// No storage!
     }
 
@@ -1121,6 +1123,7 @@ void C_csp_piston_cylinder_tes::init(const C_csp_tes::S_csp_tes_init_inputs init
     m_V_wall_nominal = Ac_wall * m_length_total;   //[m3]
     m_mass_wall_nominal = m_tank_wall_dens * m_V_wall_nominal;  //[kg]
 
+    m_W_dot_pumping_des = pumping_power();  //[MWe]
 }
 
 bool C_csp_piston_cylinder_tes::does_tes_exist()
@@ -1179,6 +1182,11 @@ double C_csp_piston_cylinder_tes::get_degradation_rate()
     double d_tank = sqrt(m_vol_tank / ((double)m_tank_pairs * m_h_tank_calc * 3.14159));
     double e_loss = m_u_tank * 3.14159 * m_tank_pairs * d_tank * (m_T_cold_des + m_T_hot_des - 576.3) * 1.e-6;  //MJ/s  -- assumes full area for loss, Tamb = 15C
     return e_loss / (m_q_pb_design * m_ts_hours * 3600.); //s^-1  -- fraction of heat loss per second based on full charge
+}
+
+double C_csp_piston_cylinder_tes::get_design_pumping_power() {
+
+    return m_W_dot_pumping_des;     //[MWe]
 }
 
 void C_csp_piston_cylinder_tes::reset_storage_to_initial_state()
@@ -1422,12 +1430,7 @@ int C_csp_piston_cylinder_tes::solve_tes_off_design(double timestep /*s*/, doubl
         expansion_wall_L = (L_hot + L_cold) - m_h_tank_calc; // This is length of 'bonus' tank 
     }
 
-
-    // Solve pumping power here
-    double W_dot_htf_pump = pumping_power(m_dot_cr_to_cv_hot, m_dot_cv_hot_to_sink, std::abs(m_dot_cold_tank_to_hot_tank),
-        T_cr_in_cold, T_cr_out_hot, T_sink_htf_in_hot, T_sink_out_cold,
-        false);     //[-] C_MEQ__m_dot_tes will not send cr_m_dot to TES if recirculating
-
+    double W_dot_htf_pump = pumping_power();
 
     // Calculate NT Specific Outputs
     double mass_cold = mc_cold_tank_cyl.get_m_m_calc();
@@ -1521,16 +1524,11 @@ void C_csp_piston_cylinder_tes::assign(int index, double* p_reporting_ts_array, 
     mc_reported_outputs.assign(index, p_reporting_ts_array, n_reporting_ts_array);
 }
 
-double /*MWe*/ C_csp_piston_cylinder_tes::pumping_power(double m_dot_sf /*kg/s*/, double m_dot_pb /*kg/s*/, double m_dot_tank /*kg/s*/,
-    double T_sf_in /*K*/, double T_sf_out /*K*/, double T_pb_in /*K*/, double T_pb_out /*K*/, bool recirculating)
-{
-    // Piston Cylinder never uses a hx -> pumping power = 0 (following two tank logic)
-    // Might want to use tes_pump_coef here?
+double /*MWe*/ C_csp_piston_cylinder_tes::pumping_power() {
 
-    double htf_pump_power = 0.0;	//[MWe]
-
-    return htf_pump_power;
+    return 0.0;
 }
+
 
 
 void C_csp_piston_cylinder_tes::get_design_parameters(double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/,

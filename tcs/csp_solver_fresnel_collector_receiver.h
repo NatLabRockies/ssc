@@ -598,6 +598,8 @@ public:
 
     virtual double get_col_startup_power();		//MWe-hr
 
+    virtual double get_design_pumping_power();  //[MWe]
+
     virtual C_csp_collector_receiver::E_csp_cr_modes get_operating_state();
 
     virtual void get_design_parameters(C_csp_collector_receiver::S_csp_cr_solved_params& solved_params);

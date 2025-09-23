@@ -70,7 +70,8 @@ public:
 		double m_dP_frac_des;	//[-]
 		double m_q_dot_des;		//[MWt]
 		double m_m_dot_max_frac;	//[-]
-	
+
+
 		double m_pump_eta_isen;	//[-] Isentropic efficiency of pump
 
 		S_params()
@@ -81,6 +82,8 @@ public:
 				m_pump_eta_isen = std::numeric_limits<double>::quiet_NaN();
 		}
 	};
+
+    double m_W_dot_pump_heat_sink_portion;  //[MWe]
 
 	S_params ms_params;
 	
@@ -105,6 +108,9 @@ public:
 	virtual double get_efficiency_at_TPH(double T_degC, double P_atm, double relhum_pct, double *w_dot_condenser = 0);
 	virtual double get_efficiency_at_load(double load_frac, double *w_dot_condenser=0);
 	virtual double get_htf_pumping_parasitic_coef();		//[kWe/kWt]
+
+    virtual double get_design_pumping_power();      //[MWe]
+    virtual double get_design_cooling_power();      //[MWe]
 
 	// This can vary between timesteps for Type224, depending on remaining startup energy and time
 	virtual double get_max_q_pc_startup();		//[MWt]

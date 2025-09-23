@@ -140,6 +140,11 @@ double C_csp_mspt_collector_receiver::get_col_startup_power()
 	return mc_pt_heliostatfield.ms_params.m_p_start * mc_pt_heliostatfield.ms_params.m_N_hel *1.e-3;	//MWe-hr
 }
 
+double C_csp_mspt_collector_receiver::get_design_pumping_power() {
+
+    return mc_pt_receiver.get_design_rec_pumping_power();   //[MWe]
+}
+
 void C_csp_mspt_collector_receiver::call(const C_csp_weatherreader::S_outputs &weather,
 	const C_csp_solver_htf_1state &htf_state_in,
 	const C_csp_collector_receiver::S_csp_cr_inputs &inputs,

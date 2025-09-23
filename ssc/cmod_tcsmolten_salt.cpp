@@ -73,6 +73,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
 
     // Simulation parameters
     { SSC_INPUT,     SSC_NUMBER, "is_dispatch",                        "Allow dispatch optimization?",                                                                                                            "",             "",                                  "System Control",                           "?=0",                                                              "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "is_control_target_elec",             "0 (default): control targets heat into cycle",                                                                                            "",             "",                                  "System Control",                           "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "sim_type",                           "1 (default): timeseries, 2: design only",                                                                                                 "",             "",                                  "System Control",                           "?=1",                                                              "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "csp_financial_model",                "",                                                                                                                                        "1-8",          "",                                  "Financial Model",                          "?=1",                                                              "INTEGER,MIN=0", ""},
     { SSC_INPUT,     SSC_NUMBER, "time_start",                         "Simulation start time",                                                                                                                   "s",            "",                                  "System Control",                           "?=0",                                                              "",              "SIMULATION_PARAMETER"},
@@ -465,6 +466,8 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_OUTPUT,    SSC_NUMBER, "average_attenuation",                "Average solar field attenuation",                                                                                                          "%",            "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_MATRIX, "helio_positions_calc",               "Heliostat position table - out",                                                                                                           "",             "",                                  "Heliostat Field",                          "*",                                                                "",              "COL_LABEL=XY_POSITION" },
     { SSC_OUTPUT,    SSC_NUMBER, "A_sf",                               "Solar field area",                                                                                                                         "m^2",          "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "q_dot_rec_abs_from_sf_est_des",      "Estimated receiver thermal power based on field area and guessed optical efficiency",                                                      "MWt",          "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "rec_sm_from_sf_est_des",             "Estimated receiver solar mult based on field area and guessed optical efficiency",                                                         "-",            "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "land_min_abs",                       "Min distance from tower to heliostat",                                                                                                     "m",            "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "land_max_abs",                       "Max distance from tower to heliostat",                                                                                                     "m",            "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "land_area_base_calc",                "Land area occupied by heliostats",                                                                                                         "acre",         "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
@@ -1660,6 +1663,9 @@ public:
         bool is_rec_model_trans = as_boolean("is_rec_model_trans");
         bool is_rec_model_clearsky = as_double("rec_clearsky_fraction") > 0.0;
 
+        double e_act_sol = as_double("rec_absorptance");        //[-] Absorptivity in short wave - active surfaces
+        double dni_des = as_double("dni_des");
+
         if (rec_type == 1) {    // Cavity receiver
 
             // No transient model available for cavity receiver
@@ -1678,7 +1684,6 @@ public:
             double botLipHeight = 0;        //[m] Height of bottom lip in meters
 
             // surface radiative properties
-            double e_act_sol = as_double("rec_absorptance");        //[-] Absorptivity in short wave - active surfaces
             double e_act_therm = as_double("epsilon");              //[-] Emissivity in long wave - active surfaces
             double e_pass_sol = as_double("cav_rec_passive_abs");   //[-] Absorptivity in short wave (solar) - passive surfaces
             double e_pass_therm = as_double("cav_rec_passive_eps"); //[-] Emissivity in long wave - passive surfaces
@@ -1696,7 +1701,7 @@ public:
             // ***************************************************************************************
             // ***************************************************************************************
 
-            std::unique_ptr<C_cavity_receiver> c_cav_rec = std::unique_ptr<C_cavity_receiver>(new C_cavity_receiver(as_double("dni_des"),
+            std::unique_ptr<C_cavity_receiver> c_cav_rec = std::unique_ptr<C_cavity_receiver>(new C_cavity_receiver(dni_des,
                 as_integer("rec_htf"), as_matrix("field_fl_props"),
                 od_rec_tube, th_rec_tube, as_integer("mat_tube"),
                 nPanels, cav_rec_height, cav_rec_width,
@@ -1965,11 +1970,11 @@ public:
         double heater_spec_cost = 0.0;
         if (is_parallel_heater) {
 
-            if (!is_dispatch && sim_type == 1) {
-                if (!as_boolean("allow_heater_no_dispatch_opt")) {
-                    throw exec_error("tcsmolten_salt", "When the molten salt power tower case has an electric HTF charger, dispatch optimization must be selected");
-                }
-            }
+            //if (!is_dispatch && sim_type == 1) {
+            //    if (!as_boolean("allow_heater_no_dispatch_opt")) {
+            //        throw exec_error("tcsmolten_salt", "When the molten salt power tower case has an electric HTF charger, dispatch optimization must be selected");
+            //    }
+            //}
 
             double heater_mult = as_double("heater_mult");      //[-]
             heater_spec_cost = as_double("heater_spec_cost");   //[$/kWt]
@@ -2278,6 +2283,7 @@ public:
         system.m_bop_par_0 = as_double("bop_par_0");
         system.m_bop_par_1 = as_double("bop_par_1");
         system.m_bop_par_2 = as_double("bop_par_2");
+        system.m_is_control_target_elec = as_boolean("is_control_target_elec");
 
         // *****************************************************
         // System dispatch
@@ -2439,7 +2445,9 @@ public:
         assign("land_max_abs", (ssc_number_t)land_max_abs);     //[m]
         assign("land_area_base_calc", (ssc_number_t)land_area_base);     //[acre]
         assign("total_land_area_before_rad_cooling_calc", (ssc_number_t)total_land_area_before_rad_cooling);        //[acre]
+
         
+
         size_t n_helio_pos_rows = helio_pos.nrows();
         ssc_number_t* p_helio_positions_calc = allocate("helio_positions_calc", n_helio_pos_rows, 2);
         // Try to determine whether heliostat positions represent surround or cavity field
@@ -2497,6 +2505,13 @@ public:
         assign("m_dot_htf_rec_des", m_dot_htf_rec_des);         //[kg/s]
         assign("q_dot_piping_loss_des", q_dot_piping_loss_des); //[MWt]
         assign("m_dot_htf_rec_max", m_dot_htf_rec_max);         //[kg/s]
+
+        // Estimate thermal power delivered by field now that we have thermal efficiency
+        double eta_sf_est = 0.6;
+        double q_dot_rec_abs_from_sf_est = A_sf * e_act_sol * eta_sf_est * dni_des * eta_rec_thermal_des * 1.E-6;     //[MWt]
+        assign("q_dot_rec_abs_from_sf_est_des", (ssc_number_t)q_dot_rec_abs_from_sf_est);
+        double sf_sm_est = q_dot_rec_abs_from_sf_est / q_dot_pc_des;        //[-]
+        assign("rec_sm_from_sf_est_des", (ssc_number_t)sf_sm_est);
 
             // *************************
             // Heater

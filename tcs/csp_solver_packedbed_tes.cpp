@@ -192,6 +192,8 @@ C_csp_packedbed_tes::C_csp_packedbed_tes(
     // Set Subtimestep
     m_subtimestep_nominal = 3600.0 / m_n_subtimestep;   //[s]
 
+    m_W_dot_pumping_des = std::numeric_limits<double>::quiet_NaN();
+
     mc_reported_outputs.construct(S_output_info);
 }
 
@@ -216,6 +218,7 @@ void C_csp_packedbed_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_input
     if (!(m_Q_tes_des > 0.0))
     {
         m_is_tes = false;
+        m_W_dot_pumping_des = 0.0;
         return;		// No storage!
     }
 
@@ -331,6 +334,12 @@ void C_csp_packedbed_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_input
     m_q_pb_design = m_q_dot_design * 1.E6;	//[Wt]
 
     m_ts_hours = m_Q_tes_des / m_q_dot_design;
+
+    double cp_ave = mc_external_htfProps.Cp(0.5*(m_T_cold_des + m_T_hot_des));  //[kJ/kg-K]
+
+    double m_dot_htf_cycle_des = (m_q_dot_design * 1.E-3) / (cp_ave*(m_T_hot_des - m_T_cold_des));
+
+    m_W_dot_pumping_des = pumping_power(m_dot_htf_cycle_des);      //[MWe]
 }
 
 bool C_csp_packedbed_tes::does_tes_exist()
@@ -404,6 +413,11 @@ double C_csp_packedbed_tes::get_degradation_rate()
 {
     // No heat loss in packed bed model
     return 0.0;
+}
+
+double C_csp_packedbed_tes::get_design_pumping_power() {
+
+    return m_W_dot_pumping_des;     //[MWe]
 }
 
 void C_csp_packedbed_tes::reset_storage_to_initial_state()
@@ -763,16 +777,6 @@ void C_csp_packedbed_tes::assign(int index, double* p_reporting_ts_array, size_t
     mc_reported_outputs.assign(index, p_reporting_ts_array, n_reporting_ts_array);
 }
 
-double /*MWe*/ C_csp_packedbed_tes::pumping_power(double m_dot_sf /*kg/s*/, double m_dot_pb /*kg/s*/, double m_dot_tank /*kg/s*/,
-    double T_sf_in /*K*/, double T_sf_out /*K*/, double T_pb_in /*K*/, double T_pb_out /*K*/, bool recirculating)
-{
-    double mdot_net = std::abs(m_dot_sf - m_dot_pb);    //[kg/s] m_dot_tank is always NaN for packed bed TES
-    double htf_pump_power = (m_tes_pump_coef * mdot_net) / 1000.0;		//[MWe]
-
-    return htf_pump_power;
-}
-
-
 void C_csp_packedbed_tes::get_design_parameters(double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/,
     double& h_tank_calc /*m*/, double& d_tank_calc /*m*/,
     double& q_dot_loss_des /*MWt*/, double& dens_store_htf_at_T_ave /*kg/m3*/, double& Q_tes /*MWt-hr*/)
@@ -882,7 +886,7 @@ bool C_csp_packedbed_tes::charge(double timestep /*s*/, double T_amb /*K*/, doub
     m_dot_tank_to_tank = std::numeric_limits<double>::quiet_NaN();  //[kg/s]
 
     // Pumping Power
-    W_dot_rhtf_pump = m_dot_htf_in * m_tes_pump_coef / 1.E3;    //[MWe] Pumping power through tank
+    W_dot_rhtf_pump = pumping_power(m_dot_htf_in);    //[MWe] Pumping power through tank
 
     // Cold out = Average Outlet Temp
     T_htf_cold_out = T_out_avg; //[K]
@@ -1004,7 +1008,7 @@ bool C_csp_packedbed_tes::discharge(double timestep /*s*/, double T_amb /*K*/, d
     m_dot_tank_to_tank = std::numeric_limits<double>::quiet_NaN();  //[kg/s]
 
     // Pumping Power
-    W_dot_rhtf_pump = m_dot_htf_in * m_tes_pump_coef / 1.E3;    //[MWe] Pumping power through tank
+    W_dot_rhtf_pump = pumping_power(m_dot_htf_in);    //[MWe] Pumping power through tank
 
     // Cold out = Average Outlet Temp
     T_htf_hot_out = T_out_avg; //[K]
@@ -1036,4 +1040,9 @@ bool C_csp_packedbed_tes::discharge(double timestep /*s*/, double T_amb /*K*/, d
     q_dot_ch_from_htf = 0.0;    // [MWt]
 
     return true;
+}
+
+double C_csp_packedbed_tes::pumping_power(double m_dot_htf /*kg/s*/) {
+
+    return m_dot_htf * m_tes_pump_coef * 1.E-3;     //[MWe] pumping power through packed bed
 }

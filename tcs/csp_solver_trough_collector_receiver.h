@@ -582,6 +582,8 @@ public:
     virtual double get_max_power_delivery(double T_htf_cold_in /*C*/);    //MWt
 	virtual double get_tracking_power();		//MWe
 	virtual double get_col_startup_power();		//MWe-hr
+    virtual double get_design_pumping_power();  //[MWe]
+
     virtual std::vector<double> get_scas_outlet_temps(); //C
 
 	virtual C_csp_collector_receiver::E_csp_cr_modes get_operating_state();

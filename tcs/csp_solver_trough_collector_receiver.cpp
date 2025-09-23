@@ -939,6 +939,11 @@ double C_csp_trough_collector_receiver::get_tracking_power()
     return m_SCA_drives_elec * 1.e-6 * m_nSCA * m_nLoops;     //MWe
 }
 
+double C_csp_trough_collector_receiver::get_design_pumping_power() {
+
+    return m_W_dot_pump_SS; //MWe-hr
+}
+
 std::vector<double> C_csp_trough_collector_receiver::get_scas_outlet_temps()
 {
     return m_T_htf_out_t_end_converged;

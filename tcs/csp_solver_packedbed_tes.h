@@ -83,6 +83,8 @@ private:
     double m_Q_tes_actual;      // [MWt-hr] Storage capacity (including volume oversize factor)
     double m_subtimestep_nominal;   // [s]
 
+    double m_W_dot_pumping_des; // [MWe]
+
     // Private members
     bool m_is_tes;
     bool m_use_T_grad_init = false;
@@ -189,6 +191,8 @@ public:
 
 	virtual double get_degradation_rate();  // s^-1
 
+    virtual double get_design_pumping_power();  //[MWe]
+
 	virtual void reset_storage_to_initial_state();
 
 	virtual void discharge_avail_est(double T_cold_K, double step_s,
@@ -210,8 +214,7 @@ public:
 
 	virtual void assign(int index, double* p_reporting_ts_array, size_t n_reporting_ts_array);
 
-	virtual /*MWe*/ double pumping_power(double m_dot_sf /*kg/s*/, double m_dot_pb /*kg/s*/, double m_dot_tank /*kg/s*/,
-		double T_sf_in /*K*/, double T_sf_out /*K*/, double T_pb_in /*K*/, double T_pb_out /*K*/, bool recirculating);
+    /*MWe*/ double pumping_power(double m_dot_htf /*kg/s*/);
 
     void get_design_parameters(double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/,
         double& h_tank /*m*/, double& d_tank /*m*/,

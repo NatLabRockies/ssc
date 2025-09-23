@@ -2308,6 +2308,11 @@ void C_csp_fresnel_collector_receiver::get_design_parameters(C_csp_collector_rec
     return;
 }
 
+double C_csp_fresnel_collector_receiver::get_design_pumping_power() {
+
+    return m_W_dot_pump_des_SS; //[MWe]
+}
+
 void C_csp_fresnel_collector_receiver::off(const C_csp_weatherreader::S_outputs& weather,
     const C_csp_solver_htf_1state& htf_state_in,
     C_csp_collector_receiver::S_csp_cr_out_solver& cr_out_solver,

@@ -1415,7 +1415,8 @@ C_csp_two_tank_tes::C_csp_two_tank_tes(
 
     m_vol_tank = m_V_tank_active = m_q_pb_design = m_ts_hours =
         m_V_tank_hot_ini = m_mass_total_active = m_h_tank_calc = m_d_tank_calc = m_q_dot_loss_des =
-        m_cp_external_avg = m_rho_store_avg = m_m_dot_tes_des_over_m_dot_external_des = std::numeric_limits<double>::quiet_NaN();
+        m_cp_external_avg = m_rho_store_avg =
+        m_m_dot_tes_des_over_m_dot_external_des = m_W_dot_pumping_des = std::numeric_limits<double>::quiet_NaN();
 
 	mc_reported_outputs.construct(S_output_info);
 }
@@ -1425,6 +1426,7 @@ void C_csp_two_tank_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_inputs
 	if( !(m_Q_tes_des > 0.0) )
 	{
 		m_is_tes = false;
+        m_W_dot_pumping_des = 0.0;
 		return;		// No storage!
 	}
 
@@ -1586,7 +1588,9 @@ void C_csp_two_tank_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_inputs
 	
 
 	// 5.13.15, twn: also be sure that hx is sized such that it can supply full load to sink
-	double duty = m_q_pb_design * std::max(1.0, m_frac_max_q_dot);		//[W] Allow all energy from the source to go into storage at any time
+    double q_dot_external_design = m_q_pb_design * m_frac_max_q_dot;    //[W]
+    double q_dot_to_tes_design_external_and_cycle = q_dot_external_design - m_q_pb_design;  //[W] negative values means TES is discharging if solar field and cycle are both at design values (i.e SM < 1)
+    double duty = m_q_pb_design * std::max(1.0, m_frac_max_q_dot);		//[W] Allow all energy from the source to go into storage at any time
 
 	if( m_ts_hours > 0.0 )
 	{
@@ -1613,6 +1617,8 @@ void C_csp_two_tank_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_inputs
     double m_cold_ini = (1.0 - m_f_V_hot_ini * 0.01) * m_mass_total_active + V_inactive * rho_cold_des;
     double V_hot_ini = m_hot_ini / rho_hot;
     double V_cold_ini = m_cold_ini / rho_cold;
+
+    double m_dot_tes_design_external_and_cycle = (std::abs(q_dot_to_tes_design_external_and_cycle * 1.E-3)) / (cp_ave * (T_tes_hot_des - T_tes_cold_des));  //[kg/s]
 
     //double rho_hot = mc_store_htfProps.dens(m_T_tank_hot_ini, 1.0);  
 	//double rho_cold = mc_store_htfProps.dens(m_T_tank_cold_ini, 1.0);
@@ -1650,7 +1656,7 @@ void C_csp_two_tank_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_inputs
 	double cp_tes_avg = mc_store_htfProps.Cp_ave(T_tes_hot_des, T_tes_cold_des);
 	m_m_dot_tes_des_over_m_dot_external_des = m_cp_external_avg / cp_tes_avg;		//[-] assume hx cr = 1
     double m_dot_pb_design = m_q_dot_design * 1.e3 /   // convert MWe to kWe for cp [kJ/kg-K]
-        (m_cp_external_avg * (m_T_hot_des - m_T_cold_des));
+        (m_cp_external_avg * (m_T_hot_des - m_T_cold_des)); //[kg/s]
     if (size_tes_piping(V_tes_des, tes_lengths, rho_avg,
         m_dot_pb_design, m_frac_max_q_dot, tanks_in_parallel,     // Inputs
         this->pipe_vol_tot, this->pipe_v_dot_rel, this->pipe_diams,
@@ -1681,6 +1687,12 @@ void C_csp_two_tank_tes::init(const C_csp_tes::S_csp_tes_init_inputs init_inputs
 
         //value(O_p_des_sgs_1, DP_before_hot_tank);           // for adjusting source design pressures
     }
+
+    double m_dot_ext_design_external_and_cycle = (q_dot_external_design*1.E-3)/(m_cp_external_avg*(m_T_hot_des-m_T_cold_des)); //[kg/s]
+
+    m_W_dot_pumping_des = pumping_power(m_dot_ext_design_external_and_cycle, m_dot_pb_design, m_dot_tes_design_external_and_cycle,
+        m_T_cold_des, m_T_hot_des, m_T_hot_des, m_T_cold_des, false);
+
 }
 
 void C_csp_two_tank_tes::get_design_parameters(double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/,
@@ -1765,6 +1777,11 @@ double C_csp_two_tank_tes::get_degradation_rate()
     double d_tank = sqrt( m_vol_tank / ( (double)m_tank_pairs * m_h_tank_calc * 3.14159) );
     double e_loss = m_u_tank * 3.14159 * m_tank_pairs * d_tank * ( m_T_cold_des + m_T_hot_des - 576.3 )*1.e-6;  //MJ/s  -- assumes full area for loss, Tamb = 15C
 	return e_loss / (m_q_pb_design * m_ts_hours * 3600.); //s^-1  -- fraction of heat loss per second based on full charge
+}
+
+double C_csp_two_tank_tes::get_design_pumping_power() {
+
+    return m_W_dot_pumping_des; //[MWe]
 }
 
 void C_csp_two_tank_tes::reset_storage_to_initial_state()

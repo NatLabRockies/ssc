@@ -48,8 +48,10 @@ void C_csp_solver::reset_time(double step /*s*/)
 
 int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes cr_mode,
     C_csp_power_cycle::E_csp_power_cycle_modes pc_mode, C_csp_collector_receiver::E_csp_cr_modes htr_mode,    //[-]
+    C_csp_power_cycle::E_csp_power_cycles_types pc_target_type_at_operating_mode,
     C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_MEQ__timestep::E_timestep_target_modes step_target_mode,
-    double q_dot_pc_target /*MWt*/, bool is_defocus, bool is_rec_outlet_to_hottank,
+    double q_dot_pc_target /*MWt*/, double offtaker_power_max /*MWe*/,
+    bool is_defocus, bool is_rec_outlet_to_hottank,
     double q_dot_elec_to_CR_heat /*MWe*/, double q_dot_elec_to_PAR_HTR /*MWt*/,
     std::string op_mode_str, double & defocus_solved)
 {
@@ -57,7 +59,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
 
     C_MEQ__defocus c_mdot_eq(solver_mode, C_MEQ__defocus::E_M_DOT_BAL, step_target_mode, this,
         q_dot_pc_target,
-        pc_mode, cr_mode, htr_mode,
+        pc_mode, cr_mode, htr_mode, pc_target_type_at_operating_mode,
         q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
         is_rec_outlet_to_hottank,
         t_ts_initial); //, step_tolerance);
@@ -155,7 +157,31 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             is_m_dot_bal_converged = true;
         }
 
-        if ((mc_pc_out_solver.m_q_dot_htf - m_q_dot_pc_max) / m_q_dot_pc_max > 1.E-3)
+        double calc_offtaker_output = std::numeric_limits<double>::quiet_NaN();
+        if (pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            calc_offtaker_output = mc_pc_out_solver.m_q_dot_htf;    //[MWt]
+        }
+        else if (pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            calc_offtaker_output = mc_system_metrics.get_W_dot_net();   //[MWe]
+        }
+
+        // What if calc_offtaker_output = mc_pc_out_solver.m_q_dot_htf = 0?
+        // -- E.g. parallel heater defocus (e.g. because TES is full) when power cycle target = 0
+
+        // Set denominator in diff quotient to value close to zero with the correct sign
+        double offtaker_power_max_denom = offtaker_power_max;
+        if (offtaker_power_max_denom >= 0.0 && offtaker_power_max_denom < 0.001) {
+            offtaker_power_max_denom = 0.001;
+        }
+        else if (offtaker_power_max_denom > -0.001 && offtaker_power_max_denom < 0.0) {
+            offtaker_power_max_denom = -0.001;
+        }
+
+        // What if output max and output calc are both negative? E.g. electric heater targeting net system import
+        // -- If system requires "defocus", need to turn down heater, so calc is more negative (e.g. -90) than max (e.g. -70)
+        // ----- so (calc - max) / max = (neg) / (neg) = positive
+
+        if ((calc_offtaker_output - offtaker_power_max) / offtaker_power_max_denom > 1.E-3)
         {
             // Have defocused such that balancing mass flow rates should not result in
             //    a cycle mass flow rate greater than the max
@@ -164,7 +190,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             C_MEQ__defocus c_q_dot_eq(C_MEQ__m_dot_tes::E__CR_OUT__CR_OUT_LESS_TES_FULL, C_MEQ__defocus::E_Q_DOT_PC, step_target_mode, 
                 this,
                 q_dot_pc_target,
-                pc_mode, cr_mode, htr_mode,
+                pc_mode, cr_mode, htr_mode, pc_target_type_at_operating_mode,
                 q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
                 is_rec_outlet_to_hottank,
                 t_ts_initial);
@@ -202,7 +228,15 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
 
             C_monotonic_eq_solver::S_xy_pair xy_q_dot_2;
 
-            double defocus_guess_q_dot = (std::max)(0.7 * defocus_guess, (std::min)(0.99 * defocus_guess, defocus_guess * (m_q_dot_pc_max / mc_pc_out_solver.m_q_dot_htf)));
+            calc_offtaker_output = std::numeric_limits<double>::quiet_NaN();
+            if (pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+                calc_offtaker_output = mc_pc_out_solver.m_q_dot_htf;    //[MWt]
+            }
+            else if (pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+                calc_offtaker_output = mc_system_metrics.get_W_dot_net();   //[MWe]
+            }
+
+            double defocus_guess_q_dot = (std::max)(0.7 * defocus_guess, (std::min)(0.99 * defocus_guess, defocus_guess * (offtaker_power_max / calc_offtaker_output)));
             while (true) {
 
                 q_dot_df_code = c_q_dot_solver.test_member_function(defocus_guess_q_dot, &q_dot_pc_1);
@@ -237,7 +271,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             int solver_code = 0;
             try
             {
-                solver_code = c_q_dot_solver.solve(xy_q_dot_1, xy_q_dot_2, m_q_dot_pc_max, defocus_solved, tol_solved, iter_solved);
+                solver_code = c_q_dot_solver.solve(xy_q_dot_1, xy_q_dot_2, offtaker_power_max, defocus_solved, tol_solved, iter_solved);
             }
             catch (C_csp_exception)
             {
@@ -281,7 +315,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             C_MEQ__defocus c_bal_eq(solver_mode_df1, C_MEQ__defocus::E_Q_DOT_PC, step_target_mode, this,
                 //m_dot_tes, 
                 q_dot_pc_target,
-                pc_mode, cr_mode, htr_mode,
+                pc_mode, cr_mode, htr_mode, pc_target_type_at_operating_mode,
                 q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
                 is_rec_outlet_to_hottank,
                 t_ts_initial);  // , step_tolerance);
@@ -330,7 +364,12 @@ double C_csp_solver::C_MEQ__defocus::calc_meq_target()
     }
     else if (m_df_target_mode == C_MEQ__defocus::E_Q_DOT_PC)
     {
-        return mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf;	//[MWt]
+        if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            return mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf;	//[MWt]
+        }
+        else if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            return mpc_csp_solver->mc_system_metrics.get_W_dot_net();   //[MWe]
+        }
     }
 }
 
@@ -347,7 +386,7 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
 
     C_MEQ__timestep c_T_cold_eq(m_solver_mode, m_ts_target_mode, mpc_csp_solver,
         m_q_dot_pc_target,
-        m_pc_mode, m_cr_mode, m_htr_mode,
+        m_pc_mode, m_cr_mode, m_htr_mode, m_pc_target_type_at_operating_mode,
         m_q_dot_elec_to_CR_heat, m_q_dot_elec_to_PAR_HTR,
         m_is_rec_outlet_to_hottank,
         defocus_CR, defocus_PAR_HTR);
@@ -599,7 +638,7 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
 {
     C_MEQ__T_field_cold c_eq(m_solver_mode, mpc_csp_solver, 
         m_q_dot_pc_target,
-        m_pc_mode, m_cr_mode, m_htr_mode,
+        m_pc_mode, m_cr_mode, m_htr_mode, m_pc_target_type_at_operating_mode,
         m_q_dot_elec_to_CR_heat, m_q_dot_elec_to_PAR_HTR,
         m_is_rec_outlet_to_hottank,
         m_defocus, m_defocus_PAR_HTR, t_ts_guess, 
@@ -685,7 +724,12 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
     }
     else if (m_step_target_mode == E_STEP_Q_DOT_PC)
     {
-        *target = mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf; //[MWt]
+        if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            *target = mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf; //[MWt]
+        }
+        else if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            return mpc_csp_solver->mc_system_metrics.get_W_dot_net();   //[MWe]
+        }
     }
     else if (m_step_target_mode == E_STEP_FIXED)
     {
@@ -709,6 +753,7 @@ void C_csp_solver::C_MEQ__m_dot_tes::init_calc_member_vars()
 int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double *diff_target /*-*/)
 {
     init_calc_member_vars();
+    mpc_csp_solver->mc_system_metrics.reset_metrics();
 
     // Set timestep
     mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_step = m_t_ts_in;    //[s]
@@ -1185,7 +1230,43 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
     {
         m_t_ts_calc = t_ts_pc_su;       //[s]
     }
-    
+
+    // Calculate system-level parasitics: can happen after controller/solver converges
+    double W_dot_ratio = mpc_csp_solver->mc_pc_out_solver.m_P_cycle / std::max(0.001, mpc_csp_solver->m_cycle_W_dot_des);		//[-]
+
+    double W_dot_bop = mpc_csp_solver->m_cycle_W_dot_des * mpc_csp_solver->ms_system_params.m_bop_par * mpc_csp_solver->ms_system_params.m_bop_par_f *
+        (mpc_csp_solver->ms_system_params.m_bop_par_0 + mpc_csp_solver->ms_system_params.m_bop_par_1 * W_dot_ratio + mpc_csp_solver->ms_system_params.m_bop_par_2 * pow(W_dot_ratio, 2));
+    // [MWe]
+
+    double W_dot_cr_freeze_protection = 0.0;
+    if (mpc_csp_solver->ms_system_params.m_is_field_freeze_protection_electric) {
+        W_dot_cr_freeze_protection = mpc_csp_solver->mc_cr_out_solver.m_q_dot_heater;       //[MWe]
+    }
+
+    double W_dot_tes_pump = 0.0;        //[MWe]
+    if (mpc_csp_solver->m_is_tes) {
+        W_dot_tes_pump = mpc_csp_solver->mc_tes_outputs.m_W_dot_elec_in_tot;    //[MWe]
+    }
+
+    double W_dot_par_htr_elec_load = 0.0;
+    if (mpc_csp_solver->m_is_parallel_heater) {
+        W_dot_par_htr_elec_load = mpc_csp_solver->mc_par_htr_out_solver.m_W_dot_elec_in_tot +
+            mpc_csp_solver->mc_par_htr_out_solver.m_q_dot_heater;       //[MWe]
+    }
+
+    double W_dot_net = mpc_csp_solver->mc_pc_out_solver.m_P_cycle -
+        mpc_csp_solver->mc_cr_out_solver.m_W_dot_elec_in_tot -
+        mpc_csp_solver->mc_pc_out_solver.m_W_dot_elec_parasitics_tot -
+        W_dot_tes_pump -
+        W_dot_cr_freeze_protection -
+        W_dot_par_htr_elec_load -
+        mpc_csp_solver->mc_tes_outputs.m_q_heater -
+        mpc_csp_solver->m_W_dot_fixed_design -
+        W_dot_bop;	//[MWe]
+
+    mpc_csp_solver->mc_system_metrics.set_W_dot_bop(W_dot_bop);
+    mpc_csp_solver->mc_system_metrics.set_W_dot_net(W_dot_net);
+
     if (m_solver_mode == E__TO_PC_PLUS_TES_FULL__ITER_M_DOT_SU
         || m_solver_mode == E__CR_OUT__ITER_M_DOT_SU_CH_ONLY || m_solver_mode == E__CR_OUT__ITER_M_DOT_SU_DC_ONLY
         || m_solver_mode == E__TO_PC__ITER_M_DOT_SU)
@@ -1194,7 +1275,12 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
     }
     else if (m_solver_mode == E__CR_OUT__ITER_Q_DOT_TARGET_DC_ONLY || m_solver_mode == E__CR_OUT__ITER_Q_DOT_TARGET_CH_ONLY)
     {
-        *diff_target = (mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf - m_q_dot_pc_target) / m_q_dot_pc_target;
+        if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            *diff_target = (mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf - m_q_dot_pc_target) / m_q_dot_pc_target;
+        }
+        else if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            *diff_target = (mpc_csp_solver->mc_system_metrics.get_W_dot_net() - m_q_dot_pc_target) / m_q_dot_pc_target;   //[MWe]
+        }
     }
 
     return 0;
@@ -1211,7 +1297,7 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
 
     C_MEQ__m_dot_tes c_eq(m_solver_mode, mpc_csp_solver, 
         m_pc_mode, m_cr_mode,
-        m_htr_mode,
+        m_htr_mode, m_pc_target_type_at_operating_mode,
         m_q_dot_elec_to_CR_heat, m_q_dot_elec_to_PAR_HTR,
         m_is_rec_outlet_to_hottank,
         m_q_dot_pc_target,

@@ -60,6 +60,8 @@ private:
 	double m_max_frac;		//[-]
 	double m_m_dot_htf_des;	//[kg/s]
 
+    double m_W_dot_pumping_power_des;   //[MWe]
+
 	HTFProperties mc_pc_htfProps;
 
 	void check_double_params_are_set();
@@ -108,6 +110,9 @@ public:
 	virtual double get_efficiency_at_TPH(double T_degC, double P_atm, double relhum_pct, double *w_dot_condenser=0);
 	virtual double get_efficiency_at_load(double load_frac, double *w_dot_condenser=0);
 	virtual double get_htf_pumping_parasitic_coef();		//[kWe/kWt]
+
+    virtual double get_design_pumping_power();      //[MWe]
+    virtual double get_design_cooling_power();      //[MWe]
 
 	// This can vary between timesteps for Type224, depending on remaining startup energy and time
 	virtual double get_max_q_pc_startup();		//[MWt]

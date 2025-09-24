@@ -129,6 +129,7 @@ public:
         failed
     };
 
+    // Common structure across all dispatch models used to pass solver infromation for reporting.
     struct s_solver_outputs
     {
         bool last_opt_successful;       //last optimization run was successful?
@@ -161,31 +162,37 @@ public:
 
     } solver_outputs;
 
-    struct s_disp_outputs
+    // Common structure across all dispatch models used to pass dispatch solutions to the csp solver core for control and reporting.
+    struct s_dispatch_outputs
     {
-        double time_last = -9999.;
+        double time_last = -9999.;              // [s] Time at the last dispatch reporting call -> stops the controller from re-optimizing at the same time step
 
-        bool is_rec_su_allowed = false;
-        bool is_pc_sb_allowed = false;
-        bool is_pc_su_allowed = false;
+        // Boolean operation indicators
+        bool is_eh_su_allowed = false;          // [-] Is electric heater startup allowed?
+        bool is_rec_su_allowed = false;         // [-] Is receiver startup allowed?
+        bool is_pc_sb_allowed = false;          // [-] Is power cycle standby allowed? 
+        bool is_pc_su_allowed = false;          // [-] Is power cycle startup allowed?
 
-        double q_pc_target = 0.;
-        double q_dot_pc_max = 0.;
-        double q_dot_elec_to_CR_heat = 0.;
-        double qsf_expect = 0.;
-        double qsfprod_expect = 0.;
-        double qsfsu_expect = 0.;
-        double tes_expect = 0.;
-        double etasf_expect = 0.;
-        double etapb_expect = 0.;
-        double qpbsu_expect = 0.;
-        double wpb_expect = 0.;
-        double rev_expect = 0.;
+        // Targets and limits sent to the controller
+        double q_pc_target = 0.;                // [MWt] Target power cycle thermal input
+        double q_dot_pc_max = 0.;               // [MWt] Maximum power cycle thermal input
+        double q_dot_elec_to_CR_heat = 0.;      // [MWt] Heat production from converting electricity to heat for ETES and PTES case (TODO: this is awkwardly implemented can could be improved)
+        double q_eh_target = 0.;                // [MWt] Target electric heater thermal output
+        double w_dot_target = 0.;               // [MWe] Target power cycle (net) electric output
+        double w_dot_max = 0.;                  // [MWe] Maximum power cycle (net) electric output ???
 
-        bool is_eh_su_allowed = false;
-        double q_eh_target = 0.;
+        // Dispatch solution output for reporting
+        double qsf_expect = 0.;                 // [MWt] Expected available thermal power from the solar field
+        double qsfprod_expect = 0.;             // [MWt] Thermal power production from the solar field
+        double qsfsu_expect = 0.;               // [MWt] Receiver startup thermal energy
+        double tes_expect = 0.;                 // [MWht] Thermal energy storage state of charge
+        double etasf_expect = 0.;               // [-] Solar field thermal efficiency
+        double etapb_expect = 0.;               // [-] Power cycle efficiency
+        double qpbsu_expect = 0.;               // [MWht] Power cycle startup energy
+        double wpb_expect = 0.;                 // [MWe] Power cycle electric power production
+        double rev_expect = 0.;                 // [$] Revenue from electricity sales
 
-    } disp_outputs;
+    } dispatch_outputs;
 
     //----- public member functions ----
     base_dispatch_opt();

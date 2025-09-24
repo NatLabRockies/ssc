@@ -1887,16 +1887,16 @@ bool csp_dispatch_opt::set_dispatch_outputs()
             % (solver_params.optimize_frequency * solver_params.steps_per_hour);
 
 
-        disp_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
-        disp_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
-        disp_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || disp_outputs.is_pc_sb_allowed;
+        dispatch_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
+        dispatch_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
+        dispatch_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || dispatch_outputs.is_pc_sb_allowed;
 
-        disp_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
 
-        disp_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
 
-        disp_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
-        disp_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
+        dispatch_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
+        dispatch_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
 
         //quality checks
         /*
@@ -1906,51 +1906,47 @@ bool csp_dispatch_opt::set_dispatch_outputs()
             q_pc_target = dispatch.params.q_pb_standby*1.e-3;
         */
 
-        if (disp_outputs.q_pc_target + 1.e-5 < params.q_pb_min)
-        {
-            disp_outputs.is_pc_su_allowed = false;
-            disp_outputs.q_pc_target = 0.0;
+        if (dispatch_outputs.q_pc_target + 1.e-5 < params.q_pb_min) {
+            dispatch_outputs.is_pc_su_allowed = false;
+            dispatch_outputs.q_pc_target = 0.0;
         }
 
         // Calculate approximate upper limit for power cycle thermal input at current electricity generation limit
-        if (params.w_lim.at(m_current_read_step) < 1.e-6)
-        {
-            disp_outputs.q_dot_pc_max = 0.0;
+        if (params.w_lim.at(m_current_read_step) < 1.e-6) {
+            dispatch_outputs.q_dot_pc_max = 0.0;
         }
-        else
-        {
+        else {
             double wcond;
             double eta_corr = pointers.mpc_pc->get_efficiency_at_TPH(pointers.m_weather.ms_outputs.m_tdry, 1., 30., &wcond) / params.eta_pb_des;
             double eta_calc = params.eta_pb_des * eta_corr;
             double eta_diff = 1.;
             int i = 0;
-            while (eta_diff > 0.001 && i < 20)
-            {
+            while (eta_diff > 0.001 && i < 20) {
                 double q_pc_est = params.w_lim.at(m_current_read_step) * 1.e-3 / eta_calc;			// Estimated power cycle thermal input at w_lim
                 double eta_new = pointers.mpc_pc->get_efficiency_at_load(q_pc_est / params.q_pb_des) * eta_corr;		// Calculated power cycle efficiency
                 eta_diff = std::abs(eta_calc - eta_new);
                 eta_calc = eta_new;
                 i++;
             }
-            disp_outputs.q_dot_pc_max = fmin(disp_outputs.q_dot_pc_max, params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitics)
-            disp_outputs.q_dot_pc_max = fmax(disp_outputs.q_dot_pc_max, disp_outputs.q_pc_target);								  // calculated q_pc_target accounts for parasitics --> can be higher than approximate limit 
+            dispatch_outputs.q_dot_pc_max = fmin(dispatch_outputs.q_dot_pc_max, params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitics)
+            dispatch_outputs.q_dot_pc_max = fmax(dispatch_outputs.q_dot_pc_max, dispatch_outputs.q_pc_target);								  // calculated q_pc_target accounts for parasitics --> can be higher than approximate limit 
         }
 
-        disp_outputs.etasf_expect = params.eta_sf_expected.at(m_current_read_step);
-        disp_outputs.qsf_expect = params.q_sfavail_expected.at(m_current_read_step);
-        disp_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
-        disp_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
-        disp_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
-        disp_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
-        disp_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
-        disp_outputs.rev_expect = disp_outputs.wpb_expect * params.sell_price.at(m_current_read_step);
-        disp_outputs.etapb_expect = disp_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
+        dispatch_outputs.etasf_expect = params.eta_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsf_expect = params.q_sfavail_expected.at(m_current_read_step);
+        dispatch_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
+        dispatch_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
+        dispatch_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
+        dispatch_outputs.rev_expect = dispatch_outputs.wpb_expect * params.sell_price.at(m_current_read_step);
+        dispatch_outputs.etapb_expect = dispatch_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
             * (outputs.pb_operation.at(m_current_read_step) ? 1. : 0.);
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "csp_dispatch");
     }
-    disp_outputs.time_last = pointers.siminfo->ms_ts.m_time;
+    dispatch_outputs.time_last = pointers.siminfo->ms_ts.m_time;
 
     return true;
 }

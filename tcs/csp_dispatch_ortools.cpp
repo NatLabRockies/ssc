@@ -1427,6 +1427,11 @@ bool csp_dispatch_ortools::optimize()
 }
 
 void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, double>& P) {
+    // sets output structure from optimization solution
+    // TODO: This layer was required for lp_solve because the lp object was destroyed and rebuilt each solve.
+    //      With or-tools, this is no longer necessary, but it is retained to minimize changes to the rest of the dispatch code.
+    // In the future (once all dispatch models using or-tools), this could be merged with set_dispatch_outputs to eliminate redundant code.
+
     int nt = (int)m_nstep_opt;
 
     outputs.clear();
@@ -1450,8 +1455,17 @@ void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, 
         outputs.tes_charge_expected.at(t) = cont_vars.s.at(t)->solution_value();
         // receiver production
         outputs.q_sf_expected.at(t) = cont_vars.xr.at(t)->solution_value();
-        // electricity production
+        // net electricity production
         outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value();
+        //outputs.w_pb_target.at(t) = (cont_vars.wdot.at(t)->solution_value() * (1.0 - ts_params.w_condf_expected.at(t))
+        //    - cont_vars.xr.at(t)->solution_value() * P["Lr"]
+        //    - cont_vars.xrsu.at(t)->solution_value() * P["Lr"]
+        //    - bin_vars.yrsu.at(t)->solution_value() * ((P["Wrsb"] / P["delta"]) + (P["Ehs"] / P["delta"]))
+        //    - bin_vars.yr.at(t)->solution_value() * P["Wh"]
+        //    - cont_vars.x.at(t)->solution_value() * P["Lc"]
+        //    );
+        //if (params.can_cycle_use_standby) outputs.w_pb_target.at(t) -= bin_vars.ycsb.at(t)->solution_value() * P["Wb"];
+        //if (params.is_parallel_heater) outputs.w_pb_target.at(t) -= cont_vars.qeh.at(t)->solution_value() * (1 / P["eta_eh"]);
 
         // cycle standby
         if (params.can_cycle_use_standby)
@@ -1481,17 +1495,21 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)
             % (solver_params.optimize_frequency * solver_params.steps_per_hour);
 
+        if (m_current_read_step > (int)outputs.q_pb_target.size())
+            throw C_csp_exception("Current read step is greater than solution horizon.", "csp_dispatch");
 
-        disp_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
-        disp_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
-        disp_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || disp_outputs.is_pc_sb_allowed;
+        dispatch_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
+        dispatch_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
+        dispatch_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || dispatch_outputs.is_pc_sb_allowed;
 
-        disp_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
 
-        disp_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
 
-        disp_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
-        disp_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
+        dispatch_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
+        dispatch_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
+
+        dispatch_outputs.w_dot_target = outputs.w_pb_target.at(m_current_read_step);
 
         //quality checks
         /*
@@ -1501,18 +1519,17 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
             q_pc_target = dispatch.params.q_pb_standby*1.e-3;
         */
 
-        if (disp_outputs.q_pc_target + 1.e-5 < params.q_pb_min)
-        {
-            disp_outputs.is_pc_su_allowed = false;
-            disp_outputs.q_pc_target = 0.0;
+        if (dispatch_outputs.q_pc_target + 1.e-5 < params.q_pb_min) {
+            dispatch_outputs.is_pc_su_allowed = false;
+            dispatch_outputs.q_pc_target = 0.0;
         }
 
         // Calculate approximate upper limit for power cycle thermal input at current electricity generation limit
         if (ts_params.w_lim.at(m_current_read_step) < 1.e-6) {
-            disp_outputs.q_dot_pc_max = 0.0;
+            dispatch_outputs.q_dot_pc_max = 0.0;
         }
         else if (ts_params.w_lim.at(m_current_read_step) / params.eta_pb_des > params.q_pb_max) { // Output limit is greater than max
-            disp_outputs.q_dot_pc_max = fmax(params.q_pb_max, disp_outputs.q_pc_target);
+            dispatch_outputs.q_dot_pc_max = fmax(params.q_pb_max, dispatch_outputs.q_pc_target);
         }
         else {
             double wcond;
@@ -1520,33 +1537,32 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
             double eta_calc = params.eta_pb_des * eta_corr;
             double eta_diff = 1.;
             int i = 0;
-            while (eta_diff > 0.001 && i < 20)
-            {
+            while (eta_diff > 0.001 && i < 20) {
                 double q_pc_est = ts_params.w_lim.at(m_current_read_step) / eta_calc;			// Estimated power cycle thermal input at w_lim
                 double eta_new = pointers.mpc_pc->get_efficiency_at_load(q_pc_est / params.q_pb_des) * eta_corr;		// Calculated power cycle efficiency
                 eta_diff = std::abs(eta_calc - eta_new);
                 eta_calc = eta_new;
                 i++;
             }
-            disp_outputs.q_dot_pc_max = fmin(disp_outputs.q_dot_pc_max, ts_params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitic)
-            disp_outputs.q_dot_pc_max = fmax(disp_outputs.q_dot_pc_max, disp_outputs.q_pc_target);				             // calculated q_pc_target accounts for parasitic --> can be higher than approximate limit 
+            dispatch_outputs.q_dot_pc_max = fmin(dispatch_outputs.q_dot_pc_max, ts_params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitic)
+            dispatch_outputs.q_dot_pc_max = fmax(dispatch_outputs.q_dot_pc_max, dispatch_outputs.q_pc_target);				         // calculated q_pc_target accounts for parasitic --> can be higher than approximate limit 
         }
 
-        disp_outputs.etasf_expect = ts_params.eta_sf_expected.at(m_current_read_step);
-        disp_outputs.qsf_expect = ts_params.q_sfavail_expected.at(m_current_read_step);
-        disp_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
-        disp_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
-        disp_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
-        disp_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
-        disp_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
-        disp_outputs.rev_expect = disp_outputs.wpb_expect * ts_params.sell_price.at(m_current_read_step);
-        disp_outputs.etapb_expect = disp_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
+        dispatch_outputs.etasf_expect = ts_params.eta_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsf_expect = ts_params.q_sfavail_expected.at(m_current_read_step);
+        dispatch_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
+        dispatch_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
+        dispatch_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
+        dispatch_outputs.rev_expect = dispatch_outputs.wpb_expect * ts_params.sell_price.at(m_current_read_step);
+        dispatch_outputs.etapb_expect = dispatch_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
             * (outputs.pb_operation.at(m_current_read_step) ? 1. : 0.);
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "csp_dispatch");
     }
-    disp_outputs.time_last = pointers.siminfo->ms_ts.m_time;
+    dispatch_outputs.time_last = pointers.siminfo->ms_ts.m_time;
 
     return true;
 }

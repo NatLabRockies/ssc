@@ -920,12 +920,17 @@ public:
 			CTRL_OP_MODE_SEQ_A,         //[-] First 3 operating modes tried
 			CTRL_OP_MODE_SEQ_B,         //[-] Next 3 operating modes tried
 			CTRL_OP_MODE_SEQ_C,         //[-] Final 3 operating modes tried
+                // Dispatch - solver outputs
             DISPATCH_REL_MIP_GAP,       //[-] Relative MIP gap from optimization solver
 			DISPATCH_SOLVE_STATE,       //[-] The status of the dispatch optimization solver
-            DISPATCH_SUBOPT_FLAG,       //[-] Flag specifing information about LPSolve suboptimal result
+            DISPATCH_SUBOPT_FLAG,       //[-] Flag specifying information about LPSolve suboptimal result
 			DISPATCH_SOLVE_ITER,        //[-] Number of iterations before completing dispatch optimization
 			DISPATCH_SOLVE_OBJ,         //[$] Objective function value achieved by the dispatch optimization solver
-			DISPATCH_SOLVE_OBJ_RELAX,   //[$] Objective function value for the relaxed continuous problem 
+			DISPATCH_SOLVE_OBJ_RELAX,   //[$] Objective function value for the relaxed continuous problem
+            DISPATCH_PRES_NCONSTR,      //[-] Number of constraint relationships in dispatch model formulation
+            DISPATCH_PRES_NVAR,         //[-] Number of variables in dispatch model formulation
+            DISPATCH_SOLVE_TIME,        //[sec]   Time required to solve the dispatch model at each instance
+                // Dispatch - solution outputs
 			DISPATCH_QSF_EXPECT,        //[MWt] Expected total solar field energy generation in dispatch model
 			DISPATCH_QSFPROD_EXPECT,    //[MWt] Expected useful solar field energy generation in dispatch model
 			DISPATCH_QSFSU_EXPECT,      //[MWt] Solar field startup energy in dispatch model
@@ -935,9 +940,6 @@ public:
 			DISPATCH_QPBSU_EXPECT,      //[MWt] Power cycle startup energy consumption in dispatch model
 			DISPATCH_WPB_EXPECT,        //[MWe] Power cycle electricity production in dispatch model
 			DISPATCH_REV_EXPECT,        //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
-			DISPATCH_PRES_NCONSTR,      //[-] Number of constraint relationships in dispatch model formulation
-			DISPATCH_PRES_NVAR,         //[-] Number of variables in dispatch model formulation
-			DISPATCH_SOLVE_TIME,        //[sec]   Time required to solve the dispatch model at each instance
 
 			// **************************************************************
 			//      Outputs that are reported as weighted averages if 

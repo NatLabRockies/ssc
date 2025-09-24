@@ -439,7 +439,7 @@ bool C_csp_messages::get_message(std::string *msg)
     return get_message(&itemp, msg);
 }
 
-const char* C_csp_exception::what()
+const char* C_csp_exception::what() const noexcept
 {
 	return "CSP exception";
 }

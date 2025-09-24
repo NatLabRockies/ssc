@@ -1124,7 +1124,7 @@ int C_TurbineSplitFlow_Cycle::auto_opt_design(S_auto_opt_design_parameters& auto
 /// <returns></returns>
 int C_TurbineSplitFlow_Cycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_parameters& auto_opt_des_hit_eta_in, std::string& error_msg)
 {
-    return -1;
+    return C_sco2_cycle_core::E_cycle_error_msg::E_NOT_SUPPORTED;
 }
 
 // ********************************************************************************** PUBLIC Objective Functions (internal use only)

@@ -50,6 +50,7 @@ public:
             E_ETA_THRESHOLD,
             E_HTR_LTR_CONVERGENCE,
             E_AIR_COOLER_CONVERGENCE,
+            E_NOT_SUPPORTED,
             E_NO_ERROR
         };
 
@@ -73,6 +74,8 @@ public:
                     return "HTR LTR convergence issue";
                 case((int)E_AIR_COOLER_CONVERGENCE):
                     return "Air cooler did not converge";
+                case((int)E_NOT_SUPPORTED):
+                    return "Feature not supported";
                 default:
                     return "Error code not recognized";
                     break;

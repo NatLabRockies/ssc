@@ -60,6 +60,9 @@ public:
         {
             switch (error_enum)
             {
+                case((int)E_NO_ERROR):
+                    return "No error";
+                    break;
                 case((int)E_CANNOT_PRODUCE_POWER):
                     return "Cycle cannot produce power";
                     break;
@@ -67,15 +70,12 @@ public:
                     return "Error calculating sCO2 properties";
                 case((int)E_ETA_THRESHOLD):
                     return "Eta below threshold";
-                case((int)E_NO_ERROR):
-                    return "No error";
-                    break;
                 case((int)E_HTR_LTR_CONVERGENCE):
                     return "HTR LTR convergence issue";
                 case((int)E_AIR_COOLER_CONVERGENCE):
                     return "Air cooler did not converge";
                 case((int)E_NOT_SUPPORTED):
-                    return "Feature not supported";
+                    return "Feature not supported by configuration";
                 default:
                     return "Error code not recognized";
                     break;

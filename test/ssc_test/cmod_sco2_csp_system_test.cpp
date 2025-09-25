@@ -35,11 +35,99 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "tcsmolten_salt_defaults.h"
 #include "csp_common_test.h"
 #include "vs_google_test_explorer_namespace.h"
+#include <unordered_map>
 
 //#include "../input_cases/code_generator_utilities.h"
 
 namespace sco2_tests {}
 using namespace sco2_tests;
+
+// Helper functions
+
+ssc_data_t get_default_sco2_pars()
+{
+    ssc_data_t data = ssc_data_create();
+
+    // Basic design parameters
+    ssc_data_set_number(data, "htf", 17);  // Solar salt
+    ssc_data_set_number(data, "T_htf_hot_des", 670.0);  // [C] HTF design hot temperature
+    ssc_data_set_number(data, "dT_PHX_hot_approach", 20.0);  // [C/K] Temperature difference between hot HTF and turbine inlet
+    ssc_data_set_number(data, "T_amb_des", 35.0);  // [C] Ambient temperature at design
+    ssc_data_set_number(data, "dT_mc_approach", 6.0);  // [C] Temperature difference between main compressor CO2 inlet and ambient air
+    ssc_data_set_number(data, "site_elevation", 588);  // [m] Elevation
+    ssc_data_set_number(data, "W_dot_net_des", 50.0);  // [MWe] Design cycle power output
+
+    // Cycle configuration
+    ssc_data_set_number(data, "cycle_config", 1);  // [1] = RC, [2] = PC
+    ssc_data_set_number(data, "design_method", 2);  // [-] 1 = specify efficiency, 2 = specify total recup UA, 3 = Specify each recup design
+    ssc_data_set_number(data, "eta_thermal_des", 0.44);  // [-] Target power cycle thermal efficiency
+    ssc_data_set_number(data, "UA_recup_tot_des", 15000.0);  // [kW/K] Total recuperator UA (15 * 1000 * 50.0 / 50.0)
+
+    // Pressure and recompression settings
+    ssc_data_set_number(data, "is_recomp_ok", 1);  // 1 = Yes, 0 = simple cycle only
+    ssc_data_set_number(data, "is_P_high_fixed", 1);  // 0 = No, optimize. 1 = Yes
+    ssc_data_set_number(data, "is_PR_fixed", 0);  // 0 = No, >0 = fixed pressure ratio
+    ssc_data_set_number(data, "is_IP_fixed", 0);  // 0 = No, >0 = fixed HP-IP pressure ratio
+
+    // Convergence criteria
+    ssc_data_set_number(data, "rel_tol", 3);  // [-] Solver relative tolerance exponent
+
+    // Component efficiencies
+    ssc_data_set_number(data, "eta_isen_mc", 0.85);  // [-] Main compressor isentropic efficiency
+    ssc_data_set_number(data, "eta_isen_rc", 0.85);  // [-] Recompressor isentropic efficiency
+    ssc_data_set_number(data, "eta_isen_pc", 0.85);  // [-] Precompressor isentropic efficiency
+    ssc_data_set_number(data, "eta_isen_t", 0.90);  // [-] Turbine isentropic efficiency
+
+    // Pressure limits
+    ssc_data_set_number(data, "P_high_limit", 25);  // [MPa] Cycle high pressure limit
+
+    // Recuperators
+    double eff_max = 1.0;
+    double deltaP_recup_HP = 0.0056;    // [-] = 0.14[MPa]/25[MPa]
+    double deltaP_recup_LP = 0.0311;    // [-] = 0.28[MPa]/9[MPa]
+
+    // LTR (Low Temperature Recuperator)
+    ssc_data_set_number(data, "LTR_design_code", 3);  // 1 = UA, 2 = min dT, 3 = effectiveness
+    ssc_data_set_number(data, "LTR_UA_des_in", 2200.0);  // [kW/K]
+    ssc_data_set_number(data, "LTR_min_dT_des_in", 12.0);  // [C]
+    ssc_data_set_number(data, "LTR_eff_des_in", 0.895);  // [-]
+    ssc_data_set_number(data, "LT_recup_eff_max", eff_max);  // [-]
+    ssc_data_set_number(data, "LTR_LP_deltaP_des_in", deltaP_recup_LP);  // [-]
+    ssc_data_set_number(data, "LTR_HP_deltaP_des_in", deltaP_recup_HP);  // [-]
+
+    // HTR (High Temperature Recuperator)
+    ssc_data_set_number(data, "HTR_design_code", 3);  // 1 = UA, 2 = min dT, 3 = effectiveness
+    ssc_data_set_number(data, "HTR_UA_des_in", 2800.0);  // [kW/K]
+    ssc_data_set_number(data, "HTR_min_dT_des_in", 19.2);  // [C]
+    ssc_data_set_number(data, "HTR_eff_des_in", 0.945);  // [-]
+    ssc_data_set_number(data, "HT_recup_eff_max", eff_max);  // [-]
+    ssc_data_set_number(data, "HTR_LP_deltaP_des_in", deltaP_recup_LP);  // [-]
+    ssc_data_set_number(data, "HTR_HP_deltaP_des_in", deltaP_recup_HP);  // [-]
+
+    // PHX (Primary Heat Exchanger)
+    ssc_data_set_number(data, "PHX_co2_deltaP_des_in", deltaP_recup_HP);  // [-]
+    ssc_data_set_number(data, "dT_PHX_cold_approach", 20);  // [C/K]
+
+    // Air Cooler
+    ssc_data_set_number(data, "deltaP_cooler_frac", 0.005);  // [-]
+    ssc_data_set_number(data, "fan_power_frac", 0.02);  // [-]
+
+    return data;
+}
+
+void check_result_vals(CmodUnderTest& sco2, std::unordered_map<std::string, double> result_map)
+{
+    for (const auto& result : result_map)
+    {
+        std::string key = result.first;
+        double result_expected = result.second;
+        double result_actual = sco2.GetOutput(key);
+
+        ASSERT_NEAR(result_expected, result_actual, 1e-5);
+    }
+
+    return;
+}
 
 //========Tests===================================================================================
 NAMESPACE_TEST(sco2_tests, SCO2Cycle, Parametrics)
@@ -132,4 +220,45 @@ NAMESPACE_TEST(sco2_tests, SCO2Cycle, Parametrics)
 
     }
     
+}
+
+// Using different namespace test name to call directly
+NAMESPACE_TEST(sco2_design_tests, SCO2Design, recompression_default)
+{
+    ssc_data_t data = get_default_sco2_pars();
+    CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
+    int errors = sco2.RunModule();
+
+    // Check for errors
+    ASSERT_TRUE(errors == 0);
+
+    // Define known results
+    std::unordered_map<std::string, double> result_dict;
+    result_dict["eta_thermal_calc"] = 0.463262886458404;
+    result_dict["T_htf_cold_des"] = 509.748924586394;
+
+    // Check expected vs actual results
+    check_result_vals(sco2, result_dict);
+}
+
+// Using different namespace test name to call directly
+NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_des1_fail)
+{
+    // Get default parameters
+    ssc_data_t data = get_default_sco2_pars();
+
+    // Assign TSF specific pars
+    ssc_data_set_number(data, "cycle_config", 4);
+    ssc_data_set_number(data, "is_turbine_split_ok", 1);
+    ssc_data_set_number(data, "eta_isen_t2", 0.90);
+
+    // Set design method 1 (which TSF does not support)
+    ssc_data_set_number(data, "design_method", 1);
+
+    // Run cmod
+    CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
+    int errors = sco2.RunModule();
+
+    // Expect to have errors
+    ASSERT_FALSE(errors == 0);
 }

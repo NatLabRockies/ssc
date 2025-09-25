@@ -1344,14 +1344,15 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
     cm->assign("error_int", cycle_error_enum);
 
     // Cycle failed, exit now
-    if (cycle_error_enum >= (int)C_sco2_cycle_core::E_cycle_error_msg::E_CANNOT_PRODUCE_POWER
-        && cycle_error_enum < (int)C_sco2_cycle_core::E_cycle_error_msg::E_NO_ERROR)
+    // tmb 2025-09-25 Now throwing exception, rather than exiting gracefully
+    if (cycle_error_enum >= (int)C_sco2_cycle_core::E_cycle_error_msg::E_CANNOT_PRODUCE_POWER)
     {
         std::string error_text = C_sco2_cycle_core::E_cycle_error_msg::get_error_string(cycle_error_enum);
         cm->assign("error_msg", error_text);
         cm->assign("cycle_success", 0);
         cm->assign("eta_thermal_calc", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_eta_thermal);	//[-]
-        return 0;
+
+        throw exec_error("sco2_csp_system", error_text);
     }
 
     std::string error_text = "";

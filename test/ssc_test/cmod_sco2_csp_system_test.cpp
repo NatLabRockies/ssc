@@ -222,9 +222,13 @@ NAMESPACE_TEST(sco2_tests, SCO2Cycle, Parametrics)
     
 }
 
-// Using different namespace test name to call directly
+
+// Design method 2 (optimize with fixed total UA)
 NAMESPACE_TEST(sco2_design_tests, SCO2Design, recompression_default)
 {
+    // This test is design method 2, maximizing efficiency using a fixed total UA,
+    // optimizing min pressure, UA split, and flow fractions.
+
     ssc_data_t data = get_default_sco2_pars();
     CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
     int errors = sco2.RunModule();
@@ -234,16 +238,176 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, recompression_default)
 
     // Define known results
     std::unordered_map<std::string, double> result_dict;
-    result_dict["eta_thermal_calc"] = 0.463262886458404;
-    result_dict["T_htf_cold_des"] = 509.748924586394;
+    result_dict["eta_thermal_calc"] = 0.46326288645840497;
+    result_dict["T_htf_cold_des"] = 509.7489245863944;
+    result_dict["cycle_cost"] = 62.85323351704139;
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
 }
 
-// Using different namespace test name to call directly
+NAMESPACE_TEST(sco2_design_tests, SCO2Design, simple_default)
+{
+    // This test is design method 2, maximizing efficiency using a fixed total UA,
+    // optimizing min pressure, UA split, and flow fractions.
+
+    // Get default parameters
+    ssc_data_t data = get_default_sco2_pars();
+
+    // Set test specific values
+    ssc_data_set_number(data, "is_recomp_ok", 0);
+
+    // Call cmod
+    CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
+    int errors = sco2.RunModule();
+
+    // Check for errors
+    ASSERT_TRUE(errors == 0);
+
+    // Define known results
+    std::unordered_map<std::string, double> result_dict;
+    result_dict["eta_thermal_calc"] = 0.43185849042562524;
+    result_dict["T_htf_cold_des"] = 466.8855038441511;
+    result_dict["cycle_cost"] = 57.323164238332325;
+
+    // Check expected vs actual results
+    check_result_vals(sco2, result_dict);
+}
+
+NAMESPACE_TEST(sco2_design_tests, SCO2Design, partial_default)
+{
+    // This test is design method 2, maximizing efficiency using a fixed total UA,
+    // optimizing min pressure, UA split, and flow fractions.
+
+    // Get default parameters
+    ssc_data_t data = get_default_sco2_pars();
+
+    // Set test specific values
+    ssc_data_set_number(data, "cycle_config", 2);
+
+    // Call cmod
+    CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
+    int errors = sco2.RunModule();
+
+    // Check for errors
+    ASSERT_TRUE(errors == 0);
+
+    // Define known results
+    std::unordered_map<std::string, double> result_dict;
+    result_dict["eta_thermal_calc"] = 0.4680242988429887;
+    result_dict["T_htf_cold_des"] = 454.4556200450701;
+    result_dict["cycle_cost"] = 66.2574259286688;
+
+    // Check expected vs actual results
+    check_result_vals(sco2, result_dict);
+}
+
+NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_default)
+{
+    // This test is design method 2, maximizing efficiency using a fixed total UA,
+    // optimizing min pressure, UA split, and flow fractions.
+    // ALSO, htr bp is varying the bp frac to hit the target outlet temperature
+
+    // Get default parameters
+    ssc_data_t data = get_default_sco2_pars();
+
+    // Set test specific values
+    ssc_data_set_number(data, "cycle_config", 3);
+    ssc_data_set_number(data, "is_bypass_ok", 1);
+    ssc_data_set_number(data, "T_bypass_target", 400);
+    ssc_data_set_number(data, "T_target_is_HTF", 1);
+    ssc_data_set_number(data, "deltaT_bypass", 0);
+    ssc_data_set_number(data, "set_HTF_mdot", 0);
+
+    // Call cmod
+    CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
+    int errors = sco2.RunModule();
+
+    // Check for errors
+    ASSERT_TRUE(errors == 0);
+
+    // Define known results
+    std::unordered_map<std::string, double> result_dict;
+    result_dict["eta_thermal_calc"] = 0.33776551440239994;
+    result_dict["T_htf_cold_des"] = 400.0;
+    result_dict["cycle_cost"] = 68.82623980549134;
+
+    // Check expected vs actual results
+    check_result_vals(sco2, result_dict);
+}
+
+NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_default)
+{
+    // This test is design method 2, maximizing efficiency using a fixed total UA,
+    // optimizing min pressure, UA split, and flow fractions.
+
+    // Get default parameters
+    ssc_data_t data = get_default_sco2_pars();
+
+    // Set test specific values
+    ssc_data_set_number(data, "cycle_config", 4);
+    ssc_data_set_number(data, "is_turbine_split_ok", 1);
+    ssc_data_set_number(data, "eta_isen_t2", 0.90);
+
+    // Call cmod
+    CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
+    int errors = sco2.RunModule();
+
+    // Check for errors
+    ASSERT_TRUE(errors == 0);
+
+    // Define known results
+    std::unordered_map<std::string, double> result_dict;
+    result_dict["eta_thermal_calc"] = 0.40642770633106834;
+    result_dict["T_htf_cold_des"] = 306.45863972890197;
+    result_dict["cycle_cost"] = 60.89798090322589;
+
+    // Check expected vs actual results
+    check_result_vals(sco2, result_dict);
+}
+
+// Design method 1 (hit target eta by varying total UA)
+NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_des1)
+{
+    // Design method 2, vary total UA to hit target eta,
+    // AND vary bypass frac to hit target outlet temp
+
+    // Get default parameters
+    ssc_data_t data = get_default_sco2_pars();
+
+    // Set test specific values
+    ssc_data_set_number(data, "cycle_config", 3);
+    ssc_data_set_number(data, "design_method", 1);          // Hit target eta, vary total UA
+    ssc_data_set_number(data, "eta_thermal_des", 0.33);     // Target eta
+    ssc_data_set_number(data, "is_bypass_ok", 1);
+    ssc_data_set_number(data, "T_bypass_target", 400);
+    ssc_data_set_number(data, "T_target_is_HTF", 1);
+    ssc_data_set_number(data, "deltaT_bypass", 0);
+    ssc_data_set_number(data, "set_HTF_mdot", 0);
+
+    // Call cmod
+    CmodUnderTest sco2 = CmodUnderTest("sco2_csp_system", data);
+    int errors = sco2.RunModule();
+
+    // Check for errors
+    ASSERT_TRUE(errors == 0);
+
+    // Define known results
+    std::unordered_map<std::string, double> result_dict;
+    result_dict["eta_thermal_calc"] = 0.3377427765707046;
+    result_dict["T_htf_cold_des"] = 400.00000000000114;
+    result_dict["cycle_cost"] = 92.73527550752384;
+
+    // Check expected vs actual results
+    check_result_vals(sco2, result_dict);
+}
+
+
+// Fail tests
 NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_des1_fail)
 {
+    // This test purposefully fails, by trying to run TSF with design method 1
+
     // Get default parameters
     ssc_data_t data = get_default_sco2_pars();
 

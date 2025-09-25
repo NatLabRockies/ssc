@@ -453,11 +453,18 @@ public:
 			P_LP_comp_in_des = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::MC_IN] / 1000.0;		//[MPa] convert from kPa
 			delta_P = 10.0;
 		}
-		else
+		else if (cycle_config == 2)
 		{
 			P_LP_comp_in_des = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::PC_IN] / 1000.0;		//[MPa] convert from kPa
 			delta_P = 6.0;
 		}
+        else
+        {
+            log("Cycle configuration not supported for off-design");
+            std::string err_msg = util::format("Cycle configuration not supported for off-design");
+            throw exec_error("sco2_csp_system", err_msg);
+            return;
+        }
 
         // Get turbine inlet mode
         int T_t_in_mode = as_integer("od_T_t_in_mode");

@@ -209,6 +209,7 @@ public:
         bool is_parallel_heater;            //[-] Is there a heater parallel to the receiver?
         double q_eh_max;                    //[MWt] Maximum allowable power delivery by the electrical heaters when operating
         double q_eh_min;                    //[MWt] Minimum allowable power delivery by the electrical heaters when operating
+        double e_eh_su;                     //[MWht] Electrical heater startup energy requirement
         double eta_eh;                      //[-] Electric resistance heating sub-system efficiency
         double hsu_cost;                    //[$/start] Heater startup cost
 
@@ -409,6 +410,8 @@ public:
         std::vector<bool> htr_operation;         // [-] is heater allowed to operate
         std::vector<double> q_eh_target;         // [MWt] Heater target thermal power
 
+        std::vector<double> w_pv_target;         // [MWe] PV target electrical power
+
         void clear() {
             rec_operation.clear();
             pb_operation.clear();
@@ -423,6 +426,7 @@ public:
 
             htr_operation.clear();
             q_eh_target.clear();
+            w_pv_target.clear();
         }
 
         void resize(int nt) {
@@ -439,6 +443,7 @@ public:
 
             htr_operation.resize(nt, false);
             q_eh_target.resize(nt, 0.);
+            w_pv_target.resize(nt, 0.);
         }
 
     } outputs;

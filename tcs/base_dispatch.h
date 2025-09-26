@@ -191,6 +191,7 @@ public:
         double qpbsu_expect = 0.;               // [MWht] Power cycle startup energy
         double wpb_expect = 0.;                 // [MWe] Power cycle electric power production
         double rev_expect = 0.;                 // [$] Revenue from electricity sales
+        double pv_expect = 0.;                  // [MWe] Expected PV generation   
 
     } dispatch_outputs;
 

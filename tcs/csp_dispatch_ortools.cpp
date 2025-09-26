@@ -103,7 +103,9 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
         params.is_parallel_heater = true;
         params.q_eh_min = pointers.par_htr->get_min_power_delivery() * ( 1 + 1e-8 ); // ensures controller doesn't shut down heater at minimum load
         params.q_eh_max = pointers.par_htr->get_max_power_delivery(std::numeric_limits<double>::quiet_NaN());
+        params.e_eh_su = pointers.par_htr->get_startup_energy(); // [MWht]
         params.eta_eh = pointers.par_htr->get_design_electric_to_heat_cop();
+        // Add parameters for heater startup power
     }
     else {
         params.is_parallel_heater = false;
@@ -134,7 +136,7 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
         pmean += ts_params.sell_price.at(t);
     pmean /= (double)ts_params.sell_price.size();
 
-    // Modify objective function
+    // Modify objective function - Maximize revenue from power sales, minimize startup costs and penalties
     MPObjective* objective = solver->MutableObjective();                   // OR-Tools objective function
     double tadj = P["disp_time_weighting"];
     for (int t = 0; t < m_nstep_opt; t++) {
@@ -157,6 +159,8 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
 
         if (params.is_parallel_heater) {
             objective->SetCoefficient(cont_vars.qeh[t], -(P["delta"] * ts_params.sell_price.at(t) * (1. / tadj) * (1 / P["eta_eh"])));
+            // Assumes heater startup energy happens instantaneously at beginning of time step (we would need to reformulate if we wanted to model startup over multiple time steps)
+            objective->SetCoefficient(bin_vars.yhsup[t], -(ts_params.sell_price.at(t) * params.e_eh_su * (1. / tadj) * (1 / P["eta_eh"])));
             objective->SetCoefficient(bin_vars.yhsup[t], -(1. / tadj) * P["hsu_cost"]);
         }
 
@@ -1456,16 +1460,19 @@ void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, 
         // receiver production
         outputs.q_sf_expected.at(t) = cont_vars.xr.at(t)->solution_value();
         // net electricity production
-        outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value();
-        //outputs.w_pb_target.at(t) = (cont_vars.wdot.at(t)->solution_value() * (1.0 - ts_params.w_condf_expected.at(t))
-        //    - cont_vars.xr.at(t)->solution_value() * P["Lr"]
-        //    - cont_vars.xrsu.at(t)->solution_value() * P["Lr"]
-        //    - bin_vars.yrsu.at(t)->solution_value() * ((P["Wrsb"] / P["delta"]) + (P["Ehs"] / P["delta"]))
-        //    - bin_vars.yr.at(t)->solution_value() * P["Wh"]
-        //    - cont_vars.x.at(t)->solution_value() * P["Lc"]
-        //    );
+        //outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value();
+        outputs.w_pb_target.at(t) = (cont_vars.wdot.at(t)->solution_value() * (1.0 - ts_params.w_condf_expected.at(t))
+            - cont_vars.xr.at(t)->solution_value() * P["Lr"]
+            - cont_vars.xrsu.at(t)->solution_value() * P["Lr"]
+            - bin_vars.yrsu.at(t)->solution_value() * ((P["Wrsb"] / P["delta"]) + (P["Ehs"] / P["delta"]))
+            - bin_vars.yr.at(t)->solution_value() * P["Wh"]
+            - cont_vars.x.at(t)->solution_value() * P["Lc"]
+            );
         //if (params.can_cycle_use_standby) outputs.w_pb_target.at(t) -= bin_vars.ycsb.at(t)->solution_value() * P["Wb"];
-        //if (params.is_parallel_heater) outputs.w_pb_target.at(t) -= cont_vars.qeh.at(t)->solution_value() * (1 / P["eta_eh"]);
+        if (params.is_parallel_heater) {
+            outputs.w_pb_target.at(t) -= cont_vars.qeh.at(t)->solution_value() * (1 / P["eta_eh"]);
+            outputs.w_pb_target.at(t) -= bin_vars.yhsup.at(t)->solution_value() * params.e_eh_su * (1 / P["eta_eh"]);
+        }
 
         // cycle standby
         if (params.can_cycle_use_standby)
@@ -1483,6 +1490,10 @@ void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, 
             outputs.htr_operation.at(t) = false;
             outputs.q_eh_target.at(t) = 0.;
         }
+
+        // PV target power - that is being sent to the grid
+        if (params.is_pv_included)
+            outputs.w_pv_target.at(t) = cont_vars.w_pv.at(t)->solution_value();
     }
 }
 
@@ -1558,6 +1569,9 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
         dispatch_outputs.rev_expect = dispatch_outputs.wpb_expect * ts_params.sell_price.at(m_current_read_step);
         dispatch_outputs.etapb_expect = dispatch_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
             * (outputs.pb_operation.at(m_current_read_step) ? 1. : 0.);
+
+        dispatch_outputs.pv_expect = outputs.w_pv_target.at(m_current_read_step);
+
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "csp_dispatch");

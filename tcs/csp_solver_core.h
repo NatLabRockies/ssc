@@ -908,6 +908,8 @@ public:
 			PC_Q_DOT_MAX,               //[MWt] PC allowable max thermal power
             PC_Q_DOT_TARGET_SU,         //[MWt] PC target thermal power for startup
             PC_Q_DOT_TARGET_ON,         //[MWt] PC target thermal power for cycle on
+            PC_W_DOT_NET_TARGET,        //[MWe] PC target (net) electric power output
+            PC_W_DOT_NET_MAX,           //[MWe] PC max (net) electric power output
 			CTRL_IS_REC_SU,             //[-] Control decision: is receiver startup allowed?
 			CTRL_IS_PC_SU,              //[-] Control decision: is power cycle startup allowed?
 			CTRL_IS_PC_SB,              //[-] Control decision: is power cycle standby allowed?
@@ -940,6 +942,7 @@ public:
 			DISPATCH_QPBSU_EXPECT,      //[MWt] Power cycle startup energy consumption in dispatch model
 			DISPATCH_WPB_EXPECT,        //[MWe] Power cycle electricity production in dispatch model
 			DISPATCH_REV_EXPECT,        //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
+            DISPATCH_PV_EXPECT,         //[MWe] PV electricity production in dispatch model
 
 			// **************************************************************
 			//      Outputs that are reported as weighted averages if 

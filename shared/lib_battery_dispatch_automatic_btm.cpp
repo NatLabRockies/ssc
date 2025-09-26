@@ -618,7 +618,6 @@ void dispatch_automatic_behind_the_meter_t::cost_based_target_power(size_t idx, 
 void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan& plan, size_t idx, double E_max, double startingEnergy)
 {
     size_t i = 0, index = 0;
-    auto sorted_grid_saved = sorted_grid;
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
     // Iterating over sorted grid
     double costDuringDispatchHours = 0.0;
@@ -680,7 +679,6 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
     }
 
     if (m_batteryPower->canDischargeToGrid) {
-        sorted_grid = sorted_grid_saved;
         
         std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byExportPerKWh());
         for (i = 0; i < sorted_grid.size(); i++)
@@ -731,7 +729,6 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
         }
     }
     // Get max grid use during charging.
-    sorted_grid = sorted_grid_saved;
     
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
     bool lookingForGridUse = true;
@@ -779,7 +776,6 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
         }
     }
 
-    sorted_grid = sorted_grid_saved;
     // Iterating over sorted grid
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
     // Find m hours to get required energy - hope we got today's energy yesterday (for morning peaks). Apportion between hrs of lowest marginal cost

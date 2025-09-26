@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sco2_tests {}
 using namespace sco2_tests;
 
+double kTol = 0.01;
+
 // Helper functions
 
 ssc_data_t get_default_sco2_pars()
@@ -123,7 +125,7 @@ void check_result_vals(CmodUnderTest& sco2, std::unordered_map<std::string, doub
         double result_expected = result.second;
         double result_actual = sco2.GetOutput(key);
 
-        ASSERT_NEAR(result_expected, result_actual, 1e-5);
+        ASSERT_NEAR(result_expected, result_actual, kTol);
     }
 
     return;

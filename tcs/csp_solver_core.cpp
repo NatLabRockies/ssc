@@ -648,6 +648,15 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         //    throw(C_csp_exception("CSP Solver not yet setup to handle purchase schedule separate from price schedule"));
         //}
 
+        // Get standby fraction and min operating fraction
+            // Could eventually be a method in PC class...
+        double cycle_sb_frac = m_cycle_sb_frac_des;				//[-]
+
+        // *** If standby not allowed, then reset q_pc_sb = q_pc_min ?? *** 
+            //or is this too confusing and not helpful enough?
+        double q_pc_sb = cycle_sb_frac * m_cycle_q_dot_des;		//[MW]
+        double q_pc_min = m_cycle_cutoff_frac * m_cycle_q_dot_des;	//[MW]
+
         // Get weather at this timestep. Should only be called once per timestep. (Except converged() function)
         mc_weather.timestep_call(mc_kernel.mc_sim_info);
 
@@ -713,11 +722,11 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 			mc_pc_inputs,
 			mc_pc_out_solver,
 			mc_kernel.mc_sim_info);
+        m_T_htf_pc_cold_est = mc_pc_out_solver.m_T_htf_cold;	//[C]
 
         // Next, estimate receiver performance using estimated power cycle performance
         // If the return temperature is hotter than design, then the mass flow from the receiver will be bigger than expected
         bool is_rec_outlet_to_hottank = true;
-		m_T_htf_pc_cold_est = mc_pc_out_solver.m_T_htf_cold;	//[C]
 		// Solve collector/receiver at steady state with design inputs and weather to estimate output
 		mc_cr_htf_state_in.m_temp = m_T_htf_pc_cold_est;	//[C]
 		C_csp_collector_receiver::S_csp_cr_est_out est_out;
@@ -787,15 +796,6 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         }
 		// Can add the following code to simulate with no storage charge/discharge, but IDLE calcs
 		//q_dot_tes_dc = q_dot_tes_ch = 0.0;
-
-        // Get standby fraction and min operating fraction
-            // Could eventually be a method in PC class...
-        double cycle_sb_frac = m_cycle_sb_frac_des;				//[-]
-
-        // *** If standby not allowed, then reset q_pc_sb = q_pc_min ?? *** 
-            //or is this too confusing and not helpful enough?
-        double q_pc_sb = cycle_sb_frac * m_cycle_q_dot_des;		//[MW]
-        double q_pc_min = m_cycle_cutoff_frac * m_cycle_q_dot_des;	//[MW]
 
         // Initialize to NaN - block or dispatch needs to set
         double q_pc_target = std::numeric_limits<double>::quiet_NaN();

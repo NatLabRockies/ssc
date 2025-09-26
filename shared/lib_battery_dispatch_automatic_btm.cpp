@@ -777,8 +777,15 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
     }
 
     // Iterating over sorted grid
-//    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
-    std::sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+#ifdef __MACOSX__
+    #if __clang_major__ >= 17
+        std::sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+    #else
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+    #endif
+#else
+    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+#endif
     // Find m hours to get required energy - hope we got today's energy yesterday (for morning peaks). Apportion between hrs of lowest marginal cost
     i = 0;
     while (requiredEnergy > 0 && i < _num_steps)

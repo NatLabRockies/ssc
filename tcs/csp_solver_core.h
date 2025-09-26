@@ -327,10 +327,6 @@ public:
     // Rules for heuristic control
     bool m_use_rule_1;
     double m_standby_off_buffer;
-
-    bool m_use_rule_2;
-    double m_q_dot_rec_des_mult;
-    double m_f_q_dot_pc_overwrite;
     // ****************************
 
     bool m_isleapyear;
@@ -360,9 +356,6 @@ public:
         // Set defaults on heuristic rule values. No one at the cmod level knows what to do with these
         m_use_rule_1 = true;
         m_standby_off_buffer = 2.0;
-        m_use_rule_2 = false;
-        m_q_dot_rec_des_mult = -1.23;
-        m_f_q_dot_pc_overwrite = -1.23;
     }
 
 	~C_csp_tou(){};
@@ -1198,7 +1191,6 @@ private:
         double f_turbine_tou /*-*/, double q_dot_pc_min /*MWt*/, double q_dot_tes_ch /*MWt*/, double pc_heat_prev /*MWt*/, double pc_state_persist /*hours*/,
         C_csp_power_cycle::E_csp_power_cycle_modes pc_operating_state, double purchase_mult /*-*/, double sale_mult /*-*/,
         double calc_frac_current /*-*/, double baseline_step /*s*/,
-        bool& is_q_dot_pc_target_overwrite,
         double& q_dot_pc_target /*MWt*/, double& q_dot_pc_max /*MWt*/,
         double& W_dot_system_target /*MWe*/, double& W_dot_system_max /*MWe*/,
         double& q_dot_elec_to_CR_heat /*MWt*/,

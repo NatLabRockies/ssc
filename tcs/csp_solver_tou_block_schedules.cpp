@@ -133,16 +133,6 @@ void C_csp_tou::init(bool is_leapyear)
                     " Please select a time >= 0", "TOU initialization"));
             }
         }
-
-        if (m_use_rule_2)
-        {
-            if (m_f_q_dot_pc_overwrite <= 0.0 ||
-                m_q_dot_rec_des_mult <= 0.0)
-            {
-                throw(C_csp_exception("Block Dispatch Rule 2 was selected, but the parameters entered were invalid."
-                    " Both values must be greater than 0", "TOU initialization"));
-            }
-        }
     }
 
     m_isleapyear = is_leapyear;

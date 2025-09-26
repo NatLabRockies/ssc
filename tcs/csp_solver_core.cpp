@@ -607,9 +607,6 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 	double rec_state_persist = 0.;  // Time [hr] that current receiver operating state (on/off/standby) has persisted
 
     //************************** MAIN TIME-SERIES LOOP **************************
-	// Block dispatch saved variables
-	bool is_q_dot_pc_target_overwrite = false;
-
 	//mf_callback(m_cdata, 0.0, 0, 0.0);
 
     double start_time = mc_kernel.get_sim_setup()->m_sim_time_start;
@@ -817,7 +814,6 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
             f_turbine_tou, q_pc_min, q_dot_tes_ch, pc_heat_prev, pc_state_persist,
             pc_operating_state_to_controller, purchase_mult, pricing_mult,
             calc_frac_current, baseline_step,
-            is_q_dot_pc_target_overwrite,
             q_pc_target, q_dot_pc_max,
             W_dot_system_target, W_dot_system_max,
             q_dot_elec_to_CR_heat,
@@ -1328,7 +1324,6 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
     double f_turbine_tou /*-*/, double q_dot_pc_min /*MWt*/, double q_dot_tes_ch /*MWt*/, double pc_heat_prev /*MWt*/,  double pc_state_persist /*hours*/,
     C_csp_power_cycle::E_csp_power_cycle_modes pc_operating_state, double purchase_mult /*-*/, double sale_mult /*-*/,
     double calc_frac_current /*-*/, double baseline_step /*s*/,
-    bool& is_q_dot_pc_target_overwrite,
     double& q_dot_pc_target /*MWt*/, double& q_dot_pc_max /*MWt*/,
     double& W_dot_system_target /*MWe*/, double& W_dot_system_max /*MWe*/,
     double& q_dot_elec_to_CR_heat /*MWt*/,
@@ -1361,28 +1356,6 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
                 mc_weather.ms_outputs.m_hour + mc_tou.m_standby_off_buffer >= mc_weather.ms_outputs.m_time_set))
         {
             is_pc_sb_allowed = false;
-        }
-
-        // Rule 2:
-        if (mc_tou.m_use_rule_2 &&
-            ((q_dot_pc_target < q_dot_pc_min && q_dot_tes_ch < m_q_dot_rec_des * mc_tou.m_q_dot_rec_des_mult) ||
-                is_q_dot_pc_target_overwrite))
-        {
-            // If overwrite was previously true, but now power cycle is off, set to false
-            if (is_q_dot_pc_target_overwrite &&
-                (pc_operating_state == C_csp_power_cycle::OFF || q_dot_pc_target >= q_dot_pc_min))
-            {
-                is_q_dot_pc_target_overwrite = false;
-            }
-            else
-            {
-                is_q_dot_pc_target_overwrite = true;
-            }
-
-            if (is_q_dot_pc_target_overwrite)
-            {
-                q_dot_pc_target = mc_tou.m_f_q_dot_pc_overwrite * m_cycle_q_dot_des;
-            }
         }
 
         // Checks on q_dot_pc_target

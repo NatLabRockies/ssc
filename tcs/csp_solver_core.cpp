@@ -605,12 +605,6 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
     double pc_heat_prev = 0.;   // [MWt] Heat into power cycle in previous time step
 	double pc_state_persist = 0.;  // Time [hr] that current pc operating state (on/off/standby) has persisted
 	double rec_state_persist = 0.;  // Time [hr] that current receiver operating state (on/off/standby) has persisted
-	//int prev_pc_state = mc_power_cycle.get_operating_state();
-	//int prev_rec_state = mc_collector_receiver.get_operating_state();
-
-	double q_pb_last = 0.0;   // Cycle thermal input at end of last time step [kWt]
-	double w_pb_last = 0.0;   // Cycle gross generation at end of last time step [kWt]
-	double f_op_last = 0.0;	  // Fraction of last time step that cycle was operating or in standby
 
     //************************** MAIN TIME-SERIES LOOP **************************
 	// Block dispatch saved variables
@@ -679,9 +673,6 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         if (pc_operating_state_to_controller == C_csp_power_cycle::OFF_NO_SU_REQ) {
             pc_operating_state_to_controller = C_csp_power_cycle::ON;
         }
-
-		double q_pb_last = mc_pc_out_solver.m_q_dot_htf * 1000.; //[kWt]
-		double w_pb_last = mc_pc_out_solver.m_P_cycle * 1000.;   //[kWt]
 
 		// Calculate maximum thermal power to power cycle for startup. This will be zero if power cycle is on.
 		double q_dot_pc_su_max = mc_power_cycle.get_max_q_pc_startup();		//[MWt]

@@ -648,6 +648,12 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         //    throw(C_csp_exception("CSP Solver not yet setup to handle purchase schedule separate from price schedule"));
         //}
 
+        // Get weather at this timestep. Should only be called once per timestep. (Except converged() function)
+        mc_weather.timestep_call(mc_kernel.mc_sim_info);
+
+        // Get volume of hot tank, for debugging
+        V_hot_tank_frac_initial = mc_tes.get_hot_tank_vol_frac();
+
 		// Get collector/receiver & power cycle operating states at start of time step (end of last time step)
             // collector/receiver
         C_csp_collector_receiver::E_csp_cr_modes cr_operating_state_prev = mc_collector_receiver.get_operating_state();
@@ -675,14 +681,10 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         }
 
 		// Calculate maximum thermal power to power cycle for startup. This will be zero if power cycle is on.
-		double q_dot_pc_su_max = mc_power_cycle.get_max_q_pc_startup();		//[MWt]
-
-		// Get weather at this timestep. Should only be called once per timestep. (Except converged() function)
-        mc_weather.timestep_call(mc_kernel.mc_sim_info);
-
-		// Get volume of hot tank, for debugging
-		V_hot_tank_frac_initial = mc_tes.get_hot_tank_vol_frac();
-
+        double q_dot_pc_su_max = 0.0;
+        if( pc_operating_state_to_controller != C_csp_power_cycle::ON ) {
+            q_dot_pc_su_max = mc_power_cycle.get_max_q_pc_startup();		//[MWt]
+        }
 
         // Get max HTF mass flow rate to the cycle as a function of ambient temperature
 		double m_dot_htf_ND_max = std::numeric_limits<double>::quiet_NaN();

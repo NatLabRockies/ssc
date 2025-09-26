@@ -916,6 +916,9 @@ double C_pc_Rankine_indirect_224::get_min_thermal_power()     //MW
 
 double C_pc_Rankine_indirect_224::get_max_q_pc_startup()
 {
+    // The maximum thermal power to the cycle during startup is governed by the minimum of:
+    // a) the maximum allowable thermal power to the cycle defined by design point max_frac and design thermal input
+    // b) ramping constraints imposed by the cycle startup time remaining
 	if( m_startup_time_remain_prev > 0.0 )
 		return fmin(ms_params.m_cycle_max_frac * ms_params.m_P_ref / ms_params.m_eta_ref*1.e-3,
 			m_startup_energy_remain_prev / 1.E3 / m_startup_time_remain_prev);		//[MWt]

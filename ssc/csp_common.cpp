@@ -1574,10 +1574,18 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
 	cm->assign("mc_W_dot", (ssc_number_t)(-c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_mc*1.E-3));	//[MWe] convert kWe
 	cm->assign("mc_rho_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_dens[C_sco2_cycle_core::MC_IN]));	//[kg/m3]
 	cm->assign("mc_ideal_spec_work", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_isen_spec_work);	//[kJ/kg]
-	cm->assign("mc_m_dot_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_m_dot_t*(1.0 - c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_recomp_frac));	//[kg/s]
-	cm->assign("mc_phi_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_phi_des);     //[-]
+    cm->assign("mc_phi_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_phi_des);     //[-]
     cm->assign("mc_psi_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_psi_des);     //[-] ideal head coefficient
     cm->assign("mc_tip_ratio_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_tip_ratio_max);		//[-]
+
+    ssc_number_t mc_m_dot_des = std::numeric_limits<ssc_number_t>::quiet_NaN();
+    if (cycle_config != 4)
+        mc_m_dot_des = (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_m_dot_t * (1.0 - c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_recomp_frac);
+    else
+        mc_m_dot_des = (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_m_dot_mc;
+
+    cm->assign("mc_m_dot_des", mc_m_dot_des);	//[kg/s]
+
 
     double htf_outlet = cm->as_double("cycle_config") == 3 ? T_htf_bypass_out : T_htf_cold_calc;
     double dT_htf = cm->as_double("T_htf_hot_des") - (htf_outlet - 273.15);

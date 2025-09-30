@@ -1148,6 +1148,7 @@ bool byLowestMarginalCost::operator() (grid_point const& a, grid_point const& b)
         {
                 return a.Grid() < b.Grid();
         }
+        return (a.Cost() / a.Grid()) < (b.Cost() / b.Grid());
     }
     return a.MarginalCost() < b.MarginalCost();
 

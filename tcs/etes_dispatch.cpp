@@ -295,13 +295,6 @@ static void calculate_parameters(etes_dispatch_opt *optinst, unordered_map<std::
 
 bool etes_dispatch_opt::optimize()
 {
-
-    //First check to see whether we should call the AMPL engine instead. 
-    if( solver_params.is_ampl_engine )
-    {
-        return optimize_ampl();
-    }
-
     /* 
     Formulate the optimization problem for dispatch generation. We are trying to maximize revenue subject to inventory
     constraints.

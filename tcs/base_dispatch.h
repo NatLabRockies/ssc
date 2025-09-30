@@ -67,16 +67,10 @@ public:
         int disp_reporting;
         int scaling_type;
 
-        bool is_write_ampl_dat;     //write ampl data files?
-        bool is_ampl_engine;        //run with external AMPL engine
-        std::string ampl_data_dir;  //directory to write ampl data files
-        std::string ampl_exec_call; //system call for running ampl
-
         s_solver_params();
         void set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
             int disp_max_iter, double disp_mip_gap, double disp_timeout,
             int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting);
-        void set_ampl_inputs(bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec);
         void reset();
     } solver_params;
 
@@ -214,11 +208,6 @@ public:
 
     //declare dispatch function
     virtual bool optimize();
-
-    //Functions to write AMPL data files and solve AMPL model
-    virtual std::string write_ampl();
-
-    virtual bool optimize_ampl();
 
     //Populated dispatch outputs for csp solver core
     virtual bool set_dispatch_outputs();

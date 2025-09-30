@@ -301,13 +301,6 @@ void cst_iph_dispatch_opt::calculate_parameters(unordered_map<std::string, doubl
 
 bool cst_iph_dispatch_opt::optimize()
 {
-
-    //First check to see whether we should call the AMPL engine instead. 
-    if( solver_params.is_ampl_engine )
-    {
-        return optimize_ampl();
-    }
-
     /* 
     Formulate the optimization problem for dispatch generation. We are trying to minimize operating cost subject to heat load and inventory
     constraints.

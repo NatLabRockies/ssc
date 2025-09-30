@@ -55,11 +55,6 @@ base_dispatch_opt::s_solver_params::s_solver_params()
     bb_type = -1;
     disp_reporting = -1;
     scaling_type = -1;
-
-    is_write_ampl_dat = false;
-    is_ampl_engine = false;
-    ampl_data_dir = "";
-    ampl_exec_call = "";
 }
 
 void base_dispatch_opt::s_solver_params::set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
@@ -79,15 +74,6 @@ void base_dispatch_opt::s_solver_params::set_user_inputs(int disp_steps_per_hour
     bb_type = disp_spec_bb;
     scaling_type = disp_spec_scaling;
     disp_reporting = disp_spec_reporting;
-}
-
-
-void base_dispatch_opt::s_solver_params::set_ampl_inputs(bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec)
-{
-    is_write_ampl_dat = is_write_ampl_dat_spec;
-    is_ampl_engine = is_ampl_engine_spec;
-    ampl_data_dir = ampl_data_dir_spec;
-    ampl_exec_call = ampl_exec_call_spec;
 }
 
 void base_dispatch_opt::s_solver_params::reset()
@@ -150,18 +136,6 @@ bool base_dispatch_opt::predict_performance(int step_start, int ntimeints, int d
 }
 
 bool base_dispatch_opt::optimize()
-{
-    not_implemented_function((std::string)__func__);
-    return false;
-}
-
-std::string base_dispatch_opt::write_ampl()
-{
-    not_implemented_function((std::string)__func__);
-    return "";
-}
-
-bool base_dispatch_opt::optimize_ampl()
 {
     not_implemented_function((std::string)__func__);
     return false;

@@ -7,7 +7,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Debug
-  GTEST_REF: b85864c64758dec007208e56af933fc3f52044dd
+  GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
 
 jobs:
   coveralls-on-ubuntu:

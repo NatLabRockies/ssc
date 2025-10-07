@@ -59,6 +59,7 @@ GTEST_API_ int main(int argc, char **argv) {
     //::testing::GTEST_FLAG(filter) = "CMPvsamv1BatteryIntegration_cmod_pvsamv1.*";
 //    ::testing::GTEST_FLAG(filter) = "CMPvsamv1PowerIntegration_cmod_pvsamv1.UserArraySnowModel";
     //::testing::GTEST_FLAG(filter) = "CMPvsamv1PowerIntegration_cmod_pvsamv1.*";
+    ::testing::GTEST_FLAG(filter) = "AutoBTMTest_lib_battery_dispatch.TestSummerPeakGridCharging";
  //   ::testing::GTEST_FLAG(filter) = "AutoBTMTest_lib_battery_dispatch.TestBasicForecast";
  //   ::testing::GTEST_FLAG(filter) = "AutoBTMTest_lib_battery_dispatch.TestSummerPeakGridChargingSubhourly";
     //::testing::GTEST_FLAG(filter) = "save_as_JSON_test_run.*";

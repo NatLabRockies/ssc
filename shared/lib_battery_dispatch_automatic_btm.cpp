@@ -334,30 +334,42 @@ void dispatch_automatic_behind_the_meter_t::check_debug(size_t hour_of_year, siz
 
 void dispatch_automatic_behind_the_meter_t::sort_grid(size_t idx, FILE *p, const bool debug)
 {
-
-	if (debug)
-		fprintf(p, "Index\t P_load (kW)\t P_pv (kW)\t P_grid (kW)\n");
-
-	// compute grid net from pv and load (no battery)
-	size_t count = 0;
-
-	for (size_t hour = 0; hour != 24 && idx < _P_load_ac.size(); hour++)
-	{
-		for (size_t step = 0; step != _steps_per_hour; step++)
-		{
+    
+    if (debug)
+        fprintf(p, "Index\t P_load (kW)\t P_pv (kW)\t P_grid (kW)\n");
+    
+    // compute grid net from pv and load (no battery)
+    size_t count = 0;
+    
+    for (size_t hour = 0; hour != 24 && idx < _P_load_ac.size(); hour++)
+    {
+        for (size_t step = 0; step != _steps_per_hour; step++)
+        {
             // + is load, - is gen
-			grid[count] = grid_point(_P_load_ac[idx] - _P_pv_ac[idx], hour, step);
-			sorted_grid[count] = grid[count];
+            grid[count] = grid_point(_P_load_ac[idx] - _P_pv_ac[idx], hour, step);
+            sorted_grid[count] = grid[count];
+            
+            if (debug)
+                fprintf(p, "%zu\t %.1f\t %.1f\t %.1f\n", count, _P_load_ac[idx], _P_pv_ac[idx], _P_load_ac[idx] - _P_pv_ac[idx]);
+            
+            idx++;
+            count++;
+        }
+    }
+    
+//    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+#ifdef __MACOSX__
+    #if __clang_major__ >= 17
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+    #else
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+    #endif
+#else
+    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+#endif
 
-			if (debug)
-				fprintf(p, "%zu\t %.1f\t %.1f\t %.1f\n", count, _P_load_ac[idx], _P_pv_ac[idx], _P_load_ac[idx] - _P_pv_ac[idx]);
-
-			idx++;
-			count++;
-		}
-	}
-
-	std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+    
+    
 }
 
 void dispatch_automatic_behind_the_meter_t::compute_energy(double & E_max, FILE* p, const bool debug)
@@ -431,7 +443,19 @@ double dispatch_automatic_behind_the_meter_t::compute_costs(size_t idx, size_t y
             count++;
         }
     }
+//    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+    
+#ifdef __MACOSX__
+    #if __clang_major__ >= 17
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+    #else
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+    #endif
+#else
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+#endif
+
+    
     return no_dispatch_cost;
 }
 
@@ -618,7 +642,21 @@ void dispatch_automatic_behind_the_meter_t::cost_based_target_power(size_t idx, 
 void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan& plan, size_t idx, double E_max, double startingEnergy)
 {
     size_t i = 0, index = 0;
+//    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+    
+#ifdef __MACOSX__
+    #if __clang_major__ >= 17
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+    #else
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+    #endif
+#else
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
+#endif
+
+
+    
+    
     // Iterating over sorted grid
     double costDuringDispatchHours = 0.0;
     double costAtStep = 0.0;
@@ -680,7 +718,23 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
 
     if (m_batteryPower->canDischargeToGrid) {
         
+        
+        
+//        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byExportPerKWh());
+        
+#ifdef __MACOSX__
+    #if __clang_major__ >= 17
         std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byExportPerKWh());
+    #else
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byExportPerKWh());
+    #endif
+#else
+    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byExportPerKWh());
+#endif
+
+        
+        
+        
         for (i = 0; i < sorted_grid.size(); i++)
         {
             if (remainingEnergy <= 0) {
@@ -730,7 +784,20 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
     }
     // Get max grid use during charging.
     
+//    std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+    
+#ifdef __MACOSX__
+    #if __clang_major__ >= 17
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+    #else
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+    #endif
+#else
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
+#endif
+
+    
+    
     bool lookingForGridUse = true;
     double peakDesiredGridUse = 0.0;
     i = 0;
@@ -779,7 +846,7 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
     // Iterating over sorted grid
 #ifdef __MACOSX__
     #if __clang_major__ >= 17
-        std::sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
     #else
         std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
     #endif

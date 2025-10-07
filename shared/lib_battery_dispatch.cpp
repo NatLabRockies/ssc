@@ -1138,7 +1138,7 @@ bool byCost::operator() (grid_point const& a, grid_point const& b)
 bool byLowestMarginalCost::operator() (grid_point const& a, grid_point const& b)
 {
 
-    if (std::abs(a.MarginalCost() - b.MarginalCost()) < 1e-7)
+/*    if (std::abs(a.MarginalCost() - b.MarginalCost()) < 1e-7)
     {
         if (std::abs(a.Grid()) < 1e-7 || std::abs(b.Grid()) < 1e-7)
         {
@@ -1150,7 +1150,7 @@ bool byLowestMarginalCost::operator() (grid_point const& a, grid_point const& b)
  
         }
         return (a.Cost() / a.Grid()) < (b.Cost() / b.Grid());
-    }
+    } */
     if (a.MarginalCost()!=b.MarginalCost())
         return a.MarginalCost() < b.MarginalCost();
     else if (a.Hour()!=b.Hour())

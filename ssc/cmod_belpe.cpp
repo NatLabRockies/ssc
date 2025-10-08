@@ -867,7 +867,7 @@ public:
                 EquipRadHrLoad[inext] = SensibleEquipRadorConvVacay[NextHr];
                 EquipConvHrLoad[inext] = SensibleEquipRadorConvVacay[NextHr];
             }
-            else if ((D == 6 && Hr <= 23) || D == 5) // weekend!(hour inext)
+            else if (D == 5 || D == 6) // weekend!(hour inext)
             {
                 EquipElecHrLoad[inext] = TotalPlugHourlyWkend[NextHr];
                 EquipRadHrLoad[inext] = SensibleEquipRadorConvWkend[NextHr];   //These are just 50 / 50 rad and conv, but the multipliers are BLDG AM sensible load fractions

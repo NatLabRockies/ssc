@@ -104,6 +104,7 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
         params.q_eh_min = pointers.par_htr->get_min_power_delivery() * ( 1 + 1e-8 ); // ensures controller doesn't shut down heater at minimum load
         params.q_eh_max = pointers.par_htr->get_max_power_delivery(std::numeric_limits<double>::quiet_NaN());
         params.e_eh_su = pointers.par_htr->get_startup_energy(); // [MWht]
+        params.dt_eh_startup = pointers.par_htr->get_startup_time();
         params.eta_eh = pointers.par_htr->get_design_electric_to_heat_cop();
         // Add parameters for heater startup power
     }
@@ -185,7 +186,7 @@ void csp_dispatch_ortools::build_dispatch_model()
 
     // Continuous variables
     solver->MakeNumVarArray(m_nstep_opt, 0.0, MPSolver::infinity(), "x_r",      &cont_vars.xr);
-    solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Qru"],             "x_rsu",    &cont_vars.xrsu);
+    solver->MakeNumVarArray(m_nstep_opt, 0.0, MPSolver::infinity(), "x_rsu",    &cont_vars.xrsu);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Er"] * 1.0001,     "u_rsu",    &cont_vars.ursu);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Qu"],              "x",        &cont_vars.x);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Ec"] * 1.0001,     "u_csu",    &cont_vars.ucsu);
@@ -299,6 +300,43 @@ void csp_dispatch_ortools::build_dispatch_model()
         c->SetUB(0.0);
     }
 
+    // Enforces receiver startup time requirement
+    // Aux. Receiver startup energy limit -> forces startup time requirement
+    // xrsu[t] >= Delta^su * Qin[t] * (yrsu[t] - yrsu[t-1])
+    for (int t = 0; t < m_nstep_opt; ++t) {
+        std::string name = "receiver_startup_time_req_" + std::to_string(t);
+        c = solver->MakeRowConstraint(name);
+        c->SetCoefficient(cont_vars.xrsu[t], 1.0);
+        c->SetCoefficient(bin_vars.yrsu[t], - params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+        if (t > 0) {
+            c->SetCoefficient(bin_vars.yrsu[t - 1], params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+            c->SetLB(0.0);
+        }
+        else
+            c->SetLB(-(init_conditions.is_rec_starting0 ? 1. : 0.) * params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+        constraints.receiver_startup_time_req[t] = c;
+    }
+
+    // Removes receiver start-ups requiring more than 2 time periods
+    // yrsu[t-1] + yrsu[t] + yrsu[t+1] <= 2 (only enforce hourly for now)
+    // NOTE: last time step not enforced
+    if (P["delta"] >= 1.) {
+        for (int t = 0; t < m_nstep_opt - 1; ++t) {
+            std::string name = "rec_SU_duration_limit_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(bin_vars.yrsu[t], 1.0);
+            c->SetCoefficient(bin_vars.yrsu[t + 1], 1.0);
+            if (t > 0) {
+                c->SetCoefficient(bin_vars.yrsu[t - 1], 1.0);
+                c->SetUB(2.0);
+            }
+            else {
+                c->SetUB(2.0 - (init_conditions.is_rec_starting0 ? 1. : 0.));
+                constraints.receiver_SU_duration_limit0 = c;
+            }
+        }
+    }
+
     // Receiver startup and operation consumption limit
     // xr[t] + xrsu[t] <= Qin[t]
     for (int t = 0; t < m_nstep_opt; ++t) {
@@ -321,12 +359,13 @@ void csp_dispatch_ortools::build_dispatch_model()
         constraints.receiver_production_limit[t] = c;
     }
 
-    // Receiver minimum operation limit
-    // xr[t] >= Qrl * yr[t]
+    // Receiver minimum operation limit (startup + operation)
+    // xr[t] + xrsu[t] >= Qrl * yr[t]
     for (int t = 0; t < m_nstep_opt; ++t) {
         std::string name = "receiver_minimum_limit_" + std::to_string(t);
         c = solver->MakeRowConstraint(name);
         c->SetCoefficient(cont_vars.xr[t], 1.0);
+        c->SetCoefficient(cont_vars.xrsu[t], 1.0);
         c->SetCoefficient(bin_vars.yr[t], -P["Qrl"]);
         c->SetLB(0.0);
     }
@@ -907,7 +946,7 @@ void csp_dispatch_ortools::update_initial_conditions(double q_dot_to_pb, double 
 {
     //note the states of the power cycle and receiver
     init_conditions.is_rec_operating0 = pointers.col_rec->get_operating_state() == C_csp_collector_receiver::ON;
-    init_conditions.is_rec_starting0 = false;
+    init_conditions.is_rec_starting0 = pointers.col_rec->get_operating_state() == C_csp_collector_receiver::STARTUP;
     init_conditions.rec_startup_energy0 = 0.;       // TODO: pull this from receiver class?
 
     init_conditions.is_pb_operating0 = pointers.mpc_pc->get_operating_state() == C_csp_power_cycle::ON;
@@ -1139,6 +1178,24 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
     // Receiver startup energy limit
     // xrsu[t] <= Qru * yrsu[t]
     // No update required
+
+    // Enforces receiver startup time requirement
+    // xrsu[t] >= Delta^su * Qin[t] * (yrsu[t] - yrsu[t-1])
+    // Update solar resource
+    for (int t = 0; t < m_nstep_opt; ++t) {
+        constraints.receiver_startup_time_req[t]->SetCoefficient(bin_vars.yrsu[t], -params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+        if (t > 0) {
+            constraints.receiver_startup_time_req[t]->SetCoefficient(bin_vars.yrsu[t - 1], params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+            constraints.receiver_startup_time_req[t]->SetLB(0.0);
+        }
+        else
+            constraints.receiver_startup_time_req[t]->SetLB(-(init_conditions.is_rec_starting0 ? 1. : 0.) * params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+    }
+
+    // Removes receiver start-ups requiring more than 2 time periods
+    // yrsu[t-1] + yrsu[t] + yrsu[t+1] <= 2
+    // Update initial condition
+    constraints.receiver_SU_duration_limit0->SetUB(2.0 - (init_conditions.is_rec_starting0 ? 1. : 0.));
 
     // Receiver startup and operation consumption limit
     // xr[t] + xrsu[t] <= Qin[t]
@@ -1380,12 +1437,14 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
         constraints.storage_minimum_cycle_operating[t]->SetCoefficient(cont_vars.s[t], -1.0 / (ts_params.delta_rs.at(t) * P["delta"]));
     }
 
-    // ******************* PV Generation *******************
-    // PV generation limit (a take it or leave it policy)
-    // w_pv[t] < W_pv_avail[t]
-    for (int t = 0; t < m_nstep_opt; ++t) {
-        constraints.pv_generation_limit[t]->SetCoefficient(cont_vars.w_pv[t], 1.);
-        constraints.pv_generation_limit[t]->SetUB(ts_params.pv_generation.at(t));
+    if (params.is_pv_included) {
+        // ******************* PV Generation *******************
+        // PV generation limit (a take it or leave it policy)
+        // w_pv[t] < W_pv_avail[t]
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            constraints.pv_generation_limit[t]->SetCoefficient(cont_vars.w_pv[t], 1.);
+            constraints.pv_generation_limit[t]->SetUB(ts_params.pv_generation.at(t));
+        }
     }
 }
 

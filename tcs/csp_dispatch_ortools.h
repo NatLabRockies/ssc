@@ -110,8 +110,10 @@ private:
         operations_research::MPConstraint* receiver_startup_inventory0;         // only t=0 needs to be updated
         operations_research::MPConstraint* receiver_operation_allowed0;         // only t=0 needs to be updated
         operations_research::MPConstraint* receiver_startup_wait0;              // only t=0 needs to be updated
+        operations_research::MPConstraint* receiver_SU_duration_limit0;         // only t=0 needs to be updated
         operations_research::MPConstraint* receiver_startup_penalty0;           // only t=0 needs to be updated
 
+        std::vector<operations_research::MPConstraint*> receiver_startup_time_req;
         std::vector<operations_research::MPConstraint*> receiver_power_limit;
         std::vector<operations_research::MPConstraint*> receiver_production_limit;
         std::vector<operations_research::MPConstraint*> receiver_startup_cut;
@@ -147,6 +149,7 @@ private:
         std::vector<operations_research::MPConstraint*> pv_generation_limit;
 
         void resize(int ntimeints) {
+            receiver_startup_time_req.resize(ntimeints);
             receiver_power_limit.resize(ntimeints);
             receiver_production_limit.resize(ntimeints);
             receiver_startup_cut.resize(ntimeints);
@@ -210,6 +213,7 @@ public:
         double q_eh_max;                    //[MWt] Maximum allowable power delivery by the electrical heaters when operating
         double q_eh_min;                    //[MWt] Minimum allowable power delivery by the electrical heaters when operating
         double e_eh_su;                     //[MWht] Electrical heater startup energy requirement
+        double dt_eh_startup;               //[hr] Electrical heater startup time requirement
         double eta_eh;                      //[-] Electric resistance heating sub-system efficiency
         double hsu_cost;                    //[$/start] Heater startup cost
 
@@ -258,6 +262,8 @@ public:
             is_parallel_heater = false;
             q_eh_max = 0.0;
             q_eh_min = 0.0;
+            e_eh_su = 0.0;
+            dt_eh_startup = 0.0;
             eta_eh = 1.0;
             hsu_cost = 10.0;
 

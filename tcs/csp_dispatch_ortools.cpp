@@ -1648,7 +1648,13 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
     else {
         // Only print header when not appending
         outputfile.open(filepath);
-        std::string var_header = "Time, Objective, Objective_wo_weight, Price, y_rsu, y_rsup, yr, u_rsu, x_rsu, x_r, y_csu, y_csup, y, u_csu, x, w_dot, delta_w, s, w_lim, wnet_lim_min";
+        std::string var_header = "Time, Objective, Objective_wo_weight, Price, Qin, ";
+        var_header += "y_rsu, y_rsup, yr, u_rsu, x_rsu, x_r, ";
+        var_header += "y_csu, y_csup, y, u_csu, x, w_dot, delta_w, s, w_lim, wnet_lim_min";
+
+        if (params.is_parallel_heater) {
+            var_header += ", y_eh, y_reh, y_hsup, q_eh";
+        }
         if (params.is_pv_included) {
             var_header += ", w_pv, w_pv_avail";
         }
@@ -1661,7 +1667,7 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
 
     double obj_wo_weight;  // Objective function value without time weighting
     double coeff_wo_weight;
-    for (int t = 0; t < m_nstep_opt; ++t) {
+    for (int t = 0; t < solver_params.optimize_frequency; ++t) {
         // Calculate objective value for time t
         objective_value = 0.0;
         obj_wo_weight = 0.0;
@@ -1738,6 +1744,7 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
             << ", " << objective_value
             << ", " << obj_wo_weight
             << ", " << ts_params.sell_price[t]
+            << ", " << ts_params.q_sfavail_expected[t]
             << ", " << bin_vars.yrsu[t]->solution_value()
             << ", " << bin_vars.yrsup[t]->solution_value()
             << ", " << bin_vars.yr[t]->solution_value()
@@ -1754,6 +1761,12 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
             << ", " << ((std::abs(cont_vars.s[t]->solution_value()) < tol) ? 0.0 : cont_vars.s[t]->solution_value())
             << ", " << ts_params.w_lim.at(t)
             << ", " << ts_params.wnet_lim_min.at(t);
+        if (params.is_parallel_heater) {
+            outputfile << ", " << bin_vars.yeh[t]->solution_value()
+                << ", " << bin_vars.yreh[t]->solution_value()
+                << ", " << bin_vars.yhsup[t]->solution_value()
+                << ", " << ((std::abs(cont_vars.qeh[t]->solution_value()) < tol) ? 0.0 : cont_vars.qeh[t]->solution_value());
+        }
         if (params.is_pv_included) {
             outputfile << ", " << ((std::abs(cont_vars.w_pv[t]->solution_value()) < tol) ? 0.0 : cont_vars.w_pv[t]->solution_value())
                 << ", " << ts_params.pv_generation.at(t);

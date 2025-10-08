@@ -44,10 +44,11 @@ TEST(lib_utility_rate_equations_test, test_copy)
         4, 1, 9.9999999999999998e+37, 0, 0.25, 0 };
 	size_t tou_rows = 4;
 	bool sell_eq_buy = false;
+    size_t start_day_of_year = 0;
 
 	rate_data data;
 	data.init(8760);
-	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
 
 	rate_data data2(data);
 
@@ -90,13 +91,14 @@ TEST(lib_utility_rate_equations_test, test_demand_charges)
                                         10, 1, 9.9999999999999998e+37, 0, 
                                         11, 1, 9.9999999999999998e+37, 0 };
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     rate_data data;
     data.m_num_rec_yearly = 8760;
     data.rate_scale = { 1 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false);
     data.init_dc_peak_vectors(0);
 
@@ -154,13 +156,14 @@ TEST(lib_utility_rate_equations_test, test_seasonal_demand_charges)
 
     ssc_number_t prev_monthly_peaks[12] = { 5, 5, 5, 5, 5, 5,
                                     5, 5, 5, 5, 5, 5 };
+    size_t start_day_of_year = 0;
 
     rate_data data;
     data.m_num_rec_yearly = 8760;
     data.rate_scale = { 1 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false);
     data.uses_billing_demand = true;
     data.en_billing_demand_lookback = false;
@@ -260,6 +263,7 @@ TEST(lib_utility_rate_equations_test, test_block_step_tiers)
                                           11, 1, 9.9999999999999998e+37, 0 };
 
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     ssc_number_t prev_monthly_peaks[12] = { 500, 500, 500, 500, 500, 500,
                                         500, 500, 500, 500, 500, 500 };
@@ -269,8 +273,8 @@ TEST(lib_utility_rate_equations_test, test_block_step_tiers)
     data.m_num_rec_yearly = 8760;
     data.rate_scale = { 1 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false); // This gets called once to set up all the vectors
     data.init_dc_peak_vectors(0);
     data.uses_billing_demand = true;
@@ -389,12 +393,14 @@ TEST(lib_utility_rate_equations_test, test_kwh_per_kw_only)
     ssc_number_t prev_monthly_peaks[12] = { -500, -500, -500, -500, -500, -500,
                                             -500, -500, -500, -500, -500, -500 };
 
+    size_t start_day_of_year = 0;
+
     rate_data data;
     data.m_num_rec_yearly = 8760;
     data.rate_scale = { 1 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false); // This gets called once to set up all the vectors
     data.init_dc_peak_vectors(0);
     data.uses_billing_demand = true;
@@ -499,13 +505,14 @@ TEST(lib_utility_rate_equations_test, test_billing_demand_calcs)
                                           11, 1, 9.9999999999999998e+37, 0 };
 
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     rate_data data;
     data.m_num_rec_yearly = 8760;
     data.rate_scale = { 1 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false); // This gets called once to set up all the vectors
     for (size_t i = 0; i < 12; i++) {
         data.init_dc_peak_vectors(i);
@@ -631,13 +638,14 @@ TEST(lib_utility_rate_equations_test, test_billing_demand_calcs_w_tou)
     
 
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     rate_data data;
     data.m_num_rec_yearly = 8760;
     data.rate_scale = { 1 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false); // This gets called once to set up all the vectors
     for (size_t i = 0; i < 12; i++) {
         data.init_dc_peak_vectors(i);
@@ -755,13 +763,14 @@ TEST(lib_utility_rate_equations_test, test_demand_hourly_tou_charges)
                                         11, 1, 9.9999999999999998e+37, 0 };
                                         */
     size_t dc_flat_rows = 2;
+    size_t start_day_of_year = 0;
 
     rate_data data;
     data.m_num_rec_yearly = 8760;
     data.rate_scale = { 1 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false);
     data.init_dc_peak_vectors(2);
 
@@ -824,14 +833,15 @@ TEST(lib_utility_rate_equations_test, test_demand_subhourly_tou_charges)
                                         11, 1, 9.9999999999999998e+37, 0 };
                                         */
     size_t dc_flat_rows = 2;
+    size_t start_day_of_year = 0;
 
     rate_data data;
     data.m_num_rec_yearly = 8760*4;
     data.rate_scale = { 1 };
     data.init(8760*4);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
-    data.init_energy_rates_all_months(false);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
+    data.init_energy_rates_all_months(false); // This gets called once to set up all the vectors
     data.init_dc_peak_vectors(2);
 
     // Peak period 1: 5 kW, peak period 2: 10 kW

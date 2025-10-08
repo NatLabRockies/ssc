@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_util.h"
 
 C_timeseries_schedule_inputs::C_timeseries_schedule_inputs(const util::matrix_t<double>& weekdays, const util::matrix_t<double>& weekends,
-    std::vector<double> tod_factors, double base_value /*dimensional*/)
+    std::vector<double> tod_factors, double base_value /*dimensional*/, size_t start_day_of_year /*0 = Mon, 6 = Sun*/)
 {
     input_type = BLOCK;
 
@@ -45,8 +45,7 @@ C_timeseries_schedule_inputs::C_timeseries_schedule_inputs(const util::matrix_t<
     //   and does not report an error or message if this happens
 
     int tod[8760];
-
-    if (!util::translate_schedule(tod, weekdays, weekends, 1, 9)) {
+    if (!util::translate_schedule(tod, weekdays, weekends, 1, 9, start_day_of_year)) {
         std::string m_error_msg = "TOU schedules must have 12 rows and 24 columns";
         throw C_csp_exception( m_error_msg, "TOU block schedule init" );
     }

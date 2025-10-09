@@ -2006,7 +2006,7 @@ void C_HX_counterflow_CRM::design_calc_UA_TP_to_PH(C_HX_counterflow_CRM::S_des_c
 
     ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_UA_design,
         ms_des_calc_UA_par.m_T_h_in, ms_des_calc_UA_par.m_P_h_in, ms_des_calc_UA_par.m_m_dot_hot_des,
-        ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_m_dot_cold_des, 2024.0);
+        ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_m_dot_cold_des, m_yr_inflation);
 
     ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);
 

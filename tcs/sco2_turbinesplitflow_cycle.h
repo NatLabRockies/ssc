@@ -53,7 +53,7 @@ class C_sco2_tsf_core
 {
 public:
 
-    // Defines sco2 htr bypass input variables (no optimized variables)
+    // Defines turbine split flow input variables (no optimized variables)
     struct S_sco2_tsf_in
     {
 

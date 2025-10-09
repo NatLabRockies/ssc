@@ -77,6 +77,8 @@ protected:
 
     double interconnection_limit = 1e+38;
 
+    size_t start_hour_of_year = 0;
+
 public:
 
     void SetUp()

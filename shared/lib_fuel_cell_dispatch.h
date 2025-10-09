@@ -48,6 +48,7 @@ public:
 	/// Construct with arguments
 	FuelCellDispatch(FuelCell * fuelCell, size_t numberOfUnits, int dispatchOption, int shutdownOption, double dt_hour,
 		double fixed_percent,
+        size_t start_day_of_year,
 		std::vector<double> dispatchInput_kW,
 		std::vector<bool> canCharge,
 		std::vector<bool> canDischarge,
@@ -115,6 +116,7 @@ private:
 	int m_shutdownOption;
 	double dt_hour;
 	double m_fixed_percent;
+    size_t m_start_day_of_year;
 	
 	std::vector<double> m_dispatchInput_kW;
 	std::vector< FuelCell *> m_fuelCellVector;

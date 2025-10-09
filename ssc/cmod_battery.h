@@ -231,6 +231,7 @@ struct batt_variables
 	util::matrix_t<size_t> ec_weekend_schedule;
 	util::matrix_t<double> ec_tou_matrix;
 	std::vector<double> ec_realtime_buy;
+    size_t start_day_of_year;
 
 	/* Battery replacement options */
 	int batt_replacement_option;

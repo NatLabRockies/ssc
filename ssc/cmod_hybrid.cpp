@@ -87,6 +87,7 @@ public:
             std::vector<std::string> generators;
             std::vector<std::string> batteries;
             std::vector<std::string> fuelcells;
+            std::vector<std::string> csp_thermal_storage;
             std::vector<std::string> financials;  // remainder of compute modules e.g.  'grid', 'utilityrate5', 'singleowner' in above example "Hybrid" VarTable from SAM
 
             for (size_t i = 0; i < vec_cms.size(); i++) {
@@ -97,6 +98,8 @@ public:
                     batteries.push_back(computemodulename);
                 else if (computemodulename == "fuelcell")
                     fuelcells.push_back(computemodulename);
+                else if (computemodulename == "tcsmolten_salt")
+                    csp_thermal_storage.push_back(computemodulename);
                 else {
                     financials.push_back(computemodulename);
                     computemodulename = "hybrid";
@@ -113,6 +116,8 @@ public:
                 throw exec_error("hybrid", "Only one battery bank allowed at this time.");
             if (fuelcells.size() > 1)
                 throw exec_error("hybrid", "Only one fuel cell allowed at this time.");
+            if (csp_thermal_storage.size() > 1)
+                throw exec_error("hybrid", "Only one CSP system allowed at this time.");
 
             // run all generators and collect outputs and compute outputs
             size_t maximumTimeStepsPerHour = 1, currentTimeStepsPerHour;
@@ -142,7 +147,7 @@ public:
 
             for (size_t igen = 0; igen < generators.size(); igen++) {
 
-                percent = 100.0f * ((float)igen / (float)(generators.size() + fuelcells.size() + batteries.size() + financials.size()));
+                percent = 100.0f * ((float)igen / (float)(generators.size() + fuelcells.size() + csp_thermal_storage.size() + batteries.size() + financials.size()));
                 update("", percent);
 
                 std::string& compute_module = generators[igen];
@@ -395,6 +400,115 @@ public:
                 ssc_number_t yr_0_value = 0.0;
                 prepend_to_output((var_table*)compute_module_outputs, "fuelcell_replacement", arr_length, yr_0_value);
                 prepend_to_output((var_table*)compute_module_outputs, "annual_fuel_usage_lifetime", arr_length, yr_0_value);
+                prepend_to_output((var_table*)compute_module_outputs, "fuelcell_annual_energy_discharged", arr_length, yr_0_value);
+
+                ssc_data_set_table(outputs, compute_module.c_str(), compute_module_outputs);
+                ssc_module_free(module);
+                ssc_data_free(compute_module_outputs);
+            }
+            //CSP with thermal storage setup
+            if (csp_thermal_storage.size() > 0) { // run single fuel cell if present 
+
+                percent = 100.0f * ((float)(generators.size() + csp_thermal_storage.size()) / (float)(generators.size() + csp_thermal_storage.size() + batteries.size() + financials.size()));
+                update("", percent);
+
+                std::string& compute_module = csp_thermal_storage[0];
+                var_data* compute_module_inputs = input_table->table.lookup(compute_module);
+
+                ssc_module_t module = ssc_module_create(compute_module.c_str());
+                class compute_module* cmod = static_cast<class compute_module*>(module);
+                ssc_module_hybridize(module);
+
+                ssc_number_t system_capacity = compute_module_inputs->table.lookup("system_capacity")->num;
+                //system_capacity *= compute_module_inputs->table.lookup("fuelcell_number_of_units")->num;
+                hybridSystemCapacity += system_capacity;
+                hybridTotalInstalledCost += compute_module_inputs->table.lookup("total_installed_cost")->num;
+
+                var_table& input = compute_module_inputs->table;
+                ssc_data_set_array(static_cast<ssc_data_t>(&input), "gen", pGen, (int)genLength);
+                ssc_data_set_array(static_cast<ssc_data_t>(&input), "anc_elec_output", pGen, (int)genLength);
+                ssc_data_set_number(static_cast<ssc_data_t>(&input), "system_use_lifetime_output", 1); // for fuelcell_annual_energy_discharged
+
+                // merge in hybrid vartable for configurations where battery and fuel cell dispatch are combined and not in the technology bin
+                std::string hybridVarTable("Hybrid");
+                var_data* hybrid_inputs = input_table->table.lookup(hybridVarTable);
+                var_table& hybridinput = hybrid_inputs->table;
+                input.merge(hybridinput, false);
+                ssc_module_exec_with_error(module, input, compute_module);
+
+                ssc_data_t compute_module_outputs = ssc_data_create();
+
+                int pidx = 0;
+                while (const ssc_info_t p_inf = ssc_module_var_info(module, pidx++)) {
+                    int var_type = ssc_info_var_type(p_inf);   // SSC_INPUT, SSC_OUTPUT, SSC_INOUT
+                    if ((var_type == SSC_OUTPUT) || (var_type == SSC_INOUT)) { // maybe remove INOUT
+                        auto var_name = ssc_info_name(p_inf);
+                        auto var_value = input.lookup(var_name);
+                        ssc_data_set_var(compute_module_outputs, var_name, var_value);
+                    }
+                }
+
+                // add production O and M calculations - done below before financial calculations
+                ssc_number_t nameplate = 0;
+                std::vector<double> fuelcell_discharged(analysisPeriod + 1, 0);
+                // add production O and M calculations - done below before financial calculations, production, capacity, annual and land lease...
+                ssc_number_t* pOMProduction = ((var_table*)compute_module_outputs)->allocate("cf_om_production", analysisPeriod + 1);
+                ssc_number_t* pOMCapacity = ((var_table*)compute_module_outputs)->allocate("cf_om_capacity", analysisPeriod + 1);
+                ssc_number_t* pOMFixed = ((var_table*)compute_module_outputs)->allocate("cf_om_fixed", analysisPeriod + 1);
+
+                escal_or_annual(input, pOMFixed, analysisPeriod, "om_fixed", inflation_rate, 1.0, false, input.as_double("om_fixed_escal") * 0.01); // $ 
+                escal_or_annual(input, pOMProduction, analysisPeriod, "om_production", inflation_rate, 0.001, false, input.as_double("om_production_escal") * 0.01); // $/kWh after conversion
+                escal_or_annual(input, pOMCapacity, analysisPeriod, "om_capacity", inflation_rate, system_capacity, false, input.as_double("om_capacity_escal") * 0.01); // $ after multiplying by system capacity
+
+                nameplate = system_capacity;
+                fuelcell_discharged = ((var_table*)compute_module_outputs)->as_vector_double("fuelcell_annual_energy_discharged");
+                if (fuelcell_discharged.size() == 1) { // ssc #992
+                    double first_val = fuelcell_discharged[0]; // first value differs here!
+                    fuelcell_discharged.resize(analysisPeriod, first_val);
+                }
+                if (fuelcell_discharged.size() != (size_t)analysisPeriod)
+                    throw exec_error("hybrid", util::format("fuelcell_discharged size (%d) incorrect", (int)fuelcell_discharged.size()));
+                // fuelcell cost - replacement from lifetime analysis
+                //if (input.is_assigned("fuelcell_replacement_option") && (input.as_integer("fuelcell_replacement_option") > 0))
+                //{
+                //    size_t count;
+                //    ssc_number_t* fuelcell_rep = 0;
+                //    if (input.as_integer("fuelcell_replacement_option") == 1)
+                //        fuelcell_rep = ((var_table*)compute_module_outputs)->as_array("fuelcell_replacement", &count); // replacements per year calculated
+                //    else // user specified
+                //        fuelcell_rep = input.as_array("fuelcell_replacement_schedule", &count); // replacements per year user-defined
+
+                //    escal_or_annual(input, pFuelCellReplacement, analysisPeriod, "om_fuelcell_replacement_cost", inflation_rate, nameplate, false, input.as_double("om_replacement_cost_escal") * 0.01);
+
+                //    for (size_t i = 0; i < (size_t)analysisPeriod && i < count; i++) {
+                //        pFuelCellReplacement[i + 1] = fuelcell_rep[i] * pFuelCellReplacement[i + 1];
+                //    }
+                //}
+                //else {
+                //    for (size_t i = 0; i < (size_t)analysisPeriod; i++) {
+                //        pFuelCellReplacement[i + 1] = 0.0;
+                //    }
+                //}
+                // production O and M conversion to $
+                for (size_t i = 0; i < (size_t)analysisPeriod; i++)
+                    pOMProduction[i + 1] *= fuelcell_discharged[i];
+
+                // add to gen "fuelcell_power" * timestep (set for pGen above)
+                // cash flow line item is fuelcell_annual_energy_discharged from cmod_fuelcell
+                std::vector<double> gen(genLength, 0);
+                gen = ((var_table*)compute_module_outputs)->as_vector_double("fuelcell_power");
+                if (gen.size() != genLength)
+                    throw exec_error("hybrid", util::format("fuelcell_power size (%d) incorrect", (int)gen.size()));
+                for (size_t g = 0; g < genLength; g++) {
+                    pGen[g] += gen[g] * maximumTimeStepsPerHour;
+                }
+
+
+                // resize annual outputs
+                size_t arr_length = analysisPeriod + 1;
+                ssc_number_t yr_0_value = 0.0;
+                //prepend_to_output((var_table*)compute_module_outputs, "fuelcell_replacement", arr_length, yr_0_value);
+                //prepend_to_output((var_table*)compute_module_outputs, "annual_fuel_usage_lifetime", arr_length, yr_0_value);
                 prepend_to_output((var_table*)compute_module_outputs, "fuelcell_annual_energy_discharged", arr_length, yr_0_value);
 
                 ssc_data_set_table(outputs, compute_module.c_str(), compute_module_outputs);

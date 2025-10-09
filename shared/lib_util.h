@@ -140,14 +140,14 @@ namespace util
 	int day_of_month(int month, double time); /* month: 1-12 time: hours, starting 0=jan 1st 12am, returns 1-nday*/
 	int days_in_month(int month); /*month: 0-11, return 0-30, depending on the month*/
 	void month_hour(size_t hour_of_year, size_t & out_month, size_t & out_hour); /*given the hour of year, return the month, and hour of day*/
-	bool weekday(size_t hour_of_year); /* return true if is a weekday, assuming first hour of year is Monday at 12 am*/
+	bool weekday(size_t hour_of_year, size_t start_day_of_year); /* return true if is a weekday, start day of year = 0 is Monday at 12 am*/
 	size_t lifetimeIndex(size_t year, size_t hour_of_year, size_t step_of_hour, size_t steps_per_hour);
 	size_t yearOneIndex(double dtHour, size_t lifetimeIndex);
 	size_t yearIndex(size_t year, size_t month, size_t day, size_t hour, double minute, size_t step_per_hour);
 
 	int schedule_char_to_int( char c );
 	std::string schedule_int_to_month( int m );
-	bool translate_schedule(int tod[8760], const char *wkday, const char *wkend, int min_val, int max_val);
+	bool translate_schedule(int tod[8760], const char *wkday, const char *wkend, int min_val, int max_val, int start_day);
 
 	bool file_exists( const char *file );
 	bool dir_exists( const char *path );
@@ -860,7 +860,7 @@ namespace util
 	double linterp_col( const matrix_t<double> &mat, size_t ixcol, double xval, size_t iycol );
     size_t nearest_col_index(const matrix_t<double>& mat, size_t col, double val);
     size_t nearest_col_index(const std::vector<std::vector<double>>& mat, size_t col, double val);
-    bool translate_schedule(int tod[8760], const matrix_t<double> &wkday, const matrix_t<double> &wkend, int min_val, int max_val);
+    bool translate_schedule(int tod[8760], const matrix_t<double> &wkday, const matrix_t<double> &wkend, int min_val, int max_val, int start_day);
 
 	std::vector<double> frequency_table(double* values, size_t n_vals, double bin_width);
 };

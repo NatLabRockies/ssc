@@ -255,6 +255,9 @@ static var_info _cm_vtab_fresnel_physical[] = {
         "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                              "Time of Delivery Factors","ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1","",  "SIMULATION_PARAMETER" },
 
 
+    // Day of week for weekday/weekend schedules
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",           "Start day of year for TOD periods",                                                     "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors", "?=0", "", "" },
+
     { SSC_INPUT,    SSC_NUMBER,         "ppa_soln_mode",               "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                         "",                    "",                             "Financial Solution Mode",                  "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_ARRAY,          "ppa_price_input",             "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                         "",                    "",                             "Financial Solution Mode",                  "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
 
@@ -1046,7 +1049,7 @@ public:
         }
         else {      // Block schedules
             C_timeseries_schedule_inputs offtaker_block = C_timeseries_schedule_inputs(as_matrix("weekday_schedule"),
-                as_matrix("weekend_schedule"), as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN());
+                as_matrix("weekend_schedule"), as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN(), as_number("start_day_of_year"));
             offtaker_schedule = offtaker_block;
         }
 
@@ -1113,7 +1116,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"), as_matrix("dispatch_sched_weekend"),
-                            as_vector_double("dispatch_tod_factors"), ppa_price_year1);
+                            as_vector_double("dispatch_tod_factors"), ppa_price_year1, as_number("start_day_of_year"));
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule

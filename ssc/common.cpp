@@ -1246,7 +1246,9 @@ bool forecast_price_signal::setup(size_t step_per_hour)
                     vartab->as_matrix_unsigned_long("dispatch_sched_weekday"),
                     vartab->as_matrix_unsigned_long("dispatch_sched_weekend"),
                     step_per_hour,
-                    vartab->as_vector_double("dispatch_tod_factors"), ppa);
+                    vartab->as_vector_double("dispatch_tod_factors"),
+                    vartab->as_number("start_day_of_year"),
+                    ppa);
             }
             else
             { // assumption on size - check that is requested size.
@@ -1404,6 +1406,8 @@ var_info vtab_utility_rate_common[] = {
     { SSC_INPUT,        SSC_MATRIX,     "ur_dc_billing_demand_periods",           "Billing demand applicability to a given demand charge time of use period",     "",    "",                   "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
     { SSC_INPUT,        SSC_ARRAY,      "ur_yearzero_usage_peaks",                "Peak usage by month for year zero",                                            "kW",  "12",                 "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
 
+    // Day of week for weekday/weekend schedules
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Electricity Rates", "?=0", "", "" },
 
     var_info_invalid
 };

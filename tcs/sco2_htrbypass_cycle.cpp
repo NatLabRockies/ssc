@@ -1075,15 +1075,14 @@ int C_HTRBypass_Cycle::optimize_totalUA(const S_auto_opt_design_parameters& auto
     C_sco2_htrbp_core::S_sco2_htrbp_in& optimal_inputs)
 {
     // Validate Inputs
+    if (std::isnan(opt_par.m_eta_thermal_target) ||
+        std::isnan(opt_par.m_UA_recup_total_min) ||
+        std::isnan(opt_par.m_UA_recup_total_max))
     {
-        if (std::isnan(opt_par.m_eta_thermal_target) ||
-            std::isnan(opt_par.m_UA_recup_total_min) ||
-            std::isnan(opt_par.m_UA_recup_total_max))
-        {
-            std::string warning_msg = "The target eta, and max and min UA need to be defined in S_opt_design_parameters";
-            return -1;
-        }
+        std::string warning_msg = "The target eta, and max and min UA need to be defined in S_opt_design_parameters";
+        return -1;
     }
+    
 
     // Create Optimizer
     nlopt::opt opt_des_cycle(nlopt::GN_DIRECT, 1);

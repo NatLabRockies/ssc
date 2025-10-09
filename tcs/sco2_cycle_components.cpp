@@ -833,9 +833,9 @@ double calculate_inflation_factor(double yr_base, double yr_target)
     if (yr_base == 0 || yr_target == 0)
         return 1.0;
 
-    std::vector<double> yr_vec = std::vector<double>(yr_base, yr_target);
+    std::vector<double> yr_vec = std::vector<double>{ yr_base, yr_target };
 
-    if (yr_vec == std::vector<double>(2017, 2024)) {
+    if (yr_vec[0] == 2017 && yr_vec[1] == 2024) {
         return 1.407577;
     }
 

@@ -1607,6 +1607,9 @@ public:
         bool m_is_HI_SIDE_mode_available;
         bool m_is_LO_SIDE_mode_available;
 
+        std::string s_dep_desc;
+        std::string s_dep_units;
+
     public:
 
         void turn_off_mode_availability();

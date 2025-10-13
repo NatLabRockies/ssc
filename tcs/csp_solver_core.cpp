@@ -2006,20 +2006,20 @@ void C_csp_solver::C_CR_OFF__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_c
     // Off-taker is operating, so could be power or heat
 
     // Check if solved thermal power is greater than target
-    if ( q_pc_or_w_sys_calc > q_pc_or_w_sys_max )
-    {
-        std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-            util::format("converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
-                s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
-
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
-
-        turn_off_mode_availability();
-        is_model_converged = false;
-        is_turn_off_plant = true;
-
-        return;
-    }
+    //if ( q_pc_or_w_sys_calc > q_pc_or_w_sys_max )
+    //{
+    //    std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
+    //        util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+    //            s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
+    //
+    //    pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+    //
+    //    turn_off_mode_availability();
+    //    is_model_converged = false;
+    //    is_turn_off_plant = true;
+    //
+    //    return;
+    //}
 
     if (pc_csp_solver->mc_pc_out_solver.m_m_dot_htf > m_dot_pc_max)
     {
@@ -2306,19 +2306,19 @@ void C_csp_solver::C_CR_SU__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_cs
     // But PC_MIN depends on heat regardless of whether controller target value is net system electricity
 
     // Check if solved thermal power is greater than target
-    if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) > limit_comp_tol)
-    {
-        std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-            util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
-                s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
-
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
-
-        m_is_mode_available = false;
-        is_model_converged = false;
-        is_turn_off_plant = true;
-        return;
-    }
+    //if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) > limit_comp_tol)
+    //{
+    //    std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
+    //        util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+    //            s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
+    //
+    //    pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+    //
+    //    m_is_mode_available = false;
+    //    is_model_converged = false;
+    //    is_turn_off_plant = true;
+    //    return;
+    //}
 
     if (pc_csp_solver->mc_pc_out_solver.m_m_dot_htf > m_dot_pc_max)
     {

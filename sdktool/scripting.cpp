@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sscdev.h"
 #include "dataview.h"
 #include "scripting.h"
+#include "sscapi.h"
 
 void Output( const wxString &text )
 {
@@ -124,14 +125,66 @@ static bool sscvar_to_lkvar( lk::vardata_t &out, var_data *vv)
 			}
 		}
 		break;
-	}
+    case SSC_DATARR: {
+        size_t n = vv->vec.size();
+        out.empty_vector();
+        out.vec()->reserve((size_t)n);
+        for (int i = 0; i < n; i++) {
+            lk::vardata_t lk_data;
+            var_data entry = vv->vec[i];
+//            ssc_var_t entry = ssc_var_get_var_array(vd, i);
+            sscvar_to_lkvar(lk_data, &entry);
+            out.vec_append(lk_data);
+        }
+        break;
+    }
+/*
+    case SSC_DATMAT: {
+        int nr, nc;
+        ssc_var_size(vd, &nr, &nc);
+        out.empty_vector();
+        out.vec()->reserve(nr);
+        for (int i = 0; i < nr; i++) {
+            out.vec()->push_back(lk::vardata_t());
+            out.vec()->at(i).empty_vector();
+            out.vec()->at(i).vec()->reserve(nc);
+            for (int j = 0; j < nc; j++) {
+                lk::vardata_t lk_data;
+                ssc_var_t entry = ssc_var_get_var_matrix(vd, i, j);
+                sscvar_to_lkvar(entry, lk_data);
+                out.vec()->at(i).vec_append(lk_data);
+            }
+        }
+        break;
+    }
+    */
+    case SSC_INVALID:
+    default:
+        break;
+}
+
+
 
 	return true;
 }
 
+
+static bool check_numeric(const lk::vardata_t& vec) {
+    bool only_numeric = true;
+    for (size_t i = 0; i < vec.length(); i++) {
+        if (vec.index(i)->type() == lk::vardata_t::VECTOR)
+            only_numeric &= check_numeric(*vec.index(i));
+        else if (vec.index(i)->type() != lk::vardata_t::NUMBER) {
+            return false;
+        }
+    }
+    return only_numeric;
+};
+
 static bool lkvar_to_sscvar( var_data *vv, lk::vardata_t &val )
 {	
 	if (!vv) return false;
+//    ssc_var_t entry = ssc_var_create();
 
 	switch (val.type())
 	{
@@ -145,6 +198,8 @@ static bool lkvar_to_sscvar( var_data *vv, lk::vardata_t &val )
 		break;
 	case lk::vardata_t::VECTOR:
 		{
+            bool only_numeric = check_numeric(val);
+
 			size_t dim1 = val.length(), dim2 = 0;
 			for (size_t i=0;i<val.length();i++)
 			{
@@ -155,10 +210,29 @@ static bool lkvar_to_sscvar( var_data *vv, lk::vardata_t &val )
 
 			if (dim2 == 0 && dim1 > 0)
 			{
+  //              ssc_var_t p_var = vv;
+                if (only_numeric) {
+                    vv->type = SSC_ARRAY;
+                    vv->num.resize(dim1);
+                    for (size_t i = 0; i < dim1; i++) {
+                        vv->num[i] = (ssc_number_t)val.index(i)->as_number();
+                    }
+                }
+                else {
+                    vv->type = SSC_DATARR;
+                    vv->vec.resize(dim1);
+                    for (size_t i = 0; i < dim1; i++) {
+                        lkvar_to_sscvar(&(vv->vec[i]), *val.index(i));
+                    }
+                }
+
+                /*
 				vv->type = SSC_ARRAY;
 				vv->num.resize( dim1 );
-				for ( size_t i=0;i<dim1;i++)
-					vv->num[i] = (ssc_number_t)val.index(i)->as_number();
+                for (size_t i = 0; i < dim1; i++) {
+                        vv->num[i] = (ssc_number_t)val.index(i)->as_number();
+                }
+                */
 			}
 			else if ( dim1 > 0 && dim2 > 0 )
 			{
@@ -195,7 +269,6 @@ static bool lkvar_to_sscvar( var_data *vv, lk::vardata_t &val )
 		}
 		break;
 	}
-
 	return true;
 }
 

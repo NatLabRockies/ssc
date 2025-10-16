@@ -102,7 +102,6 @@ static var_info _cm_vtab_mhk_costs[] = {
         //Plant Commissioning
         { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_method",								"Plant commissioning cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_input",								"Plant commissioning cost",											"$",		"",	"MHKCosts",			"plant_commissioning_cost_method<2",					"",				"" },
-        { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_total",								"Plant commissioning itemized cost total",											"$",		"",	"MHKCosts",			"plant_commissioning_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_rvalue",								"Plant commissioning R-value",											"",		"",	"MHKCosts",			"plant_commissioning_cost_method=4",					"MIN=0,MAX=1",				"" },
 
         //Site Access
@@ -132,6 +131,20 @@ static var_info _cm_vtab_mhk_costs[] = {
         { SSC_INPUT,			SSC_NUMBER,			"other_financial_cost_method",								"Other financial cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"other_financial_cost_input",								"Other financial cost",											"$,$/kW",		"",	"MHKCosts",			"other_financial_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"other_financial_cost_rvalue",								"Other financial R-value",											"",		"",	"MHKCosts",			"other_financial_cost_method=3",					"MIN=0,MAX=1",				"" },
+
+        //Operations
+       { SSC_INPUT,			SSC_NUMBER,			"operations_cost_method",								"Operations cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+       { SSC_INPUT,			SSC_NUMBER,			"operations_cost_input",								"Operations cost",											"$",		"",	"MHKCosts",			"operations_cost_method<2",					"",				"" },
+       { SSC_INPUT,			SSC_NUMBER,			"operations_cost_total",								"Operations itemized cost total",											"$",		"",	"MHKCosts",			"operations_cost_method=3",					"",				"" },
+       { SSC_INPUT,			SSC_NUMBER,			"operations_cost_rvalue",								"Operations R-value",											"",		"",	"MHKCosts",			"operations_cost_method=4",					"MIN=0,MAX=1",				"" },
+
+        //Maintenance
+        { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_method",								"Maintenance cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_input",								"Maintenance cost",											"$",		"",	"MHKCosts",			"maintenance_cost_method<2",					"",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_total",								"Maintenance itemized cost total",											"$",		"",	"MHKCosts",			"maintenance_cost_method=3",					"",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_rvalue",								"Maintenance R-value",											"",		"",	"MHKCosts",			"maintenance_cost_method=4",					"MIN=0,MAX=1",				"" },
+
+
 
 		/*{ SSC_INPUT,			SSC_NUMBER,			"array_cable_system_cost_method",								"Array cable system cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"array_cable_system_cost_input",								"Array cable system cost",											"$",		"",	"MHKCosts",			"*",					"",				"" },
@@ -181,13 +194,24 @@ static var_info _cm_vtab_mhk_costs[] = {
 	{ SSC_OUTPUT,			SSC_NUMBER,			"other_elec_infra_cost_modeled",			"Modeled other electrical infrastructure cost",			"$",			"",								"MHKCosts",			"",						"",							"" },*/
 
 	//Financial costs
-	{ SSC_OUTPUT,			SSC_NUMBER,			"project_contingency",						"Modeled project contingency cost",						"$",			"",								"MHKCosts",			"",						"",							"" },
-	{ SSC_OUTPUT,			SSC_NUMBER,			"insurance_during_construction",			"Modeled cost of insurance during construction",		"$",			"",								"MHKCosts",			"",						"",							"" },
-	{ SSC_OUTPUT,			SSC_NUMBER,			"reserve_accounts",							"Modeled reserve account costs",						"$",			"",								"MHKCosts",			"",						"",							"" },
+	{ SSC_OUTPUT,			SSC_NUMBER,			"project_contingency_cost",						"Project contingency cost",						"$",			"",								"MHKCosts",			"",						"",							"" },
+    { SSC_OUTPUT,			SSC_NUMBER,			"project_contingency_cost_modeled",						"Modeled project contingency cost",						"$",			"",								"MHKCosts",			"",						"",							"" },
+
+    { SSC_OUTPUT,			SSC_NUMBER,			"insurance_during_construction_cost",			"Cost of insurance during construction",		"$",			"",								"MHKCosts",			"",						"",							"" },
+    { SSC_OUTPUT,			SSC_NUMBER,			"insurance_during_construction_cost_modeled",			"Modeled cost of insurance during construction",		"$",			"",								"MHKCosts",			"",						"",							"" },
+
+    { SSC_OUTPUT,			SSC_NUMBER,			"other_financial_cost",			"Cost of other financial considerations",		"$",			"",								"MHKCosts",			"",						"",							"" },
+    { SSC_OUTPUT,			SSC_NUMBER,			"other_financial_cost_modeled",			"Modeled cost of other financial considerations",		"$",			"",								"MHKCosts",			"",						"",							"" },
+
+    { SSC_OUTPUT,			SSC_NUMBER,			"reserve_accounts_cost",							"Reserve account costs",						"$",			"",								"MHKCosts",			"",						"",							"" },
+    { SSC_OUTPUT,			SSC_NUMBER,			"reserve_accounts_cost_modeled",							"Modeled reserve account costs",						"$",			"",								"MHKCosts",			"",						"",							"" },
 
 	//O and M costs
 	{ SSC_OUTPUT,			SSC_NUMBER,			"operations_cost",							"Operations cost",										"$",			"",								"MHKCosts",			"",						"",							"" },
-	{ SSC_OUTPUT,			SSC_NUMBER,			"maintenance_cost",							"Maintenance cost",										"$",			"",								"MHKCosts",			"",						"",							"" },
+    { SSC_OUTPUT,			SSC_NUMBER,			"operations_cost_modeled",				    "Modeled operations cost",										"$",			"",								"MHKCosts",			"",						"",							"" },
+
+    { SSC_OUTPUT,			SSC_NUMBER,			"maintenance_cost",							"Maintenance cost",										"$",			"",								"MHKCosts",			"",						"",							"" },
+    { SSC_OUTPUT,			SSC_NUMBER,			"maintenance_cost_modeled",							"Modeled maintenance cost",										"$",			"",								"MHKCosts",			"",						"",							"" },
     var_info_invalid };
 
 
@@ -338,9 +362,10 @@ public:
 
 		// operations cost
 		operations_cost = 46157.0 * system_capacity_MW + 1078155.0;
-
+        assign("operations_cost_modeled", var_data(static_cast<ssc_number_t>(operations_cost)));
 		// maintenance cost
 		maintenance_cost = 79926.0 * system_capacity_MW + 2206357.0;
+        assign("maintenance_cost_modeled", var_data(static_cast<ssc_number_t>(maintenance_cost)));
 
 		//at this point, we need to assign the "independent" modeled outputs- 
 		//i.e., we want the modeled value to be reported prior to overwriting with a user input
@@ -357,8 +382,7 @@ public:
 		assign("onshore_substation_cost_modeled", var_data(static_cast<ssc_number_t>(onshore_substation)));
 		assign("offshore_substation_cost_modeled", var_data(static_cast<ssc_number_t>(offshore_substation)));
 		assign("other_elec_infra_cost_modeled", var_data(static_cast<ssc_number_t>(other_elec_infra)));*/
-		assign("operations_cost", var_data(static_cast<ssc_number_t>(operations_cost)));
-		assign("maintenance_cost", var_data(static_cast<ssc_number_t>(maintenance_cost)));
+		
 
 		// there are five cost values that are a percentage of total CapEx
 		// we want those modeled values to reflect user-input values that are overwriting the modeled values
@@ -379,6 +403,9 @@ public:
         int insurance_during_construction_cost_method = as_integer("insurance_during_construction_cost_method");
         int reserve_accounts_cost_method = as_integer("reserve_accounts_cost_method");
         int other_financial_cost_method = as_integer("other_financial_cost_method");
+
+        int operations_cost_method = as_integer("operations_cost_method");
+        int maintenance_cost_method = as_integer("maintenance_cost_method");
 
 		/*int array_cable_system_cost_method = as_integer("array_cable_system_cost_method");
 		int export_cable_system_cost_method = as_integer("export_cable_system_cost_method");
@@ -555,6 +582,14 @@ public:
         else if (reserve_accounts_cost_method == 4)
             reserve_accounts = as_double("reserve_accounts_cost_input") * -1 * std::log(1.0 - as_double("reserve_accounts_cost_rvalue")) / std::log(2.0);
         
+        double other_financial = 0.0;
+        assign("other_financial_cost_modeled", var_data(static_cast<ssc_number_t>(other_financial)));
+        if (other_financial_cost_method == 0)
+            other_financial = as_double("other_financial_cost_input") * system_capacity_kW;
+        else if (other_financial_cost_method == 1)
+            other_financial = as_double("other_financial_cost_input");
+        else if (other_financial_cost_method == 3)
+            other_financial = as_double("other_financial_cost_input") * -1 * std::log(1.0 - as_double("other_financial_cost_rvalue")) / std::log(2.0);
 
 		// Assign the CapEx-dependent outputs
 		assign("plant_commissioning_cost", var_data(static_cast<ssc_number_t>(plant_commissioning)));
@@ -562,7 +597,30 @@ public:
 		assign("project_contingency_cost", var_data(static_cast<ssc_number_t>(project_contingency)));
 		assign("insurance_during_construction_cost", var_data(static_cast<ssc_number_t>(insurance_during_construction)));
 		assign("reserve_accounts_cost", var_data(static_cast<ssc_number_t>(reserve_accounts)));
+        assign("other_financial_cost", var_data(static_cast<ssc_number_t>(other_financial)));
 
+
+        
+        
+        if (operations_cost_method == 0)
+            operations_cost = as_double("operations_cost_input") * system_capacity_kW;
+        else if (operations_cost_method == 1)
+            operations_cost = as_double("operations_cost_input");
+        else if (operations_cost_method == 3)
+            operations_cost = as_double("operations_cost_total");
+        else if (operations_cost_method == 4)
+            operations_cost = as_double("operations_cost_input") * -1 * std::log(1.0 - as_double("operations_cost_rvalue")) / std::log(2.0);
+        assign("operations_cost", var_data(static_cast<ssc_number_t>(operations_cost)));
+
+        if (maintenance_cost_method == 0)
+            maintenance_cost = as_double("maintenance_cost_input") * system_capacity_kW;
+        else if (maintenance_cost_method == 1)
+            maintenance_cost = as_double("maintenance_cost_input");
+        else if (maintenance_cost_method == 3)
+            maintenance_cost = as_double("maintenance_cost_total");
+        else if (maintenance_cost_method == 4)
+            maintenance_cost = as_double("maintenance_cost_input") * -1 * std::log(1.0 - as_double("maintenance_cost_rvalue")) / std::log(2.0);
+        assign("maintenance_cost", var_data(static_cast<ssc_number_t>(maintenance_cost)));
 		
 
 		

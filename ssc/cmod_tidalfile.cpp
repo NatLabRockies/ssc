@@ -125,17 +125,22 @@ public:
     void exec()
     {
       
-        if (as_integer("tidal_resource_model_choice") == 0) return;
+        //if (as_integer("tidal_resource_model_choice") == 0) return;
 
         std::string file;
         if (is_assigned("tidal_resource_filename") && as_integer("tidal_resource_model_choice")==1)
         {
             file = as_string("tidal_resource_filename");
         }
+        else if (is_assigned("tidal_resource_filename_dist") && as_integer("tidal_resource_model_choice") == 0)
+        {
+            file = as_string("tidal_resource_filename_dist");
+        }
         else
         {
             throw exec_error("tidal_file_reader", "Model choice and tidal resource file do not match");
         }
+
         if (file.empty())
         {
             throw exec_error("tidal_file_reader", "File name missing.");
@@ -168,41 +173,98 @@ public:
             throw exec_error("tidal_file_reader", "Number of header column labels does not match number of values. There are " + std::to_string(ncols) + "keys and " + std::to_string(ncols1) + "values.");
         }
         if (as_integer("tidal_resource_model_choice") == 0) {
-            assign("name", var_data(values[0]));
-            assign("city", var_data(values[1]));
-            assign("state", var_data(values[2]));
-            assign("country", var_data(values[3]));
-            // lat with S is negative
-            ssc_number_t dlat = std::numeric_limits<double>::quiet_NaN();
-            std::vector<std::string> slat = split(values[4], ' ');
-            if (slat.size() > 0)
+            //assign("name", var_data(values[0]));
+            //assign("city", var_data(values[1]));
+            //assign("state", var_data(values[2]));
+            //assign("country", var_data(values[3]));
+            //// lat with S is negative
+            //ssc_number_t dlat = std::numeric_limits<double>::quiet_NaN();
+            //std::vector<std::string> slat = split(values[4], ' ');
+            //if (slat.size() > 0)
+            //{
+            //    dlat = std::stod(slat[0]);
+            //    if (slat.size() > 1)
+            //    {
+            //        if (slat[1] == "S") dlat = 0.0 - dlat;
+            //    }
+            //}
+            //assign("lat", var_data(dlat));
+            //// lon with W is negative
+            //ssc_number_t dlon = std::numeric_limits<double>::quiet_NaN();
+            //std::vector<std::string> slon = split(values[5], ' ');
+            //if (slon.size() > 0)
+            //{
+            //    dlon = std::stod(slon[0]);
+            //    if (slon.size() > 1)
+            //    {
+            //        if (slon[1] == "W") dlon = 0.0 - dlon;
+            //    }
+            //}
+            //assign("lon", var_data(dlon));
+            //assign("nearby_buoy_number", var_data(values[6]));
+            //assign("average_power_flux", var_data(std::stod(values[7])));
+            //assign("bathymetry", var_data(values[8]));
+            //assign("sea_bed", var_data(values[9]));
+            //assign("tz", var_data(std::stod(values[10])));
+            //assign("data_source", var_data(values[11]));
+            //assign("notes", var_data(values[12]));
+
+            // allow metadata rows to have different lengths as long as required data is included
+            ncols = std::min(ncols, ncols1);
+
+            std::string name, value;
+
+            for (size_t i = 0; (int)i < ncols; i++)
             {
-                dlat = std::stod(slat[0]);
-                if (slat.size() > 1)
+
+                name = "";
+                if (!keys[i].empty())
+                    name = util::lower_case(trimboth(keys[i]));
+
+                value = "";
+                if (!values[i].empty())
+                    value = trimboth(values[i]);
+
+                // required metadata (see checks below)
+                if (name == "lat" || name == "latitude")
                 {
-                    if (slat[1] == "S") dlat = 0.0 - dlat;
+                    assign("lat", var_data(std::stod(value)));
+                }
+                else if (name == "lon" || name == "long" || name == "longitude" || name == "lng")
+                {
+                    assign("lon", var_data(std::stod(value)));
+                }
+                else if (name == "tz" || name == "timezone" || name == "time zone") // require "time zone" and "local time zone" columns in NSRDB files are the same
+                {
+                    assign("tz", var_data(std::stod(value)));
+                }
+                else if (name == "distance to shore" || name == "shore distance" || name == "distance") // require "time zone" and "local time zone" columns in NSRDB files are the same
+                {
+                    assign("distance_to_shore_file", var_data(std::stod(value)));
+                }
+                else if (name == "water depth" || name == "depth") // require "time zone" and "local time zone" columns in NSRDB files are the same
+                {
+                    assign("water_depth_file", var_data(std::stod(value)));
+                }
+                else if (name == "id" || name == "jurisdiction" || name == "station id" || name == "wban" || name == "wban#" || name == "site")
+                {
+                    assign("location", var_data(value));
+                }
+                else if (name == "location" || name == "location id")
+                {
+                    assign("location_id", var_data(value));
+                }
+
+
+                else if (name == "source" || name == "src" || name == "data source")
+                {
+                    assign("data_source", var_data(value));
+                }
+                else if (name == "notes" || name == "source notes")
+                {
+                    assign("notes", var_data(value));
                 }
             }
-            assign("lat", var_data(dlat));
-            // lon with W is negative
-            ssc_number_t dlon = std::numeric_limits<double>::quiet_NaN();
-            std::vector<std::string> slon = split(values[5], ' ');
-            if (slon.size() > 0)
-            {
-                dlon = std::stod(slon[0]);
-                if (slon.size() > 1)
-                {
-                    if (slon[1] == "W") dlon = 0.0 - dlon;
-                }
-            }
-            assign("lon", var_data(dlon));
-            assign("nearby_buoy_number", var_data(values[6]));
-            assign("average_power_flux", var_data(std::stod(values[7])));
-            assign("bathymetry", var_data(values[8]));
-            assign("sea_bed", var_data(values[9]));
-            assign("tz", var_data(std::stod(values[10])));
-            assign("data_source", var_data(values[11]));
-            assign("notes", var_data(values[12]));
         }
         else {
             /*
@@ -416,28 +478,39 @@ public:
             assign("number_hours", int(numberRecords * hourdiff));
         }
         else if (as_integer("tidal_resource_model_choice") == 0) {
-            ssc_number_t* mat = allocate("wave_resource_matrix", 21, 22);
-            for (size_t r = 0; r < 21; r++)
+            getline(ifs, buf); //Skip past column labels for record counting
+            size_t numberRecords = 0;
+            while (getline(ifs, buf)) {
+                numberRecords++;
+                
+            }
+
+            ifs.clear();
+            ifs.seekg(0);
+            for (size_t i = 0; i < 3; i++)
+                getline(ifs, buf);
+            if (ifs.eof())
+            {
+                throw exec_error("tidal_file_reader", "Could not read column names");
+            }
+            ssc_number_t* mat = allocate("tidal_resource", numberRecords, 2);
+            for (size_t r = 0; r < numberRecords; r++)
             {
                 getline(ifs, buf);
                 values.clear();
                 values = split(buf);
-                if (values.size() != 22)
+                if (values.size() != 2)
                 {
-                    throw exec_error("tidal_file_reader", "Wave period columns must span 0.5s to 20.5s with increments of 1s. Incorrect number of wave period (s) columns: " + std::to_string(values.size()));
+                    throw exec_error("tidal_file_reader", "Tidal resource probability must contain 2 columns: tidal velocity and probability of occurence");
                 }
-                for (size_t c = 0; c < 22; c++)
-                {
-                    if (r == 0 && c == 0)
-                        mat[r * 22 + c] = 0.0;
-                    else
-                        mat[r * 22 + c] = std::stod(values[c]);
-                }
+                mat[r * 2] = std::stod(values[0]);
+                mat[r * 2 + 1] = std::stod(values[1]);
+                
             }
             
         }
         else {
-            throw exec_error("tidal_file_reader", "Resource data type needs to be defined ");
+            throw exec_error("tidal_file_reader", "Resource data type needs to be defined. ");
         }
 
         return;

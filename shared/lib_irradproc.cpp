@@ -3204,6 +3204,22 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
 
         double cellShade = pvBackShadeFraction * cellRows - i;
 
+        // Shading and snow
+        //flag enableSelfShadingOutputs;                    // Choose whether additional self-shading outputs are displayed
+        int shadeMode;                                    // The shading mode of the subarray [0 = none, 1 = standard (non-linear), 2 = thin film (linear)]
+        //flag usePOAFromWeatherFile;                       // Flag for whether or not a shading model has been selected that means POA can't be used directly for that subarray
+        sssky_diffuse_table selfShadingSkyDiffTable;        // Calculates and stores in a lookup table the self-shading sky diffuse derates
+        ssinputs selfShadingInputs;                       // Inputs and calculation methods for self-shading of the subarray
+        ssoutputs selfShadingOutputs;                     // Outputs for the self-shading of the subarray
+        //shading_factor_calculator shadeCalculator;        // The shading calculator model for self-shading
+        //flag subarrayEnableSnow;                          //a copy of the enableSnowModel flag has to exist in each subarray for setting up snow model inputs specific to each subarray
+        //pvsnowmodel snowModel;                            // A structure to store the geometry inputs for the snow model for this subarray- even though the snow model is system wide, its effect is subarray-dependent
+
+        ss_exec(selfShadingInputs, 180.0 - tiltRadians * RTOD, (surfaceAzimuthRadians* RTOD - 180.0), solarZenithRadians,
+            solarAzimuthRadians, calculatedDirectNormal, calculatedDiffuseHorizontal, planeOfArrayIrradianceRear[0],
+            planeOfArrayIrradianceRear[1], planeOfArrayIrradianceRear[2], albedo, false, false, 0,
+            selfShadingSkyDiffTable, selfShadingOutputs);
+
         // Fully shaded if >1, no shade if < 0, otherwise fractionally shaded
         if (cellShade > 1.0) {
             cellShade = 1.0;
@@ -3464,6 +3480,7 @@ void irrad::getBackSurfaceIrradiancesCS(double pvBackShadeFraction, double rowTo
         rearDirectDiffuse[i] += rear_direct_circumsolar;
 
         double cellShade = pvBackShadeFraction * cellRows - i;
+        
 
         // Fully shaded if >1, no shade if < 0, otherwise fractionally shaded
         if (cellShade > 1.0) {

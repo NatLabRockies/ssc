@@ -345,6 +345,9 @@ void C_csp_mspt_collector_receiver::estimates(const C_csp_weatherreader::S_outpu
 		est_out.m_m_dot_avail = 0.0;
 		est_out.m_T_htf_hot = 0.0;
 	}
+
+    est_out.m_W_dot_elec_in_tot = cr_out_solver.m_W_dot_elec_in_tot;
+    est_out.m_q_dot_heater = cr_out_solver.m_q_dot_heater;
 }
 
 double C_csp_mspt_collector_receiver::calculate_optical_efficiency( const C_csp_weatherreader::S_outputs &weather, const C_csp_solver_sim_info &sim )

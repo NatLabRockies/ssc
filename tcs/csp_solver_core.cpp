@@ -523,6 +523,9 @@ void C_csp_solver::init()
         W_dot_cycle_pump_des - W_dot_cycle_cooling_des - W_dot_tes_pumping_des -
         m_W_dot_bop_design - m_W_dot_fixed_design;
 
+    // Calculate ratio of parasitics that are dependent on cycle power to the design gross cycle power
+    m_ratio_cycle_dep_par_design = (W_dot_cycle_pump_des + W_dot_cycle_cooling_des + W_dot_tes_pumping_des + m_W_dot_bop_design) / m_cycle_W_dot_des;
+
     // System checks
 	if( mc_collector_receiver.m_is_sensible_htf != mc_power_cycle.m_is_sensible_htf )
 	{
@@ -704,7 +707,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 		mc_pc_htf_state_in.m_qual = m_cycle_x_hot_des;	//[-]
 		mc_pc_inputs.m_m_dot = (std::min)(m_m_dot_pc_max, m_m_dot_pc_des);				//[kg/hr]
 		// Inputs
-		mc_pc_inputs.m_standby_control = C_csp_power_cycle::ON;
+        mc_pc_inputs.m_standby_control = C_csp_power_cycle::ESTIMATE_ON;
 		//mc_pc_inputs.m_tou = tou_timestep;
 		// Performance Call
 
@@ -720,6 +723,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 			mc_pc_out_solver,
 			mc_kernel.mc_sim_info);
         m_T_htf_pc_cold_est = mc_pc_out_solver.m_T_htf_cold;	//[C]
+        double pc_eta_est = mc_pc_out_solver.m_P_cycle / mc_pc_out_solver.m_q_dot_htf;
 
         // Next, estimate receiver performance using estimated power cycle performance
         // If the return temperature is hotter than design, then the mass flow from the receiver will be bigger than expected
@@ -743,6 +747,13 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
             && m_is_rec_to_coldtank_allowed
             && T_htf_hot_cr_on < m_T_htf_hot_tank_in_min) {
             is_rec_outlet_to_hottank = false;
+        }
+
+        // Estimate receiver electrical parasitics
+        // -- !!! Currently only setup to work with MSPT
+        double W_dot_rec_par_est = est_out.m_W_dot_elec_in_tot;
+        if( ms_system_params.m_is_field_freeze_protection_electric ) {
+            W_dot_rec_par_est += est_out.m_q_dot_heater;
         }
 
         // If parallel heater, estimate performance
@@ -811,6 +822,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         double W_dot_system_max = std::numeric_limits<double>::quiet_NaN();         //[MWe]
 
         calc_timestep_plant_control_and_targets(
+            W_dot_rec_par_est, pc_eta_est,
             f_turbine_tou, q_pc_min, q_dot_tes_ch, pc_heat_prev, pc_state_persist,
             pc_operating_state_to_controller, purchase_mult, pricing_mult,
             calc_frac_current, baseline_step,
@@ -1321,6 +1333,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 }	// End simulate() method
 
 void C_csp_solver::calc_timestep_plant_control_and_targets(
+    double W_dot_rec_par_est /*MWe*/, double pc_eta_est /*-*/,
     double f_turbine_tou /*-*/, double q_dot_pc_min /*MWt*/, double q_dot_tes_ch /*MWt*/, double pc_heat_prev /*MWt*/,  double pc_state_persist /*hours*/,
     C_csp_power_cycle::E_csp_power_cycle_modes pc_operating_state, double purchase_mult /*-*/, double sale_mult /*-*/,
     double calc_frac_current /*-*/, double baseline_step /*s*/,
@@ -1336,7 +1349,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         is_rec_su_allowed = true;
         is_pc_su_allowed = true;
         is_pc_sb_allowed = true;
-
+         
         // Set PC target and max thermal power
         q_dot_pc_target = f_turbine_tou * m_cycle_q_dot_des;	//[MW]
         W_dot_system_target = f_turbine_tou * m_W_dot_system_net_design;    //[MWe]
@@ -1347,6 +1360,13 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         else {
             q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
             W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
+        }
+
+        if( ms_system_params.m_is_control_target_elec ){
+
+            double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
+                                    (1.0 - m_ratio_cycle_dep_par_design);
+            double q_dot_pc_est = W_dot_pc_gross_est / pc_eta_est;
         }
 
         // Rule 1: if the sun sets (or does not rise) in __ [hours], then do not allow power cycle standby

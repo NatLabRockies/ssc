@@ -1259,6 +1259,7 @@ void C_pc_Rankine_indirect_224::call(const C_csp_weatherreader::S_outputs &weath
 		break;
 
 	case ON:
+    case ESTIMATE_ON:
 
 		if( !ms_params.m_is_user_defined_pc )
 		{
@@ -1441,6 +1442,15 @@ void C_pc_Rankine_indirect_224::call(const C_csp_weatherreader::S_outputs &weath
 			m_dot_demand = 0.0;	//[kg/hr] Not captured in User-defined power cycle model
             P_cond_iter_rel_err = 0.0;
 		}
+
+        if( m_operating_mode_calc == ESTIMATE_ON ){
+
+            out_solver.m_T_htf_cold = T_htf_cold;		//[C] HTF outlet temperature
+            out_solver.m_q_dot_htf = q_dot_htf;
+            out_solver.m_P_cycle = P_cycle*1.E-3;       //[MWe]
+
+            return;
+        }
 
 		break;
 

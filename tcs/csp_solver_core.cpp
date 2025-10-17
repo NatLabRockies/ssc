@@ -1350,23 +1350,39 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         is_pc_su_allowed = true;
         is_pc_sb_allowed = true;
          
-        // Set PC target and max thermal power
-        q_dot_pc_target = f_turbine_tou * m_cycle_q_dot_des;	//[MW]
-        W_dot_system_target = f_turbine_tou * m_W_dot_system_net_design;    //[MWe]
-        if (mc_tou.m_is_tod_pc_target_also_pc_max) {
-            q_dot_pc_max = q_dot_pc_target;     //[MW]
-            W_dot_system_max = W_dot_system_target; //[MWe]
-        }
-        else {
-            q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
-            W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
-        }
+        q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
+        
+        //if (mc_tou.m_is_tod_pc_target_also_pc_max) {
+        //    q_dot_pc_max = q_dot_pc_target;     //[MW]
+        //    W_dot_system_max = W_dot_system_target; //[MWe]
+        //}
+        //else {
+        //    q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
+        //    W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
+        //}
 
         if( ms_system_params.m_is_control_target_elec ){
 
+            W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
+
+            W_dot_system_target = f_turbine_tou * m_W_dot_system_net_design;    //[MWe]
+
             double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
                                     (1.0 - m_ratio_cycle_dep_par_design);
-            double q_dot_pc_est = W_dot_pc_gross_est / pc_eta_est;
+            q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
+        }
+        else{
+
+            // Set PC target and max thermal power
+            q_dot_pc_target = f_turbine_tou * m_cycle_q_dot_des;	//[MW]
+
+            // Shouldn't need system electricity values in 'heat' mode
+            W_dot_system_target = W_dot_system_max = std::numeric_limits<double>::quiet_NaN();
+        }
+
+        if( mc_tou.m_is_tod_pc_target_also_pc_max ) {
+            q_dot_pc_max = q_dot_pc_target;     //[MW]
+            W_dot_system_max = W_dot_system_target; //[MWe]
         }
 
         // Rule 1: if the sun sets (or does not rise) in __ [hours], then do not allow power cycle standby

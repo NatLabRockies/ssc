@@ -595,7 +595,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 	mc_kernel.init(sim_setup, wf_step, baseline_step, mc_csp_messages);
     
 	double tol_mode_switching = 0.10;		// Give buffer to account for uncertainty in estimates
-    if( m_cycle_W_dot_des == 115.1234 ) {
+    if( ms_system_params.m_is_control_target_elec ) {
         tol_mode_switching = 0.2;           // More buffer when target is net electricity
     }
 

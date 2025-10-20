@@ -1255,8 +1255,8 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
     }
 
     double W_dot_net = mpc_csp_solver->mc_pc_out_solver.m_P_cycle -
-        mpc_csp_solver->mc_cr_out_solver.m_W_dot_elec_in_tot -
-        mpc_csp_solver->mc_pc_out_solver.m_W_dot_elec_parasitics_tot -
+        mpc_csp_solver->mc_cr_out_solver.m_W_dot_elec_in_tot -      // In solar thermal this represents field + pumping; in heaters it includes the heater consumption
+        mpc_csp_solver->mc_pc_out_solver.m_W_dot_elec_parasitics_tot - // Total cycle electricity consumption that doesn't contribute to cycle working fluid
         W_dot_tes_pump -
         W_dot_cr_freeze_protection -
         W_dot_par_htr_elec_load -

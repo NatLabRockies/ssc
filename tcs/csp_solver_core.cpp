@@ -529,6 +529,9 @@ void C_csp_solver::init()
         W_dot_cycle_pump_des - W_dot_cycle_cooling_des - W_dot_tes_pumping_des -
         m_W_dot_bop_design - m_W_dot_fixed_design;
 
+    // Calculate ratio of parasitics that are dependent on cycle power to the design gross cycle power
+    m_ratio_cycle_dep_par_design = (W_dot_cycle_pump_des + W_dot_cycle_cooling_des + W_dot_tes_pumping_des + m_W_dot_bop_design) / m_cycle_W_dot_des;
+
     // System checks
 	if( mc_collector_receiver.m_is_sensible_htf != mc_power_cycle.m_is_sensible_htf )
 	{
@@ -592,6 +595,9 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 	mc_kernel.init(sim_setup, wf_step, baseline_step, mc_csp_messages);
     
 	double tol_mode_switching = 0.10;		// Give buffer to account for uncertainty in estimates
+    if( m_cycle_W_dot_des == 115.1234 ) {
+        tol_mode_switching = 0.2;           // More buffer when target is net electricity
+    }
 
 	// Reset vector that tracks operating modes
 	m_op_mode_tracking.resize(0);
@@ -710,7 +716,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 		mc_pc_htf_state_in.m_qual = m_cycle_x_hot_des;	//[-]
 		mc_pc_inputs.m_m_dot = (std::min)(m_m_dot_pc_max, m_m_dot_pc_des);				//[kg/hr]
 		// Inputs
-		mc_pc_inputs.m_standby_control = C_csp_power_cycle::ON;
+        mc_pc_inputs.m_standby_control = C_csp_power_cycle::ESTIMATE_ON;
 		//mc_pc_inputs.m_tou = tou_timestep;
 		// Performance Call
 
@@ -726,6 +732,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 			mc_pc_out_solver,
 			mc_kernel.mc_sim_info);
         m_T_htf_pc_cold_est = mc_pc_out_solver.m_T_htf_cold;	//[C]
+        double pc_eta_est = mc_pc_out_solver.m_P_cycle / mc_pc_out_solver.m_q_dot_htf;
 
         // Next, estimate receiver performance using estimated power cycle performance
         // If the return temperature is hotter than design, then the mass flow from the receiver will be bigger than expected
@@ -749,6 +756,13 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
             && m_is_rec_to_coldtank_allowed
             && T_htf_hot_cr_on < m_T_htf_hot_tank_in_min) {
             is_rec_outlet_to_hottank = false;
+        }
+
+        // Estimate receiver electrical parasitics
+        // -- !!! Currently only setup to work with MSPT
+        double W_dot_rec_par_est = est_out.m_W_dot_elec_in_tot;
+        if( ms_system_params.m_is_field_freeze_protection_electric ) {
+            W_dot_rec_par_est += est_out.m_q_dot_heater;
         }
 
         // If parallel heater, estimate performance
@@ -817,6 +831,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         double W_dot_system_max = std::numeric_limits<double>::quiet_NaN();         //[MWe]
 
         calc_timestep_plant_control_and_targets(
+            W_dot_rec_par_est, pc_eta_est,
             f_turbine_tou, q_pc_min, q_dot_tes_ch, pc_heat_prev, pc_state_persist,
             pc_operating_state_to_controller, purchase_mult, pricing_mult,
             calc_frac_current, baseline_step,
@@ -1333,6 +1348,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 }	// End simulate() method
 
 void C_csp_solver::calc_timestep_plant_control_and_targets(
+    double W_dot_rec_par_est /*MWe*/, double pc_eta_est /*-*/,
     double f_turbine_tou /*-*/, double q_dot_pc_min /*MWt*/, double q_dot_tes_ch /*MWt*/, double pc_heat_prev /*MWt*/,  double pc_state_persist /*hours*/,
     C_csp_power_cycle::E_csp_power_cycle_modes pc_operating_state, double purchase_mult /*-*/, double sale_mult /*-*/,
     double calc_frac_current /*-*/, double baseline_step /*s*/,
@@ -1348,17 +1364,40 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         is_rec_su_allowed = true;
         is_pc_su_allowed = true;
         is_pc_sb_allowed = true;
+         
+        q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
+        
+        //if (mc_tou.m_is_tod_pc_target_also_pc_max) {
+        //    q_dot_pc_max = q_dot_pc_target;     //[MW]
+        //    W_dot_system_max = W_dot_system_target; //[MWe]
+        //}
+        //else {
+        //    q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
+        //    W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
+        //}
 
-        // Set PC target and max thermal power
-        q_dot_pc_target = f_turbine_tou * m_cycle_q_dot_des;	//[MW]
-        W_dot_system_target = f_turbine_tou * m_W_dot_system_net_design;    //[MWe]
-        if (mc_tou.m_is_tod_pc_target_also_pc_max) {
+        if( ms_system_params.m_is_control_target_elec ){
+
+            W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
+
+            W_dot_system_target = f_turbine_tou * m_W_dot_system_net_design;    //[MWe]
+
+            double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
+                                    (1.0 - m_ratio_cycle_dep_par_design);
+            q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
+        }
+        else{
+
+            // Set PC target and max thermal power
+            q_dot_pc_target = f_turbine_tou * m_cycle_q_dot_des;	//[MW]
+
+            // Shouldn't need system electricity values in 'heat' mode
+            W_dot_system_target = W_dot_system_max = std::numeric_limits<double>::quiet_NaN();
+        }
+
+        if( mc_tou.m_is_tod_pc_target_also_pc_max ) {
             q_dot_pc_max = q_dot_pc_target;     //[MW]
             W_dot_system_max = W_dot_system_target; //[MWe]
-        }
-        else {
-            q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
-            W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
         }
 
         // Rule 1: if the sun sets (or does not rise) in __ [hours], then do not allow power cycle standby
@@ -1646,10 +1685,14 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
     if (pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
         target_power = q_dot_pc_on_dispatch_target;
         max_power = q_dot_pc_max;
+        s_dep_desc = "PC thermal power";
+        s_dep_units = "MWt";
     }
     else if (pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
         target_power = W_dot_system_target;
         max_power = W_dot_system_max;
+        s_dep_desc = "net system power";
+        s_dep_units = "MWe";
     }
 
     switch (m_cycle_target_type)
@@ -1786,8 +1829,9 @@ void C_csp_solver::C_CR_ON__PC_SU__TES_OFF__AUX_OFF::check_system_limits(C_csp_s
         std::string error_msg;
         if (q_dot_pc_calc > q_dot_pc_su_max)
         {
-            error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) + " method converged to a power cycle";
-            error_msg += util::format(" thermal input, %lg [MWt], greater than the target %lg [MWt].", q_dot_pc_calc, q_dot_pc_su_max);
+            error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time)+
+                util::format("converged to a power cycle thermal input, %lg [MWt], greater than the maximum startup cycle thermal input %lg [MWt].",
+                    q_dot_pc_calc, q_dot_pc_su_max);
         }
         if (pc_csp_solver->mc_pc_out_solver.m_m_dot_htf > m_dot_pc_max_startup)
         {
@@ -1820,9 +1864,8 @@ void C_csp_solver::C_CR_OFF__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_c
         if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) / q_pc_or_w_sys_max > limit_comp_tol)
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt]"
-                    " larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the maximum %s %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), s_dep_desc.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
@@ -1835,8 +1878,10 @@ void C_csp_solver::C_CR_OFF__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_c
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the target PC thermal power %lg [MWt]"
-                    " but less than the maximum thermal power %lg [MWt]", q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the target %s %lg %s but less than the maximum %s %lg %s",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    s_dep_desc.c_str(), q_pc_or_w_sys_target, s_dep_units.c_str(),
+                    s_dep_desc.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
@@ -1878,8 +1923,8 @@ void C_csp_solver::C_CR_ON__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_cs
         if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) / q_pc_or_w_sys_max > limit_comp_tol)
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" solved with a PC thermal power %lg [MWt] greater than the maximum %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
+                util::format(" solved with a %s %lg %s greater than the maximum %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
             m_is_mode_available = false;
@@ -1891,8 +1936,9 @@ void C_csp_solver::C_CR_ON__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_cs
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" solved with a PC thermal power %lg [MWt] greater than the target %lg [MWt], but less than the maximum %lg [MWt].",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" solved with a %s %lg %s greater than the target %lg %s, but less than the maximum %lg %s.",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_target, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
             m_is_mode_available = true;
@@ -2013,20 +2059,20 @@ void C_csp_solver::C_CR_OFF__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_c
     // Off-taker is operating, so could be power or heat
 
     // Check if solved thermal power is greater than target
-    if ( q_pc_or_w_sys_calc > q_pc_or_w_sys_max )
-    {
-        std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-            util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
-
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
-
-        turn_off_mode_availability();
-        is_model_converged = false;
-        is_turn_off_plant = true;
-
-        return;
-    }
+    //if ( q_pc_or_w_sys_calc > q_pc_or_w_sys_max )
+    //{
+    //    std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
+    //        util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+    //            s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
+    //
+    //    pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+    //
+    //    turn_off_mode_availability();
+    //    is_model_converged = false;
+    //    is_turn_off_plant = true;
+    //
+    //    return;
+    //}
 
     if (pc_csp_solver->mc_pc_out_solver.m_m_dot_htf > m_dot_pc_max)
     {
@@ -2062,8 +2108,9 @@ void C_csp_solver::C_CR_ON__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
         if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) / q_pc_or_w_sys_max > limit_comp_tol)
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
@@ -2075,8 +2122,9 @@ void C_csp_solver::C_CR_ON__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the target PC thermal power %lg [MWt] but less than the maximum thermal power %lg [MWt]",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the target of %lg %s but less than the maximum of %lg %s",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_target, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
@@ -2144,8 +2192,8 @@ void C_csp_solver::C_CR_OFF__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C
         if ( q_pc_or_w_sys_calc > q_pc_or_w_sys_max )
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max); // pc_csp_solver->m_q_dot_pc_max);
+                util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str()); // pc_csp_solver->m_q_dot_pc_max);
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
@@ -2157,8 +2205,9 @@ void C_csp_solver::C_CR_OFF__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the target PC thermal power %lg [MWt] but less than the maximum thermal power %lg [MWt]",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the target of %lg %s but less than the maximum of %lg %s",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_target, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
         }
     }
@@ -2192,6 +2241,7 @@ void C_csp_solver::C_CR_ON__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_cs
     bool& is_model_converged, bool& is_turn_off_plant)
 {
     // Off-taker is operating, so could be power or heat
+    // But PC_MIN depends on heat regardless of whether controller target value is net system electricity
 
     if (pc_csp_solver->mc_pc_out_solver.m_m_dot_htf > m_dot_pc_max)
     {
@@ -2259,8 +2309,8 @@ void C_csp_solver::C_CR_SU__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_cs
         if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) / q_pc_or_w_sys_max > limit_comp_tol)
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
             m_is_mode_available = false;
@@ -2271,8 +2321,9 @@ void C_csp_solver::C_CR_SU__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_cs
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the target PC thermal power %lg [MWt] but less than the maximum thermal power %lg [MWt]",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the target of %lg %s but less than the maximum of %lg %s",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_target, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
         }
@@ -2305,21 +2356,22 @@ void C_csp_solver::C_CR_SU__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_cs
     bool& is_model_converged, bool& is_turn_off_plant)
 {
     // Off-taker is operating, so could be power or heat
+    // But PC_MIN depends on heat regardless of whether controller target value is net system electricity
 
     // Check if solved thermal power is greater than target
-    if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) > limit_comp_tol)
-    {
-        std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-            util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
-
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
-
-        m_is_mode_available = false;
-        is_model_converged = false;
-        is_turn_off_plant = true;
-        return;
-    }
+    //if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) > limit_comp_tol)
+    //{
+    //    std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
+    //        util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+    //            s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
+    //
+    //    pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+    //
+    //    m_is_mode_available = false;
+    //    is_model_converged = false;
+    //    is_turn_off_plant = true;
+    //    return;
+    //}
 
     if (pc_csp_solver->mc_pc_out_solver.m_m_dot_htf > m_dot_pc_max)
     {
@@ -2376,6 +2428,7 @@ void C_csp_solver::C_CR_SU__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
 {
     // Off-taker is operating, so could be power or heat
 
+    // pc min check always against heat input
     if (q_dot_pc_in_calc < q_dot_pc_min || pc_csp_solver->mc_pc_out_solver.m_m_dot_htf < m_dot_pc_min)
     {
         m_is_mode_available = false;
@@ -2390,8 +2443,8 @@ void C_csp_solver::C_CR_SU__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
         if ( q_pc_or_w_sys_calc > q_pc_or_w_sys_max )
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
@@ -2403,8 +2456,9 @@ void C_csp_solver::C_CR_SU__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the target PC thermal power %lg [MWt] but less than the maximum thermal power %lg [MWt]",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" converged to a %s %lg %s larger than the target of %lg %s but less than the maximum of %lg %s",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_target, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
         }
@@ -2548,8 +2602,8 @@ void C_csp_solver::C_CR_ON__PC_RM_HI__TES_FULL__AUX_OFF::check_system_limits(C_c
     else if ( q_pc_or_w_sys_calc < q_pc_or_w_sys_target )
     {
         std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-            util::format(" converged to a power cycle thermal input %lg [MWt] less than the target %lg [MWt].",
-                q_pc_or_w_sys_calc, q_pc_or_w_sys_target);
+            util::format(" converged to a %s of %lg %s less than the target of %lg %s.",
+                s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_target, s_dep_units.c_str());
         pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
     }
 }
@@ -2892,8 +2946,8 @@ void C_csp_solver::C_CR_TO_COLD__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limi
         if ( q_pc_or_w_sys_calc > q_pc_or_w_sys_max )
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
+                util::format(" converged to a %s of %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
@@ -2905,8 +2959,9 @@ void C_csp_solver::C_CR_TO_COLD__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limi
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the target PC thermal power %lg [MWt] but less than the maximum thermal power %lg [MWt]",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" converged to a %s of %lg %s larger than the target of %lg %s but less than the maximum of %lg %s",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_target, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
         }
     }
@@ -2945,8 +3000,8 @@ void C_csp_solver::C_CR_TO_COLD__PC_TARGET__TES_DC__AUX_OFF::check_system_limits
         if ((q_pc_or_w_sys_calc - q_pc_or_w_sys_max) / q_pc_or_w_sys_max > limit_comp_tol)
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
+                util::format(" converged to a %s of %lg %s larger than the maximum of %lg %s. Controller shut off plant",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
 
             m_is_mode_available = false;
@@ -2957,8 +3012,9 @@ void C_csp_solver::C_CR_TO_COLD__PC_TARGET__TES_DC__AUX_OFF::check_system_limits
         else
         {
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
-                util::format(" converged to a PC thermal power %lg [MWt] larger than the target PC thermal power %lg [MWt] but less than the maximum thermal power %lg [MWt]",
-                    q_pc_or_w_sys_calc, q_pc_or_w_sys_target, q_pc_or_w_sys_max);
+                util::format(" converged to a %s of %lg %s larger than the target of %lg %s but less than the maximum of %lg %s",
+                    s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
+                    q_pc_or_w_sys_target, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
         }

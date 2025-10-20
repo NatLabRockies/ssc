@@ -308,6 +308,7 @@ void C_pc_heat_sink_physical::call(const C_csp_weatherreader::S_outputs &weather
         case STARTUP:
         case ON:
         case STANDBY:
+        case ESTIMATE_ON:
         {
             // Get HTF inlet enthalpy
             double h_htf_hot = mc_pc_htfProps.enth_lookup(htf_state_in.m_temp + 273.15);   //[kJ/kg]

@@ -559,10 +559,14 @@ public:
 		double m_m_dot_avail;		//[kg/hr] Estimated output mass flow rate if cr is ON and producing useful thermal power
 		double m_T_htf_hot;			//[C] Estimated timestep-average outlet temperature
 
+        double m_W_dot_elec_in_tot; //[MWe] Electricity power consumption
+        double m_q_dot_heater;      //[MWt] Freeze protection - may be assigned as "electricity" downstream
+
 		S_csp_cr_est_out()
 		{
 			m_q_startup_avail = m_q_dot_avail =
-				m_m_dot_avail = m_T_htf_hot = std::numeric_limits<double>::quiet_NaN();
+				m_m_dot_avail = m_T_htf_hot =
+                m_W_dot_elec_in_tot = m_q_dot_heater = std::numeric_limits<double>::quiet_NaN();
 		}
 	};
 
@@ -601,7 +605,8 @@ public:
         STANDBY,
         OFF,
         OFF_NO_SU_REQ,
-        STARTUP_CONTROLLED
+        STARTUP_CONTROLLED,
+        ESTIMATE_ON
     };
 
 protected:
@@ -679,7 +684,7 @@ public:
 		double m_m_dot_htf;			//[kg/hr] Actual HTF flow rate passing through the power cycle
 
 			// Parasitics, plant net power equation
-        double m_W_dot_elec_parasitics_tot; //[MWe] Total TES electricity consumption that doesn't contribute to cycle working fluid
+        double m_W_dot_elec_parasitics_tot; //[MWe] Total cycle electricity consumption that doesn't contribute to cycle working fluid
 
             // Want to only report total aggregate parasitics in m_W_dot_elec_parasitics total
             //    but need to keep m_W_cool_par because sam_mw_pt_type224_csp_solver needs it
@@ -1179,6 +1184,7 @@ private:
     double m_W_dot_bop_design;      //[MWe]
     double m_W_dot_fixed_design;    //[MWe]
     double m_W_dot_system_net_design;   //[MWe]
+    double m_ratio_cycle_dep_par_design;//[-]
 
         // Field-side HTF
     double m_T_field_cold_limit;    //[C]
@@ -1208,6 +1214,7 @@ private:
 	void send_callback(double percent);
 
     void calc_timestep_plant_control_and_targets(
+        double W_dot_rec_par_est /*MWe*/, double pc_eta_est /*-*/,
         double f_turbine_tou /*-*/, double q_dot_pc_min /*MWt*/, double q_dot_tes_ch /*MWt*/, double pc_heat_prev /*MWt*/, double pc_state_persist /*hours*/,
         C_csp_power_cycle::E_csp_power_cycle_modes pc_operating_state, double purchase_mult /*-*/, double sale_mult /*-*/,
         double calc_frac_current /*-*/, double baseline_step /*s*/,
@@ -1626,6 +1633,9 @@ public:
         bool m_is_mode_available;
         bool m_is_HI_SIDE_mode_available;
         bool m_is_LO_SIDE_mode_available;
+
+        std::string s_dep_desc;
+        std::string s_dep_units;
 
     public:
 

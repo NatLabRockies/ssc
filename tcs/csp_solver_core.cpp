@@ -518,7 +518,7 @@ void C_csp_solver::init()
     m_W_dot_bop_design = m_cycle_W_dot_des * ms_system_params.m_bop_par * ms_system_params.m_bop_par_f *
         (ms_system_params.m_bop_par_0 + ms_system_params.m_bop_par_1 * W_dot_ratio_des + ms_system_params.m_bop_par_2 * pow(W_dot_ratio_des, 2));   //[MWe]
 
-    m_W_dot_fixed_design = ms_system_params.m_pb_fixed_par* m_cycle_W_dot_des;			//[MWe]
+    m_W_dot_fixed_design = ms_system_params.m_pb_fixed_par * m_cycle_W_dot_des;			//[MWe]
 
     // Check if any calculated parasitics are nan?
     //if (!std::isfinite(W_dot_rec_pumping_power_des)) {
@@ -1578,8 +1578,9 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         is_PAR_HTR_allowed = mc_dispatch.dispatch_outputs.is_eh_su_allowed;
         q_dot_elec_to_PAR_HTR = mc_dispatch.dispatch_outputs.q_eh_target;
 
-        W_dot_system_target = mc_dispatch.dispatch_outputs.w_dot_target;
-        W_dot_system_max = mc_dispatch.dispatch_outputs.w_dot_target;
+        // Add fixed parasitics to the system target and max
+        W_dot_system_target = mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design;
+        W_dot_system_max = (mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design)*1.2;  // Adding buffer
     }
 }
 

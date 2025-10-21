@@ -2508,7 +2508,7 @@ int irrad::calc() {
 
 }
 
-int irrad::calc_rear_side(double transmissionFactor, double groundClearanceHeight, double slopeLength) {
+int irrad::calc_rear_side(double transmissionFactor, double groundClearanceHeight, double slopeLength, ssinputs selfShadingInputs) {
     // do irradiance calculations if sun is up
     if (timeStepSunPosition[2] > 0) {
 
@@ -2560,7 +2560,7 @@ int irrad::calc_rear_side(double transmissionFactor, double groundClearanceHeigh
         std::vector<double> rearIrradiancePerCellrowCS;
         double rearAverageIrradianceCS = 0;
         getBackSurfaceIrradiances(pvBackShadeFraction, rowToRow, verticalHeight, clearanceGround, distanceBetweenRows,
-                                  horizontalLength, rearGroundGHI, frontGroundGHI, frontReflected,
+                                  horizontalLength, rearGroundGHI, frontGroundGHI, frontReflected, selfShadingInputs,
                                   rearIrradiancePerCellrow, rearAverageIrradiance);
 
         getBackSurfaceIrradiancesCS(pvBackShadeFraction, rowToRow, verticalHeight, clearanceGround, distanceBetweenRows,
@@ -2976,7 +2976,7 @@ void irrad::getFrontSurfaceIrradiances(double pvFrontShadeFraction, double rowTo
 void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRow, double verticalHeight,
                                       double clearanceGround, double, double horizontalLength,
                                       std::vector<double> rearGroundGHI, std::vector<double> frontGroundGHI,
-                                      std::vector<double> frontReflected, std::vector<double> &rearIrradiance,
+                                      std::vector<double> frontReflected, ssinputs selfShadingInputs, std::vector<double> &rearIrradiance,
                                       double &rearAverageIrradiance) {
     // front surface assumed to be glass
     double n2 = 1.526;
@@ -3199,8 +3199,8 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
         perez(0, calculatedDirectNormal, calculatedDiffuseHorizontal, albedo, surfaceAnglesRadians[0],
               surfaceAnglesRadians[1], solarZenithRadians, planeOfArrayIrradianceRear, diffuseIrradianceRear);
 
-        double rear_direct_circumsolar = planeOfArrayIrradianceRear[0] + diffuseIrradianceRear[1];
-        rearDirectDiffuse[i] += rear_direct_circumsolar;
+        /*double rear_direct_circumsolar = planeOfArrayIrradianceRear[0] + diffuseIrradianceRear[1];
+        rearDirectDiffuse[i] += rear_direct_circumsolar;*/
 
         double cellShade = pvBackShadeFraction * cellRows - i;
 
@@ -3209,7 +3209,8 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
         int shadeMode;                                    // The shading mode of the subarray [0 = none, 1 = standard (non-linear), 2 = thin film (linear)]
         //flag usePOAFromWeatherFile;                       // Flag for whether or not a shading model has been selected that means POA can't be used directly for that subarray
         sssky_diffuse_table selfShadingSkyDiffTable;        // Calculates and stores in a lookup table the self-shading sky diffuse derates
-        ssinputs selfShadingInputs;                       // Inputs and calculation methods for self-shading of the subarray
+        selfShadingSkyDiffTable.init(180.0 - tiltRadians * RTOD, this->groundCoverageRatio);
+        //ssinputs selfShadingInputs;                       // Inputs and calculation methods for self-shading of the subarray
         ssoutputs selfShadingOutputs;                     // Outputs for the self-shading of the subarray
         //shading_factor_calculator shadeCalculator;        // The shading calculator model for self-shading
         //flag subarrayEnableSnow;                          //a copy of the enableSnowModel flag has to exist in each subarray for setting up snow model inputs specific to each subarray
@@ -3219,6 +3220,10 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
             solarAzimuthRadians, calculatedDirectNormal, calculatedDiffuseHorizontal, planeOfArrayIrradianceRear[0],
             planeOfArrayIrradianceRear[1], planeOfArrayIrradianceRear[2], albedo, false, false, 0,
             selfShadingSkyDiffTable, selfShadingOutputs);
+
+        
+        double rear_direct_circumsolar = planeOfArrayIrradianceRear[0] + (diffuseIrradianceRear[0] + diffuseIrradianceRear[1] + diffuseIrradianceRear[2]) * selfShadingOutputs.m_diffuse_derate;
+        rearDirectDiffuse[i] += rear_direct_circumsolar;
 
         // Fully shaded if >1, no shade if < 0, otherwise fractionally shaded
         if (cellShade > 1.0) {
@@ -3232,7 +3237,8 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
         rearSelfShaded.push_back(0);
         if (cellShade < 1.0 && surfaceAnglesRadians[0] < M_PI / 2.0) {
             double iamMod = iamSjerpsKoomen(n2, surfaceAnglesRadians[0]);
-            rearIrradiance[i] += (1.0 - cellShade) * rear_direct_circumsolar * iamMod;                        // ** (1 - Rear self shading loss) * (Rear direct and diffuse (circumsolar only)), through glass loss
+            //rearIrradiance[i] += (1.0 - cellShade) * rear_direct_circumsolar * iamMod;                        // ** (1 - Rear self shading loss) * (Rear direct and diffuse (circumsolar only)), through glass loss
+            rearIrradiance[i] += rear_direct_circumsolar * iamMod;
             rearSelfShaded[i] = cellShade * rear_direct_circumsolar * iamMod;
         }
 

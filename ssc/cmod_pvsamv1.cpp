@@ -1948,7 +1948,7 @@ void cm_pvsamv1::exec()
                 // Calculate rear-side irradiance
                 double module_length = Subarrays[nn]->selfShadingInputs.mod_orient == 1 ? Subarrays[nn]->selfShadingInputs.width : Subarrays[nn]->selfShadingInputs.length;
                 double slopeLength = module_length * Subarrays[nn]->selfShadingInputs.nmody;
-                irr->calc_rear_side(Subarrays[nn]->Module->bifacialTransmissionFactor, Subarrays[nn]->Module->groundClearanceHeight, slopeLength);
+                irr->calc_rear_side(Subarrays[nn]->Module->bifacialTransmissionFactor, Subarrays[nn]->Module->groundClearanceHeight, slopeLength, Subarrays[nn]->selfShadingInputs);
                 ipoa_rear[nn] = irr->get_poa_rear();
                 ipoa_rear_cs[nn] = irr->get_poa_rear_clearsky();
                 double rack_shading_loss_factor = 0.;

@@ -937,9 +937,24 @@ public:
                 irr.get_poa(&ibeam, &iskydiff, &ignddiff, nullptr, nullptr, nullptr); //nullptr used when you don't need to retrieve the output
                 irr.get_optional(&elev, &pres, &t_amb);
 
+                ssinputs ssin;
+                ssin.nstrx = (int)(((double)pv.nmodx) / pv.nmodperstr);
+                ssin.nmodx = pv.nmodx;
+                ssin.nmody = pv.nmody;
+                ssin.nrows = pv.nrows;
+                ssin.length = module.length;
+                ssin.width = module.width;
+                ssin.mod_orient = 0; // portrait module orientation
+                ssin.str_orient = 1; // horizontal stringing
+                ssin.row_space = pv.row_spacing;
+                ssin.ndiode = module.ndiode;
+                ssin.Vmp = module.vmp;
+                ssin.mask_angle_calc_method = 0; // worst case mask angle assumption
+                ssin.FF0 = module.ff;
+
                 if (module.bifaciality > 0)
                 {
-                    irr.calc_rear_side(bifacialTransmissionFactor, 1, module.length * pv.nmody);
+                    irr.calc_rear_side(bifacialTransmissionFactor, 1, module.length * pv.nmody, ssin);
                     irear = irr.get_poa_rear() * module.bifaciality; //total rear irradiance is returned, so must multiply module bifaciality
                 }
 
@@ -971,7 +986,7 @@ public:
                     if (y == 0 && wdprov->annualSimulation()) ld("poa_nominal") += (ibeam + iskydiff + ignddiff) * wm2_to_wh;
                     if (y == 0 && wdprov->annualSimulation()) ld("poa_loss_bifacial") += (-irear) * wm2_to_wh;
 
-
+                    
                     // check for wind stowing on trackers
                     if ((pv.type == ONE_AXIS
                         || pv.type == ONE_AXIS_BACKTRACKING
@@ -1016,7 +1031,7 @@ public:
                             double irear_stow = 0.0;
                             if (module.bifaciality > 0)
                             {
-                                irr.calc_rear_side(bifacialTransmissionFactor, 1, module.length * pv.nmody);
+                                irr.calc_rear_side(bifacialTransmissionFactor, 1, module.length * pv.nmody, ssin);
                                 irear_stow = irr.get_poa_rear() * module.bifaciality; //total rear irradiance is returned, so must multiply module bifaciality
                             }
 
@@ -1066,20 +1081,20 @@ public:
                         }
 
                         // run self-shading calculations for both FIXED_RACK and ONE_AXIS because the non-linear derate applies in both cases (below)
-                        ssinputs ssin;
-                        ssin.nstrx = (int)(((double)pv.nmodx) / pv.nmodperstr);
-                        ssin.nmodx = pv.nmodx;
-                        ssin.nmody = pv.nmody;
-                        ssin.nrows = pv.nrows;
-                        ssin.length = module.length;
-                        ssin.width = module.width;
-                        ssin.mod_orient = 0; // portrait module orientation
-                        ssin.str_orient = 1; // horizontal stringing
-                        ssin.row_space = pv.row_spacing;
-                        ssin.ndiode = module.ndiode;
-                        ssin.Vmp = module.vmp;
-                        ssin.mask_angle_calc_method = 0; // worst case mask angle assumption
-                        ssin.FF0 = module.ff;
+                        //ssinputs ssin;
+                        //ssin.nstrx = (int)(((double)pv.nmodx) / pv.nmodperstr);
+                        //ssin.nmodx = pv.nmodx;
+                        //ssin.nmody = pv.nmody;
+                        //ssin.nrows = pv.nrows;
+                        //ssin.length = module.length;
+                        //ssin.width = module.width;
+                        //ssin.mod_orient = 0; // portrait module orientation
+                        //ssin.str_orient = 1; // horizontal stringing
+                        //ssin.row_space = pv.row_spacing;
+                        //ssin.ndiode = module.ndiode;
+                        //ssin.Vmp = module.vmp;
+                        //ssin.mask_angle_calc_method = 0; // worst case mask angle assumption
+                        //ssin.FF0 = module.ff;
                         ssoutputs ssout;
 
                         if (!ss_exec(ssin,

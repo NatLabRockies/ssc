@@ -1186,7 +1186,7 @@ public:
     int calc();
 
     /// Run the irradiance processor for the rear-side of the surface to calculate rear-side plane-of-array irradiance
-    int calc_rear_side(double transmissionFactor, double groundClearanceHeight, double slopeLength);
+    int calc_rear_side(double transmissionFactor, double groundClearanceHeight, double slopeLength, ssinputs selfShadingInputs);
 
     /// Return the calculated sun angles, some of which are converted to degrees
     void get_sun(double* solazi,
@@ -1272,7 +1272,7 @@ public:
     void getGroundGHI(double transmissionFactor, std::vector<double> rearSkyConfigFactors, std::vector<double> frontSkyConfigFactors, std::vector<int> rearGroundShadeFactors, std::vector<int> frontGroundShadeFactors, std::vector<double>& rearGroundGHI, std::vector<double>& frontGroundGHI);
 
     /// Return the back surface irradiances, used by \link calc_rear_side()
-    void getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRow, double verticalHeight, double clearanceGround, double distanceBetweenRows, double horizontalLength, std::vector<double> rearGroundGHI, std::vector<double> frontGroundGHI, std::vector<double> frontReflected, std::vector<double>& rearIrradiance, double& rearAverageIrradiance);
+    void getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRow, double verticalHeight, double clearanceGround, double distanceBetweenRows, double horizontalLength, std::vector<double> rearGroundGHI, std::vector<double> frontGroundGHI, std::vector<double> frontReflected, ssinputs selfShadingInputs, std::vector<double>& rearIrradiance, double& rearAverageIrradiance);
 
     /// Return the back surface clearsky irradiances, used by \link calc_rear_side()
     void getBackSurfaceIrradiancesCS(double pvBackShadeFraction, double rowToRow, double verticalHeight, double clearanceGround, double distanceBetweenRows, double horizontalLength, std::vector<double> rearGroundGHI, std::vector<double> frontGroundGHI, std::vector<double> frontReflected, std::vector<double>& rearIrradiance, double& rearAverageIrradiance);

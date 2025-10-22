@@ -60,7 +60,7 @@ public:
 
             NS_HX_counterflow_eqs::E_UA_target_type ua_type = NS_HX_counterflow_eqs::E_UA_target_type::E_constant_UA;
 
-            mc_phx.initialize(hot_fl, 10, ua_type);
+            mc_phx.initialize(hot_fl, 10, ua_type, 2024.0);
 
             double q_dot = 1000.0;      //[kWt]
             double T_co2_hot = 700.0;   //[C]

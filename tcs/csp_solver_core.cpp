@@ -1569,18 +1569,52 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         mc_dispatch.set_dispatch_outputs();
 
         //setting binaries and targets
-        is_rec_su_allowed = mc_dispatch.dispatch_outputs.is_rec_su_allowed;
-        is_pc_sb_allowed = mc_dispatch.dispatch_outputs.is_pc_sb_allowed;
-        is_pc_su_allowed = mc_dispatch.dispatch_outputs.is_pc_su_allowed;
-        q_dot_pc_target = mc_dispatch.dispatch_outputs.q_pc_target;
-        q_dot_elec_to_CR_heat = mc_dispatch.dispatch_outputs.q_dot_elec_to_CR_heat;
-        q_dot_pc_max = mc_dispatch.dispatch_outputs.q_dot_pc_max;
-        is_PAR_HTR_allowed = mc_dispatch.dispatch_outputs.is_eh_su_allowed;
-        q_dot_elec_to_PAR_HTR = mc_dispatch.dispatch_outputs.q_eh_target;
-
+        is_rec_su_allowed = mc_dispatch.disp_outputs.is_rec_su_allowed;
+        is_pc_sb_allowed = mc_dispatch.disp_outputs.is_pc_sb_allowed;
+        is_pc_su_allowed = mc_dispatch.disp_outputs.is_pc_su_allowed;
+        double q_dot_pc_target_disp = mc_dispatch.disp_outputs.q_pc_target;
+        q_dot_elec_to_CR_heat = mc_dispatch.disp_outputs.q_dot_elec_to_CR_heat;
+        double q_dot_pc_max_disp = mc_dispatch.disp_outputs.q_dot_pc_max;      // Not used?
+        is_PAR_HTR_allowed = mc_dispatch.disp_outputs.is_eh_su_allowed;
+        q_dot_elec_to_PAR_HTR = mc_dispatch.disp_outputs.q_eh_target;
+        
         // Add fixed parasitics to the system target and max
-        W_dot_system_target = mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design;
-        W_dot_system_max = (mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design)*1.2;  // Adding buffer
+        double W_dot_system_target_disp = mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design;
+        double W_dot_system_max_disp = (mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design) * 1.2;  // Not used?
+        
+        q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
+    
+        // If system electric target
+        if( ms_system_params.m_is_control_target_elec ) {
+    
+            W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
+    
+            // Get target W_dot from dispatch outputs
+            W_dot_system_target = W_dot_system_target_disp;     //[MWe] //  f_turbine_tou* m_W_dot_system_net_design;    //[MWe]
+    
+            // Then estimate q_dot using solver-side parasitic estimates?
+            // and use system-level q_dot_pc_max
+            // (although dispatch estimate should have a decent q_dot_pc estimate that includes parasitic estimates)
+            double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
+                (1.0 - m_ratio_cycle_dep_par_design);
+            q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
+        }
+        // If heat target
+        else {
+    
+            // Set PC target and max thermal power
+            q_dot_pc_target = q_dot_pc_target_disp;             //[MWt] //  f_turbine_tou* m_cycle_q_dot_des;	//[MW]
+    
+            // Shouldn't need system electricity values in 'heat' mode
+            W_dot_system_target = W_dot_system_max = std::numeric_limits<double>::quiet_NaN();
+        }
+    
+        // Only reset max values if target = max
+        if( mc_tou.m_is_tod_pc_target_also_pc_max ) {
+            q_dot_pc_max = q_dot_pc_target;     //[MW]
+            W_dot_system_max = W_dot_system_target; //[MWe]
+        }
+        
     }
 }
 

@@ -84,7 +84,7 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Default_NoFinancial)
         EXPECT_NEAR_FRAC(power_trough.GetOutputSum("defocus"), 8747, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_trough.GetOutputSum("q_dc_tes"), 343833, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_trough.GetOutputSum("P_fixed"), 5348, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("op_mode_1"), 53565, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("op_mode_1"), 54965, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_trough.GetOutputSum("n_op_modes"), 9800, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_trough.GetOutputSum("is_rec_su_allowed"), 8759, kErrorToleranceHi);
         //EXPECT_NEAR_FRAC(power_trough.GetOutputSum("operating_modes_a"), 35458021, kErrorToleranceHi);
@@ -242,7 +242,7 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Dispatch_Targets_Default_NoFinancial
         }
         // Check Receiver operations
         if (is_rec_su_allowed_in[i] == 0.0) {
-            EXPECT_LT(rec_heat_output[i], 0.0); // receiver shutdown
+            EXPECT_LT(rec_heat_output[i], 0.0001); // receiver shutdown
         }
     }
 

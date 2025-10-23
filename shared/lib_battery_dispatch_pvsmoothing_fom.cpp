@@ -250,8 +250,8 @@ void dispatch_pvsmoothing_front_of_meter_t::update_dispatch(size_t year, size_t 
             ssc_number_t battery_energy = _Battery->energy_nominal();
             ssc_number_t batt_half_round_trip_eff = sqrt(m_etaDischarge * m_etaPVCharge);
             ssc_number_t battery_power = m_batteryPower->getMaxACChargePower();
-            ssc_number_t soc_min = _Battery->get_params().capacity->minimum_SOC * 0.01;
-            ssc_number_t soc_max = _Battery->get_params().capacity->maximum_SOC * 0.01;
+            ssc_number_t soc_min = _Battery->SOC_min() * 0.01;
+            ssc_number_t soc_max = _Battery->SOC_max() * 0.01;
             // scale by nameplate per ERPI code
             battery_energy = m_batt_dispatch_pvs_nameplate_ac > 0 ? battery_energy / m_batt_dispatch_pvs_nameplate_ac : battery_energy;
             battery_power = m_batt_dispatch_pvs_nameplate_ac > 0 ? battery_power / m_batt_dispatch_pvs_nameplate_ac : battery_power;

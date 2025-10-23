@@ -321,12 +321,12 @@ void swh_common(ssc_data_t &data) {
 	ssc_number_t lcoe_real;
 	ssc_data_get_number(data, "lcoe_real", &lcoe_real);
 	printf("%s = %.17g\n", "Levelized COE (real)", (double)lcoe_real);
-	ssc_number_t elec_cost_without_system_year1;
-	ssc_data_get_number(data, "elec_cost_without_system_year1", &elec_cost_without_system_year1);
-	printf("%s = %.17g\n", "Electricity bill without system (year 1)", (double)elec_cost_without_system_year1);
-	ssc_number_t elec_cost_with_system_year1;
-	ssc_data_get_number(data, "elec_cost_with_system_year1", &elec_cost_with_system_year1);
-	printf("%s = %.17g\n", "Electricity bill with system (year 1)", (double)elec_cost_with_system_year1);
+	ssc_number_t utility_bill_wo_sys_year1;
+	ssc_data_get_number(data, "utility_bill_wo_sys_year1", &utility_bill_wo_sys_year1);
+	printf("%s = %.17g\n", "Electricity bill without system (year 1)", (double)utility_bill_wo_sys_year1);
+	ssc_number_t utility_bill_w_sys_year1;
+	ssc_data_get_number(data, "utility_bill_w_sys_year1", &utility_bill_w_sys_year1);
+	printf("%s = %.17g\n", "Electricity bill with system (year 1)", (double)utility_bill_w_sys_year1);
 	ssc_number_t savings_year1;
 	ssc_data_get_number(data, "savings_year1", &savings_year1);
 	printf("%s = %.17g\n", "Net savings with system (year 1)", (double)savings_year1);

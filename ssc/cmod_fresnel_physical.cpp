@@ -92,16 +92,14 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_INPUT,    SSC_NUMBER,         "SCA_drives_elec",             "Tracking power in Watts per SCA drive",                                                 "W/module",            "",                             "Solar_Field",          "*",                "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "land_mult",                   "Non-solar field land area multiplier",                                                  "-",                   "",                             "Solar_Field",          "*",                "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "T_startup",                   "Power block startup temperature",                                                       "C",                   "",                             "Solar_Field",          "*",                "",                 "" },
-    { SSC_INPUT,    SSC_NUMBER,         "rec_su_delay",                "Fixed startup delay time for the receiver",                                             "hr",                  "",                             "Solar_Field",          "*",                "",                 "" },
-    { SSC_INPUT,    SSC_NUMBER,         "rec_qf_delay",                "Energy-based receiver startup delay (fraction of rated thermal power)",                 "-",                   "",                             "Solar_Field",          "*",                "",                 "" },
-    { SSC_INPUT,    SSC_NUMBER,         "p_start",                     "Collector startup energy, per SCA",                                                     "kWe-hr",              "",                             "Solar_Field",          "*",                "",                 "" },
+    { SSC_INPUT,    SSC_NUMBER,         "p_start",                     "Collector startup energy, per SCA",                                                     "kWhe",                "",                             "Solar_Field",          "*",                "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "L_rnr_pb",                    "Length of runner pipe in power block",                                                  "m",                   "",                             "Solar_Field",          "*",                "",                 "" },
 
-    { SSC_INPUT,    SSC_NUMBER,         "use_abs_or_rel_mdot_limit",   "Use mass flow abs (0) or relative (1) limits",                                          "",                    "",                             "solar_field",          "?=0",                          "",     "" },
-    { SSC_INPUT,    SSC_NUMBER,         "m_dot_htfmin",                "Minimum loop HTF flow rate",                                                            "kg/s",                "",                             "solar_field",          "use_abs_or_rel_mdot_limit=0",  "",     "" },
-    { SSC_INPUT,    SSC_NUMBER,         "m_dot_htfmax",                "Maximum loop HTF flow rate",                                                            "kg/s",                "",                             "solar_field",          "use_abs_or_rel_mdot_limit=0",  "",     "" },
-    { SSC_INPUT,    SSC_NUMBER,         "f_htfmin",                    "Minimum loop mass flow rate fraction of design",                                        "",                    "",                             "solar_field",          "use_abs_or_rel_mdot_limit=1",  "",     "" },
-    { SSC_INPUT,    SSC_NUMBER,         "f_htfmax",                    "Maximum loop mass flow rate fraction of design",                                        "",                    "",                             "solar_field",          "use_abs_or_rel_mdot_limit=1",  "",     "" },
+    { SSC_INPUT,    SSC_NUMBER,         "use_abs_or_rel_mdot_limit",   "Use mass flow abs (0) or relative (1) limits",                                          "",                    "",                             "Solar_Field",          "?=0",                          "",     "" },
+    { SSC_INPUT,    SSC_NUMBER,         "m_dot_htfmin",                "Minimum loop HTF flow rate",                                                            "kg/s",                "",                             "Solar_Field",          "use_abs_or_rel_mdot_limit=0",  "",     "" },
+    { SSC_INPUT,    SSC_NUMBER,         "m_dot_htfmax",                "Maximum loop HTF flow rate",                                                            "kg/s",                "",                             "Solar_Field",          "use_abs_or_rel_mdot_limit=0",  "",     "" },
+    { SSC_INPUT,    SSC_NUMBER,         "f_htfmin",                    "Minimum loop mass flow rate fraction of design",                                        "",                    "",                             "Solar_Field",          "use_abs_or_rel_mdot_limit=1",  "",     "" },
+    { SSC_INPUT,    SSC_NUMBER,         "f_htfmax",                    "Maximum loop mass flow rate fraction of design",                                        "",                    "",                             "Solar_Field",          "use_abs_or_rel_mdot_limit=1",  "",     "" },
 
 
     // Collector and Receiver
@@ -180,8 +178,9 @@ static var_info _cm_vtab_fresnel_physical[] = {
                                                                                                 
                                                                                                 
     // User Defined cycle                                                                       
-    { SSC_INPUT,    SSC_NUMBER,         "ud_f_W_dot_cool_des",         "Percent of user-defined power cycle design gross output consumed by cooling",           "%",	                "",                             "user_defined_PC",      "pc_config=1",      "",                 "" },
+    { SSC_INPUT,    SSC_NUMBER,         "ud_f_W_dot_cool_des",         "Percent of user-defined power cycle design gross output consumed by cooling",           "%",	               "",                             "user_defined_PC",      "pc_config=1",      "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "ud_m_dot_water_cool_des",     "Mass flow rate of water required at user-defined power cycle design point",             "kg/s",                "",                             "user_defined_PC",      "pc_config=1",      "",                 "" },
+    { SSC_INPUT,    SSC_NUMBER,         "ud_is_sco2_regr",             "0: (default) simple max htf mass flow correction; 1: sco2 heuristic regression; 2: no correction","",          "",                             "user_defined_PC",      "?=0",              "",                 "" },
     { SSC_INPUT,    SSC_MATRIX,         "ud_ind_od",                   "Off design user-defined power cycle performance as function of T_htf, m_dot_htf [ND], and T_amb", "",          "",                             "user_defined_PC",      "pc_config=1",      "",                 "" },
                                                                                                 
     // TES                                                                                      
@@ -203,16 +202,16 @@ static var_info _cm_vtab_fresnel_physical[] = {
 
     { SSC_INPUT,    SSC_NUMBER,         "V_tes_des",                   "Design-point velocity to size the TES pipe diameters",                                  "m/s",                 "",                             "Storage",              "?=1.85",           "",                 "SIMULATION_PARAMETER" },
 
-
     // System Control
-              
+
+    { SSC_INPUT,    SSC_NUMBER,         "is_timestep_load_fractions",  "Use turbine load fraction for each timestep instead of block dispatch?",                "",                    "",                             "tou",                  "?=0",              "",                 "SIMULATION_PARAMETER" },
+    { SSC_INPUT,    SSC_ARRAY,          "timestep_load_fractions",     "Turbine load fraction for each timestep, alternative to block dispatch",                "",                    "",                             "tou",                  "?",                "",                 "SIMULATION_PARAMETER" },
+
     { SSC_INPUT,    SSC_NUMBER,         "pb_fixed_par",                "Fixed parasitic load - runs at all times",                                              "",                    "",                             "Sys_Control",          "*",                "",                 "" },
     { SSC_INPUT,    SSC_ARRAY,          "bop_array",                   "Balance of plant parasitic power fraction",                                             "",                    "",                             "Sys_Control",          "*",                "",                 "" },
     { SSC_INPUT,    SSC_ARRAY,          "aux_array",                   "Aux heater, boiler parasitic",                                                          "",                    "",                             "Sys_Control",          "*",                "",                 "" },
     
     { SSC_INPUT,    SSC_NUMBER,         "is_dispatch",                 "Allow dispatch optimization?",  /*TRUE=1*/                                              "-",                   "",                             "Sys_Control",          "?=0",              "",                 "" },
-    //{ SSC_INPUT,    SSC_NUMBER,         "is_dispatch_series",          "Use time-series dispatch factors",                                                      "",                    "",                             "Sys_Control",          "?=1",              "",                 "" },
-    { SSC_INPUT,    SSC_ARRAY,          "dispatch_series",             "Time series dispatch factors",                                                          "",                    "",                             "Sys_Control",          "",                 "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_frequency",              "Frequency for dispatch optimization calculations",                                      "hour",                "",                             "Sys_Control",          "is_dispatch=1",    "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_horizon",                "Time horizon for dispatch optimization",                                                "hour",                "",                             "Sys_Control",          "is_dispatch=1",    "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_max_iter",               "Max. no. dispatch optimization iterations",                                             "-",                   "",                             "Sys_Control",          "is_dispatch=1",    "",                 "" },
@@ -222,11 +221,7 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_INPUT,    SSC_NUMBER,         "disp_rsu_cost_rel",           "Receiver startup cost",                                                                 "$/MWt/start",         "",                             "Sys_Control",          "is_dispatch=1",    "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_csu_cost_rel",           "Cycle startup cost",                                                                    "$/MWe-cycle/start",   "",                             "Sys_Control",          "is_dispatch=1",    "",                 "" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_pen_ramping",            "Dispatch cycle production change penalty",                                              "$/MWe-change",        "",                             "Sys_Control",          "is_dispatch=1",    "",                 "" },
-    
-    { SSC_INPUT,    SSC_NUMBER,         "is_write_ampl_dat",           "Write AMPL data files for dispatch run",                                                "-",                   "",                             "tou",                  "?=0",                     "",          "SIMULATION_PARAMETER" },
-    { SSC_INPUT,    SSC_NUMBER,         "is_ampl_engine",              "Run dispatch optimization with external AMPL engine",                                   "-",                   "",                             "tou",                  "?=0",                     "",          "SIMULATION_PARAMETER" },
-    { SSC_INPUT,    SSC_STRING,         "ampl_data_dir",               "AMPL data file directory",                                                              "-",                   "",                             "tou",                  "?=''",                    "",          "SIMULATION_PARAMETER" },
-    { SSC_INPUT,    SSC_STRING,         "ampl_exec_call",              "System command to run AMPL code",                                                       "-",                   "",                             "tou",                  "?='ampl sdk_solution.run'", "",        "SIMULATION_PARAMETER" },
+   
     { SSC_INPUT,    SSC_NUMBER,         "can_cycle_use_standby",       "Can the cycle use standby operation?",                                                  "",                    "",                             "tou",                  "?=0",                     "",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_steps_per_hour",         "Time steps per hour for dispatch optimization calculations",                            "-",                   "",                             "tou",                  "?=1",                     "",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_spec_presolve",          "Dispatch optimization presolve heuristic",                                              "-",                   "",                             "tou",                  "?=-1",                    "",          "SIMULATION_PARAMETER" },
@@ -235,10 +230,10 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_INPUT,    SSC_NUMBER,         "disp_spec_scaling",           "Dispatch optimization scaling heuristic",                                               "-",                   "",                             "tou",                  "?=-1",                    "",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_inventory_incentive",    "Dispatch storage terminal inventory incentive multiplier",                              "",                    "",                             "System Control",       "?=0.0",                   "",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_NUMBER,         "q_rec_standby",               "Receiver standby energy consumption",                                                   "kWt",                 "",                             "tou",                  "?=9e99",                  "",          "SIMULATION_PARAMETER" },
-    { SSC_INPUT,    SSC_NUMBER,         "q_rec_heattrace",             "Receiver heat trace energy consumption during startup",                                 "kWe-hr",              "",                             "tou",                  "?=0.0",                   "",          "SIMULATION_PARAMETER" },
-    { SSC_INPUT,    SSC_ARRAY,          "timestep_load_fractions",     "Turbine load fraction for each timestep, alternative to block dispatch",                "",                    "",                             "tou",                  "?",                       "",          "SIMULATION_PARAMETER" },
+    { SSC_INPUT,    SSC_NUMBER,         "q_rec_heattrace",             "Receiver heat trace energy consumption during startup",                                 "kWhe",                "",                             "tou",                  "?=0.0",                   "",          "SIMULATION_PARAMETER" },
 
-
+    { SSC_INPUT,    SSC_NUMBER,         "rec_su_delay",                "Fixed startup delay time for the receiver",                                             "hr",                  "",                             "Sys_Control",          "*",                "",                 "" },
+    { SSC_INPUT,    SSC_NUMBER,         "rec_qf_delay",                "Energy-based receiver startup delay (fraction of rated thermal power)",                 "-",                   "",                             "Sys_Control",          "*",                "",                 "" },
 
     // Financials
     {SSC_INPUT,    SSC_NUMBER,          "csp_financial_model",         "",                                                                                      "1-8",                 "",                             "Financial Model",      "?=1",              "INTEGER,MIN=0",    ""},
@@ -259,6 +254,9 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_INPUT,        SSC_ARRAY,       "dispatch_tod_factors",      "TOD factors for periods 1 through 9",                                              "",
         "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                              "Time of Delivery Factors","ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1","",  "SIMULATION_PARAMETER" },
 
+
+    // Day of week for weekday/weekend schedules
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",           "Start day of year for TOD periods",                                                     "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors", "?=0", "", "" },
 
     { SSC_INPUT,    SSC_NUMBER,         "ppa_soln_mode",               "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                         "",                    "",                             "Financial Solution Mode",                  "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_ARRAY,          "ppa_price_input",             "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                         "",                    "",                             "Financial Solution Mode",                  "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
@@ -294,26 +292,26 @@ static var_info _cm_vtab_fresnel_physical[] = {
 
 
         // Construction financing inputs/outputs (SSC variable table from cmod_cb_construction_financing)
-    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate1",           "Interest rate, loan 1",                                                                                                                   "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate2",           "Interest rate, loan 2",                                                                                                                   "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate3",           "Interest rate, loan 3",                                                                                                                   "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate4",           "Interest rate, loan 4",                                                                                                                   "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate5",           "Interest rate, loan 5",                                                                                                                   "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_months1",                  "Months prior to operation, loan 1",                                                                                                       "",             "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_months2",                  "Months prior to operation, loan 2",                                                                                                       "",             "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_months3",                  "Months prior to operation, loan 3",                                                                                                       "",             "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_months4",                  "Months prior to operation, loan 4",                                                                                                       "",             "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_months5",                  "Months prior to operation, loan 5",                                                                                                       "",             "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_percent1",                 "Percent of total installed cost, loan 1",                                                                                                 "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_percent2",                 "Percent of total installed cost, loan 2",                                                                                                 "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_percent3",                 "Percent of total installed cost, loan 3",                                                                                                 "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_percent4",                 "Percent of total installed cost, loan 4",                                                                                                 "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_percent5",                 "Percent of total installed cost, loan 5",                                                                                                 "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate1",            "Upfront fee on principal, loan 1",                                                                                                        "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate2",            "Upfront fee on principal, loan 2",                                                                                                        "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate3",            "Upfront fee on principal, loan 3",                                                                                                        "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate4",            "Upfront fee on principal, loan 4",                                                                                                        "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate5",            "Upfront fee on principal, loan 5",                                                                                                        "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate1",           "Interest rate, loan 1",                                                                 "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate2",           "Interest rate, loan 2",                                                                 "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate3",           "Interest rate, loan 3",                                                                 "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate4",           "Interest rate, loan 4",                                                                 "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate5",           "Interest rate, loan 5",                                                                 "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_months1",                  "Months prior to operation, loan 1",                                                     "",                    "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_months2",                  "Months prior to operation, loan 2",                                                     "",                    "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_months3",                  "Months prior to operation, loan 3",                                                     "",                    "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_months4",                  "Months prior to operation, loan 4",                                                     "",                    "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_months5",                  "Months prior to operation, loan 5",                                                     "",                    "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_percent1",                 "Percent of total installed cost, loan 1",                                               "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_percent2",                 "Percent of total installed cost, loan 2",                                               "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_percent3",                 "Percent of total installed cost, loan 3",                                               "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_percent4",                 "Percent of total installed cost, loan 4",                                               "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_percent5",                 "Percent of total installed cost, loan 5",                                               "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate1",            "Upfront fee on principal, loan 1",                                                      "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate2",            "Upfront fee on principal, loan 2",                                                      "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate3",            "Upfront fee on principal, loan 3",                                                      "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate4",            "Upfront fee on principal, loan 4",                                                      "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "const_per_upfront_rate5",            "Upfront fee on principal, loan 5",                                                      "%",                   "",                             "Financial Parameters",          "csp_financial_model<5|csp_financial_model=6",         "",              "" },
 
 
 
@@ -345,10 +343,10 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_OUTPUT,       SSC_NUMBER,     "q_field_des_actual",               "Design-point thermal power from the solar field limited by mass flow", "MW",           "",         "Receiver",                       "*",                                                                "",              "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "q_field_des_ideal",                "Design-point thermal power from the solar field with no limit",        "MW",           "",         "Receiver",                       "*",                                                                "",              "" },
 
-    { SSC_OUTPUT,       SSC_NUMBER,     "m_dot_htfmin_actual",              "Actual minimum loop HTF flow rate",                                    "kg/s",         "",         "solar_field",                    "*",                                                                "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "m_dot_htfmax_actual",              "Actual maximum loop HTF flow rate",                                    "kg/s",         "",         "solar_field",                    "*",                                                                "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "f_htfmin_actual",                  "Actual minimum loop mass flow rate fraction of design",                "",             "",         "solar_field",                    "*",                                                                "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "f_htfmax_actual",                  "Actual maximum loop mass flow rate fraction of design",                "",             "",         "solar_field",                    "*",                                                                "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "m_dot_htfmin_actual",              "Actual minimum loop HTF flow rate",                                    "kg/s",         "",         "Solar_Field",                    "*",                                                                "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "m_dot_htfmax_actual",              "Actual maximum loop HTF flow rate",                                    "kg/s",         "",         "Solar_Field",                    "*",                                                                "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "f_htfmin_actual",                  "Actual minimum loop mass flow rate fraction of design",                "",             "",         "Solar_Field",                    "*",                                                                "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "f_htfmax_actual",                  "Actual maximum loop mass flow rate fraction of design",                "",             "",         "Solar_Field",                    "*",                                                                "",              "" },
 
 
     { SSC_OUTPUT,       SSC_NUMBER,     "field_area",                       "Solar field area",                                                     "acres",        "",         "Receiver",                       "*",                                                                "",              "" },
@@ -432,25 +430,25 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_OUTPUT,       SSC_NUMBER,     "installed_per_capacity",           "Estimated total installed cost per net capacity ($/kW)",               "$/kW",       "",         "Capital Costs",                              "",                                                                "",              "" },
 
         // Financing
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal1",             "Principal, loan 1",                                                    "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal2",             "Principal, loan 2",                                                    "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal3",             "Principal, loan 3",                                                    "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal4",             "Principal, loan 4",                                                    "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal5",             "Principal, loan 5",                                                    "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest1",              "Interest cost, loan 1",                                                "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest2",              "Interest cost, loan 2",                                                "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest3",              "Interest cost, loan 3",                                                "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest4",              "Interest cost, loan 4",                                                "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest5",              "Interest cost, loan 5",                                                "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total1",                 "Total financing cost, loan 1",                                         "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total2",                 "Total financing cost, loan 2",                                         "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total3",                 "Total financing cost, loan 3",                                         "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total4",                 "Total financing cost, loan 4",                                         "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total5",                 "Total financing cost, loan 5",                                         "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_percent_total",          "Total percent of installed costs, all loans",                          "%",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal_total",        "Total principal, all loans",                                           "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest_total",         "Total interest costs, all loans",                                      "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "construction_financing_cost",      "Total construction financing cost",                                    "$",          "",         "Financial Parameters",                     "*",                                                                 "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal1",             "Principal, loan 1",                                                    "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal2",             "Principal, loan 2",                                                    "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal3",             "Principal, loan 3",                                                    "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal4",             "Principal, loan 4",                                                    "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal5",             "Principal, loan 5",                                                    "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest1",              "Interest cost, loan 1",                                                "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest2",              "Interest cost, loan 2",                                                "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest3",              "Interest cost, loan 3",                                                "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest4",              "Interest cost, loan 4",                                                "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest5",              "Interest cost, loan 5",                                                "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total1",                 "Total financing cost, loan 1",                                         "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total2",                 "Total financing cost, loan 2",                                         "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total3",                 "Total financing cost, loan 3",                                         "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total4",                 "Total financing cost, loan 4",                                         "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_total5",                 "Total financing cost, loan 5",                                         "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_percent_total",          "Total percent of installed costs, all loans",                          "%",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_principal_total",        "Total principal, all loans",                                           "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "const_per_interest_total",         "Total interest costs, all loans",                                      "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "construction_financing_cost",      "Total construction financing cost",                                    "$",          "",         "Financial Parameters",                     "csp_financial_model<5|csp_financial_model=6",                       "",              "" },
 
     // ****************************************************************************************************************************************
     // Timeseries Simulation Outputs here (sim_type = 1):
@@ -477,31 +475,33 @@ static var_info _cm_vtab_fresnel_physical[] = {
 
 
     // Solar Field (from Trough)
-    { SSC_OUTPUT,       SSC_ARRAY,      "EqOpteff",                         "Field optical efficiency before defocus",                              "",             "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "SCAs_def",                         "Field fraction of focused SCAs",                                       "",             "",         "solar_field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "EqOpteff",                         "Field optical efficiency before defocus",                              "",             "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "SCAs_def",                         "Field fraction of focused SCAs",                                       "",             "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
 
-    { SSC_OUTPUT,       SSC_ARRAY,      "q_inc_sf_tot",                     "Field thermal power incident",                                         "MWt",          "",         "solar_field",    "*",                                "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_rec_inc",                    "Receiver thermal power incident",                                      "MWt",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_rec_thermal_loss",           "Receiver thermal losses",                                              "MWt",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_rec_abs",                    "Receiver thermal power absorbed",                                      "MWt",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "rec_thermal_eff",                  "Receiver thermal efficiency",                                          "",             "",         "solar_field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "q_inc_sf_tot",                     "Field thermal power incident",                                         "MWt",          "",         "Solar_Field",    "*",                                "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_rec_inc",                    "Receiver thermal power incident",                                      "MWt",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_rec_thermal_loss",           "Receiver thermal losses",                                              "MWt",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_rec_abs",                    "Receiver thermal power absorbed",                                      "MWt",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "rec_thermal_eff",                  "Receiver thermal efficiency",                                          "",             "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
 
-    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_piping_loss",                "Field piping thermal losses",                                          "MWt",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "e_dot_field_int_energy",           "Field change in material/htf internal energy",                         "MWt",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_htf_sf_out",                 "Field thermal power leaving in HTF",                                   "MWt",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_freeze_prot",                "Field freeze protection required",                                     "MWt",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_piping_loss",                "Field piping thermal losses",                                          "MWt",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "e_dot_field_int_energy",           "Field change in material/htf internal energy",                         "MWt",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_htf_sf_out",                 "Field thermal power leaving in HTF",                                   "MWt",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "q_dot_freeze_prot",                "Field freeze protection required",                                     "MWt",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+
+    { SSC_OUTPUT,       SSC_ARRAY,      "rec_time_in_startup",              "Field time at startup",                                                "min",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
+
+    { SSC_OUTPUT,       SSC_ARRAY,      "m_dot_loop",                       "Receiver mass flow rate",                                              "kg/s",         "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "m_dot_field_recirc",               "Field total mass flow recirculated",                                   "kg/s",         "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "m_dot_field_delivered",            "Field total mass flow delivered",                                      "kg/s",         "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "T_field_cold_in",                  "Field timestep-averaged inlet temperature",                            "C",            "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "T_rec_cold_in",                    "Loop timestep-averaged inlet temperature",                             "C",            "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "T_rec_hot_out",                    "Loop timestep-averaged outlet temperature",                            "C",            "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "T_field_hot_out",                  "Field timestep-averaged outlet temperature",                           "C",            "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "deltaP_field",                     "Field pressure drop",                                                  "bar",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
                                                                                                                                             
-    { SSC_OUTPUT,       SSC_ARRAY,      "m_dot_loop",                       "Receiver mass flow rate",                                              "kg/s",         "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "m_dot_field_recirc",               "Field total mass flow recirculated",                                   "kg/s",         "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "m_dot_field_delivered",            "Field total mass flow delivered",                                      "kg/s",         "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "T_field_cold_in",                  "Field timestep-averaged inlet temperature",                            "C",            "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "T_rec_cold_in",                    "Loop timestep-averaged inlet temperature",                             "C",            "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "T_rec_hot_out",                    "Loop timestep-averaged outlet temperature",                            "C",            "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "T_field_hot_out",                  "Field timestep-averaged outlet temperature",                           "C",            "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "deltaP_field",                     "Field pressure drop",                                                  "bar",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-                                                                                                                                            
-    { SSC_OUTPUT,       SSC_ARRAY,      "W_dot_sca_track",                  "Field collector tracking power",                                       "MWe",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "W_dot_field_pump",                 "Field htf pumping power",                                              "MWe",          "",         "solar_field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "W_dot_sca_track",                  "Field collector tracking power",                                       "MWe",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "W_dot_field_pump",                 "Field htf pumping power",                                              "MWe",          "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
                                                                                                                              
 
     // power block
@@ -544,16 +544,16 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_OUTPUT,       SSC_ARRAY,      "q_balance",                        "Relative energy balance error",                                        "",             "",         "solver",         "sim_type=1",                       "",                      "" },
 
     // Monthly Outputs
-    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy",                   "Monthly AC energy in Year 1",                                                       "kWh",          "",         "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy",                   "Monthly AC energy in Year 1",                                          "kWh",          "",         "Post-process",   "sim_type=1",              "LENGTH=12",                      "" },
 
     // Annual Outputs
-    { SSC_OUTPUT,       SSC_NUMBER,     "annual_energy",                    "Annual net electricity production with availability derate",              "kWe-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
-    //{ SSC_OUTPUT,       SSC_NUMBER,     "annual_gross_energy",              "Annual Gross Electrical Energy Production w/ avail derate",                  "kWe-hr",       "",               "Post-process",   "*",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "annual_thermal_consumption",       "Annual thermal freeze protection required",                            "kWt-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
-    //{ SSC_OUTPUT,       SSC_NUMBER,     "annual_electricity_consumption",   "Annual electricity consumptoin w/ avail derate",                             "kWe-hr",       "",               "Post-process",   "*",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "annual_energy",                    "Annual net electrical energy w/ avail. derate",                        "kWhe",         "",         "Post-process",   "sim_type=1",                       "",                      "" },
+    //{ SSC_OUTPUT,       SSC_NUMBER,     "annual_gross_energy",              "Annual Gross Electrical Energy Production w/ avail derate",                  "kWhe",       "",               "Post-process",   "*",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "annual_thermal_consumption",       "Annual thermal freeze protection required",                            "kWht",         "",         "Post-process",   "sim_type=1",                       "",                      "" },
+    //{ SSC_OUTPUT,       SSC_NUMBER,     "annual_electricity_consumption",   "Annual electricity consumptoin w/ avail derate",                             "kWhe",       "",               "Post-process",   "*",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "annual_total_water_use",           "Total annual water usage",                                             "m^3",          "",         "Post-process",   "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "annual_field_freeze_protection",   "Annual thermal power for field freeze protection",                     "kWt-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_NUMBER,     "annual_tes_freeze_protection",     "Annual thermal power for TES freeze protection",                       "kWt-hr",       "",         "Post-process",   "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "annual_field_freeze_protection",   "Annual thermal power for field freeze protection",                     "kWht",         "",         "Post-process",   "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "annual_tes_freeze_protection",     "Annual thermal power for TES freeze protection",                       "kWht",         "",         "Post-process",   "sim_type=1",                       "",                      "" },
 
     // Newly added
     { SSC_OUTPUT,       SSC_ARRAY,      "n_op_modes",                       "Operating modes in reporting timestep",                                "",             "",         "solver",         "sim_type=1",                       "",                      "" },
@@ -599,8 +599,8 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_OUTPUT,       SSC_ARRAY,      "P_fixed",                          "Parasitic power fixed load",                                           "MWe",          "",         "system",         "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,      "P_plant_balance_tot",              "Parasitic power generation-dependent load",                            "MWe",          "",         "system",         "sim_type=1",                       "",                      "" },
 
-    { SSC_OUTPUT,       SSC_ARRAY,      "P_out_net",                        "Total electric power to grid",                                         "MWe",          "",               "system",         "*",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "gen",                              "Total electric power to grid w/ avail. derate",                        "kWe",          "",         "system",         "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "P_out_net",                        "System net electrical power",                                          "MWe",          "",               "system",         "*",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "gen",                              "System net electrical power w/ avail. derate",                         "kWe",          "",         "system",         "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "annual_W_cycle_gross",             "Electrical source - Power cycle gross output",                         "kWhe",         "",         "system",         "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "conversion_factor",                "Gross to Net Conversion Factor",                                       "%",            "",         "system",         "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_NUMBER,     "capacity_factor",                  "Capacity factor",                                                      "%",            "",         "system",         "sim_type=1",                       "",                      "" },
@@ -609,7 +609,7 @@ static var_info _cm_vtab_fresnel_physical[] = {
     //{ SSC_OUTPUT,       SSC_NUMBER,     "W_dot_par_tot_haf",                "Adjusted parasitic power",                                             "kWe",          "",               "system",         "*",                       "",                      "" },
     //{ SSC_OUTPUT,       SSC_NUMBER,     "q_dot_defocus_est",                "Thermal energy intentionally lost by defocusing",                      "MWt",          "",               "system",         "*",                       "",                      "" },
 
-    { SSC_OUTPUT,       SSC_ARRAY,      "recirculating",                    "Field recirculating (bypass valve open)",                              "-",            "",         "solar_field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "recirculating",                    "Field recirculating (bypass valve open)",                              "-",            "",         "Solar_Field",    "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,      "pipe_tes_diams",                   "Pipe diameters in TES",                                                "m",            "",         "TES",            "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,      "pipe_tes_wallthk",                 "Pipe wall thickness in TES",                                           "m",            "",         "TES",            "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,      "pipe_tes_lengths",                 "Pipe lengths in TES",                                                  "m",            "",         "TES",            "sim_type=1",                       "",                      "" },
@@ -801,7 +801,9 @@ public:
                 c_fresnel.mc_reported_outputs.assign(C_csp_fresnel_collector_receiver::E_E_DOT_INTERNAL_ENERGY, allocate("e_dot_field_int_energy", n_steps_fixed), n_steps_fixed);
                 c_fresnel.mc_reported_outputs.assign(C_csp_fresnel_collector_receiver::E_Q_DOT_HTF_OUT, allocate("q_dot_htf_sf_out", n_steps_fixed), n_steps_fixed);
                 c_fresnel.mc_reported_outputs.assign(C_csp_fresnel_collector_receiver::E_Q_DOT_FREEZE_PROT, allocate("q_dot_freeze_prot", n_steps_fixed), n_steps_fixed);
-                
+
+                c_fresnel.mc_reported_outputs.assign(C_csp_fresnel_collector_receiver::E_TIME_IN_STARTUP, allocate("rec_time_in_startup", n_steps_fixed), n_steps_fixed);
+
                 c_fresnel.mc_reported_outputs.assign(C_csp_fresnel_collector_receiver::E_M_DOT_LOOP, allocate("m_dot_loop", n_steps_fixed), n_steps_fixed);
                 c_fresnel.mc_reported_outputs.assign(C_csp_fresnel_collector_receiver::E_IS_RECIRCULATING, allocate("recirculating", n_steps_fixed), n_steps_fixed);
                 c_fresnel.mc_reported_outputs.assign(C_csp_fresnel_collector_receiver::E_M_DOT_FIELD_RECIRC, allocate("m_dot_field_recirc", n_steps_fixed), n_steps_fixed);
@@ -907,6 +909,7 @@ public:
                     // User-Defined Cycle Parameters
                     pc->m_W_dot_cooling_des = as_double("ud_f_W_dot_cool_des") / 100.0 * as_double("P_ref");  //[MWe]
                     pc->m_m_dot_water_des = as_double("ud_m_dot_water_cool_des");       //[kg/s]
+                    pc->m_is_udpc_sco2_regr = as_integer("ud_is_sco2_regr");
 
                     // User-Defined Cycle Off-Design Tables 
                     pc->mc_combined_ind = as_matrix("ud_ind_od");
@@ -969,7 +972,9 @@ public:
                 as_double("P_ref") / as_double("eta_ref"),
                 c_fresnel.m_solar_mult,
                 as_double("P_ref") / as_double("eta_ref") * as_double("tshours"),
+                true,
                 as_double("h_tank"),
+                0.0,
                 as_double("u_tank"),
                 as_integer("tank_pairs"),
                 as_double("hot_tank_Thtr"),
@@ -1037,11 +1042,7 @@ public:
 
         // Off-taker schedule
         C_timeseries_schedule_inputs offtaker_schedule;
-        bool assigned_is_timestep_fractions = is_assigned("is_timestep_load_fractions");
-        bool is_timestep_load_fractions = false;
-        if (assigned_is_timestep_fractions) {
-            is_timestep_load_fractions = as_boolean("is_timestep_load_fractions");
-        }
+        bool is_timestep_load_fractions = as_boolean("is_timestep_load_fractions");
         if (is_timestep_load_fractions) {
             auto vec = as_vector_double("timestep_load_fractions");
             C_timeseries_schedule_inputs offtaker_series = C_timeseries_schedule_inputs(vec, std::numeric_limits<double>::quiet_NaN());
@@ -1049,7 +1050,7 @@ public:
         }
         else {      // Block schedules
             C_timeseries_schedule_inputs offtaker_block = C_timeseries_schedule_inputs(as_matrix("weekday_schedule"),
-                as_matrix("weekend_schedule"), as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN());
+                as_matrix("weekend_schedule"), as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN(), as_number("start_day_of_year"));
             offtaker_schedule = offtaker_block;
         }
 
@@ -1116,7 +1117,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"), as_matrix("dispatch_sched_weekend"),
-                            as_vector_double("dispatch_tod_factors"), ppa_price_year1);
+                            as_vector_double("dispatch_tod_factors"), ppa_price_year1, as_number("start_day_of_year"));
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule
@@ -1193,9 +1194,6 @@ public:
 
         C_csp_tou tou(offtaker_schedule, elec_pricing_schedule, dispatch_model_type, is_offtaker_frac_also_max);
 
-        //tou.mc_dispatch_params.m_is_tod_pc_target_also_pc_max = as_boolean("is_tod_pc_target_also_pc_max");
-        //tou.mc_dispatch_params.m_is_block_dispatch = !is_dispatch;    
-
         // System Parameters
         C_csp_solver::S_csp_system_params system;
         {
@@ -1203,11 +1201,11 @@ public:
             size_t nval_bop_array = 0;
             ssc_number_t* bop_array = as_array("bop_array", &nval_bop_array);
             if (nval_bop_array != 5) throw exec_error("fresnel_physical", "Should be 5 elements in bop_array, has " + util::to_string((int)nval_bop_array) + ".");
-            system.m_bop_par = bop_array[0];        //as_double("bop_par");
-            system.m_bop_par_f = bop_array[1];      //as_double("bop_par_f");
-            system.m_bop_par_0 = bop_array[2];      //as_double("bop_par_0");
-            system.m_bop_par_1 = bop_array[3];      //as_double("bop_par_1");
-            system.m_bop_par_2 = bop_array[4];      //as_double("bop_par_2");
+            system.m_bop_par = bop_array[0];
+            system.m_bop_par_f = bop_array[1];
+            system.m_bop_par_0 = bop_array[2];
+            system.m_bop_par_1 = bop_array[3];
+            system.m_bop_par_2 = bop_array[4];
         }
 
         // System Dispatch
@@ -1223,19 +1221,15 @@ public:
                 double q_dot_cycle_des = W_dot_cycle_des / eta_cycle;   //[MWt]
                 double q_dot_rec_des = q_dot_cycle_des * c_fresnel.m_solar_mult; //[MWt]
 
-                dispatch.solver_params.set_user_inputs(is_dispatch, steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
+                dispatch.solver_params.set_user_inputs(as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
                     as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
-                    as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
-                    as_boolean("is_write_ampl_dat"), as_boolean("is_ampl_engine"), as_string("ampl_data_dir"), as_string("ampl_exec_call"));
+                    as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"));
 
                 double disp_csu_cost_calc = as_double("disp_csu_cost_rel") * W_dot_cycle_des; //[$/start]
                 double disp_rsu_cost_calc = as_double("disp_rsu_cost_rel") * q_dot_rec_des;   //[$/start]
                 dispatch.params.set_user_params(as_boolean("can_cycle_use_standby"), as_double("disp_time_weighting"),
                     disp_rsu_cost_calc, 0.0, disp_csu_cost_calc, as_double("disp_pen_ramping"),
                     as_double("disp_inventory_incentive"), as_double("q_rec_standby"), as_double("q_rec_heattrace")); // , ppa_price_year1);
-            }
-            else {
-                dispatch.solver_params.dispatch_optimize = false;
             }
         }
         
@@ -1481,13 +1475,16 @@ public:
 
             // Storage
             double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
-                d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
+                h_tank_calc /*m*/, d_tank_calc /*m*/,
+                q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
                 Q_tes_des_calc /*MWt-hr*/, tes_total_mass/*kg*/;
 
             storage.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-                d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
+                h_tank_calc, d_tank_calc,
+                q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
 
-            double vol_min = V_tes_htf_total_calc * (storage.m_h_tank_min / storage.m_h_tank);
+
+            double vol_min = V_tes_htf_total_calc * (storage.m_h_tank_min / h_tank_calc);
             double tes_htf_min_temp = storage.get_min_storage_htf_temp() - 273.15;
             double tes_htf_max_temp = storage.get_max_storage_htf_temp() - 273.15;
             double tes_htf_dens = storage.get_storage_htf_density();
@@ -1607,15 +1604,15 @@ public:
             double sales_tax_rate = as_double("sales_tax_rate");
 
             // Define outputs
-            double power_plant_cost_out, ts_cost_out, site_improvements_cost_out, bop_cost_out, solar_field_cost_out, htf_system_cost_out, fossil_backup_cost_out, contingency_cost_out,
+            double power_plant_cost_out, ts_cost_out, site_improvements_cost_out, bop_cost_out, solar_field_cost_out, heater_cost_out, htf_system_cost_out, fossil_backup_cost_out, contingency_cost_out,
                 total_direct_cost_out, epc_total_cost_out, plm_total_cost_out, total_indirect_cost_out, sales_tax_total_out, total_installed_cost_out, installed_per_capacity_out;
 
             // Calculate Costs
-            N_mspt::calculate_mslf_costs(site_improvements_area, site_improvements_spec_cost, solar_field_area, solar_field_spec_cost, htf_system_area, htf_system_spec_cost, Q_tes, storage_spec_cost, fossil_backup_mwe,
+            N_mspt::calculate_mslf_costs(site_improvements_area, site_improvements_spec_cost, solar_field_area, solar_field_spec_cost, 0.0, 0.0, htf_system_area, htf_system_spec_cost, Q_tes, storage_spec_cost, fossil_backup_mwe,
                 fossil_spec_cost, power_plant_mwe, power_plant_spec_cost, bop_mwe, bop_spec_cost, contingency_percent, total_land_area, nameplate, epc_cost_per_acre, epc_cost_percent_direct, epc_cost_per_watt,
                 epc_cost_fixed, plm_cost_per_acre, plm_cost_percent_direct, plm_cost_per_watt, plm_cost_fixed, sales_tax_rate, sales_tax_percent,
 
-                power_plant_cost_out, ts_cost_out, site_improvements_cost_out, bop_cost_out, solar_field_cost_out, htf_system_cost_out, fossil_backup_cost_out, contingency_cost_out,
+                power_plant_cost_out, ts_cost_out, site_improvements_cost_out, bop_cost_out, solar_field_cost_out, heater_cost_out, htf_system_cost_out, fossil_backup_cost_out, contingency_cost_out,
                 total_direct_cost_out, epc_total_cost_out, plm_total_cost_out, total_indirect_cost_out, sales_tax_total_out, total_installed_cost_out, installed_per_capacity_out);
 
             // Assign Outputs
@@ -1640,69 +1637,70 @@ public:
             }
 
             // Update construction financing costs, specifically, update: "construction_financing_cost"
-            double const_per_interest_rate1 = as_double("const_per_interest_rate1");
-            double const_per_interest_rate2 = as_double("const_per_interest_rate2");
-            double const_per_interest_rate3 = as_double("const_per_interest_rate3");
-            double const_per_interest_rate4 = as_double("const_per_interest_rate4");
-            double const_per_interest_rate5 = as_double("const_per_interest_rate5");
-            double const_per_months1 = as_double("const_per_months1");
-            double const_per_months2 = as_double("const_per_months2");
-            double const_per_months3 = as_double("const_per_months3");
-            double const_per_months4 = as_double("const_per_months4");
-            double const_per_months5 = as_double("const_per_months5");
-            double const_per_percent1 = as_double("const_per_percent1");
-            double const_per_percent2 = as_double("const_per_percent2");
-            double const_per_percent3 = as_double("const_per_percent3");
-            double const_per_percent4 = as_double("const_per_percent4");
-            double const_per_percent5 = as_double("const_per_percent5");
-            double const_per_upfront_rate1 = as_double("const_per_upfront_rate1");
-            double const_per_upfront_rate2 = as_double("const_per_upfront_rate2");
-            double const_per_upfront_rate3 = as_double("const_per_upfront_rate3");
-            double const_per_upfront_rate4 = as_double("const_per_upfront_rate4");
-            double const_per_upfront_rate5 = as_double("const_per_upfront_rate5");
+            if (csp_financial_model < 5 || csp_financial_model == 6)
+            {
+                double const_per_interest_rate1 = as_double("const_per_interest_rate1");
+                double const_per_interest_rate2 = as_double("const_per_interest_rate2");
+                double const_per_interest_rate3 = as_double("const_per_interest_rate3");
+                double const_per_interest_rate4 = as_double("const_per_interest_rate4");
+                double const_per_interest_rate5 = as_double("const_per_interest_rate5");
+                double const_per_months1 = as_double("const_per_months1");
+                double const_per_months2 = as_double("const_per_months2");
+                double const_per_months3 = as_double("const_per_months3");
+                double const_per_months4 = as_double("const_per_months4");
+                double const_per_months5 = as_double("const_per_months5");
+                double const_per_percent1 = as_double("const_per_percent1");
+                double const_per_percent2 = as_double("const_per_percent2");
+                double const_per_percent3 = as_double("const_per_percent3");
+                double const_per_percent4 = as_double("const_per_percent4");
+                double const_per_percent5 = as_double("const_per_percent5");
+                double const_per_upfront_rate1 = as_double("const_per_upfront_rate1");
+                double const_per_upfront_rate2 = as_double("const_per_upfront_rate2");
+                double const_per_upfront_rate3 = as_double("const_per_upfront_rate3");
+                double const_per_upfront_rate4 = as_double("const_per_upfront_rate4");
+                double const_per_upfront_rate5 = as_double("const_per_upfront_rate5");
 
-            double const_per_principal1, const_per_principal2, const_per_principal3, const_per_principal4, const_per_principal5;
-            double const_per_interest1, const_per_interest2, const_per_interest3, const_per_interest4, const_per_interest5;
-            double const_per_total1, const_per_total2, const_per_total3, const_per_total4, const_per_total5;
-            double const_per_percent_total, const_per_principal_total, const_per_interest_total, construction_financing_cost;
+                double const_per_principal1, const_per_principal2, const_per_principal3, const_per_principal4, const_per_principal5;
+                double const_per_interest1, const_per_interest2, const_per_interest3, const_per_interest4, const_per_interest5;
+                double const_per_total1, const_per_total2, const_per_total3, const_per_total4, const_per_total5;
+                double const_per_percent_total, const_per_principal_total, const_per_interest_total, construction_financing_cost;
 
-            const_per_principal1 = const_per_principal2 = const_per_principal3 = const_per_principal4 = const_per_principal5 =
-                const_per_interest1 = const_per_interest2 = const_per_interest3 = const_per_interest4 = const_per_interest5 =
-                const_per_total1 = const_per_total2 = const_per_total3 = const_per_total4 = const_per_total5 =
-                const_per_percent_total = const_per_principal_total = const_per_interest_total = construction_financing_cost =
-                std::numeric_limits<double>::quiet_NaN();
+                const_per_principal1 = const_per_principal2 = const_per_principal3 = const_per_principal4 = const_per_principal5 =
+                    const_per_interest1 = const_per_interest2 = const_per_interest3 = const_per_interest4 = const_per_interest5 =
+                    const_per_total1 = const_per_total2 = const_per_total3 = const_per_total4 = const_per_total5 =
+                    const_per_percent_total = const_per_principal_total = const_per_interest_total = construction_financing_cost =
+                    std::numeric_limits<double>::quiet_NaN();
 
-            N_financial_parameters::construction_financing_total_cost(total_installed_cost_out,
-                const_per_interest_rate1, const_per_interest_rate2, const_per_interest_rate3, const_per_interest_rate4, const_per_interest_rate5,
-                const_per_months1, const_per_months2, const_per_months3, const_per_months4, const_per_months5,
-                const_per_percent1, const_per_percent2, const_per_percent3, const_per_percent4, const_per_percent5,
-                const_per_upfront_rate1, const_per_upfront_rate2, const_per_upfront_rate3, const_per_upfront_rate4, const_per_upfront_rate5,
-                const_per_principal1, const_per_principal2, const_per_principal3, const_per_principal4, const_per_principal5,
-                const_per_interest1, const_per_interest2, const_per_interest3, const_per_interest4, const_per_interest5,
-                const_per_total1, const_per_total2, const_per_total3, const_per_total4, const_per_total5,
-                const_per_percent_total, const_per_principal_total, const_per_interest_total, construction_financing_cost);
+                N_financial_parameters::construction_financing_total_cost(total_installed_cost_out,
+                    const_per_interest_rate1, const_per_interest_rate2, const_per_interest_rate3, const_per_interest_rate4, const_per_interest_rate5,
+                    const_per_months1, const_per_months2, const_per_months3, const_per_months4, const_per_months5,
+                    const_per_percent1, const_per_percent2, const_per_percent3, const_per_percent4, const_per_percent5,
+                    const_per_upfront_rate1, const_per_upfront_rate2, const_per_upfront_rate3, const_per_upfront_rate4, const_per_upfront_rate5,
+                    const_per_principal1, const_per_principal2, const_per_principal3, const_per_principal4, const_per_principal5,
+                    const_per_interest1, const_per_interest2, const_per_interest3, const_per_interest4, const_per_interest5,
+                    const_per_total1, const_per_total2, const_per_total3, const_per_total4, const_per_total5,
+                    const_per_percent_total, const_per_principal_total, const_per_interest_total, construction_financing_cost);
 
-            assign("const_per_principal1", (ssc_number_t)const_per_principal1);
-            assign("const_per_principal2", (ssc_number_t)const_per_principal2);
-            assign("const_per_principal3", (ssc_number_t)const_per_principal3);
-            assign("const_per_principal4", (ssc_number_t)const_per_principal4);
-            assign("const_per_principal5", (ssc_number_t)const_per_principal5);
-            assign("const_per_interest1", (ssc_number_t)const_per_interest1);
-            assign("const_per_interest2", (ssc_number_t)const_per_interest2);
-            assign("const_per_interest3", (ssc_number_t)const_per_interest3);
-            assign("const_per_interest4", (ssc_number_t)const_per_interest4);
-            assign("const_per_interest5", (ssc_number_t)const_per_interest5);
-            assign("const_per_total1", (ssc_number_t)const_per_total1);
-            assign("const_per_total2", (ssc_number_t)const_per_total2);
-            assign("const_per_total3", (ssc_number_t)const_per_total3);
-            assign("const_per_total4", (ssc_number_t)const_per_total4);
-            assign("const_per_total5", (ssc_number_t)const_per_total5);
-            assign("const_per_percent_total", (ssc_number_t)const_per_percent_total);
-            assign("const_per_principal_total", (ssc_number_t)const_per_principal_total);
-            assign("const_per_interest_total", (ssc_number_t)const_per_interest_total);
-            assign("construction_financing_cost", (ssc_number_t)construction_financing_cost);
-
-
+                assign("const_per_principal1", (ssc_number_t)const_per_principal1);
+                assign("const_per_principal2", (ssc_number_t)const_per_principal2);
+                assign("const_per_principal3", (ssc_number_t)const_per_principal3);
+                assign("const_per_principal4", (ssc_number_t)const_per_principal4);
+                assign("const_per_principal5", (ssc_number_t)const_per_principal5);
+                assign("const_per_interest1", (ssc_number_t)const_per_interest1);
+                assign("const_per_interest2", (ssc_number_t)const_per_interest2);
+                assign("const_per_interest3", (ssc_number_t)const_per_interest3);
+                assign("const_per_interest4", (ssc_number_t)const_per_interest4);
+                assign("const_per_interest5", (ssc_number_t)const_per_interest5);
+                assign("const_per_total1", (ssc_number_t)const_per_total1);
+                assign("const_per_total2", (ssc_number_t)const_per_total2);
+                assign("const_per_total3", (ssc_number_t)const_per_total3);
+                assign("const_per_total4", (ssc_number_t)const_per_total4);
+                assign("const_per_total5", (ssc_number_t)const_per_total5);
+                assign("const_per_percent_total", (ssc_number_t)const_per_percent_total);
+                assign("const_per_principal_total", (ssc_number_t)const_per_principal_total);
+                assign("const_per_interest_total", (ssc_number_t)const_per_interest_total);
+                assign("construction_financing_cost", (ssc_number_t)construction_financing_cost);
+            }
 
         }
         
@@ -1892,8 +1890,8 @@ public:
 
         // Annual outputs
         accumulate_annual_for_year("gen", "annual_energy", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
-        accumulate_annual_for_year("P_cycle", "annual_W_cycle_gross", 1000.0 * sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);		//[kWe-hr]
-        //accumulate_annual_for_year("W_dot_par_tot_haf", "annual_electricity_consumption", sim_setup.m_report_step/3600.0, steps_per_hour);  //[kWe-hr]
+        accumulate_annual_for_year("P_cycle", "annual_W_cycle_gross", 1000.0 * sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);		//[kWhe]
+        //accumulate_annual_for_year("W_dot_par_tot_haf", "annual_electricity_consumption", sim_setup.m_report_step/3600.0, steps_per_hour);  //[kWhe]
         accumulate_annual_for_year("disp_objective", "disp_objective_ann", 1000.0 * sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
         accumulate_annual_for_year("disp_solve_iter", "disp_iter_ann", 1000.0 * sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
         accumulate_annual_for_year("disp_presolve_nconstr", "disp_presolve_nconstr_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed / steps_per_hour);
@@ -1903,25 +1901,15 @@ public:
         accumulate_annual_for_year("q_ch_tes", "annual_q_ch_tes", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
 
 
-        ssc_number_t annual_field_fp = accumulate_annual_for_year("q_dot_freeze_prot", "annual_field_freeze_protection", sim_setup.m_report_step / 3600.0 * 1.E3, steps_per_hour);    //[kWt-hr]
-        ssc_number_t annual_tes_fp = accumulate_annual_for_year("q_tes_heater", "annual_tes_freeze_protection", sim_setup.m_report_step / 3600.0 * 1.E3, steps_per_hour); //[kWt-hr]
+        ssc_number_t annual_field_fp = accumulate_annual_for_year("q_dot_freeze_prot", "annual_field_freeze_protection", sim_setup.m_report_step / 3600.0 * 1.E3, steps_per_hour);    //[kWht]
+        ssc_number_t annual_tes_fp = accumulate_annual_for_year("q_tes_heater", "annual_tes_freeze_protection", sim_setup.m_report_step / 3600.0 * 1.E3, steps_per_hour); //[kWht]
 
-        ssc_number_t annual_thermal_consumption = annual_field_fp + annual_tes_fp;  //[kWt-hr]
+        ssc_number_t annual_thermal_consumption = annual_field_fp + annual_tes_fp;  //[kWht]
         assign("annual_thermal_consumption", annual_thermal_consumption);
 
         // Reporting dispatch solution counts
-        size_t n_flag, n_gap = 0;
-        ssc_number_t* subopt_flag = as_array("disp_subopt_flag", &n_flag);
-        ssc_number_t* rel_mip_gap = as_array("disp_rel_mip_gap", &n_gap);
-
-        std::vector<int> flag;
-        std::vector<double> gap;
-        flag.resize(n_flag);
-        gap.resize(n_flag);
-        for (size_t i = 0; i < n_flag; i++) {
-            flag[i] = (int)subopt_flag[i];
-            gap[i] = (double)rel_mip_gap[i];
-        }
+        std::vector<int> flag = as_vector_integer("disp_subopt_flag");
+        std::vector<double> gap = as_vector_double("disp_rel_mip_gap");
 
         double avg_gap = 0;
         if (is_dispatch) {

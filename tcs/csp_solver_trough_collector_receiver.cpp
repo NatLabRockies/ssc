@@ -60,6 +60,8 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
 	{C_csp_trough_collector_receiver::E_Q_DOT_HTF_OUT, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_Q_DOT_FREEZE_PROT, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 
+    {C_csp_trough_collector_receiver::E_TIME_IN_STARTUP, C_csp_reported_outputs::SUMMED},
+
 	{C_csp_trough_collector_receiver::E_M_DOT_LOOP, C_csp_reported_outputs::TS_WEIGHTED_AVE},
     {C_csp_trough_collector_receiver::E_IS_RECIRCULATING, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_M_DOT_FIELD_RECIRC, C_csp_reported_outputs::TS_WEIGHTED_AVE},
@@ -217,8 +219,14 @@ C_csp_trough_collector_receiver::C_csp_trough_collector_receiver()
 	m_q_dot_htf_to_sink_fullts = std::numeric_limits<double>::quiet_NaN();	//[MWt]
 	m_q_dot_freeze_protection = std::numeric_limits<double>::quiet_NaN();	//[MWt]
 
+    m_q_dot_thermal_reported = std::numeric_limits<double>::quiet_NaN();    //[MWt]
+
 	m_dP_total = std::numeric_limits<double>::quiet_NaN();		//[bar]
 	m_W_dot_pump = std::numeric_limits<double>::quiet_NaN();	//[MWe]
+
+    m_time_at_off = std::numeric_limits<double>::quiet_NaN();       //[s]
+    m_time_at_startup = std::numeric_limits<double>::quiet_NaN();   //[s]
+    m_time_at_on = std::numeric_limits<double>::quiet_NaN();        //[s]
 
 	m_is_m_dot_recirc = false;
 
@@ -355,10 +363,15 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	m_theta_dep *= m_d2r;
 	m_theta_dep = max(m_theta_dep, 1.e-6);
 	m_T_startup += 273.15;			//[K] convert from C
-	m_T_loop_in_des += 273.15;		//[K] convert from C
-	m_T_loop_out_des += 273.15;			//[K] convert from C
+    m_T_loop_in_des += 273.15;		//[K] convert from C
+	m_T_loop_out_des += 273.15;		//[K] convert from C
 	m_T_fp += 273.15;				//[K] convert from C
 	m_mc_bal_sca *= 3.6e3;			//[Wht/K-m] -> [J/K-m]
+
+    if (std::isnan(m_T_shutdown))
+        m_T_shutdown = m_T_startup; //[K]
+    else
+        m_T_shutdown += 273.15;     //[K]
 
 
 	/*--- Do any initialization calculations here ---- */
@@ -882,7 +895,9 @@ double C_csp_trough_collector_receiver::get_startup_energy()
 {
     // Note: C_csp_trough_collector_receiver::startup() is called after this function
     return m_rec_qf_delay * m_q_design_actual * 1.e-6;       // MWh
+    // TODO: can we better estimate the energy based on the loop temperature at midnight? This is not easy...
 }
+
 double C_csp_trough_collector_receiver::get_pumping_parasitic_coef()
 {
     double T_amb_des = 42. + 273.15;
@@ -1284,6 +1299,10 @@ int C_csp_trough_collector_receiver::loop_energy_balance_T_t_int(const C_csp_wea
     m_T_loop[0] = m_T_loop_in;
     IntcOutputs intc_state = m_interconnects[0].State(m_dot_htf_loop * 2, m_T_loop[0], T_db, P_intc_in);
     m_T_loop[1] = intc_state.temp_out;
+    if (m_T_loop[1] < 0 || isnan(m_T_loop[1]) || m_T_loop[1] > 10000)
+    {
+        int break_here = 0;
+    }
     intc_state = m_interconnects[1].State(m_dot_htf_loop, m_T_loop[1], T_db, intc_state.pressure_out);
     m_T_htf_in_t_int[0] = intc_state.temp_out;
 
@@ -2121,8 +2140,10 @@ void C_csp_trough_collector_receiver::set_output_value()
 														m_E_dot_xover_summed_fullts +
 														m_E_dot_HR_cold_fullts +
 														m_E_dot_HR_hot_fullts);			//[MWt]
-	mc_reported_outputs.value(E_Q_DOT_HTF_OUT, m_q_dot_htf_to_sink_fullts);				//[MWt]
+	mc_reported_outputs.value(E_Q_DOT_HTF_OUT, m_q_dot_thermal_reported);				//[MWt]
 	mc_reported_outputs.value(E_Q_DOT_FREEZE_PROT, m_q_dot_freeze_protection);			//[MWt]
+
+    mc_reported_outputs.value(E_TIME_IN_STARTUP, m_time_at_startup / 60.0);         //[min] convert from s
 
 	mc_reported_outputs.value(E_M_DOT_LOOP, m_m_dot_htf_tot/(double)m_nLoops);		//[kg/s]
 
@@ -2195,7 +2216,7 @@ void C_csp_trough_collector_receiver::off(const C_csp_weatherreader::S_outputs &
 		m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts = 
 		m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts = 
 		m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts = 
-		m_q_dot_htf_to_sink_fullts = 0.0;
+		m_q_dot_htf_to_sink_fullts = m_q_dot_thermal_reported = 0.0;
 
 	for(int i = 0; i < n_steps_recirc; i++)
 	{
@@ -2285,8 +2306,9 @@ void C_csp_trough_collector_receiver::off(const C_csp_weatherreader::S_outputs &
 	//              .... and not passing HTF to other components
 	//cr_out_solver.m_m_dot_salt_tot = m_dot_htf_loop*3600.0*(double)m_nLoops;	//[kg/hr] Total HTF mass flow rate
 	cr_out_solver.m_m_dot_salt_tot = 0.0;	//[kg/hr] Total HTF mass flow rate
-	
-	cr_out_solver.m_q_thermal = 0.0;						//[MWt] No available receiver thermal output
+
+    m_q_dot_thermal_reported = 0.0;
+	cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;						//[MWt] No available receiver thermal output
 		// 7.12.16: Return timestep-end or timestep-integrated-average?
 		// If multiple recirculation steps, then need to calculate average of timestep-integrated-average
 	cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int_fullts - 273.15;		//[C]
@@ -2297,6 +2319,10 @@ void C_csp_trough_collector_receiver::off(const C_csp_weatherreader::S_outputs &
     cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;   //[MWt]
 
 	m_operating_mode = C_csp_collector_receiver::OFF;
+
+    m_time_at_off = sim_info.ms_ts.m_step;
+    m_time_at_startup = 0.0;
+    m_time_at_on = 0.0;
 
 	set_output_value();
 
@@ -2354,7 +2380,7 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
 		m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts =
 		m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts =
 		m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts =
-		m_q_dot_htf_to_sink_fullts = 0.0;
+		m_q_dot_htf_to_sink_fullts = m_q_dot_thermal_reported = 0.0;
 
     sim_info_temp.ms_ts.m_time = time_start;
     while(sim_info_temp.ms_ts.m_time < time_end)
@@ -2465,7 +2491,8 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
 	cr_out_solver.m_m_dot_salt_tot = 0.0;	//[kg/hr]
 
 	// Should not be available thermal output if receiver is in start up, but controller doesn't use it in CR_SU (confirmed)
-	cr_out_solver.m_q_thermal = 0.0;						//[MWt] No available receiver thermal output
+    m_q_dot_thermal_reported = 0.0;
+    cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;						//[MWt] No available receiver thermal output
 		// 7.12.16: Return timestep-end or timestep-integrated-average?
 		// If multiple recirculation steps, then need to calculate average of timestep-integrated-average
 	cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int_fullts - 273.15;		//[C]
@@ -2476,6 +2503,10 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
     cr_out_solver.m_W_dot_elec_in_tot = m_W_dot_sca_tracking + m_W_dot_pump;    //[MWe]
         // Shouldn't need freeze protection if in startup, but may want a check on this
     cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;    //[MWt]
+
+    m_time_at_off = 0.0;
+    m_time_at_startup = sim_info.ms_ts.m_step;
+    m_time_at_on = 0.0;
 
 	set_output_value();
 }
@@ -2724,7 +2755,8 @@ void C_csp_trough_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 			// The controller also requires the receiver thermal output
 			// 7.12.16 Now using the timestep-integrated-average temperature
 		double c_htf_ave = m_htfProps.Cp_ave(T_cold_in, m_T_sys_h_t_int);  //[kJ/kg-K]
-		cr_out_solver.m_q_thermal = (cr_out_solver.m_m_dot_salt_tot / 3600.0)*c_htf_ave*(m_T_sys_h_t_int - T_cold_in) / 1.E3;	//[MWt]
+        m_q_dot_thermal_reported = (cr_out_solver.m_m_dot_salt_tot / 3600.0) * c_htf_ave * (m_T_sys_h_t_int - T_cold_in) / 1.E3;	//[MWt]
+        cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;
 		// Finally, the controller need the HTF outlet temperature from the field
 		cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int - 273.15;		//[C]
 			
@@ -2751,12 +2783,12 @@ void C_csp_trough_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 			m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts =
 			m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts =
 			m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts =
-			m_q_dot_htf_to_sink_fullts = m_q_dot_freeze_protection = 0.0;
+			m_q_dot_htf_to_sink_fullts = m_q_dot_freeze_protection = m_q_dot_thermal_reported = 0.0;
 
 		cr_out_solver.m_q_startup = 0.0;			//[MWt-hr]
 		cr_out_solver.m_time_required_su = 0.0;		//[s]
 		cr_out_solver.m_m_dot_salt_tot = 0.0;		//[kg/hr]
-		cr_out_solver.m_q_thermal = 0.0;			//[MWt]
+		cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;			//[MWt]
 		cr_out_solver.m_T_salt_hot = 0.0;			//[C]
 		cr_out_solver.m_component_defocus = 1.0;	//[-]
         cr_out_solver.m_is_recirculating = false;
@@ -2767,6 +2799,10 @@ void C_csp_trough_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 
         cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;    //[MWt]
 	}
+
+    m_time_at_off = 0.0;
+    m_time_at_startup = 0.0;
+    m_time_at_on = sim_info.ms_ts.m_step;
 
 	set_output_value();
 
@@ -4101,7 +4137,7 @@ void C_csp_trough_collector_receiver::converged()
 	m_ss_init_complete = true;
 
     // Check that, if trough is ON, if outlet temperature at the end of the timestep is colder than the Startup Temperature
-    if (m_operating_mode == ON && m_T_sys_h_t_end < m_T_startup)
+    if (m_operating_mode == ON && m_T_sys_h_t_end < m_T_shutdown)
     {
         if (m_dni < 1.0)
             m_operating_mode = OFF;
@@ -4610,6 +4646,8 @@ bool C_csp_trough_collector_receiver::design_solar_mult(std::vector<double> trou
         m_c_htf_ave = m_htfProps.Cp_ave(m_T_loop_in_des, m_T_loop_out_des) * 1000.;    //[J/kg-K] Specific heat
         m_m_dot_design = (m_Ap_tot * m_I_bn_des * m_opteff_des - loss_tot * float(m_nLoops)) / (m_c_htf_ave * (m_T_loop_out_des - m_T_loop_in_des));
     }
+
+    m_q_design_ideal = m_m_dot_design * m_c_htf_ave * (m_T_loop_out_des - m_T_loop_in_des); //[Wt]
 
     // Interconnect component minor loss coefficients
     m_K_cpnt = util::matrix_t<double>(m_nSCA + 3, 11, std::numeric_limits<double>::quiet_NaN());

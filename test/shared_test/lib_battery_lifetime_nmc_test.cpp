@@ -652,7 +652,7 @@ TEST_F(lib_battery_lifetime_nmc_test, TestAgainstKokamData) {
 
             char writeBuffer[6553634];
             rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
-            rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(os);
+            rapidjson::PrettyWriter<rapidjson::FileWriteStream, rapidjson::UTF8<char>, rapidjson::UTF8<char>, rapidjson::CrtAllocator, rapidjson::kWriteNanAndInfFlag> writer(os);
 
             // write
             root.Accept(writer);

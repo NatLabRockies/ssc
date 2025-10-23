@@ -127,7 +127,10 @@ static var_info _cm_vtab_linear_fresnel_dsg_iph[] = {
 
 		// Heat Sink
     { SSC_INPUT,        SSC_NUMBER,      "heat_sink_dP_frac", "Fractional pressure drop through heat sink",									         "",              "",            "heat_sink",      "*",                       "",                      "" },
-	
+
+    // Prices for heat purchases
+    { SSC_INPUT,        SSC_ARRAY,       "ppa_price_input_heat_btu",  "PPA prices - yearly",			                                             "$/MMBtu",	  "",	             "Revenue",		   "",                        "",      	               "" },
+
 
     // *************************************************************************************************
 	//       OUTPUTS
@@ -179,7 +182,11 @@ static var_info _cm_vtab_linear_fresnel_dsg_iph[] = {
     { SSC_OUTPUT,   SSC_ARRAY,   "W_dot_heat_sink_pump",   "Heat sink pumping power",        "MWe",              "",       "Heat_Sink",      "*",        "",     "" },
 																									             
 		// SYSTEM																					             
-    { SSC_OUTPUT,   SSC_ARRAY,   "W_dot_parasitic_tot", "System total electrical parasitic", "MWe",              "",       "Controller",     "*",        "",     "" },
+    { SSC_OUTPUT,   SSC_ARRAY,   "W_dot_parasitic_tot", "System total electrical parasitic",        "MWe",       "",       "Controller",     "*",        "",     "" },
+    { SSC_OUTPUT,   SSC_ARRAY,   "gen_heat",      "System net thermal power w/ avail. derate",      "kWt",       "",       "system",         "*",        "",     "" },
+    { SSC_OUTPUT,   SSC_ARRAY,   "gen",           "System net electrical power w/ avail. derate",   "kWe",       "",       "system",         "*",        "",     "" },
+    { SSC_OUTPUT,   SSC_ARRAY,   "gen_heat_btu",  "System net thermal power w/ avail. derate",      "MMBtu/hr",  "",       "system",         "*", "",     "" },
+
 
 		// Controller
 	{ SSC_OUTPUT,   SSC_ARRAY,   "op_mode_1",            "1st operating mode",               "",                 "",       "Controller",     "*",        "",     "" },
@@ -187,13 +194,22 @@ static var_info _cm_vtab_linear_fresnel_dsg_iph[] = {
 	{ SSC_OUTPUT,   SSC_ARRAY,   "op_mode_3",            "3rd op. mode, if applicable",      "",                 "",       "Controller",     "*",        "",     "" },
 	
 		// Annual Outputs
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_energy",                   "Annual net thermal energy production with availability derate",     "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_field_energy",             "Annual gross thermal energy production with availability derate",   "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_thermal_consumption",      "Annual thermal freeze protection required",                "kWt-hr",   "",   "Post-process",     "*",       "",   "" },
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_electricity_consumption",  "Annual electricity consumption with availability derate",           "kWe-hr",   "",   "Post-process",     "*",       "",   "" },
-	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_total_water_use",          "Total annual water usage",                                 "m^3",      "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_energy",                   "Annual net thermal energy w/ avail. derate",               "kWht",   "",   "Post-process",     "*",       "",   "" },
+    { SSC_OUTPUT,   SSC_NUMBER,  "annual_energy_heat_btu",          "Annual net thermal energy w/ avail. derate",               "MMBtu",  "",   "Post-process",     "*",       "",   "" },
+    { SSC_OUTPUT,   SSC_NUMBER,  "annual_field_energy",             "Annual Gross Thermal Energy Production w/ avail derate",   "kWht",   "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_thermal_consumption",      "Annual thermal freeze protection required",                "kWht",   "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_electricity_consumption",  "Annual electricity consumptoin w/ avail derate",           "kWhe",   "",   "Post-process",     "*",       "",   "" },
+	{ SSC_OUTPUT,   SSC_NUMBER,  "annual_total_water_use",          "Total Annual Water Usage",                                 "m^3",      "",   "Post-process",     "*",       "",   "" },
 	{ SSC_OUTPUT,   SSC_NUMBER,  "capacity_factor",					"Capacity factor",											"%",        "",   "Post-process",     "*",       "",   "" },
 	{ SSC_OUTPUT,   SSC_NUMBER,  "kwh_per_kw",						"First year kWh/kW",										"kWht/kWt", "",   "Post-process",     "*",       "",   "" },
+
+        // Financing
+    { SSC_OUTPUT,   SSC_ARRAY,   "ppa_price_input",			        "PPA prices - yearly",			                            "$/kWh",	"",	  "Revenue",		  "",        "",   "" },
+
+    // System capacity required by downstream financial model
+    { SSC_OUTPUT,   SSC_NUMBER,  "nameplate",                       "Nameplate capacity",                                       "MWt",      "",   "System Design",    "*",       "",   "" },
+    { SSC_OUTPUT,   SSC_NUMBER,  "system_capacity",                 "System capacity",                                          "kWt",      "",   "System Design",    "*",       "",   "" },
+    { SSC_OUTPUT,   SSC_NUMBER,  "cp_system_nameplate",             "System capacity for capacity payments",                    "MWt",      "",   "System Design",    "*",       "",   "" },
 
 
 	var_info_invalid };
@@ -211,6 +227,24 @@ public:
 
 	void exec( )
 	{
+        // Convert IPH Input Units
+        const double MMBTU_TO_KWh = 293.07107;
+        if (is_assigned("ppa_price_input_heat_btu"))
+        {
+            size_t count_ppa_price_MMBTU_input;
+            ssc_number_t* ppa_price_MMBTU_input_array = as_array("ppa_price_input_heat_btu", &count_ppa_price_MMBTU_input);
+            std::vector<ssc_number_t> ppa_price_input_vec;
+            for (int i = 0; i < count_ppa_price_MMBTU_input; i++)
+            {
+                ppa_price_input_vec.push_back(ppa_price_MMBTU_input_array[i] / MMBTU_TO_KWh);
+            }
+            int size = ppa_price_input_vec.size();
+            ssc_number_t* alloc_vals = allocate("ppa_price_input", size);
+            for (int i = 0; i < size; i++)
+                alloc_vals[i] = ppa_price_input_vec[i];    // []
+        }
+        
+
 		// Weather reader
 		C_csp_weatherreader weather_reader;
         if (is_assigned("file_name")) {
@@ -482,7 +516,6 @@ public:
         // *****************************************************
         // System dispatch
         csp_dispatch_opt dispatch;
-        dispatch.solver_params.dispatch_optimize = false;
 
 		// ********************************
 		// ********************************
@@ -587,38 +620,53 @@ public:
 		if( !haf.setup(n_steps_fixed) )
 			throw exec_error("linear_fresnel_dsg_iph", "failed to setup adjustment factors: " + haf.error());
 
-		ssc_number_t *p_gen = allocate("gen", n_steps_fixed);
+		ssc_number_t *p_gen_heat = allocate("gen_heat", n_steps_fixed);
+        ssc_number_t *p_gen = allocate("gen", n_steps_fixed);
+        ssc_number_t* p_gen_heat_btu = allocate("gen_heat_btu", n_steps_fixed);
 		ssc_number_t *p_W_dot_par_tot_haf = allocate("W_dot_par_tot_haf", n_steps_fixed);
 		ssc_number_t *p_W_dot_parasitic_tot = as_array("W_dot_parasitic_tot", &count);
+        ssc_number_t* p_load = allocate("load", n_steps_fixed); // testing using cmod_utilityrate5 for electricity rates p_load = p_W_dot_par_tot_haf
+
 		for( size_t i = 0; i < n_steps_fixed; i++ )
 		{
 			size_t hour = (size_t)ceil(p_time_final_hr[i]);
-			p_gen[i] = p_q_dot_heat_sink[i] * (ssc_number_t)(haf(hour) * 1.E3);		//[kWt]
+			p_gen_heat[i] = p_q_dot_heat_sink[i] * (ssc_number_t)(haf(hour) * 1.E3);		//[kWt]
+            p_gen[i] = (ssc_number_t)0.0;   //[kWt] (no electrical generation for direct steam linear fresnel IPH)
+            p_gen_heat_btu[i] = p_gen_heat[i] / MMBTU_TO_KWh;   //[MMBtu/hr]
 			p_W_dot_parasitic_tot[i] *= -1.0;			//[kWe] Label is total parasitics, so change to a positive value
 			p_W_dot_par_tot_haf[i] = (ssc_number_t)(p_W_dot_parasitic_tot[i] * haf(hour) * 1.E3);		//[kWe]
+            p_load[i] = p_W_dot_par_tot_haf[i];
 		}
 
-        ssc_number_t* p_annual_energy_dist_time = gen_heatmap(this, steps_per_hour);
+        ssc_number_t* p_annual_energy_dist_time = gen_heatmap(this, steps_per_hour, true);
 
 
-		accumulate_annual_for_year("gen", "annual_field_energy", sim_setup.m_report_step / 3600.0, steps_per_hour);	//[kWt-hr]
-		accumulate_annual_for_year("W_dot_par_tot_haf", "annual_electricity_consumption", sim_setup.m_report_step / 3600.0, steps_per_hour);	//[kWe-hr]
-		accumulate_annual_for_year("q_dot_freeze_prot", "annual_thermal_consumption", sim_setup.m_report_step/3600.0*1.E3, steps_per_hour);		//[kWt-hr]
+		accumulate_annual_for_year("gen_heat", "annual_field_energy", sim_setup.m_report_step / 3600.0, steps_per_hour);	//[kWht]
+		accumulate_annual_for_year("W_dot_par_tot_haf", "annual_electricity_consumption", sim_setup.m_report_step / 3600.0, steps_per_hour);	//[kWhe]
+		accumulate_annual_for_year("q_dot_freeze_prot", "annual_thermal_consumption", sim_setup.m_report_step/3600.0*1.E3, steps_per_hour);		//[kWht]
 
-		ssc_number_t annual_field_energy = as_number("annual_field_energy");	//[kWt-hr]
-		ssc_number_t annual_thermal_consumption = as_number("annual_thermal_consumption");	//[kWt-hr]
-		assign("annual_energy", annual_field_energy - annual_thermal_consumption);	//[kWt-hr]
+		ssc_number_t annual_field_energy = as_number("annual_field_energy");	//[kWht]
+		ssc_number_t annual_thermal_consumption = as_number("annual_thermal_consumption");	//[kWht]
+		assign("annual_energy", annual_field_energy - annual_thermal_consumption);	//[kWht]
+
+        ssc_number_t annual_field_energy_MMBtu = annual_field_energy / MMBTU_TO_KWh;    //[MMBtu]
+        ssc_number_t annual_thermal_consumption_MMBtu = annual_thermal_consumption / MMBTU_TO_KWh;  //[MMBtu]
+        assign("annual_energy_heat_btu", annual_field_energy_MMBtu - annual_thermal_consumption_MMBtu); //[MMBtu]
 
 		// Calculate water use
 		double A_aper_tot = csp_solver.get_cr_aperture_area();	//[m2]
 		double V_water_mirrors = as_double("csp.lf.sf.water_per_wash") / 1000.0*A_aper_tot*as_double("csp.lf.sf.washes_per_year");
 		assign("annual_total_water_use", (ssc_number_t)V_water_mirrors);		//[m3]
 
-		ssc_number_t ae = as_number("annual_energy");			//[kWt-hr]
+		ssc_number_t ae = as_number("annual_energy");			//[kWht]
 		double nameplate = as_double("q_pb_des") * 1.e3;		//[kWt]
 		double kWh_per_kW = ae / nameplate;
 		assign("capacity_factor", (ssc_number_t)(kWh_per_kW / 8760. * 100.));
 		assign("kwh_per_kw", (ssc_number_t)kWh_per_kW);
+
+        assign("nameplate", nameplate * 1.e-3);             //[MWt]
+        assign("system_capacity", nameplate);               //[kWt]
+        assign("cp_system_nameplate", nameplate * 1.e-3);   //[MWt]
 	}
 
 };

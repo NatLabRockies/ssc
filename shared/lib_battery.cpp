@@ -758,6 +758,12 @@ double battery_t::V_nominal() { return voltage->battery_voltage_nominal(); }
 
 double battery_t::SOC() { return capacity->SOC(); }
 
+double battery_t::SOC_max() { return capacity->SOC_max(); }
+
+double battery_t::SOC_min() { return capacity->SOC_min(); }
+
+double battery_t::nominal_energy() { return params->nominal_energy; }
+
 double battery_t::I() { return capacity->I(); }
 
 double battery_t::calculate_loss(double power, size_t lifetimeIndex) {

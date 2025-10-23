@@ -725,6 +725,11 @@ void N_mspt::calculate_mslf_costs(
     double site_improvement_cost_per_m2,    // csp.mslf.cost.site_improvements.cost_per_m2
     double sf_area,                         // csp.mslf.cost.solar_field.area
     double sf_cost_per_m2,                  // csp.mslf.cost.solar_field.cost_per_m2
+
+    // Heater
+    double q_dot_heater_design,             //[MWt] Heater design thermal power
+    double heater_spec_cost,                //[$/kWe] Heater specific cost
+
     double htf_area,                        // csp.mslf.cost.htf_system.area
     double htf_cost_per_m2,                 // csp.mslf.cost.htf_system.cost_per_m2
     double ts_mwht,                         // csp.mslf.cost.ts_mwht
@@ -759,6 +764,7 @@ void N_mspt::calculate_mslf_costs(
     double& site_improvements_cost_out,     // csp.mslf.cost.site_improvements
     double& bop_out,                        // csp.mslf.cost.bop
     double& solar_field_cost_out,           // csp.mslf.cost.solar_field
+    double& heater_cost_out,
     double& htf_system_cost_out,            // csp.mslf.cost.htf_system
     double& fossil_backup_cost_out,         // csp.mslf.cost.fossil_backup
     double& contingency_cost_out,           // csp.mslf.cost.contingency
@@ -774,40 +780,42 @@ void N_mspt::calculate_mslf_costs(
 
 )
 {
-    double power_plant = power_cycle_cost(power_plant_mwe, power_plant_cost_per_kwe);
+    double power_plant = N_mspt::power_cycle_cost(power_plant_mwe, power_plant_cost_per_kwe);
 
-    double ts = tes_cost(ts_mwht, ts_per_kwht);
+    double ts = N_mspt::tes_cost(ts_mwht, ts_per_kwht);
 
-    double site_improvements = site_improvement_cost(site_improvement_area, site_improvement_cost_per_m2);
+    double site_improvements = N_mspt::site_improvement_cost(site_improvement_area, site_improvement_cost_per_m2);
 
-    double bop = bop_cost(bop_mwe, bop_per_kwe);
+    double bop = N_mspt::bop_cost(bop_mwe, bop_per_kwe);
 
     double solar_field = sf_area * sf_cost_per_m2;
 
+    double heater = N_mspt::heater_cost(q_dot_heater_design, heater_spec_cost);
+
     double htf_system = htf_area * htf_cost_per_m2;
 
-    double fossil_backup = fossil_backup_cost(fossil_mwe, fossil_cost_per_kwe);
+    double fossil_backup = N_mspt::fossil_backup_cost(fossil_mwe, fossil_cost_per_kwe);
 
-    double direct_capital_precontingency_cost = site_improvements + solar_field + htf_system + fossil_backup
+    double direct_capital_precontingency_cost = site_improvements + solar_field + heater + htf_system + fossil_backup
         + power_plant + bop + ts;
 
-    double contingency = contingency_cost(contigency_percent, direct_capital_precontingency_cost);
+    double contingency = N_mspt::contingency_cost(contigency_percent, direct_capital_precontingency_cost);
 
-    double total_direct = total_direct_cost(direct_capital_precontingency_cost, contingency);
+    double total_direct = N_mspt::total_direct_cost(direct_capital_precontingency_cost, contingency);
 
-    double epc_total = epc_and_owner_cost(total_land_area, total_direct, nameplate_MWe, epc_per_acre,
+    double epc_total = N_mspt::epc_and_owner_cost(total_land_area, total_direct, nameplate_MWe, epc_per_acre,
         epc_percent, epc_per_watt, epc_fixed);
 
-    double plm_total = total_land_cost(total_land_area, total_direct, nameplate_MWe, plm_per_acre, plm_percent,
+    double plm_total = N_mspt::total_land_cost(total_land_area, total_direct, nameplate_MWe, plm_per_acre, plm_percent,
         plm_per_watt, plm_fixed);
 
     double total_indirect = epc_total + plm_total;
 
-    double sales_tax_total = sales_tax_cost(total_direct, sales_tax_value, sales_tax_percent);
+    double sales_tax_total = N_mspt::sales_tax_cost(total_direct, sales_tax_value, sales_tax_percent);
 
     double total_installed = total_direct + total_indirect + sales_tax_total;
 
-    double installed_per_cap = estimated_installed_cost_per_cap(total_installed, nameplate_MWe);
+    double installed_per_cap = N_mspt::estimated_installed_cost_per_cap(total_installed, nameplate_MWe);
 
     // Set Outputs
     {
@@ -816,6 +824,7 @@ void N_mspt::calculate_mslf_costs(
         site_improvements_cost_out = site_improvements;
         bop_out = bop;
         solar_field_cost_out = solar_field;
+        heater_cost_out = heater;
         htf_system_cost_out = htf_system;
         fossil_backup_cost_out = fossil_backup;
         contingency_cost_out = contingency;

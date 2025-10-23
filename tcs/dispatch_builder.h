@@ -40,8 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../lpsolve/lp_lib.h"
 #include <limits>
 
-//#include "glpk\src\glpk.h"
-
 void __WINAPI opt_logfunction(lprec* lp, void* userhandle, char* buf);
 int __WINAPI opt_abortfunction(lprec* lp, void* userhandle);
 void __WINAPI opt_iter_function(lprec* lp, void* userhandle, int msg);
@@ -53,7 +51,6 @@ struct s_solver_params
     double obj_relaxed;
 
     //user settings
-    bool dispatch_optimize;     //is dispatch optimize selected?
     int steps_per_hour;         //[-] Number of time steps per hour
     int optimize_frequency;
     int optimize_horizon;
@@ -72,10 +69,10 @@ struct s_solver_params
     std::string ampl_exec_call; //system call for running ampl
 
     s_solver_params();
-    void set_user_inputs(bool is_dispatch, int disp_steps_per_hour, int disp_frequency, int disp_horizon,
+    void set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
         int disp_max_iter, double disp_mip_gap, double disp_timeout,
-        int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting,
-        bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec);
+        int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting);
+    void set_ampl_inputs(bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec);
     void reset();
 };
 

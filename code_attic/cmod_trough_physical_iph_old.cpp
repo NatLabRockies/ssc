@@ -724,7 +724,9 @@ public:
             c_heat_sink.ms_params.m_q_dot_des / 1.0,  //[MWt]
             as_double("solar_mult"),                  //[-]
             c_heat_sink.ms_params.m_q_dot_des / 1.0 * as_double("tshours"), //[hr]
+            true,
 		    as_double("h_tank"),		              //[m]
+            0.0,
 		    as_double("u_tank"),		              //[W/m^2-K]
 		    as_integer("tank_pairs"),		          //[-]
 		    as_double("hot_tank_Thtr"),	              //[C]

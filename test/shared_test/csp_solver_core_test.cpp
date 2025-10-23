@@ -265,7 +265,6 @@ protected:
     void SetUp() {
         CspSolverCoreTest::SetUp();
         // adjust heliostatfield parameters
-        dispatch.solver_params.dispatch_optimize = 1;
         solver->Ssimulate(sim_setup);
     }
 };

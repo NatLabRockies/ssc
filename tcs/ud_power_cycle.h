@@ -60,6 +60,14 @@ public:
         E_COL_M_H2O
     };
 
+    // Interpolation type?
+    enum E_udpc_max_output_correction_mode
+    {
+        SIMPLE_HEURISTIC = 0,
+        SCO2_HEURISTIC,
+        NO_CORRECTION
+    };
+
 private:
 	
 	// Each Linear_Interp Table in C_user_defined_pc shares the following column structure:
@@ -90,7 +98,7 @@ private:
 	std::string m_error_msg;
 
     // does udpc represent sco2 and require regression model?
-    bool m_is_sco2_regr;
+    E_udpc_max_output_correction_mode m_E_udpc_max_output_correction_mode;
     bool m_is_sco2_design_set;
     double m_T_htf_cold_des_sco2_regr;
     double m_deltaT_HTF_des;
@@ -143,7 +151,8 @@ public:
 
 	~C_ud_power_cycle(){};
 
-    void init(bool is_sco2_regr, const util::matrix_t<double>& udpc_table,
+    void init(C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_max_output_correction_mode,
+        const util::matrix_t<double>& udpc_table,
         int& n_T_htf_pars, int& n_T_amb_pars, int& n_m_dot_pars,
         double& T_htf_ref_calc /*C*/, double& T_htf_low_calc /*C*/, double& T_htf_high_calc /*C*/,
         double& T_amb_ref_calc /*C*/, double& T_amb_low_calc /*C*/, double& T_amb_high_calc /*C*/,
@@ -151,7 +160,7 @@ public:
         std::vector<double>& Y_at_T_htf_ref, std::vector<double>& Y_at_T_amb_ref,
         std::vector<double>& Y_at_m_dot_htf_ND_ref, std::vector<double>& Y_avg_at_refs);
 
-    void set_is_sco2_regr(bool is_sco2_regr);
+    void set_is_sco2_regr(C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_max_output_correction_mode);
 
     void set_sco2_design_for_sco2_regr(double T_htf_hot_des /*C*/, double T_htf_cold_des /*C*/);
 

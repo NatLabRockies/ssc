@@ -253,6 +253,7 @@ public:
     bool optimize();
 
     std::string write_ampl();
+
     bool optimize_ampl();
 
     // Set outputs struct based on LP solution -> could move to outputs struct

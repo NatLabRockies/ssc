@@ -35,17 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <algorithm>
 #include "csp_dispatch.h"
-//#include "lp_lib.h" 
-//#include "lib_util.h"
-
-// TODO: get rid of all the defines
-//#define _WRITE_AMPL_DATA 1
-#define SOS_NONE            // What does this do?
-//#define SOS_SEQUENCE
-//#define SOS_MANUAL
-//#define SOS_LPSOLVE
-
-//#define MOD_CYCLE_SHUTDOWN
 
 /*
 
@@ -174,33 +163,21 @@ bool csp_dispatch_opt::check_setup(int nstep)
 
 bool csp_dispatch_opt::update_horizon_parameters(C_csp_tou& mc_tou)
 {
-    //get the new price signal
+    //get price signal and electricity generation limits
+    int num_steps = solver_params.optimize_horizon * solver_params.steps_per_hour;
     params.sell_price.clear();
-    params.sell_price.resize(solver_params.optimize_horizon * solver_params.steps_per_hour, 1.);
-
-    for (int t = 0; t < solver_params.optimize_horizon * solver_params.steps_per_hour; t++)
-    {
-        C_csp_tou::S_csp_tou_outputs mc_tou_outputs;
-
-        mc_tou.call(pointers.siminfo->ms_ts.m_time + t * 3600. / (double)solver_params.steps_per_hour, mc_tou_outputs);
-        params.sell_price.at(t) = mc_tou_outputs.m_elec_price * 1000.0; // $/kWhe -> $/Mhe     //.m_price_mult * params.ppa_price_y1;
-    }
-
-    // get the new electricity generation limits
+    params.sell_price.resize(num_steps, 1.);
     params.w_lim.clear();
-    params.w_lim.resize((int)solver_params.optimize_horizon * (int)solver_params.steps_per_hour, 1.e99);
-    int hour_start = (int)(ceil(pointers.siminfo->ms_ts.m_time / 3600. - 1.e-6)) - 1;
-    for (int t = 0; t < solver_params.optimize_horizon * solver_params.steps_per_hour; t++)
-    {
-        for (int d = 0; d < solver_params.steps_per_hour; d++) {
-            double W_dot_max = params.q_pb_max * params.eta_pb_des;     //[kWe]
-            C_csp_tou::S_csp_tou_outputs tou_outputs;
-            mc_tou.call((hour_start + t + 1)*3600.0, tou_outputs);
-            params.w_lim.at(t * solver_params.steps_per_hour + d) = tou_outputs.m_wlim_dispatch * W_dot_max;
-                //params.w_lim.at(t * solver_params.steps_per_hour + d) = mc_tou.mc_dispatch_params.m_w_lim_full.at(hour_start + t);
-        }
-    }
+    params.w_lim.resize(num_steps, 1.e99);
 
+    double sec_per_step = 3600. / (double)solver_params.steps_per_hour;
+    double W_dot_max = params.q_pb_max * params.eta_pb_des;                 //[kWe]
+    for (int t = 0; t < num_steps; t++) {
+        C_csp_tou::S_csp_tou_outputs tou_outputs;
+        mc_tou.call(pointers.siminfo->ms_ts.m_time + t * sec_per_step, tou_outputs);
+        params.sell_price.at(t) = tou_outputs.m_elec_price * 1000.0; // $/kWhe -> $/Mhe
+        params.w_lim.at(t) = tou_outputs.m_wlim_dispatch * W_dot_max;
+    }
     return true;
 }
 
@@ -1591,10 +1568,6 @@ bool csp_dispatch_opt::optimize()
         delete_lp(lp);
         lp = NULL;
         print_dispatch_update();
-
-        //TODO: why is this here?
-        //if(return_ok)
-        //    write_ampl(); 
 
         return return_ok;
     }

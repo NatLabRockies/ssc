@@ -124,7 +124,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialACBatteryModelIntegr
     ssc_number_t peakKwCharge[4] = { -2.91, -2.66, -2.25, -3.30 };
     ssc_number_t peakKwDischarge[4] = { 1.39, 1.73, 0.97, 1.96 };
     ssc_number_t peakCycles[4] = { 1, 1, 1, 3 };
-    ssc_number_t avgCycles[4] = { 1, 1, 0.4904, 1.0110 };
+    ssc_number_t avgCycles[4] = { 1, 1, 0.4822, 1.0110 };
 
     // Test peak shaving look ahead, peak shaving look behind, and automated grid power target, and self-consumption. Others require additional input data
     for (int i = 0; i < 4; i++) {
@@ -440,7 +440,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_singleowner)
 
     ssc_number_t lcos_real;
     ssc_data_get_number(data, "lcos_real", &lcos_real);
-    EXPECT_NEAR(lcos_real, 23.41, 0.1);
+    EXPECT_NEAR(lcos_real, 53.38, 0.1);
 
 }
 
@@ -456,7 +456,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_levpartflip)
 
     ssc_number_t lcos_real;
     ssc_data_get_number(data, "lcos_real", &lcos_real);
-    EXPECT_NEAR(lcos_real, 23.43, 0.1);
+    EXPECT_NEAR(lcos_real, 53.56, 0.1); 
 }
 
 TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_cashloan)
@@ -472,7 +472,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_cashloan)
 
     ssc_number_t lcos_real;
     ssc_data_get_number(data, "lcos_real", &lcos_real);
-    EXPECT_NEAR(lcos_real, 583.83, 0.1);
+    EXPECT_NEAR(lcos_real, 3795.85, 0.1); 
 }
 
 /// Test PVSAMv1 with all defaults and battery enabled with 3 automatic dispatch methods
@@ -490,7 +490,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_ACBatteryModelIntegration)
     ssc_number_t peakKwCharge[3] = { -1040.2, -1051.5, -1051.5 };
     ssc_number_t peakKwDischarge[3] = { 967.5, 969.5, 969.5 };
     ssc_number_t peakCycles[3] = { 1, 1, 1 };
-    ssc_number_t avgCycles[3] = { 0.0039, 0.0042, 0.003 };
+    ssc_number_t avgCycles[3] = { 0.0068, 0.0110, 0.003 };
 
     ssc_data_set_number(data, "batt_dispatch_choice", 0);
     // Test economoic dispatch look ahead, economoic dispatch look behind. Others require additional input data
@@ -595,7 +595,8 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_CustomDispatchBatteryModelD
     ssc_number_t expectedBatteryDischargeEnergy = 3254.;
 
     ssc_number_t peakKwCharge = -992.86;
-    ssc_number_t peakKwDischarge = 946.98;
+    ssc_number_t peakKwDischarge = 941.19;
+
     ssc_number_t peakCycles = 1;
     ssc_number_t avgCycles = 0.0027;
 
@@ -647,7 +648,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_CustomDispatchBatteryModelD
     ssc_number_t peakKwCharge = -841.39;
     ssc_number_t peakKwDischarge = 652.0;
     ssc_number_t peakCycles = 3;
-    ssc_number_t avgCycles = 1.1836;
+    ssc_number_t avgCycles = 1.1849;
 
     ssc_data_set_number(data, "batt_dispatch_choice", 2);
     ssc_data_set_number(data, "batt_ac_or_dc", 0);
@@ -901,8 +902,8 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_CustomDispatchBatteryModelD
 
         auto batt_q_rel = data_vtab->as_vector_ssc_number_t("batt_capacity_percent");
         auto batt_cyc_avg = data_vtab->as_vector_ssc_number_t("batt_DOD_cycle_average");
-        EXPECT_NEAR(batt_q_rel.back(), 85.875, 2e-2);
-        EXPECT_NEAR(batt_cyc_avg.back(), 21.81, m_error_tolerance_lo);
+        EXPECT_NEAR(batt_q_rel.back(), 95.926, 2e-2); 
+        EXPECT_NEAR(batt_cyc_avg.back(), 20.56, m_error_tolerance_lo);
     }
 
 }
@@ -927,7 +928,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
     ssc_number_t peakKwCharge = -3.601;
     ssc_number_t peakKwDischarge = 1.99;
     ssc_number_t peakCycles = 1;
-    ssc_number_t avgCycles = 0.320;
+    ssc_number_t avgCycles = 0.373;
 
     pairs["batt_dispatch_choice"] = 4;
     pairs["batt_dispatch_auto_can_clipcharge"] = 1;
@@ -958,8 +959,14 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
 
         auto batt_q_rel = data_vtab->as_vector_ssc_number_t("batt_capacity_percent");
         auto batt_cyc_avg = data_vtab->as_vector_ssc_number_t("batt_DOD_cycle_average");
-        EXPECT_NEAR(batt_q_rel.back(), 97.241, 5e-2);
-        EXPECT_NEAR(batt_cyc_avg.back(), 27.49, 1.0); // High tolerance due to ~ 1% dispatch difference between linux and windows. Tighten in the future by improving the algorithm.
+        EXPECT_NEAR(batt_q_rel.back(), 96.99, 5e-2);
+        EXPECT_NEAR(batt_cyc_avg.back(), 25.10, 1.0); // High tolerance due to ~ 1% dispatch difference between linux and windows. Tighten in the future by improving the algorithm.
+
+        // No grid export for this configuration
+        auto monthly_to_grid = data_vtab->as_vector_ssc_number_t("monthly_batt_to_grid");
+        for (size_t i = 0; i < 12; i++) {
+            EXPECT_NEAR(monthly_to_grid[i], 0.0, 0.01);
+        }
     }
 }
 
@@ -1186,6 +1193,70 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialACBatteryModelGridOu
         EXPECT_NEAR(*std::max_element(pv_to_grid_power.begin(), pv_to_grid_power.end()), 0.0, 0.0001);
     }
 
+}
+
+TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceSignalDispatchGridExport)
+{
+    pvsamv_nofinancial_default(data);
+    battery_data_default(data);
+    setup_residential_utility_rates(data);
+
+    std::map<std::string, double> pairs;
+    pairs["en_batt"] = 1;
+    pairs["batt_meter_position"] = 0; // Behind the meter
+    pairs["batt_ac_or_dc"] = 0; //DC
+    pairs["analysis_period"] = 1;
+    set_array(data, "load", load_profile_path, 8760); // Load is required for peak shaving controllers
+
+    ssc_number_t expectedEnergy = 8844;
+    ssc_number_t expectedBatteryChargeEnergy = 1468.4;
+    ssc_number_t expectedBatteryDischargeEnergy = 1413.9;
+
+    ssc_number_t peakKwCharge = -3.89;
+    ssc_number_t peakKwDischarge = 3.8;
+    ssc_number_t peakCycles = 2;
+    ssc_number_t avgCycles = 0.762;
+
+    pairs["batt_dispatch_choice"] = 4;
+    pairs["batt_dispatch_auto_can_clipcharge"] = 1;
+    pairs["batt_dispatch_auto_btm_can_discharge_to_grid"] = 1;
+
+    ssc_number_t p_ur_ec_tou_mat[24] = { 1, 1, 9.9999999999999998e+37, 0, 0.10000000000000001, 0,
+        2, 1, 9.9999999999999998e+37, 0, 0.050000000000000003, 0,
+        3, 1, 9.9999999999999998e+37, 0, 0.20000000000000001, 0.30,
+        4, 1, 9.9999999999999998e+37, 0, 0.25, 0.30 }; // Higher export than import rate in period 4
+    ssc_data_set_matrix(data, "ur_ec_tou_mat", p_ur_ec_tou_mat, 4, 6);
+
+    int pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
+    EXPECT_FALSE(pvsam_errors);
+
+    if (!pvsam_errors)
+    {
+        ssc_number_t annual_energy;
+        ssc_data_get_number(data, "annual_energy", &annual_energy);
+        EXPECT_NEAR(annual_energy, expectedEnergy, m_error_tolerance_hi) << "Annual energy.";
+
+        auto data_vtab = static_cast<var_table*>(data);
+        auto annualChargeEnergy = data_vtab->as_vector_ssc_number_t("batt_annual_charge_energy");
+        EXPECT_NEAR(annualChargeEnergy[0], expectedBatteryChargeEnergy, m_error_tolerance_hi) << "Battery annual charge energy.";
+
+        auto annualDischargeEnergy = data_vtab->as_vector_ssc_number_t("batt_annual_discharge_energy");
+        EXPECT_NEAR(annualDischargeEnergy[0], expectedBatteryDischargeEnergy, m_error_tolerance_hi) << "Battery annual discharge energy.";
+
+        auto batt_power = data_vtab->as_vector_ssc_number_t("batt_power");
+        daily_battery_stats batt_stats = daily_battery_stats(batt_power);
+
+        EXPECT_NEAR(batt_stats.peakKwCharge, peakKwCharge, 0.5); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.peakKwDischarge, peakKwDischarge, m_error_tolerance_lo);
+        EXPECT_NEAR(batt_stats.peakCycles, peakCycles, 1); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+
+        // No grid export for this configuration
+        auto monthly_to_grid = data_vtab->as_vector_ssc_number_t("monthly_batt_to_grid");
+        for (size_t i = 0; i < 12; i++) {
+            EXPECT_GT(monthly_to_grid[i], 0.0) << i;
+        }
+    }
 }
 
 /* - Commented out until we better define the effects of availability loss on the battery targeted for the Fall 2022 release

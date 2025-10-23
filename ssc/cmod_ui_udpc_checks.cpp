@@ -191,7 +191,8 @@ public:
         {
             std::vector<double> Y_at_T_htf_ref, Y_at_T_amb_ref, Y_at_m_dot_htf_ND_ref, Y_avg_at_refs;
 
-            c_udpc.init(false, cmbd_ind,
+            C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_max_output_correction_mode = C_ud_power_cycle::E_udpc_max_output_correction_mode::SIMPLE_HEURISTIC;
+            c_udpc.init(udpc_max_output_correction_mode, cmbd_ind,
                 n_T_htf_pars, n_T_amb_pars, n_m_dot_pars,
                 T_htf_des, T_htf_low, T_htf_high,
                 T_amb_des, T_amb_low, T_amb_high,
@@ -318,7 +319,8 @@ public:
             // Heuristic / Regression Model
             double T_htf_des_cold = as_double("T_htf_cold_des");      //[C]
             c_udpc.set_sco2_design_for_sco2_regr(T_htf_des_in, T_htf_des_cold);
-            c_udpc.set_is_sco2_regr(true);
+            C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_max_output_correction_mode = C_ud_power_cycle::E_udpc_max_output_correction_mode::SCO2_HEURISTIC;
+            c_udpc.set_is_sco2_regr(udpc_max_output_correction_mode);
 
 
             // 1) Get q_dot_ND_max at m_dot_ND = 1

@@ -52,9 +52,13 @@ extern var_info vtab_depreciation_inputs[];
 extern var_info vtab_depreciation_outputs[];
 extern var_info vtab_tax_credits[];
 extern var_info vtab_payment_incentives[];
+extern var_info vtab_tax_credits_heat[];
+extern var_info vtab_payment_incentives_heat[];
 extern var_info vtab_debt[];
 extern var_info vtab_ppa_inout[];
 extern var_info vtab_financial_metrics[];
+extern var_info vtab_ppa_inout_heat[];
+extern var_info vtab_financial_metrics_heat[];
 
 extern var_info vtab_adjustment_factors[];
 extern var_info vtab_dc_adjustment_factors[];
@@ -76,7 +80,7 @@ bool calculate_p50p90(compute_module *cm);
 
 void calculate_resilience_outputs(compute_module *cm, std::unique_ptr<resilience_runner> &resilience);
 
-ssc_number_t* gen_heatmap(compute_module* cm, double step_per_hour);
+ssc_number_t* gen_heatmap(compute_module* cm, double step_per_hour, bool heat=false);
 
 void prepend_to_output(compute_module* cm, std::string var_name, size_t count, ssc_number_t value);
 

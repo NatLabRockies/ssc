@@ -1,0 +1,100 @@
+name: coveralls
+
+on:
+  push:
+  pull_request:
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+  GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
+
+jobs:
+  coveralls-on-ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.24.x'
+    - name: Test cmake version
+      run: cmake --version
+    
+    - name: Set relative paths
+      run: | 
+        GTEST=$GITHUB_WORKSPACE/googletest
+        echo "GTEST=$GTEST" >> $GITHUB_ENV
+        SSCDIR=$GITHUB_WORKSPACE/ssc
+        echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
+    
+    - name: Install OS dependencies
+      run: |
+        sudo apt-get update --fix-missing
+        sudo apt-get install -y \
+          lcov
+
+
+    - name: Get cached GTest
+      uses: actions/cache@v4
+      id: cachedgtest
+      with:
+        path: ${{env.GTEST}}/
+        key: gtest-ubuntu
+
+    - name: Clone Gtest
+      if: steps.cachedgtest.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: google/googletest
+        path: googletest
+        ref: ${{env.GTEST_REF}}
+    
+    - name: build Gtest
+      if: steps.cachedgtest.outputs.cache-hit != 'true'
+      run: | 
+          export 
+          mkdir ${GTEST}/build
+          cd ${GTEST}/build
+          cmake -DCMAKE_CXX_FLAGS=-std=c++11 ..
+          make          
+    
+    - name: Checkout SSC
+      uses: actions/checkout@v4
+      with:
+         path: ssc
+
+    - name: Configure CMake
+      # Configure cmake to build ssc tests but not tools
+      run: |
+        mkdir ${SSCDIR}/build
+        cd ${SSCDIR}/build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=1 -DSAM_SKIP_TOOLS=1 
+
+    - name: Build
+      # Build your program with the given configuration
+      run: |
+        cd ${SSCDIR}/build
+        make -j4
+
+    - name: Test
+      shell: bash
+      run: |
+        set -e
+        ${SSCDIR}/build/test/Testd
+    
+    - name: Coverage
+      shell: bash
+      run: |
+        cd ${SSCDIR}/build
+        make coverage 
+
+
+    - name: Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        path-to-lcov: ${{runner.workspace}}/ssc/ssc/build/coverage.info
+        github-token: ${{ secrets.GITHUB_TOKEN }}      

@@ -229,6 +229,7 @@ static var_info _cm_vtab_pvwattsv8[] = {
 
         { SSC_OUTPUT,       SSC_NUMBER,      "ts_shift_hours",                 "Time offset for interpreting time series outputs", "hours","",                                             "Miscellaneous", "*",                       "",                          "" },
         { SSC_OUTPUT,       SSC_NUMBER,      "percent_complete",               "Estimated percent of total completed simulation", "%",     "",                                             "Miscellaneous", "",                        "",                          "" },
+        { SSC_OUTPUT,       SSC_NUMBER,      "system_capacity_ac",             "System nameplate AC rating", "kWac",     "",                                             "Miscellaneous", "",                        "",                          "" },
 
         var_info_invalid };
 
@@ -608,9 +609,6 @@ public:
         // warning if tilt is > 0 for a tracking system becaues this is a very uncommon configuration but an easy mistake to make
         if ((pv.type == ONE_AXIS || pv.type == ONE_AXIS_BACKTRACKING) && pv.tilt > 0)
             log(util::format("The tilt angle is %f degrees with one-axis tracking. Large one-axis tracking arrays typically have a tilt angle of zero.", pv.tilt), SSC_WARNING);
-
-        if (!(pv.type == FIXED_RACK || pv.type == FIXED_ROOF) && module.bifaciality > 0.0)
-            log("The bifacial model is designed for fixed arrays and may not produce reliable results for tracking arrays.", SSC_WARNING);
 
         if (pv.type == FIXED_ROOF && module.bifaciality > 0.0)
             log("The Fixed Roof Mount array type is not appropriate for bifacial modules because it assumes there is no space between the back of the array and the roof surface.", SSC_WARNING);
@@ -1442,6 +1440,7 @@ public:
 
         // for battery model, specify a number of inverters
         assign("inverter_efficiency", var_data((ssc_number_t)(as_double("inv_eff"))));
+        assign("system_capacity_ac", var_data((ssc_number_t)pv.ac_nameplate / 1000.0));
 
         if (en_snowloss && snowmodel.badValues > 0)
             log(util::format("The snow model has detected %d bad snow depth values (less than 0 or greater than 610 cm). These values have been set to zero.", snowmodel.badValues), SSC_WARNING);

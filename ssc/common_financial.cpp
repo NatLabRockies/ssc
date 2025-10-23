@@ -1197,8 +1197,8 @@ bool dispatch_calculations::setup()
 	schedwkend.assign(disp_weekend, nrows, ncols);
 
 	int tod[8760];
-
-	if (!util::translate_schedule(tod, schedwkday, schedwkend, 1, 9))
+    int start_day = m_cm->as_number("start_day_of_year");
+	if (!util::translate_schedule(tod, schedwkday, schedwkend, 1, 9, start_day))
 	{
 		m_error = "could not translate weekday and weekend schedules for dispatch values";
 		throw general_error(m_error);
@@ -3165,7 +3165,7 @@ bool advanced_financing_cost::compute_cost(double cost_installed, double equity,
 }
 */
 
-bool hourly_energy_calculation::calculate(compute_module *cm)
+bool hourly_energy_calculation::calculate(compute_module *cm, bool heat)
 {
 	if (!cm) return false;
 
@@ -3177,7 +3177,10 @@ bool hourly_energy_calculation::calculate(compute_module *cm)
 	ssc_number_t *pgen;
     size_t nrec_gen = 0;
     m_step_per_hour_gen = 1;
-	pgen = m_cm->as_array("gen", &nrec_gen);
+    if (heat)
+        pgen = m_cm->as_array("gen_heat", &nrec_gen); // kWht
+    else
+        pgen = m_cm->as_array("gen", &nrec_gen);
 
 	// in front of meter - account for charging and
 	size_t i;
@@ -3312,6 +3315,7 @@ var_info vtab_tod_dispatch_periods[] = {
         { SSC_INPUT,        SSC_ARRAY,      "dispatch_tod_factors",                   "TOD factors for periods 1 through 9",                           "",   "",                          "Revenue",             "ppa_multiplier_model=0",						   "",                 "" },
         { SSC_INPUT,        SSC_MATRIX,     "dispatch_sched_weekday",                 "Diurnal weekday TOD periods",                                   "1..9", "12 x 24 matrix",    "Revenue", "ppa_multiplier_model=0", "", "" },
         { SSC_INPUT,        SSC_MATRIX,     "dispatch_sched_weekend",                 "Diurnal weekend TOD periods",                                   "1..9", "12 x 24 matrix",    "Revenue", "ppa_multiplier_model=0", "", "" },
+        { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Revenue", "?=0", "", "" },
         var_info_invalid };
 
 var_info vtab_update_tech_outputs[] = {

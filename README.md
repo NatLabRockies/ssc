@@ -1,5 +1,5 @@
 # SSC (SAM Simulation Core)
-![Build](https://github.com/NREL/ssc/actions/workflows/ci.yml/badge.svg)
+![Build](https://github.com/NREL/ssc/actions/workflows/ci.yml/badge.svg)[![Coverage Status](https://coveralls.io/repos/github/NREL/ssc/badge.svg)](https://coveralls.io/github/NREL/ssc?branch=patch)
 
 The SSC Open Source Project repository contains the source code for the technology and financial models contained within the National Renewable Energy Laboratory's System Advisor Model™ (SAM™). For more details about SAM's capabilities, see the SAM website at [https://sam.nrel.gov/](https://sam.nrel.gov).
 
@@ -33,4 +33,4 @@ SSC is licensed with BSD-3-Clause terms, found [here](https://github.com/NREL/SA
 
 # Citing this package
 
-System Advisor Model Version 2023.12.17 (2023). SSC source code. National Renewable Energy Laboratory. Golden, CO. Accessed November 28, 2023. https://github.com/NREL/ssc
+System Advisor Model Version 2025.4.16 (2025). SSC source code. National Renewable Energy Laboratory. Golden, CO. Accessed April, 18, 2025. https://github.com/NREL/ssc

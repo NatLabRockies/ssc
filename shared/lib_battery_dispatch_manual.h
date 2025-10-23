@@ -67,6 +67,7 @@ public:
         bool can_clip_charge,
         bool can_curtail_charge,
         double interconnection_limit,
+        size_t start_day_of_year,
         bool chargeOnlySystemExceedLoad = true,
         bool dischargeOnlyLoadExceedSystem = true,
         double SOC_min_outage = 0.0,
@@ -85,6 +86,8 @@ public:
 		size_t hour_of_year,
 		size_t step) override;
 
+    size_t get_dispatch_period() override;
+
 protected:
 
 	/// Helper function to internally set up the dispatch model
@@ -102,7 +105,8 @@ protected:
 		std::map<size_t, double> dm_percent_gridcharge,
         bool can_clip_charge,
         bool can_curtail_charge,
-        bool priorityChargeBattery);
+        bool priorityChargeBattery,
+        size_t start_day_of_year);
 
 	void SOC_controller() override;
 	bool check_constraints(double &I, size_t count) override;
@@ -119,11 +123,15 @@ protected:
     bool _can_curtail_charge;
     bool _priority_charge_battery;
 
+    size_t _iprofile;
+
 	double _percent_discharge;
 	double _percent_charge;
 
 	std::map<size_t, double> _percent_discharge_array;
 	std::map<size_t, double> _percent_charge_array;
+
+    size_t _start_day_of_year;
 
 };
 

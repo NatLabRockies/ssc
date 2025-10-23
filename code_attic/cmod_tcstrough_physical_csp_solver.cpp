@@ -780,7 +780,9 @@ public:
             as_double("W_pb_design") / as_double("eta_ref"),  //[MWt]
             as_double("solar_mult"),                          //[-]
             0.0,		                                      //[MWht]
+            true,                                             //Use fixed tank height
             as_double("h_tank"),					          //[m]
+            0.0,                                              // No input diameter (it is calculated)
             as_double("u_tank"),					          //[W/m^2-K]
             as_integer("tank_pairs"),			              //[-]
             as_double("hot_tank_Thtr"),		                  //[C]

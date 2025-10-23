@@ -1,0 +1,635 @@
+clear();
+var( 'is_dispatch', 0 );
+var( 'file_name', '../../test/input_cases/moltensalt_data/tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv' );
+var( 'q_pb_design', 5.1900000000000004 );
+var( 'nHCEt', 4 );
+var( 'nColt', 4 );
+var( 'nHCEVar', 4 );
+var( 'FieldConfig', 1 );
+var( 'eta_pump', 0.84999999999999998 );
+var( 'Fluid', 31 );
+var( 'accept_loc', 1 );
+var( 'HDR_rough', 4.57e-05 );
+var( 'theta_stow', 170 );
+var( 'theta_dep', 10 );
+var( 'Row_Distance', 15 );
+var( 'T_loop_in_des', 90 );
+var( 'T_loop_out', 150 );
+var( 'm_dot_htfmin', 1 );
+var( 'm_dot_htfmax', 12 );
+var( 'field_fl_props', 
+[ [ 20, 4.1799999999999997, 999, 0.001, 9.9999999999999995e-07, 0.58699999999999997, 85.299999999999997 ], 
+[ 40, 4.1799999999999997, 993, 0.00065300000000000004, 6.5799999999999999e-07, 0.61799999999999999, 169 ], 
+[ 60, 4.1799999999999997, 984, 0.00046700000000000002, 4.75e-07, 0.64200000000000002, 252 ], 
+[ 80, 4.1900000000000004, 972, 0.00035500000000000001, 3.65e-07, 0.65700000000000003, 336 ], 
+[ 100, 4.21, 959, 0.00028200000000000002, 2.9400000000000001e-07, 0.66600000000000004, 420 ], 
+[ 120, 4.25, 944, 0.000233, 2.4600000000000001e-07, 0.67000000000000004, 505 ], 
+[ 140, 4.2800000000000002, 927, 0.00019699999999999999, 2.1199999999999999e-07, 0.67000000000000004, 590 ], 
+[ 160, 4.3399999999999999, 908, 0.00017100000000000001, 1.8799999999999999e-07, 0.66700000000000004, 676 ], 
+[ 180, 4.4000000000000004, 887, 0.00014999999999999999, 1.6899999999999999e-07, 0.66100000000000003, 764 ], 
+[ 200, 4.4900000000000002, 865, 0.000134, 1.55e-07, 0.65100000000000002, 852 ], 
+[ 220, 4.5800000000000001, 842, 0.000118, 1.4100000000000001e-07, 0.64100000000000001, 941 ] ] );
+var( 'T_fp', 10 );
+var( 'I_bn_des', 950 );
+var( 'Pipe_hl_coef', 0.45000000000000001 );
+var( 'SCA_drives_elec', 125 );
+var( 'tilt', 0 );
+var( 'azimuth', 0 );
+var( 'wind_stow_speed', 25 );
+var( 'accept_mode', 0 );
+var( 'accept_init', 0 );
+var( 'mc_bal_hot', 0.20000000000000001 );
+var( 'mc_bal_cold', 0.20000000000000001 );
+var( 'mc_bal_sca', 4.5 );
+var( 'W_aperture', [ 6, 6, 6, 6 ] );
+var( 'A_aperture', [ 656, 656, 656, 656 ] );
+var( 'TrackingError', [ 0.98799999999999999, 0.98799999999999999, 0.98799999999999999, 0.98799999999999999 ] );
+var( 'GeomEffects', [ 0.95199999999999996, 0.95199999999999996, 0.95199999999999996, 0.95199999999999996 ] );
+var( 'Rho_mirror_clean', [ 0.93000000000000005, 0.93000000000000005, 0.93000000000000005, 0.93000000000000005 ] );
+var( 'Dirt_mirror', [ 0.96999999999999997, 0.96999999999999997, 0.96999999999999997, 0.96999999999999997 ] );
+var( 'Error', [ 1, 1, 1, 1 ] );
+var( 'Ave_Focal_Length', [ 2.1499999999999999, 2.1499999999999999, 2.1499999999999999, 2.1499999999999999 ] );
+var( 'L_SCA', [ 115, 115, 115, 115 ] );
+var( 'L_aperture', [ 14.375, 14.375, 14.375, 14.375 ] );
+var( 'ColperSCA', [ 8, 8, 8, 8 ] );
+var( 'Distance_SCA', [ 1, 1, 1, 1 ] );
+var( 'IAM_matrix', 
+[ [ 1, 0.0327, -0.1351 ], 
+[ 1, 0.0327, -0.1351 ], 
+[ 1, 0.0327, -0.1351 ], 
+[ 1, 0.0327, -0.1351 ] ] );
+var( 'HCE_FieldFrac', 
+[ [ 1, 0, 0, 0 ], 
+[ 1, 0, 0, 0 ], 
+[ 1, 0, 0, 0 ], 
+[ 1, 0, 0, 0 ] ] );
+var( 'D_2', 
+[ [ 0.075999999999999998, 0.075999999999999998, 0.075999999999999998, 0.075999999999999998 ], 
+[ 0.075999999999999998, 0.075999999999999998, 0.075999999999999998, 0.075999999999999998 ], 
+[ 0.075999999999999998, 0.075999999999999998, 0.075999999999999998, 0.075999999999999998 ], 
+[ 0.075999999999999998, 0.075999999999999998, 0.075999999999999998, 0.075999999999999998 ] ] );
+var( 'D_3', 
+[ [ 0.080000000000000002, 0.080000000000000002, 0.080000000000000002, 0.080000000000000002 ], 
+[ 0.080000000000000002, 0.080000000000000002, 0.080000000000000002, 0.080000000000000002 ], 
+[ 0.080000000000000002, 0.080000000000000002, 0.080000000000000002, 0.080000000000000002 ], 
+[ 0.080000000000000002, 0.080000000000000002, 0.080000000000000002, 0.080000000000000002 ] ] );
+var( 'D_4', 
+[ [ 0.115, 0.115, 0.115, 0.115 ], 
+[ 0.115, 0.115, 0.115, 0.115 ], 
+[ 0.115, 0.115, 0.115, 0.115 ], 
+[ 0.115, 0.115, 0.115, 0.115 ] ] );
+var( 'D_5', 
+[ [ 0.12, 0.12, 0.12, 0.12 ], 
+[ 0.12, 0.12, 0.12, 0.12 ], 
+[ 0.12, 0.12, 0.12, 0.12 ], 
+[ 0.12, 0.12, 0.12, 0.12 ] ] );
+var( 'D_p', 
+[ [ 0, 0, 0, 0 ], 
+[ 0, 0, 0, 0 ], 
+[ 0, 0, 0, 0 ], 
+[ 0, 0, 0, 0 ] ] );
+var( 'Flow_type', 
+[ [ 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1 ] ] );
+var( 'Rough', 
+[ [ 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05 ], 
+[ 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05 ], 
+[ 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05 ], 
+[ 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05, 4.5000000000000003e-05 ] ] );
+var( 'alpha_env', 
+[ [ 0.02, 0.02, 0, 0 ], 
+[ 0.02, 0.02, 0, 0 ], 
+[ 0.02, 0.02, 0, 0 ], 
+[ 0.02, 0.02, 0, 0 ] ] );
+var( 'epsilon_3_11', 
+[ [ 100, 0.064000000000000001 ], 
+[ 150, 0.066500000000000004 ], 
+[ 200, 0.070000000000000007 ], 
+[ 250, 0.074499999999999997 ], 
+[ 300, 0.080000000000000002 ], 
+[ 350, 0.086499999999999994 ], 
+[ 400, 0.094 ], 
+[ 450, 0.10249999999999999 ], 
+[ 500, 0.112 ] ] );
+var( 'epsilon_3_12', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_13', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_14', 
+[ [ 0 ] ] );
+var( 'epsilon_3_21', 
+[ [ 100, 0.064000000000000001 ], 
+[ 150, 0.066500000000000004 ], 
+[ 200, 0.070000000000000007 ], 
+[ 250, 0.074499999999999997 ], 
+[ 300, 0.080000000000000002 ], 
+[ 350, 0.086499999999999994 ], 
+[ 400, 0.094 ], 
+[ 450, 0.10249999999999999 ], 
+[ 500, 0.112 ] ] );
+var( 'epsilon_3_22', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_23', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_24', 
+[ [ 0 ] ] );
+var( 'epsilon_3_31', 
+[ [ 100, 0.064000000000000001 ], 
+[ 150, 0.066500000000000004 ], 
+[ 200, 0.070000000000000007 ], 
+[ 250, 0.074499999999999997 ], 
+[ 300, 0.080000000000000002 ], 
+[ 350, 0.086499999999999994 ], 
+[ 400, 0.094 ], 
+[ 450, 0.10249999999999999 ], 
+[ 500, 0.112 ] ] );
+var( 'epsilon_3_32', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_33', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_34', 
+[ [ 0 ] ] );
+var( 'epsilon_3_41', 
+[ [ 100, 0.064000000000000001 ], 
+[ 150, 0.066500000000000004 ], 
+[ 200, 0.070000000000000007 ], 
+[ 250, 0.074499999999999997 ], 
+[ 300, 0.080000000000000002 ], 
+[ 350, 0.086499999999999994 ], 
+[ 400, 0.094 ], 
+[ 450, 0.10249999999999999 ], 
+[ 500, 0.112 ] ] );
+var( 'epsilon_3_42', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_43', 
+[ [ 0.65000000000000002 ] ] );
+var( 'epsilon_3_44', 
+[ [ 0 ] ] );
+var( 'alpha_abs', 
+[ [ 0.96299999999999997, 0.96299999999999997, 0.80000000000000004, 0 ], 
+[ 0.96299999999999997, 0.96299999999999997, 0.80000000000000004, 0 ], 
+[ 0.96299999999999997, 0.96299999999999997, 0.80000000000000004, 0 ], 
+[ 0.96299999999999997, 0.96299999999999997, 0.80000000000000004, 0 ] ] );
+var( 'Tau_envelope', 
+[ [ 0.96399999999999997, 0.96399999999999997, 1, 0 ], 
+[ 0.96399999999999997, 0.96399999999999997, 1, 0 ], 
+[ 0.96399999999999997, 0.96399999999999997, 1, 0 ], 
+[ 0.96399999999999997, 0.96399999999999997, 1, 0 ] ] );
+var( 'EPSILON_4', 
+[ [ 0.85999999999999999, 0.85999999999999999, 1, 0 ], 
+[ 0.85999999999999999, 0.85999999999999999, 1, 0 ], 
+[ 0.85999999999999999, 0.85999999999999999, 1, 0 ], 
+[ 0.85999999999999999, 0.85999999999999999, 1, 0 ] ] );
+var( 'EPSILON_5', 
+[ [ 0.85999999999999999, 0.85999999999999999, 1, 0 ], 
+[ 0.85999999999999999, 0.85999999999999999, 1, 0 ], 
+[ 0.85999999999999999, 0.85999999999999999, 1, 0 ], 
+[ 0.85999999999999999, 0.85999999999999999, 1, 0 ] ] );
+var( 'GlazingIntactIn', 
+[ [ 1, 1, 0, 1 ], 
+[ 1, 1, 0, 1 ], 
+[ 1, 1, 0, 1 ], 
+[ 1, 1, 0, 1 ] ] );
+var( 'P_a', 
+[ [ 0.0001, 750, 750, 0 ], 
+[ 0.0001, 750, 750, 0 ], 
+[ 0.0001, 750, 750, 0 ], 
+[ 0.0001, 750, 750, 0 ] ] );
+var( 'AnnulusGas', 
+[ [ 27, 1, 1, 1 ], 
+[ 27, 1, 1, 1 ], 
+[ 27, 1, 1, 27 ], 
+[ 27, 1, 1, 27 ] ] );
+var( 'AbsorberMaterial', 
+[ [ 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1 ] ] );
+var( 'Shadowing', 
+[ [ 0.93500000000000005, 0.93500000000000005, 0.93500000000000005, 0.96299999999999997 ], 
+[ 0.93500000000000005, 0.93500000000000005, 0.93500000000000005, 0.96299999999999997 ], 
+[ 0.93500000000000005, 0.93500000000000005, 0.93500000000000005, 0.96299999999999997 ], 
+[ 0.93500000000000005, 0.93500000000000005, 0.93500000000000005, 0.96299999999999997 ] ] );
+var( 'Dirt_HCE', 
+[ [ 0.97999999999999998, 0.97999999999999998, 1, 0.97999999999999998 ], 
+[ 0.97999999999999998, 0.97999999999999998, 1, 0.97999999999999998 ], 
+[ 0.97999999999999998, 0.97999999999999998, 1, 0.97999999999999998 ], 
+[ 0.97999999999999998, 0.97999999999999998, 1, 0.97999999999999998 ] ] );
+var( 'Design_loss', 
+[ [ 190, 1270, 1500, 0 ], 
+[ 190, 1270, 1500, 0 ], 
+[ 190, 1270, 1500, 0 ], 
+[ 190, 1270, 1500, 0 ] ] );
+var( 'rec_su_delay', 0.20000000000000001 );
+var( 'rec_qf_delay', 0.25 );
+var( 'p_start', 0.021000000000000001 );
+var( 'pb_pump_coef', 0.55000000000000004 );
+var( 'store_fluid', 31 );
+var( 'store_fl_props', 
+[ [ 1 ] ] );
+var( 'tshours', 6 );
+var( 'h_tank', 15 );
+var( 'u_tank', 0.29999999999999999 );
+var( 'tank_pairs', 1 );
+var( 'hot_tank_Thtr', 110 );
+var( 'hot_tank_max_heat', 1 );
+var( 'cold_tank_Thtr', 60 );
+var( 'cold_tank_max_heat', 0.5 );
+var( 'dt_hot', 5 );
+var( 'h_tank_min', 0.5 );
+var( 'init_hot_htf_percent', 30 );
+var( 'weekday_schedule', 
+[ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ] ] );
+var( 'weekend_schedule', 
+[ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], 
+[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ] ] );
+var( 'is_tod_pc_target_also_pc_max', 0 );
+var( 'f_turb_tou_periods', [ 1, 1, 1, 1, 1, 1, 1, 1, 1 ] );
+var( 'disp_rsu_cost_rel', -123 );
+var( 'disp_horizon', -123 );
+var( 'disp_frequency', -123 );
+var( 'disp_max_iter', 0 );
+var( 'disp_timeout', -123 );
+var( 'disp_mip_gap', -123 );
+var( 'disp_time_weighting', -123 );
+var( 'csp_financial_model', 5 );
+var( 'is_dispatch_series', 0 );
+var( 'dispatch_series', [ 0 ] );
+var( 'is_timestep_load_fractions', 0 );
+var( 'timestep_load_fractions', real_array(read_text_file('timestep_load_fractions.csv')));
+var( 'pb_fixed_par', 0.0054999999999999997 );
+var( 'bop_array', [ 0, 1, 0, 0.48299999999999998, 0 ] );
+var( 'aux_array', [ 0.023, 1, 0.48299999999999998, 0.57099999999999995, 0 ] );
+var( 'water_usage_per_wash', 0.69999999999999996 );
+var( 'washing_frequency', 12 );
+var( 'calc_design_pipe_vals', 1 );
+var( 'V_hdr_cold_max', 3 );
+var( 'V_hdr_cold_min', 2 );
+var( 'V_hdr_hot_max', 3 );
+var( 'V_hdr_hot_min', 2 );
+var( 'N_max_hdr_diams', 10 );
+var( 'L_rnr_pb', 25 );
+var( 'L_rnr_per_xpan', 70 );
+var( 'L_xpan_hdr', 20 );
+var( 'L_xpan_rnr', 20 );
+var( 'Min_rnr_xpans', 1 );
+var( 'northsouth_field_sep', 20 );
+var( 'N_hdr_per_xpan', 2 );
+var( 'offset_xpan_hdr', 1 );
+var( 'custom_sf_pipe_sizes', 0 );
+var( 'sf_rnr_diams', 
+[ [ -1 ] ] );
+var( 'sf_rnr_wallthicks', 
+[ [ -1 ] ] );
+var( 'sf_rnr_lengths', 
+[ [ -1 ] ] );
+var( 'sf_hdr_diams', 
+[ [ -1 ] ] );
+var( 'sf_hdr_wallthicks', 
+[ [ -1 ] ] );
+var( 'sf_hdr_lengths', 
+[ [ -1 ] ] );
+var( 'tanks_in_parallel', 1 );
+var( 'has_hot_tank_bypass', 0 );
+var( 'T_tank_hot_inlet_min', 400 );
+var( 'tes_pump_coef', 0.14999999999999999 );
+var( 'V_tes_des', 1.8500000000000001 );
+var( 'custom_tes_p_loss', 0 );
+var( 'k_tes_loss_coeffs', 
+[ [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ] ] );
+var( 'custom_tes_pipe_sizes', 0 );
+var( 'tes_diams', 
+[ [ -1 ] ] );
+var( 'tes_wallthicks', 
+[ [ -1 ] ] );
+var( 'use_solar_mult_or_aperture_area', 0 );
+var( 'specified_solar_multiple', 2.5 );
+var( 'specified_total_aperture', 20000 );
+var( 'non_solar_field_land_area_multiplier', 1.1000000000000001 );
+var( 'trough_loop_control', [ 4, 1, 1, 4, 1, 1, 3, 1, 1, 2, 1, 1, 1 ] );
+var( 'csp.dtr.cost.site_improvements.cost_per_m2', 25 );
+var( 'csp.dtr.cost.solar_field.cost_per_m2', 150 );
+var( 'csp.dtr.cost.htf_system.cost_per_m2', 60 );
+var( 'csp.dtr.cost.storage.cost_per_kwht', 62 );
+var( 'csp.dtr.cost.heat_sink.cost_per_kwe', 120 );
+var( 'csp.dtr.cost.bop_per_kwe', 90 );
+var( 'csp.dtr.cost.contingency_percent', 7 );
+var( 'csp.dtr.cost.epc.per_acre', 0 );
+var( 'csp.dtr.cost.epc.percent', 11 );
+var( 'csp.dtr.cost.epc.per_watt', 0 );
+var( 'csp.dtr.cost.epc.fixed', 0 );
+var( 'csp.dtr.cost.plm.per_acre', 10000 );
+var( 'csp.dtr.cost.plm.percent', 0 );
+var( 'csp.dtr.cost.plm.per_watt', 0 );
+var( 'csp.dtr.cost.plm.fixed', 0 );
+var( 'csp.dtr.cost.sales_tax.percent', 80 );
+var( 'sales_tax_rate', 5 );
+var( 'const_per_interest_rate1', 0 );
+var( 'const_per_interest_rate2', 0 );
+var( 'const_per_interest_rate3', 0 );
+var( 'const_per_interest_rate4', 0 );
+var( 'const_per_interest_rate5', 0 );
+var( 'const_per_months1', 0 );
+var( 'const_per_months2', 0 );
+var( 'const_per_months3', 0 );
+var( 'const_per_months4', 0 );
+var( 'const_per_months5', 0 );
+var( 'const_per_percent1', 0 );
+var( 'const_per_percent2', 0 );
+var( 'const_per_percent3', 0 );
+var( 'const_per_percent4', 0 );
+var( 'const_per_percent5', 0 );
+var( 'const_per_upfront_rate1', 0 );
+var( 'const_per_upfront_rate2', 0 );
+var( 'const_per_upfront_rate3', 0 );
+var( 'const_per_upfront_rate4', 0 );
+var( 'const_per_upfront_rate5', 0 );
+var( 'adjust_constant', 4 );
+var( 'adjust_en_timeindex', 0 );
+var( 'adjust_en_periods', 0 );
+var( 'adjust_timeindex', [ 0 ] );
+var( 'adjust_periods', 
+[ [ 0, 0, 0 ] ] );
+var( 'rate_escalation', [ 0 ] );
+var( 'ur_metering_option', 4 );
+var( 'ur_nm_yearend_sell_rate', 0 );
+var( 'ur_nm_credit_month', 11 );
+var( 'ur_nm_credit_rollover', 0 );
+var( 'ur_monthly_fixed_charge', 30 );
+var( 'ur_monthly_min_charge', 0 );
+var( 'ur_annual_min_charge', 0 );
+var( 'ur_en_ts_sell_rate', 0 );
+var( 'ur_ts_sell_rate', real_array(read_text_file('ur_ts_sell_rate.csv')));
+var( 'ur_en_ts_buy_rate', 0 );
+var( 'ur_ts_buy_rate', real_array(read_text_file('ur_ts_buy_rate.csv')));
+var( 'ur_ec_sched_weekday', 
+[ [ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4 ] ] );
+var( 'ur_ec_sched_weekend', 
+[ [ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 ], 
+[ 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 ] ] );
+var( 'ur_ec_tou_mat', 
+[ [ 1, 1, 9.9999999999999998e+37, 0, 0.050000000000000003, 0 ], 
+[ 2, 1, 9.9999999999999998e+37, 0, 0.074999999999999997, 0 ], 
+[ 3, 1, 9.9999999999999998e+37, 0, 0.059999999999999998, 0 ], 
+[ 4, 1, 9.9999999999999998e+37, 0, 0.050000000000000003, 0 ] ] );
+var( 'ur_dc_enable', 1 );
+var( 'ur_dc_sched_weekday', 
+[ [ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2 ] ] );
+var( 'ur_dc_sched_weekend', 
+[ [ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ], 
+[ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 ] ] );
+var( 'ur_dc_tou_mat', 
+[ [ 1, 1, 100, 20 ], 
+[ 1, 2, 9.9999999999999998e+37, 15 ], 
+[ 2, 1, 100, 10 ], 
+[ 2, 2, 9.9999999999999998e+37, 5 ] ] );
+var( 'ur_dc_flat_mat', 
+[ [ 0, 1, 9.9999999999999998e+37, 0 ], 
+[ 1, 1, 9.9999999999999998e+37, 0 ], 
+[ 2, 1, 9.9999999999999998e+37, 0 ], 
+[ 3, 1, 9.9999999999999998e+37, 0 ], 
+[ 4, 1, 9.9999999999999998e+37, 0 ], 
+[ 5, 1, 9.9999999999999998e+37, 0 ], 
+[ 6, 1, 9.9999999999999998e+37, 0 ], 
+[ 7, 1, 9.9999999999999998e+37, 0 ], 
+[ 8, 1, 9.9999999999999998e+37, 0 ], 
+[ 9, 1, 9.9999999999999998e+37, 0 ], 
+[ 10, 1, 9.9999999999999998e+37, 0 ], 
+[ 11, 1, 9.9999999999999998e+37, 0 ] ] );
+var( 'ur_enable_billing_demand', 0 );
+var( 'ur_billing_demand_minimum', 100 );
+var( 'ur_billing_demand_lookback_period', 11 );
+var( 'ur_billing_demand_lookback_percentages', 
+[ [ 60, 0 ], 
+[ 60, 0 ], 
+[ 60, 0 ], 
+[ 60, 0 ], 
+[ 60, 0 ], 
+[ 95, 1 ], 
+[ 95, 1 ], 
+[ 95, 1 ], 
+[ 95, 1 ], 
+[ 60, 0 ], 
+[ 60, 0 ], 
+[ 60, 0 ] ] );
+var( 'ur_dc_billing_demand_periods', 
+[ [ 1, 1 ], 
+[ 2, 1 ] ] );
+var( 'ur_yearzero_usage_peaks', [ 234.67599999999999, 173.422, 172.00700000000001, 191.434, 198.29499999999999, 236.46899999999999, 274.23099999999999, 260.33600000000001, 226.751, 185.12299999999999, 156.19999999999999, 184.05000000000001 ] );
+var( 'analysis_period', 25 );
+var( 'system_use_lifetime_output', 0 );
+var( 'load', real_array(read_text_file('load.csv')));
+var( 'inflation_rate', 2.5 );
+var( 'degradation', [ 0 ] );
+var( 'load_escalation', [ 0 ] );
+var( 'federal_tax_rate', [ 21 ] );
+var( 'state_tax_rate', [ 7 ] );
+var( 'property_tax_rate', 0 );
+var( 'prop_tax_cost_assessed_percent', 100 );
+var( 'prop_tax_assessed_decline', 0 );
+var( 'real_discount_rate', 6.4000000000000004 );
+var( 'insurance_rate', 0 );
+var( 'system_capacity', 5190 );
+var( 'loan_term', 25 );
+var( 'loan_rate', 7 );
+var( 'debt_fraction', 100 );
+var( 'depr_fed_type', 1 );
+var( 'depr_fed_sl_years', 7 );
+var( 'depr_fed_custom', [ 0 ] );
+var( 'depr_sta_type', 1 );
+var( 'depr_sta_sl_years', 7 );
+var( 'depr_sta_custom', [ 0 ] );
+var( 'itc_fed_amount', [ 0 ] );
+var( 'itc_fed_amount_deprbas_fed', 1 );
+var( 'itc_fed_amount_deprbas_sta', 1 );
+var( 'itc_sta_amount', [ 0 ] );
+var( 'itc_sta_amount_deprbas_fed', 0 );
+var( 'itc_sta_amount_deprbas_sta', 0 );
+var( 'itc_fed_percent', [ 30 ] );
+var( 'itc_fed_percent_maxvalue', [ 9.9999999999999998e+37 ] );
+var( 'itc_fed_percent_deprbas_fed', 1 );
+var( 'itc_fed_percent_deprbas_sta', 1 );
+var( 'itc_sta_percent', [ 0 ] );
+var( 'itc_sta_percent_maxvalue', [ 9.9999999999999998e+37 ] );
+var( 'itc_sta_percent_deprbas_fed', 0 );
+var( 'itc_sta_percent_deprbas_sta', 0 );
+var( 'ptc_fed_amount', [ 0 ] );
+var( 'ptc_fed_term', 10 );
+var( 'ptc_fed_escal', 0 );
+var( 'ptc_sta_amount', [ 0 ] );
+var( 'ptc_sta_term', 10 );
+var( 'ptc_sta_escal', 0 );
+var( 'ibi_fed_amount', 0 );
+var( 'ibi_fed_amount_tax_fed', 1 );
+var( 'ibi_fed_amount_tax_sta', 1 );
+var( 'ibi_fed_amount_deprbas_fed', 0 );
+var( 'ibi_fed_amount_deprbas_sta', 0 );
+var( 'ibi_sta_amount', 0 );
+var( 'ibi_sta_amount_tax_fed', 1 );
+var( 'ibi_sta_amount_tax_sta', 1 );
+var( 'ibi_sta_amount_deprbas_fed', 0 );
+var( 'ibi_sta_amount_deprbas_sta', 0 );
+var( 'ibi_uti_amount', 0 );
+var( 'ibi_uti_amount_tax_fed', 1 );
+var( 'ibi_uti_amount_tax_sta', 1 );
+var( 'ibi_uti_amount_deprbas_fed', 0 );
+var( 'ibi_uti_amount_deprbas_sta', 0 );
+var( 'ibi_oth_amount', 0 );
+var( 'ibi_oth_amount_tax_fed', 1 );
+var( 'ibi_oth_amount_tax_sta', 1 );
+var( 'ibi_oth_amount_deprbas_fed', 0 );
+var( 'ibi_oth_amount_deprbas_sta', 0 );
+var( 'ibi_fed_percent', 0 );
+var( 'ibi_fed_percent_maxvalue', 9.9999999999999998e+37 );
+var( 'ibi_fed_percent_tax_fed', 1 );
+var( 'ibi_fed_percent_tax_sta', 1 );
+var( 'ibi_fed_percent_deprbas_fed', 0 );
+var( 'ibi_fed_percent_deprbas_sta', 0 );
+var( 'ibi_sta_percent', 0 );
+var( 'ibi_sta_percent_maxvalue', 9.9999999999999998e+37 );
+var( 'ibi_sta_percent_tax_fed', 1 );
+var( 'ibi_sta_percent_tax_sta', 1 );
+var( 'ibi_sta_percent_deprbas_fed', 0 );
+var( 'ibi_sta_percent_deprbas_sta', 0 );
+var( 'ibi_uti_percent', 0 );
+var( 'ibi_uti_percent_maxvalue', 9.9999999999999998e+37 );
+var( 'ibi_uti_percent_tax_fed', 1 );
+var( 'ibi_uti_percent_tax_sta', 1 );
+var( 'ibi_uti_percent_deprbas_fed', 0 );
+var( 'ibi_uti_percent_deprbas_sta', 0 );
+var( 'ibi_oth_percent', 0 );
+var( 'ibi_oth_percent_maxvalue', 9.9999999999999998e+37 );
+var( 'ibi_oth_percent_tax_fed', 1 );
+var( 'ibi_oth_percent_tax_sta', 1 );
+var( 'ibi_oth_percent_deprbas_fed', 0 );
+var( 'ibi_oth_percent_deprbas_sta', 0 );
+var( 'cbi_fed_amount', 0 );
+var( 'cbi_fed_maxvalue', 9.9999999999999998e+37 );
+var( 'cbi_fed_tax_fed', 1 );
+var( 'cbi_fed_tax_sta', 1 );
+var( 'cbi_fed_deprbas_fed', 0 );
+var( 'cbi_fed_deprbas_sta', 0 );
+var( 'cbi_sta_amount', 0 );
+var( 'cbi_sta_maxvalue', 9.9999999999999998e+37 );
+var( 'cbi_sta_tax_fed', 1 );
+var( 'cbi_sta_tax_sta', 1 );
+var( 'cbi_sta_deprbas_fed', 0 );
+var( 'cbi_sta_deprbas_sta', 0 );
+var( 'cbi_uti_amount', 0 );
+var( 'cbi_uti_maxvalue', 9.9999999999999998e+37 );
+var( 'cbi_uti_tax_fed', 1 );
+var( 'cbi_uti_tax_sta', 1 );
+var( 'cbi_uti_deprbas_fed', 0 );
+var( 'cbi_uti_deprbas_sta', 0 );
+var( 'cbi_oth_amount', 0 );
+var( 'cbi_oth_maxvalue', 9.9999999999999998e+37 );
+var( 'cbi_oth_tax_fed', 1 );
+var( 'cbi_oth_tax_sta', 1 );
+var( 'cbi_oth_deprbas_fed', 0 );
+var( 'cbi_oth_deprbas_sta', 0 );
+var( 'pbi_fed_amount', [ 0 ] );
+var( 'pbi_fed_term', 10 );
+var( 'pbi_fed_escal', 0 );
+var( 'pbi_fed_tax_fed', 1 );
+var( 'pbi_fed_tax_sta', 1 );
+var( 'pbi_sta_amount', [ 0 ] );
+var( 'pbi_sta_term', 10 );
+var( 'pbi_sta_escal', 0 );
+var( 'pbi_sta_tax_fed', 1 );
+var( 'pbi_sta_tax_sta', 1 );
+var( 'pbi_uti_amount', [ 0 ] );
+var( 'pbi_uti_term', 10 );
+var( 'pbi_uti_escal', 0 );
+var( 'pbi_uti_tax_fed', 1 );
+var( 'pbi_uti_tax_sta', 1 );
+var( 'pbi_oth_amount', [ 0 ] );
+var( 'pbi_oth_term', 10 );
+var( 'pbi_oth_escal', 0 );
+var( 'pbi_oth_tax_fed', 1 );
+var( 'pbi_oth_tax_sta', 1 );
+var( 'total_installed_cost', 9929673.7379999999 );
+var( 'salvage_percentage', 0 );
+var( 'batt_salvage_percentage', 0 );
+run('trough_physical_iph');
+run('utilityrate5');
+run('cashloan');
+outln('Annual energy (year 1) kWh-t ' + var('annual_energy'));
+outln('Capacity factor% ' + var('capacity_factor'));
+outln('Annual electricity load (year 1) kWh-e ' + var('annual_electricity_consumption'));
+outln('Annual Water Usage m^3 ' + var('annual_total_water_use'));
+outln('LCOE Levelized cost of energy nominal ¢/kWh ' + var('lcoe_nom'));
+outln('LCOE Levelized cost of energy real ¢/kWh ' + var('lcoe_real'));
+outln('Electricity bill without system (year 1)$  ' + var('utility_bill_wo_sys_year1'));
+outln('Electricity bill with system (year 1)$  ' + var('utility_bill_w_sys_year1'));
+outln('Net savings with system (year 1)$  ' + var('savings_year1'));
+outln('Net present value$  ' + var('npv'));
+outln('Simple payback period years ' + var('payback'));
+outln('Discounted payback period years ' + var('discounted_payback'));
+outln('Net capital cost$  ' + var('adjusted_installed_cost'));
+outln('Equity$  ' + var('first_cost'));
+outln('Debt$  ' + var('loan_amount'));

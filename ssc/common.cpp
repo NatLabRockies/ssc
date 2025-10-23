@@ -99,6 +99,62 @@ var_info vtab_standard_loan[] = {
 { SSC_INPUT,SSC_NUMBER  , "debt_fraction"                        , "Debt percentage"                                                , "%"                                      , ""                                      , "Financial Parameters" , "?=0"            , "MIN=0,MAX=100"         , ""},
 var_info_invalid };
 
+
+var_info vtab_oandm_heat[] = {
+    /*   VARTYPE           DATATYPE         NAME                             LABEL                                UNITS      META                 GROUP          REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
+
+    { SSC_INPUT,        SSC_ARRAY,       "om_fixed",                     "Fixed O&M annual amount",           "$/year",  "",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "om_fixed_escal",               "Fixed O&M escalation",              "%/year",  "",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_ARRAY,       "om_production_heat",                "Production-based O&M amount",       "$/MWht",   "",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "om_production_escal",          "Production-based O&M escalation",   "%/year",  "",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_ARRAY,       "om_capacity_heat",                  "Capacity-based O&M amount",         "$/kWt-yr", "",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "om_capacity_escal",            "Capacity-based O&M escalation",     "%/year",  "",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_ARRAY,		 "om_fuel_cost",                 "Fuel cost",                         "$/MMBtu", "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "om_fuel_cost_escal",           "Fuel cost escalation",              "%/year",  "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0.0",                 "",                                         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "annual_fuel_usage",            "Fuel usage (yr 1)",                 "kWht",    "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "?=0",                     "MIN=0",                                         "" },
+    { SSC_INPUT,        SSC_ARRAY,       "annual_fuel_usage_lifetime",   "Fuel usage (lifetime)",             "kWht",    "generic_system,fuelcell,tcslinearfresnel,tcstroughempirical,tcsgenericsolar,fresnelphysical",                  "System Costs",            "",                     "",                                         "" },
+
+    { SSC_INPUT,        SSC_ARRAY,		 "om_elec_price_for_heat_techs",       "Electricity price for purchases in heat model",                "$/kWh",   "", "System Costs",  "?=0.0",           "",                                         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "om_elec_price_for_heat_techs_escal", "Escalation for electricity price for purchases in heat model", "%/year",  "", "System Costs",  "?=0.0",           "",                                         "" },
+
+
+    // replacements
+    { SSC_INPUT,SSC_ARRAY   , "om_batt_replacement_cost"                 , "Replacement cost 1"               , "$/kWh"   , "battery"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_replacement_cost"                 , "Replacement cost 2"            , "$/kW", "fuelcell"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "om_replacement_cost_escal"            , "Replacement cost escalation"           , "%/year", "battery,fuelcell"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+
+    // optional fuel o and m for Biopower - usage can be in any unit and cost is in $ per usage unit
+    { SSC_INPUT,SSC_NUMBER  , "om_opt_fuel_1_usage"                  , "Biomass feedstock usage"            , "unit"    , "biomass"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_opt_fuel_1_cost"                   , "Biomass feedstock cost"           , "$/unit"    , "biomass"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "om_opt_fuel_1_cost_escal"             , "Biomass feedstock cost escalation" , "%/year"   , "biomass"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "om_opt_fuel_2_usage"                  , "Coal feedstock usage"               , "unit"    , "biomass"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_opt_fuel_2_cost"                   , "Coal feedstock cost"                , "$/unit"  , "biomass"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "om_opt_fuel_2_cost_escal"             , "Coal feedstock cost escalation"     , "%/year"  , "biomass"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
+
+    // optional additional base o and m types
+    { SSC_INPUT,SSC_NUMBER  , "add_om_num_types"                     , "Number of O and M types" , "" , "battery,fuelcell"                                      , "System Costs"         , "?=0"            , "INTEGER,MIN=0,MAX=2"   , ""},
+    { SSC_INPUT,SSC_NUMBER  , "om_batt_nameplate"               , "Battery capacity for System Costs values"                       , "kW", "battery"                                      , "System Costs"         , "?=0"            , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_production1_values"                , "Battery production for System Costs values"                     , "kWh", "battery"                                      , "System Costs"         , "?=0"            , ""                      , ""},
+
+    { SSC_INPUT,SSC_ARRAY   , "om_batt_fixed_cost"                            , "Battery fixed System Costs annual amount"                       , "$/year",    "battery",   "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_batt_variable_cost"                       , "Battery production-based System Costs amount"                   , "$/MWh", "battery"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_batt_capacity_cost"                         , "Battery capacity-based System Costs amount"                     , "$/kWcap", "battery"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+
+    { SSC_INPUT,SSC_NUMBER  , "om_fuelcell_nameplate"               , "Fuel cell capacity for System Costs values"                     , "kW", "fuelcell"                                      , "System Costs"         , "?=0"            , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_production2_values"                , "Fuel cell production for System Costs values"                   , "kWh", "fuelcell"                                      , "System Costs"         , "?=0"            , ""                      , ""},
+
+    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_fixed_cost"                            , "Fuel cell fixed System Costs annual amount"                     , "$/year", "fuelcell" , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_variable_cost"                       , "Fuel cell production-based System Costs amount"                 , "$/MWh", "fuelcell"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_capacity_cost"                         , "Fuel cell capacity-based System Costs amount"                   , "$/kWcap", "fuelcell"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+
+    // optional land lease
+    { SSC_INPUT,        SSC_NUMBER,     "land_area",                      "Total land area",	                                                "acres",                "",                        "Land Lease",            "?=0",					   "",                              "" },
+    { SSC_INPUT,        SSC_ARRAY,      "om_land_lease",	                    "Land lease cost",	                                                "$/acre",               "",                        "Land Lease",            "?=0",					   "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,     "om_land_lease_escal",                  "Land lease cost escalation",	                                    "%/yr",                 "",                        "Land Lease",            "?=0",					   "",                              "" },
+    { SSC_OUTPUT,       SSC_ARRAY,      "cf_land_lease_expense",                "Land lease expense",                                       "$",                    "",                         "Land Lease",            "", "LENGTH_EQUAL=cf_length", "" },
+
+var_info_invalid };
+
 // meta should be either a blocklist (!gen,!gen) or an allowlist. Cannot do both blocked and allowed gens
 var_info vtab_oandm[] = {
 /*   VARTYPE           DATATYPE         NAME                             LABEL                                UNITS      META                 GROUP          REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
@@ -263,6 +319,13 @@ var_info vtab_depreciation_outputs[] = {
 var_info_invalid
 };
 
+var_info vtab_tax_credits_heat[] = {
+{ SSC_INPUT,SSC_ARRAY   , "ptc_fed_amount_heat_btu"                       , "Federal PTC amount"                                             , "$/MMBtu"                                  , ""                                      , "Tax Credit Incentives", "?=0"            , ""                      , ""},
+{ SSC_INPUT,SSC_ARRAY   , "ptc_sta_amount_heat_btu"                       , "State PTC amount"                                             , "$/MMBtu"                                  , ""                                      , "Tax Credit Incentives", "?=0"            , ""                      , ""},
+var_info_invalid
+};
+
+
 var_info vtab_tax_credits[] = {
 { SSC_INPUT,SSC_ARRAY  , "itc_fed_amount"                       , "Federal amount-based ITC amount"                                , "$"                                      , ""                                      , "Tax Credit Incentives", "?=0"            , ""                      , ""},
 { SSC_INPUT,SSC_NUMBER  , "itc_fed_amount_deprbas_fed"           , "Federal amount-based ITC reduces federal depreciation basis"    , "0/1"                                    , ""                                      , "Tax Credit Incentives", "?=1"            , "BOOLEAN"               , ""},
@@ -290,6 +353,19 @@ var_info vtab_tax_credits[] = {
 { SSC_INPUT,SSC_NUMBER  , "ptc_sta_term"                         , "State PTC term"                                                 , "years"                                  , ""                                      , "Tax Credit Incentives", "?=10"           , ""                      , ""},
 { SSC_INPUT,SSC_NUMBER  , "ptc_sta_escal"                        , "State PTC escalation"                                           , "%/year"                                 , ""                                      , "Tax Credit Incentives", "?=0"            , ""                      , ""},
 var_info_invalid };
+
+var_info vtab_payment_incentives_heat[] = {
+    { SSC_INPUT,SSC_NUMBER  , "cbi_fed_amount_heat_btu"                       , "Federal CBI amount"                                             , "$/(Btu/hr))"                                 , ""                                      , "Payment Incentives"   , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "cbi_sta_amount_heat_btu"                       , "State CBI amount"                                             , "$/(Btu/hr))"                                 , ""                                      , "Payment Incentives"   , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "cbi_uti_amount_heat_btu"                       , "Utility CBI amount"                                             , "$/(Btu/hr))"                                 , ""                                      , "Payment Incentives"   , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "cbi_oth_amount_heat_btu"                       , "Other CBI amount"                                             , "$/(Btu/hr))"                                 , ""                                      , "Payment Incentives"   , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "pbi_fed_amount_heat_btu"                       , "Federal PBI amount"                                             , "$/MMBtu"                                  , ""                                      , "Payment Incentives"   , "?=0"            , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "pbi_sta_amount_heat_btu"                       , "State PBI amount"                                             , "$/MMBtu"                                  , ""                                      , "Payment Incentives"   , "?=0"            , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "pbi_uti_amount_heat_btu"                       , "Utility PBI amount"                                             , "$/MMBtu"                                  , ""                                      , "Payment Incentives"   , "?=0"            , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "pbi_oth_amount_heat_btu"                       , "Other PBI amount"                                             , "$/MMBtu"                                  , ""                                      , "Payment Incentives"   , "?=0"            , ""                      , ""},
+
+var_info_invalid };
+
 
 var_info vtab_payment_incentives[] = {
 { SSC_INPUT,SSC_NUMBER  , "ibi_fed_amount"                       , "Federal amount-based IBI amount"                                , "$"                                      , ""                                      , "Payment Incentives"   , "?=0"            , ""                      , ""},
@@ -457,6 +533,27 @@ var_info vtab_ppa_inout[] = {
 
 var_info_invalid };
 
+
+var_info vtab_ppa_inout_heat[] = {
+{ SSC_INPUT,        SSC_NUMBER,		"ppa_soln_mode",                          "PPA solution mode",                              "0/1",   "0=solve ppa,1=specify ppa", "Revenue",         "?=0",                     "INTEGER,MIN=0,MAX=1",            "" },
+{ SSC_INPUT,        SSC_NUMBER,     "ppa_soln_tolerance",                     "PPA solution tolerance",                         "",                 "", "Revenue", "?=1e-5", "", "" },
+{ SSC_INPUT,        SSC_NUMBER,     "ppa_soln_min",                           "PPA solution minimum ppa",                       "cents/kWht",        "", "Revenue", "?=0", "", "" },
+{ SSC_INPUT,        SSC_NUMBER,		"ppa_soln_max",                           "PPA solution maximum ppa",                       "cents/kWht",        "", "Revenue",         "?=100",                     "",            "" },
+{ SSC_INPUT,        SSC_NUMBER,		"ppa_soln_max_iterations",                "PPA solution maximum number of iterations",      "",                 "", "Revenue",         "?=100",                     "INTEGER,MIN=1",            "" },
+
+{ SSC_INPUT,        SSC_ARRAY,      "ppa_price_input",			              "PPA price in first year input",			            "$/kWht",	        "",	"Revenue",			 "*",         "",      			"" },
+{ SSC_INPUT,        SSC_NUMBER,     "ppa_escalation",                         "PPA escalation rate",                            "%/year",           "", "Revenue", "?=0", "", "" },
+
+{ SSC_OUTPUT,       SSC_NUMBER,     "lppa_real",                              "LPPA Levelized PPA price real",                         "cents/kWht",               "", "Metrics", "*", "", "" },
+{ SSC_OUTPUT,       SSC_NUMBER,     "lppa_nom",                               "LPPA Levelized PPA price nominal",                      "cents/kWht",               "", "Metrics", "*", "", "" },
+{ SSC_OUTPUT,       SSC_NUMBER,     "ppa",                                    "PPA price in Year 1",                        "cents/kWht",               "", "Metrics", "*", "", "" },
+{ SSC_OUTPUT,       SSC_NUMBER,     "ppa_escalation",                         "PPA price escalation",                      "%/year",              "", "Metrics", "*", "", "" },
+{ SSC_OUTPUT,       SSC_NUMBER,     "npv_ppa_revenue",                        "Present value of PPA revenue",              "$",                   "", "Metrics", "*", "", "" },
+
+var_info_invalid };
+
+
+
 var_info vtab_financial_metrics[] = {
 //	{ SSC_OUTPUT,       SSC_NUMBER,     "first_year_energy_net",                  "Annual energy",                             "kWh",                 "", "Metrics", "*", "", "" },
 { SSC_OUTPUT,       SSC_NUMBER,     "debt_fraction",                          "Debt percent",                             "%", "", "Metrics", "*", "", "" },
@@ -484,6 +581,38 @@ var_info vtab_financial_metrics[] = {
 { SSC_OUTPUT,       SSC_NUMBER,     "analysis_period_irr",                    "IRR at end of analysis period",             "%",                   "", "Metrics", "*", "", "" },
 var_info_invalid
 };
+
+
+
+var_info vtab_financial_metrics_heat[] = {
+    //	{ SSC_OUTPUT,       SSC_NUMBER,     "first_year_energy_net",                  "Annual energy",                             "kWh",                 "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "debt_fraction",                          "Debt percent",                             "%", "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "flip_target_year",                       "Target year to meet IRR",                   "",                    "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "flip_target_irr",                        "IRR target",                                "%",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "flip_actual_year",                       "Year target IRR was achieved",              "year",                    "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "flip_actual_irr",                        "IRR in target year",                        "%",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "lcoe_real",                              "LCOH Levelized cost of heat real",                               "cents/kWht",               "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "lcoe_nom",                               "LCOH Levelized cost of heat nominal",                            "cents/kWht",               "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "lcos_real",                              "LCOS Levelized cost of storage real",                               "cents/kWht",               "", "Metrics", "?", "", "" },
+    //{ SSC_OUTPUT,       SSC_NUMBER,     "lcos_nom",                               "LCOS Levelized cost of storage nominal",                            "cents/kWh",               "", "Metrics", "?", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "npv_energy_nom",                         "Present value of annual energy nominal",     "kWht",                 "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "npv_energy_real",                        "Present value of annual energy real",     "kWht",                 "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "present_value_oandm",                    "Present value of O&M",				       "$",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "present_value_oandm_nonfuel",            "Present value of non-fuel O&M",         "$",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "present_value_fuel",                     "Present value of fuel O&M",             "$",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "present_value_insandproptax",            "Present value of insurance and prop tax",   "$",                   "", "Metrics", "*", "", "" },
+
+    { SSC_OUTPUT,       SSC_NUMBER,     "lcoptc_fed_real",                        "Levelized federal PTC real",              "cents/kWht",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "lcoptc_fed_nom",                         "Levelized federal PTC nominal",           "cents/kWht",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "lcoptc_sta_real",                        "Levelized state PTC real",                "cents/kWht",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "lcoptc_sta_nom",                         "Levelized state PTC nominal",             "cents/kWht",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "wacc",                                   "WACC Weighted average cost of capital",   "$",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "effective_tax_rate",                     "Effective tax rate",                        "%",                   "", "Metrics", "*", "", "" },
+    { SSC_OUTPUT,       SSC_NUMBER,     "analysis_period_irr",                    "IRR at end of analysis period",             "%",                   "", "Metrics", "*", "", "" },
+    var_info_invalid
+};
+
+
 
 var_info vtab_debt[] = {
 /* term financing */
@@ -603,7 +732,7 @@ var_info vtab_technology_outputs[] = {
 
     var_info_invalid };
 
-ssc_number_t* gen_heatmap(compute_module* cm, double step_per_hour) {
+ssc_number_t* gen_heatmap(compute_module* cm, double step_per_hour, bool heat) {
     if (!cm)
         return 0;
     size_t count = (size_t)(8760 * step_per_hour);
@@ -611,7 +740,12 @@ ssc_number_t* gen_heatmap(compute_module* cm, double step_per_hour) {
     size_t iday = 0;
     size_t hour;
     size_t count_gen;
-    ssc_number_t* p_gen = cm->as_array("gen", &count_gen);
+    ssc_number_t* p_gen = NULL;
+    if (heat)
+        p_gen = cm->as_array("gen_heat", &count_gen);
+    else
+        p_gen = cm->as_array("gen", &count_gen);
+
     ssc_number_t* p_annual_energy_dist_time = cm->allocate("annual_energy_distribution_time", 25, 366);
     for (size_t i = 0; i < count; i++) {
         hour = (size_t)fmod(floor(double(i) / step_per_hour), 24);
@@ -1112,7 +1246,9 @@ bool forecast_price_signal::setup(size_t step_per_hour)
                     vartab->as_matrix_unsigned_long("dispatch_sched_weekday"),
                     vartab->as_matrix_unsigned_long("dispatch_sched_weekend"),
                     step_per_hour,
-                    vartab->as_vector_double("dispatch_tod_factors"), ppa);
+                    vartab->as_vector_double("dispatch_tod_factors"),
+                    vartab->as_number("start_day_of_year"),
+                    ppa);
             }
             else
             { // assumption on size - check that is requested size.
@@ -1192,7 +1328,7 @@ var_info vtab_hybrid_fin_om[] = {
     /*   VARTYPE           DATATYPE         NAME                           LABEL                UNITS     META                      GROUP           REQUIRED_IF      CONSTRAINTS     UI_HINTS*/
     { SSC_INPUT,          SSC_NUMBER,     "is_hybrid",              "hybrid configuration",      "0/1", "0=singletech,1=hybrid",    "HybridFin",       "?=0",      "",             "" },
     { SSC_INPUT,          SSC_ARRAY,      "cf_hybrid_om_sum",       "Hybrid O&M costs",          "$",   "",                         "HybridFin",       "",         "",             "" },
-    { SSC_INOUT,          SSC_ARRAY,      "monthly_energy",         "Monthly AC energy in Year 1",            "kWh", "",                         "Monthly",         "",         "LENGTH = 12",  "" },
+    { SSC_INPUT,          SSC_ARRAY,      "monthly_energy",         "Monthly AC energy in Year 1",            "kWh", "",                         "Monthly",         "",         "LENGTH = 12",  "" },
 
 var_info_invalid };
 
@@ -1200,14 +1336,20 @@ var_info_invalid };
 
 
 var_info vtab_utility_rate_common[] = {
-/*   VARTYPE           DATATYPE         NAME                        LABEL                                    UNITS      META                     GROUP                      REQUIRED_IF         CONSTRAINTS               UI_HINTS	*/
+/*   VARTYPE           DATATYPE         NAME                        LABEL                                          UNITS      META                     GROUP                      REQUIRED_IF         CONSTRAINTS               UI_HINTS	*/
 
-    { SSC_INPUT,        SSC_NUMBER,     "en_electricity_rates",     "Optionally enable/disable electricity_rate",                   "years",  "",                      "Electricity Rates",             "",                         "INTEGER,MIN=0,MAX=1",              "" }, // Required for battery to use retail rates
+    { SSC_INPUT,        SSC_NUMBER,     "en_electricity_rates",     "Optionally enable/disable electricity_rate",  "years",    "",                    "Electricity Rates",         "",                 "INTEGER,MIN=0,MAX=1",          "SIMULATION_PARAMETER" }, // Required for battery to use retail rates
 
-    { SSC_INPUT,        SSC_ARRAY,      "rate_escalation",          "Annual electricity rate escalation",   "%/year",   "",                      "Electricity Rates",       "?=0",              "",                             "" },
+    // 24.04.04 twn added to access setup()
+    { SSC_INPUT, SSC_NUMBER, "inflation_rate", "Inflation rate", "%", "", "Lifetime", "", "MIN=-99", "SIMULATION_PARAMETER" },
 
-    { SSC_INPUT,        SSC_NUMBER,     "ur_metering_option",       "Metering options",                     "0=net energy metering,1=net energy metering with $ credits,2=net billing,3=net billing with carryover to next month,4=buy all - sell all", "Net metering monthly excess", "Electricity Rates", "?=0", "INTEGER,MIN=0,MAX=4", "" },
+    // -----------------------------
 
+
+    { SSC_INPUT,        SSC_ARRAY,      "rate_escalation",          "Annual electricity rate escalation",          "%/year",   "",                     "Electricity Rates",        "?=0",              "",                             "SIMULATION_PARAMETER" },
+                                                                                                                   
+    { SSC_INPUT,        SSC_NUMBER,     "ur_metering_option",       "Metering options",                            "0=net energy metering,1=net energy metering with $ credits,2=net billing,3=net billing with carryover to next month,4=buy all - sell all", // continued on next row
+                                                                                                                                "Net metering monthly excess","Electricity Rates",  "?=0",              "INTEGER,MIN=0,MAX=4",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,        SSC_NUMBER,     "ur_nm_yearend_sell_rate",  "Net metering true-up credit sell rate", "$/kWh",    "",                     "Electricity Rates",        "?=0.0",            "",                             "" },
     { SSC_INPUT,        SSC_NUMBER,     "ur_nm_credit_month",       "Month of year end payout (true-up)",    "mn",       "",                     "Electricity Rates",        "?=11",             "INTEGER,MIN=0,MAX=11",         "" },
     { SSC_INPUT,        SSC_NUMBER,     "ur_nm_credit_rollover",    "Apply net metering true-up credits to future bills", "0/1", "0=disable,1=enable",           "Electricity Rates",        "?=0",              "INTEGER,MIN=0,MAX=1",          "" },
@@ -1216,51 +1358,56 @@ var_info vtab_utility_rate_common[] = {
     { SSC_INPUT,        SSC_NUMBER,     "ur_nb_apply_credit_current_month", "Apply earned credits to balance before rolling over excess        ", "0/1",  "0=disable,1=enable",     "Electricity Rates",        "?=0",              "INTEGER,MIN=0,MAX=1",          "" },
 
     // optional input that allows sell rates to be overridden with buy rates - defaults to not override
-    { SSC_INPUT,        SSC_NUMBER,     "ur_sell_eq_buy",           "Set sell rate equal to buy rate",      "0/1",      "Optional override",    "Electricity Rates",        "?=0",              "BOOLEAN",                      "" },
-
-
-    // urdb minimums
-    { SSC_INPUT,        SSC_NUMBER,     "ur_monthly_min_charge",    "Monthly minimum charge",               "$",        "",                     "Electricity Rates",        "?=0.0",            "",                             "" },
-    { SSC_INPUT,        SSC_NUMBER,     "ur_annual_min_charge",     "Annual minimum charge",                "$",        "",                     "Electricity Rates",        "?=0.0",            "",                             "" },
-
-    // time step rates
-    { SSC_INPUT,        SSC_NUMBER,     "ur_en_ts_sell_rate",       "Enable time step sell rates",          "0/1",      "0=disable,1=enable",                     "Electricity Rates",        "?=0",              "BOOLEAN",                      "" },
-    { SSC_INPUT,        SSC_ARRAY,      "ur_ts_sell_rate",          "Time step sell rates",                 "$/kWh",      "",                     "Electricity Rates",        "",                 "",                             "" },
-    // add separately to UI
-    { SSC_INPUT,        SSC_NUMBER,     "ur_en_ts_buy_rate",        "Enable time step buy rates",           "0/1",      "0=disable,1=enable",                     "Electricity Rates",        "?=0",              "BOOLEAN",                      "" },
-    { SSC_INPUT,        SSC_ARRAY,      "ur_ts_buy_rate",           "Time step buy rates",                  "$/kWh",      "",                     "Electricity Rates",        "",                 "",                             "" },
+    { SSC_INPUT,        SSC_NUMBER,     "ur_sell_eq_buy",           "Set sell rate equal to buy rate",              "0/1",     "Optional override",    "Electricity Rates",        "?=0",              "BOOLEAN",                      "SIMULATION_PARAMETER" },
+                                                                                                                    
+                                                                                                                    
+    // urdb minimums                                                                                                
+    { SSC_INPUT,        SSC_NUMBER,     "ur_monthly_min_charge",    "Monthly minimum charge",                       "$",       "",                     "Electricity Rates",        "?=0.0",            "",                             "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_NUMBER,     "ur_annual_min_charge",     "Annual minimum charge",                        "$",       "",                     "Electricity Rates",        "?=0.0",            "",                             "SIMULATION_PARAMETER" },
+                                                                                                                    
+    // time step rates                                                                                              
+    { SSC_INPUT,        SSC_NUMBER,     "ur_en_ts_sell_rate",       "Enable time step sell rates",                  "0/1",     "0=disable,1=enable",   "Electricity Rates",        "?=0",              "BOOLEAN",                      "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_ARRAY,      "ur_ts_sell_rate",          "Time step sell rates",                         "$/kWh",   "",                     "Electricity Rates",        "",                 "",                             "SIMULATION_PARAMETER" },
+    // add separately to UI                                                                                         
+    { SSC_INPUT,        SSC_NUMBER,     "ur_en_ts_buy_rate",        "Enable time step buy rates",                   "0/1",     "0=disable,1=enable",   "Electricity Rates",        "?=0",              "BOOLEAN",                      "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_ARRAY,      "ur_ts_buy_rate",           "Time step buy rates",                          "$/kWh",   "",                     "Electricity Rates",        "",                 "",                             "SIMULATION_PARAMETER" },
 
     // Energy Charge Inputs
-    { SSC_INPUT,        SSC_MATRIX,     "ur_ec_sched_weekday",      "Energy charge weekday schedule",       "Periods defined in ur_ec_tou_mat",         "12x24",                "Electricity Rates",        "",                 "",                             "" },
-    { SSC_INPUT,        SSC_MATRIX,     "ur_ec_sched_weekend",      "Energy charge weekend schedule",       "Periods defined in ur_ec_tou_mat",         "12x24",                "Electricity Rates",        "",                 "",                             "" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_ec_sched_weekday",      "Energy charge weekday schedule",  "Periods defined in ur_ec_tou_mat",   "12x24",  "Electricity Rates",        "",                 "",                             "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_ec_sched_weekend",      "Energy charge weekend schedule",  "Periods defined in ur_ec_tou_mat",   "12x24",  "Electricity Rates",        "",                 "",                             "SIMULATION_PARAMETER" },
 
     // ur_ec_tou_mat has 6 columns period, tier, max usage, max usage units, buy rate, sell rate
     // replaces 12(P)*6(T)*(max usage+buy+sell) = 216 single inputs
-    { SSC_INPUT,        SSC_MATRIX,     "ur_ec_tou_mat",            "Energy rates table",                   "col 0=period no, col 1=tier no, col 2=max usage, col 3=max usage units (0=kWh, 1=kWh/kW, 2=kWh daily, 3=kWh/kW daily), col 4=buy rate ($/kWh), col 5=sell rate ($/kWh)",         "nx6",                     "Electricity Rates",        "",                 "",                             "" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_ec_tou_mat",            "Energy rates table",              "col 0=period no, col 1=tier no, col 2=max usage, col 3=max usage units (0=kWh, 1=kWh/kW, 2=kWh daily, 3=kWh/kW daily), col 4=buy rate ($/kWh), col 5=sell rate ($/kWh)",
+                                                                                                                               "nx6",                  "Electricity Rates",        "",                 "",                             "SIMULATION_PARAMETER" },
 
     // Demand Charge Inputs
-    { SSC_INPUT,        SSC_NUMBER,     "ur_dc_enable",             "Enable demand charge",                 "0/1",      "0=disable,1=enable",                     "Electricity Rates",        "?=0",              "BOOLEAN",                      "" },
+    { SSC_INPUT,        SSC_NUMBER,     "ur_dc_enable",             "Enable demand charge",                         "0/1",      "0=disable,1=enable",   "Electricity Rates",       "?=0",              "BOOLEAN",                      "SIMULATION_PARAMETER" },
     // TOU demand charge
-    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_sched_weekday",      "Demand charge weekday schedule",       "Periods defined in ur_dc_tou_mat",         "12x24",                "Electricity Rates",        "",                 "",                             "" },
-    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_sched_weekend",      "Demand charge weekend schedule",       "Periods defined in ur_dc_tou_mat",         "12x24",                "Electricity Rates",        "",                 "",                             "" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_sched_weekday",      "Demand charge weekday schedule",  "Periods defined in ur_dc_tou_mat",   "12x24",   "Electricity Rates",       "",                 "",                             "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_sched_weekend",      "Demand charge weekend schedule",  "Periods defined in ur_dc_tou_mat",   "12x24",   "Electricity Rates",       "",                 "",                             "SIMULATION_PARAMETER" },
 
     // ur_dc_tou_mat has 4 columns period, tier, peak demand (kW), demand charge
     // replaces 12(P)*6(T)*(peak+charge) = 144 single inputs
-    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_tou_mat",            "Demand rates (TOU) table",             "col 0=period no, col 1=tier no, col 2=tier peak (kW), col 3=charge ($/kW)",         "nx4",                     "Electricity Rates",        "ur_dc_enable=1",   "",                             "" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_tou_mat",            "Demand rates (TOU) table",        "col 0=period no, col 1=tier no, col 2=tier peak (kW), col 3=charge ($/kW)",
+                                                                                                                               "nx4",                   "Electricity Rates",       "ur_dc_enable=1",   "",                             "SIMULATION_PARAMETER" },
 
     // flat demand charge
     // ur_dc_tou_flat has 4 columns month, tier, peak demand (kW), demand charge
     // replaces 12(P)*6(T)*(peak+charge) = 144 single inputs
-    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_flat_mat",           "Demand rates (flat) table",            "col 0=month, col 1=tier no, col 2=tier peak (kW), col 3=charge ($/kW)",         "nx4",                     "Electricity Rates",        "ur_dc_enable=1",   "",                             "" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_flat_mat",           "Demand rates (flat) table",       "col 0=month, col 1=tier no, col 2=tier peak (kW), col 3=charge ($/kW)",
+                                                                                                                               "nx4",                    "Electricity Rates",      "ur_dc_enable=1",   "",                             "SIMULATION_PARAMETER" },
 
     // Ratcheting demand charges
-    { SSC_INPUT,        SSC_NUMBER,     "ur_enable_billing_demand",     "Enable billing demand ratchets",     "0/1",  "0=disable,1=enable",        "Electricity Rates",        "?=0",                 "INTEGER,MIN=0,MAX=1",       "" },
-    { SSC_INPUT,        SSC_NUMBER,     "ur_billing_demand_minimum",       "Minimum billing demand",               "kW",         "",                     "Electricity Rates",        "ur_enable_billing_demand=1",                 "",                             "" },
-    { SSC_INPUT,        SSC_NUMBER,     "ur_billing_demand_lookback_period", "Billing demand lookback period",  "mn",         "",                "Electricity Rates",           "ur_enable_billing_demand=1",                 "INTEGER,MIN=0,MAX=12",                             "" },
-    { SSC_INPUT,        SSC_MATRIX,     "ur_billing_demand_lookback_percentages", "Billing demand lookback percentages by month and consider actual peak demand",       "%",         "12x2",      "Electricity Rates",        "ur_enable_billing_demand=1",                 "",                             "" },
-    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_billing_demand_periods", "Billing demand applicability to a given demand charge time of use period",       "",         "",      "Electricity Rates",        "ur_enable_billing_demand=1",                 "",                             "" },
-    { SSC_INPUT,        SSC_ARRAY,      "ur_yearzero_usage_peaks",  "Peak usage by month for year zero",       "kW",         "12",                "Electricity Rates",        "ur_enable_billing_demand=1",                 "",                             "" },
+    { SSC_INPUT,        SSC_NUMBER,     "ur_enable_billing_demand",               "Enable billing demand ratchets",                                               "0/1", "0=disable,1=enable", "Electricity Rates",  "?=0",                        "INTEGER,MIN=0,MAX=1",  "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_NUMBER,     "ur_billing_demand_minimum",              "Minimum billing demand",                                                       "kW",  "",                   "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_NUMBER,     "ur_billing_demand_lookback_period",      "Billing demand lookback period",                                               "mn",  "",                   "Electricity Rates",  "ur_enable_billing_demand=1", "INTEGER,MIN=0,MAX=12", "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_billing_demand_lookback_percentages", "Billing demand lookback percentages by month and consider actual peak demand", "%",   "12x2",               "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_MATRIX,     "ur_dc_billing_demand_periods",           "Billing demand applicability to a given demand charge time of use period",     "",    "",                   "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
+    { SSC_INPUT,        SSC_ARRAY,      "ur_yearzero_usage_peaks",                "Peak usage by month for year zero",                                            "kW",  "12",                 "Electricity Rates",  "ur_enable_billing_demand=1", "",                     "SIMULATION_PARAMETER" },
 
+    // Day of week for weekday/weekend schedules
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Electricity Rates", "?=0", "", "" },
 
     var_info_invalid
 };
@@ -1287,7 +1434,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
                     m_factors[i] *= (1.0 - p[i] / 100.0); //convert from percentages to factors
             }
             else {
-                m_error = util::format("Hourly loss factor array length %d does not equal length of weather file %d", (int)n, nsteps);
+                m_error = util::format("Adjustment factor hourly loss array length (%d) does not equal length of weather file (%d) ", (int)n, (int)nsteps);
             }
         }
     }
@@ -1314,7 +1461,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
             }
             else if ((n % 8760 == 0 || n % 2920 == 0) && n != (size_t)(nsteps * analysis_period)) // give a helpful error for timestep mismatch
             {
-                m_error = util::format("Time series availability losses must have the same time step as the simulation time step unless losses are daily, weekly, monthly, annual, or single value.");
+                m_error = util::format("Adjustment factor number of time series loss time steps (%d) must be the same as the number of simulation time steps (%d) unless losses were defined as daily, weekly, monthly, annual, or single values.",(int)n,(int)nsteps*(int)analysis_period);
             }
             else if (n == (size_t)( 12 * analysis_period)) { //Monthly 
                 for (int a = 0; a < analysis_period; a++) {
@@ -1350,7 +1497,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
                 }
             }
             else {
-                m_error = util::format("Error in length of lifetime availability losses.");
+                m_error = util::format("Adjustment factor number of lifetime availability loss values (%d) must be time series, daily, weekly, monthly, annual or single value.", (int)n);
             }
         }
     }
@@ -1369,7 +1516,7 @@ bool adjustment_factors::setup(int nsteps, int analysis_period) //nsteps is set 
 
 				if ( start < 0 || start >= nsteps || end < start )
 				{
-					m_error = util::format( "period %d is invalid ( start: %d, end %d )", (int)r, start, end );
+					m_error = util::format( "Adjustment factor period %d is invalid ( start: %d, end %d )", (int)r, start, end );
 					continue;
 				}
 

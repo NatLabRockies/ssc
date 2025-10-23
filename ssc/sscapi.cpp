@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 SSCEXPORT int ssc_version()
 {
-	return 292;
+	return 303;
 }
 
 SSCEXPORT const char *ssc_build_info()
@@ -81,20 +81,17 @@ extern module_entry_info
 	cm_entry_pvsandiainv,
 	cm_entry_wfreader,
 	cm_entry_irradproc,
-	cm_entry_utilityrate,
-	cm_entry_utilityrate2,
-	cm_entry_utilityrate3,
-	cm_entry_utilityrate4,
 	cm_entry_utilityrate5,
     cm_entry_utilityrateforecast,
-	cm_entry_cashloan,
-	cm_entry_thirdpartyownership,
-	cm_entry_ippppa,
+    cm_entry_cashloan,
+    cm_entry_cashloan_heat,
+    cm_entry_thirdpartyownership,
 	cm_entry_timeseq,
 	cm_entry_levpartflip,
 	cm_entry_equpartflip,
 	cm_entry_saleleaseback,
     cm_entry_singleowner,
+    cm_entry_singleowner_heat,
     cm_entry_communitysolar,
     cm_entry_merchantplant,
 	cm_entry_host_developer,
@@ -106,7 +103,6 @@ extern module_entry_info
 	cm_entry_custom_generation,
 	cm_entry_wfcsvconv,
 	cm_entry_tcstrough_empirical,
-	cm_entry_tcstrough_physical,
 	cm_entry_trough_physical,
     cm_entry_trough_physical_iph,
 	cm_entry_iph_to_lcoefcr,
@@ -120,7 +116,6 @@ extern module_entry_info
     cm_entry_fresnel_physical_iph,
 	cm_entry_tcslinear_fresnel,
 	cm_entry_linear_fresnel_dsg_iph,
-	cm_entry_tcsmslf,
     cm_entry_etes_electric_resistance,
     cm_entry_etes_ptes,
 	cm_entry_hcpv,
@@ -140,9 +135,7 @@ extern module_entry_info
     cm_entry_sco2_comp_curves,
     cm_entry_test_ud_power_cycle,
 	cm_entry_user_htf_comparison,
-	cm_entry_ui_tes_calcs,
     cm_entry_ui_udpc_checks,
-	cm_entry_cb_mspt_system_costs,
 	cm_entry_cb_construction_financing,
 	cm_entry_cb_empirical_hce_heat_loss,
     cm_entry_csp_dsg_lf_ui,
@@ -154,6 +147,7 @@ extern module_entry_info
 	cm_entry_pv_get_shade_loss_mpp,
 	cm_entry_inv_cec_cg,
 	cm_entry_thermalrate,
+    cm_entry_thermalrate_iph,
 	cm_entry_mhk_tidal,
 	cm_entry_mhk_wave,
 	cm_entry_mhk_costs,
@@ -163,7 +157,8 @@ extern module_entry_info
 	cm_entry_battery_stateful,
     cm_entry_csp_subcomponent,
     cm_entry_hybrid_steps,
-    cm_entry_hybrid
+    cm_entry_hybrid,
+    cm_entry_csp_heatsink
     ;
 
 /* official module table */
@@ -182,20 +177,17 @@ static module_entry_info *module_table[] = {
 	&cm_entry_pvsandiainv,
 	&cm_entry_wfreader,
 	&cm_entry_irradproc,
-	&cm_entry_utilityrate,
-	&cm_entry_utilityrate2,
-	&cm_entry_utilityrate3,
-	&cm_entry_utilityrate4,
 	&cm_entry_utilityrate5,
     &cm_entry_utilityrateforecast,
-	&cm_entry_cashloan,
-	&cm_entry_thirdpartyownership,
-	&cm_entry_ippppa,
+    &cm_entry_cashloan,
+    &cm_entry_cashloan_heat,
+    &cm_entry_thirdpartyownership,
 	&cm_entry_timeseq,
 	&cm_entry_levpartflip,
 	&cm_entry_equpartflip,
 	&cm_entry_saleleaseback,
     &cm_entry_singleowner,
+    &cm_entry_singleowner_heat,
     &cm_entry_communitysolar,
     &cm_entry_merchantplant,
 	&cm_entry_host_developer,
@@ -207,7 +199,6 @@ static module_entry_info *module_table[] = {
 	&cm_entry_custom_generation,
 	&cm_entry_wfcsvconv,
 	&cm_entry_tcstrough_empirical,
-	&cm_entry_tcstrough_physical,
     &cm_entry_trough_physical,
     &cm_entry_trough_physical_iph,
 	&cm_entry_iph_to_lcoefcr,
@@ -221,7 +212,6 @@ static module_entry_info *module_table[] = {
     &cm_entry_ptes_design_point,
 	&cm_entry_tcslinear_fresnel,
 	&cm_entry_linear_fresnel_dsg_iph,
-	&cm_entry_tcsmslf,
     &cm_entry_etes_electric_resistance,
     &cm_entry_etes_ptes,
 	&cm_entry_hcpv,
@@ -241,9 +231,7 @@ static module_entry_info *module_table[] = {
     &cm_entry_sco2_comp_curves,
     &cm_entry_test_ud_power_cycle,
 	&cm_entry_user_htf_comparison,
-	&cm_entry_ui_tes_calcs,
     &cm_entry_ui_udpc_checks,
-	&cm_entry_cb_mspt_system_costs,
 	&cm_entry_cb_construction_financing,
 	&cm_entry_cb_empirical_hce_heat_loss,
     &cm_entry_csp_dsg_lf_ui,
@@ -255,6 +243,7 @@ static module_entry_info *module_table[] = {
 	&cm_entry_pv_get_shade_loss_mpp,
 	&cm_entry_inv_cec_cg,
 	&cm_entry_thermalrate,
+    &cm_entry_thermalrate_iph,
 	&cm_entry_mhk_tidal,
 	&cm_entry_mhk_wave,
 	&cm_entry_mhk_costs,
@@ -265,6 +254,7 @@ static module_entry_info *module_table[] = {
     &cm_entry_csp_subcomponent,
     &cm_entry_hybrid_steps,
     &cm_entry_hybrid,
+    &cm_entry_csp_heatsink,
 0 };
 
 extern var_info vtab_oandm[];

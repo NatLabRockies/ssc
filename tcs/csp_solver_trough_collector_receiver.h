@@ -73,6 +73,8 @@ public:
 		E_Q_DOT_HTF_OUT,		    //[MWt]
 		E_Q_DOT_FREEZE_PROT,        //[MWt]
 
+        E_TIME_IN_STARTUP,          //[min]
+
 		E_M_DOT_LOOP,				//[kg/s]
         E_IS_RECIRCULATING,         //[-]
 		E_M_DOT_FIELD_RECIRC,		//[kg/s]
@@ -294,8 +296,14 @@ private:
 	double m_q_dot_htf_to_sink_fullts;		//[MWt] SYSTEM thermal power to sink (or artificially added to system in recirculation...)
 	double m_q_dot_freeze_protection;		//[MWt] SYSTEM thermal freeze protection
 
+    double m_q_dot_thermal_reported;        //[MWt] HTF thermal power reported back to controller - should be 0 for recirculating startup and off
+
 	double m_dP_total;						//[bar] FIELD pressure drop
 	double m_W_dot_pump;					//[MWe] FIELD pumping power
+
+    double m_time_at_off;                   //[s]
+    double m_time_at_startup;               //[s]
+    double m_time_at_on;                    //[s]
 
 	bool m_is_m_dot_recirc;		//[-] True: trough is recirculationg HTF with interacting with other CSP components
 
@@ -342,7 +350,8 @@ public:
 	double m_theta_dep = std::numeric_limits<double>::quiet_NaN();		//[deg] deploy angle
 	double m_Row_Distance = std::numeric_limits<double>::quiet_NaN();	//[m] Spacing between rows (centerline to centerline)
 	double m_T_startup = std::numeric_limits<double>::quiet_NaN();		//[C] The required temperature (converted to K in init) of the system before the power block can be switched on
-	double m_T_loop_in_des = std::numeric_limits<double>::quiet_NaN();	//[C] Design loop inlet temperature, converted to K in init
+    double m_T_shutdown = std::numeric_limits<double>::quiet_NaN();     //[C] The temperature at which the field stops operating (converted to K in init)
+    double m_T_loop_in_des = std::numeric_limits<double>::quiet_NaN();	//[C] Design loop inlet temperature, converted to K in init
 	double m_T_loop_out_des = std::numeric_limits<double>::quiet_NaN();//[C] Target loop outlet temperature, converted to K in init
 	int m_Fluid = std::numeric_limits<int>::quiet_NaN();			//[-] Field HTF fluid number
 	

@@ -214,10 +214,6 @@ public:
     //declare dispatch function in etes_dispatch.cpp
     bool optimize();
 
-    //Functions to write AMPL data files and solve AMPL model
-    std::string write_ampl();
-    bool optimize_ampl();
-
     // Set outputs struct based on LP solution -> could move to outputs struct
     void set_outputs_from_lp_solution(lprec* lp, unordered_map<std::string, double>& params);
 

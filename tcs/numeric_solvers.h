@@ -170,7 +170,13 @@ public:
 		MAX_ITER_SLOPE_POS_BOTH_ERRS,
 		MAX_ITER_SLOPE_NEG_BOTH_ERRS,
 	};
-	
+
+    bool is_no_negative_error(int exit_mode)
+    {
+        return exit_mode == SLOPE_POS_NO_NEG_ERR || exit_mode == SLOPE_NEG_NO_NEG_ERR ||
+            exit_mode == MAX_ITER_SLOPE_POS_NO_NEG_ERR || exit_mode == MAX_ITER_SLOPE_NEG_NO_NEG_ERR;
+    }
+
 	C_monotonic_eq_solver(C_monotonic_equation & f);
 
 	~C_monotonic_eq_solver(){}

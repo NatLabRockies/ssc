@@ -144,8 +144,8 @@ set( DEPENDENCIES
 	)
 
 if (UNIX)
-    set(CMAKE_SHARED_LINKER_FLAGS "-lm")
-endif ()
+   set(CMAKE_SHARED_LINKER_FLAGS "-lm")
+ endif ()
 if (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
 endif ()

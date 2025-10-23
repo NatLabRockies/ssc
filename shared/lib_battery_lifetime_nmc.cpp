@@ -132,7 +132,7 @@ double lifetime_nmc_t::runQli(double T_battery_K) {
                       (Ea_d0_2 / Rug) * pow(1 / T_battery_K - 1 / T_ref, 2));
 
     double dQLi1dt = 0;
-    if (state->nmc_li_neg->dq_relative_li1 == 0) {
+    if (std::abs(state->nmc_li_neg->dq_relative_li1) < 1e-5) {
         if (state->day_age_of_battery > 0)
             dQLi1dt = b1 / sqrt(state->day_age_of_battery);
     }

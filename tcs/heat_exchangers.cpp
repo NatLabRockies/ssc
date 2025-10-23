@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sam_csp_util.h"
 #include <algorithm>
 #include "numeric_solvers.h"
+#include "sco2_cycle_components.h"
 
 double NS_HX_counterflow_eqs::calc_max_q_dot_enth(int hot_fl_code /*-*/, HTFProperties & hot_htf_class,
     int cold_fl_code /*-*/, HTFProperties & cold_htf_class,
@@ -600,6 +601,8 @@ void NS_HX_counterflow_eqs::calc_req_UA_enth(int hot_fl_code /*-*/, HTFPropertie
         double P_h = P_h_in - i * (P_h_in - P_h_out) / (double)(N_nodes - 1);
 
         // Calculate the entahlpy at the node
+        // Starting from HX hot side
+        // i = 0 is global cold stream outlet and hot stream inlet
         double h_c = h_c_out + i * (h_c_in - h_c_out) / (double)(N_nodes - 1);
         double h_h = h_h_in - i * (h_h_in - h_h_out) / (double)(N_nodes - 1);
 
@@ -768,7 +771,7 @@ void NS_HX_counterflow_eqs::calc_req_UA_enth(int hot_fl_code /*-*/, HTFPropertie
             else
             {
                 double T_c_avg = cold_htf_class.temp_lookup(h_c_avg);	//[K]
-                cp_c_avg = cold_htf_class.Cp(T_c_avg);  //[K]
+                cp_c_avg = cold_htf_class.Cp(T_c_avg);  //[kJ/kg-K]
 
                 v_s_node_info[i - 1].s_fl_cold.cp = cp_c_avg; //[kJ/kg-K]
                 v_s_node_info[i - 1].s_fl_cold.rho = hot_htf_class.dens(T_c_avg, P_c_avg); //[kg/m3]
@@ -790,7 +793,7 @@ void NS_HX_counterflow_eqs::calc_req_UA_enth(int hot_fl_code /*-*/, HTFPropertie
                 C_dot_min = m_dot_c * cp_c_avg;			// [kW/K] cold stream capacitance rate
                 C_R = 0.0;
             }
-            else if (!is_c_2phase && is_h_2phase)
+            else if (!is_h_2phase && is_c_2phase)
             {
                 C_dot_min = m_dot_h * cp_h_avg;			// [kW/K] hot stream capacitance rate
                 C_R = 0.0;
@@ -1475,7 +1478,7 @@ void NS_HX_counterflow_eqs::solve_q_dot_for_fixed_UA_enth(int hot_fl_code /*-*/,
 	double q_dot_mult = max(0.99, min(0.95, eff_limit) / eff_limit);
 	if ( std::isfinite(eff_guess) )
 	{
-		q_dot_mult = max(0.99, min(0.1, eff_guess));
+		q_dot_mult = min(0.99, max(0.1, eff_guess));
 	}
 
 	double q_dot_guess_upper = q_dot_mult*q_dot_upper;
@@ -1521,11 +1524,13 @@ void NS_HX_counterflow_eqs::solve_q_dot_for_fixed_UA_enth(int hot_fl_code /*-*/,
 			throw(C_csp_exception("Off-design heat exchanger method failed"));
 		}
 
-		//if (!(od_hx_code == C_monotonic_eq_solver::CONVERGED || od_hx_code == C_monotonic_eq_solver::SLOPE_POS_NO_POS_ERR || od_hx_code == C_monotonic_eq_solver::SLOPE_POS_BOTH_ERRS))
-		//{
-		//	throw(C_csp_exception("Off-design heat exchanger method failed"));
-		//}
+		/*if (!(od_hx_code == C_monotonic_eq_solver::CONVERGED || od_hx_code == C_monotonic_eq_solver::SLOPE_POS_NO_POS_ERR || od_hx_code == C_monotonic_eq_solver::SLOPE_POS_BOTH_ERRS))
+		{
+			throw(C_csp_exception("Off-design heat exchanger method failed"));
+		}*/
+
 	}
+
 	else if (test_code == 0 && diff_UA_max_eff <= 0.0)  // UA_max_eff <= UA_target)
 	{
 		// At maximum allowable heat transfer, the calculated UA is less than target
@@ -1783,16 +1788,37 @@ double C_HX_counterflow_CRM::calc_max_q_dot_enth(double h_h_in /*kJ/kg*/, double
 
 double /*M$*/ C_HX_counterflow_CRM::calculate_equipment_cost(double UA /*kWt/K*/,
     double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/,
-    double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/)
+    double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/,
+    double yr_inflation /*yr*/)
 {
     switch (m_cost_model)
     {
     case C_HX_counterflow_CRM::E_CARLSON_17_RECUP:
-        return 1.25*1.E-3*UA;		//[M$] needs UA in kWt/K
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 1.25 * 1.E-3 * UA * f_inflation;		//[M$] needs UA in kWt/K
+    }  
     case C_HX_counterflow_CRM::E_WEILAND_19_RECUP:
-        return 49.45*std::pow(UA*1.E3, 0.7544)*1.E-6;  //[M$] needs UA in Wt/K
+    {
+        double C_recup = 49.45 * std::pow(UA * 1.E3, 0.7544) * 1.E-6; //[M$] needs UA in Wt/K
+        double T_factor = 1;
+        double T_max_C = std::max(T_hot_in, T_cold_in) - 273.15;
+        if (T_max_C >= 550)
+        {
+            T_factor = 1.0 + 0.02141 * (T_max_C - 550);
+        }
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return C_recup * T_factor * f_inflation;  //[M$]
+        break;
+    }
     case C_HX_counterflow_CRM::E_CARLSON_17_PHX:
-        return 3.5*1.E-3*UA;		//[M$] needs UA in kWt/K
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 3.5 * 1.E-3 * UA * f_inflation;		//[M$] needs UA in kWt/K
+    } 
     default:
         return std::numeric_limits<double>::quiet_NaN();
     }
@@ -1858,7 +1884,8 @@ void C_HX_counterflow_CRM::design_calc_UA(C_HX_counterflow_CRM::S_des_calc_UA_pa
 
 	ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_UA_design,
 		ms_des_calc_UA_par.m_T_h_in, ms_des_calc_UA_par.m_P_h_in, ms_des_calc_UA_par.m_m_dot_hot_des,
-		ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_m_dot_cold_des);
+		ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_m_dot_cold_des,
+        m_yr_inflation);
 
     ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);
 
@@ -1869,6 +1896,128 @@ void C_HX_counterflow_CRM::design_calc_UA(C_HX_counterflow_CRM::S_des_calc_UA_pa
 
 	return;
 }
+
+void C_HX_counterflow_CRM::design_calc_UA_TP_to_PH(C_HX_counterflow_CRM::S_des_calc_UA_par des_par,
+    double h_h_in /*kJ/kg*/,
+    double h_c_in /*kJ/kg*/, double h_c_out /*kJ/kg*/,
+    double q_dot_design /*kWt*/,
+    C_HX_counterflow_CRM::S_des_solved& des_solved)
+{
+    /*Designs heat exchanger given its mass flow rates, inlet temperatures, and a heat transfer rate.
+    Note: the heat transfer rate must be positive.*/
+    ms_des_calc_UA_par = des_par;
+    ms_des_solved.m_DP_cold_des = des_par.m_P_c_in - des_par.m_P_c_out;		//[kPa]
+    ms_des_solved.m_DP_hot_des = des_par.m_P_h_in - des_par.m_P_h_out;		//[kPa]
+
+    // Trying to solve design point, so set boolean to false until method solves successfully
+    m_is_HX_designed = false;
+
+    // Check that design parameters are set
+    if (!m_is_HX_initialized)
+    {
+        throw(C_csp_exception("Design parameters are not initialized!", "C_HX_counterflow::design"));
+    }
+
+    double UA_calc, min_DT_calc, eff_calc, NTU_calc, T_h_out_calc, T_c_out_calc, q_dot_calc;
+    UA_calc = min_DT_calc = eff_calc = NTU_calc = T_h_out_calc = T_c_out_calc = q_dot_calc = std::numeric_limits<double>::quiet_NaN();
+
+    /*NS_HX_counterflow_eqs::calc_req_UA(ms_init_par.m_hot_fl, mc_hot_fl,
+        ms_init_par.m_cold_fl, mc_cold_fl,
+        ms_init_par.m_N_sub_hx,
+        q_dot_design, ms_des_calc_UA_par.m_m_dot_cold_des, ms_des_calc_UA_par.m_m_dot_hot_des,
+        ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_T_h_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_P_c_out, ms_des_calc_UA_par.m_P_h_in, ms_des_calc_UA_par.m_P_h_out,
+        UA_calc, min_DT_calc, eff_calc, NTU_calc, T_h_out_calc, T_c_out_calc, q_dot_calc,
+        mv_s_node_info_des);*/
+
+    // Check inputs
+    {
+        if (q_dot_design < 0.0)
+        {
+            throw(C_csp_exception("Input heat transfer rate is less than 0.0. It must be >= 0.0", "C_HX_counterflow::design", 4));
+        }
+        if (des_par.m_m_dot_cold_des < 1.E-14)
+        {
+            throw(C_csp_exception("The cold mass flow rate must be a positive value", "C_HX_counterflow::design"));
+        }
+        if (des_par.m_m_dot_hot_des < 1.E-14)
+        {
+            throw(C_csp_exception("The hot mass flow rate must be a positive value", "C_HX_counterflow::design"));
+        }
+        if (des_par.m_T_h_in < des_par.m_T_c_in)
+        {
+            throw(C_csp_exception("Inlet hot temperature is colder than the cold inlet temperature", "C_HX_counterflow::design", 5));
+        }
+        if (des_par.m_P_h_in < des_par.m_P_h_out)
+        {
+            throw(C_csp_exception("Hot side outlet pressure is greater than hot side inlet pressure", "C_HX_counterflow::design", 6));
+        }
+        if (des_par.m_P_c_in < des_par.m_P_c_out)
+        {
+            throw(C_csp_exception("Cold side outlet pressure is greater than cold side inlet pressure", "C_HX_counterflow::design", 7));
+        }
+        if (q_dot_design <= 1.E-14)	// very low Q_dot; assume it is zero
+        {
+            // Set outputs, and S_des_solved members		
+            UA_calc = 0.0;					//[kW/K]
+            NTU_calc = 0.0;					//[-]
+            q_dot_calc = 0.0;			//[kW]
+            min_DT_calc = des_par.m_T_h_in - des_par.m_T_c_in;	//[K]
+            eff_calc = 0.0;			//[-]
+            T_h_out_calc = des_par.m_T_h_in;	//[K]
+            T_c_out_calc = des_par.m_T_c_in;	//[K]
+
+            return;
+        }
+    }
+    
+    // Know h_h_in and h_c_in, so can call 'calc_req_UA_enth' here
+    double h_c_out_calc = std::numeric_limits<double>::quiet_NaN();
+    double h_h_out_calc = std::numeric_limits<double>::quiet_NaN();
+    NS_HX_counterflow_eqs::calc_req_UA_enth(ms_init_par.m_hot_fl, mc_hot_fl,
+        ms_init_par.m_cold_fl, mc_cold_fl,
+        ms_init_par.m_N_sub_hx,
+        q_dot_design, ms_des_calc_UA_par.m_m_dot_cold_des, ms_des_calc_UA_par.m_m_dot_hot_des,
+        h_c_in, h_h_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_P_c_out, ms_des_calc_UA_par.m_P_h_in, ms_des_calc_UA_par.m_P_h_out,
+        h_h_out_calc, T_h_out_calc, h_c_out_calc, T_c_out_calc,
+        UA_calc, min_DT_calc, eff_calc, NTU_calc, q_dot_calc,
+        mv_s_node_info_des);
+
+    // Check that calculated effectiveness is less than limit
+    if (eff_calc > ms_des_calc_UA_par.m_eff_max)
+    {
+        std::string msg = util::format("Calculated design effectiveness, %lg [-] is greater than the specified maximum effectiveness, %lg [-].", eff_calc, ms_des_calc_UA_par.m_eff_max);
+
+        throw(C_csp_exception("Calculated design effectiveness, % lg[-] is greater than the specified maximum effectiveness, % lg[-].",
+            "C_HX_counterflow::design"));
+    }
+
+    ms_des_solved.m_UA_allocated = 0.0;     //[kW/K]
+    ms_des_solved.m_UA_calc_at_eff_max = UA_calc;   //[kW/K]
+
+    ms_des_solved.m_Q_dot_design = q_dot_design;	//[kWt]
+    ms_des_solved.m_UA_design = UA_calc;		    //[kWt/K]
+    ms_des_solved.m_min_DT_design = min_DT_calc;
+    ms_des_solved.m_eff_design = eff_calc;
+    ms_des_solved.m_NTU_design = NTU_calc;
+    ms_des_solved.m_T_h_out = T_h_out_calc;
+    ms_des_solved.m_T_c_out = T_c_out_calc;
+    ms_des_solved.m_h_h_out = h_h_out_calc;
+    ms_des_solved.m_h_c_out = h_c_out_calc;
+
+    ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_UA_design,
+        ms_des_calc_UA_par.m_T_h_in, ms_des_calc_UA_par.m_P_h_in, ms_des_calc_UA_par.m_m_dot_hot_des,
+        ms_des_calc_UA_par.m_T_c_in, ms_des_calc_UA_par.m_P_c_in, ms_des_calc_UA_par.m_m_dot_cold_des, m_yr_inflation);
+
+    ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);
+
+    // Specify that method solved successfully
+    m_is_HX_designed = true;
+
+    des_solved = ms_des_solved;
+
+    return;
+}
+
 
 void C_HX_counterflow_CRM::design_for_target__calc_outlet(int hx_target_code /*-*/,
     double UA_target /*kW/K*/, double min_dT_target /*K*/, double eff_target /*-*/,
@@ -1935,7 +2084,8 @@ void C_HX_counterflow_CRM::design_for_target__calc_outlet(int hx_target_code /*-
 
     ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_UA_design,
         T_h_in, P_h_in, m_dot_h,
-        T_c_in, P_c_in, m_dot_c);
+        T_c_in, P_c_in, m_dot_c,
+        m_yr_inflation);
 
     ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);
 }
@@ -2512,6 +2662,398 @@ void C_HX_counterflow_CRM::off_design_solution_calc_dP(double T_c_in /*K*/, doub
     off_design_solution_fixed_dP(T_c_in, P_c_in, m_dot_c, P_c_out, T_h_in, P_h_in, m_dot_h, P_h_out, od_tol, q_dot, T_c_out, T_h_out);
 }
 
+void C_HX_counterflow_CRM::off_design_solution_fixed_dP_enth(double h_c_in /*K*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/, double P_c_out /*kPa*/,
+    double h_h_in /*K*/, double P_h_in /*kPa*/, double m_dot_h /*kg/s*/, double P_h_out /*kPa*/,
+    double od_tol /*-*/,
+    double& q_dot /*kWt*/, double& h_c_out /*K*/, double& h_h_out /*K*/)
+{
+    if (m_od_solution_type == C_HX_counterflow_CRM::C_od_thermal_solution_type::E_CRM_UA_PER_NODE)
+    {
+        double h_cold_in = h_c_in;
+        double h_hot_in = h_h_in;
+
+        double h_h_out_q_max, T_h_out_q_max, h_c_out_q_max, T_c_out_q_max, T_h_in_q_max, T_c_in_q_max;
+        h_h_out_q_max = T_h_out_q_max = h_c_out_q_max = T_c_out_q_max = T_h_in_q_max = T_c_in_q_max = std::numeric_limits<double>::quiet_NaN();
+        double q_dot_max = NS_HX_counterflow_eqs::calc_max_q_dot_enth(ms_init_par.m_hot_fl, mc_hot_fl,
+            ms_init_par.m_cold_fl, mc_cold_fl,
+            h_hot_in, P_h_in, P_h_out, m_dot_h,
+            h_cold_in, P_c_in, P_c_out, m_dot_c,
+            h_h_out_q_max, T_h_out_q_max,
+            h_c_out_q_max, T_c_out_q_max,
+            T_h_in_q_max, T_c_in_q_max);
+
+        if (q_dot_max > 0.0)
+        {
+            double h_h_out_local, T_h_out_local, h_c_out_local, T_c_out_local, UA_local, min_DT_local, eff_local, NTU_local, q_dot_calc_local;
+            h_h_out_local = T_h_out_local = h_c_out_local = T_c_out_local =
+                UA_local = min_DT_local = eff_local = NTU_local = q_dot_calc_local = std::numeric_limits<double>::quiet_NaN();
+            std::vector<NS_HX_counterflow_eqs::S_hx_node_info> v_s_node_info_local;
+
+            double q_dot_max_local = 0.9999 * q_dot_max;
+            bool is_feasible_q_dot = false;
+            double q_dot_max_pinch = q_dot_max;
+
+            while (!is_feasible_q_dot)
+            {
+                int err_code = 0;
+                try
+                {
+                    /*NS_HX_counterflow_eqs::calc_req_UA(ms_init_par.m_hot_fl, mc_hot_fl, ms_init_par.m_cold_fl, mc_cold_fl,
+                        ms_init_par.m_N_sub_hx,
+                        q_dot_max_local, m_dot_c, m_dot_h,
+                        T_c_in, T_h_in, P_c_in, P_c_out, P_h_in, P_h_out,
+                        UA_local, min_DT_local, eff_local, NTU_local,
+                        T_h_out_local, T_c_out_local, q_dot_calc_local,
+                        v_s_node_info_local);*/
+
+                    NS_HX_counterflow_eqs::calc_req_UA_enth(ms_init_par.m_hot_fl, mc_hot_fl, ms_init_par.m_cold_fl, mc_cold_fl,
+                        ms_init_par.m_N_sub_hx,
+                        q_dot_max_local, m_dot_c, m_dot_h,
+                        h_c_in, h_h_in, P_c_in, P_c_out, P_h_in, P_h_out,
+
+                        h_h_out_local, T_h_out_local, h_c_out_local, T_c_out_local,
+                        UA_local, min_DT_local, eff_local, NTU_local, q_dot_calc_local,
+                        v_s_node_info_local);
+                }
+                catch (C_csp_exception& csp_except)
+                {
+                    err_code = csp_except.m_error_code;
+                    q_dot_max_pinch = q_dot_max_local;
+                    q_dot_max_local *= 0.995;
+                }
+
+                if (err_code == 0)
+                {
+                    is_feasible_q_dot = true;
+                }
+            }
+
+            C_MEQ__hx_total_q_dot c_q_dot_eq(this, m_dot_c, m_dot_h,
+                h_cold_in, h_hot_in,
+                P_c_in, P_c_out,
+                P_h_in, P_h_out, od_tol);
+
+            C_monotonic_eq_solver c_q_dot_solver(c_q_dot_eq);
+
+            double diff_q_dot_upper = std::numeric_limits<double>::quiet_NaN();
+            int q_dot_upper_test_code = c_q_dot_solver.test_member_function(q_dot_calc_local, &diff_q_dot_upper);
+
+            if (q_dot_upper_test_code != 0 || diff_q_dot_upper < 0.0)
+            {
+                C_monotonic_eq_solver::S_xy_pair xy1;
+                C_monotonic_eq_solver::S_xy_pair xy2;
+                double q_dot_guess_upper = q_dot_calc_local;
+
+                if (q_dot_upper_test_code == 0)
+                {
+                    //if (q_dot_upper_test_code != 0)
+                    //{
+                    //    while (q_dot_upper_test_code != 0)
+                    //    {
+                    //        // Use design point effectiveness to generate 2 guess values
+                    //        //double q_dot_mult = max(0.99, min(0.95, eff_max_limit) / eff_max_limit);
+                    //        double q_dot_mult = 0.995;
+                    //        if (std::isfinite(ms_des_solved.m_eff_design))
+                    //        {
+                    //            q_dot_mult = max(0.99, min(0.1, ms_des_solved.m_eff_design));
+                    //        }
+
+                    //        q_dot_guess_upper *= q_dot_mult;
+
+                    //        q_dot_upper_test_code = c_q_dot_solver.test_member_function(q_dot_guess_upper, &diff_q_dot_upper);
+                    //    }
+                    //}
+
+                    xy1.x = q_dot_guess_upper;
+                    xy1.y = diff_q_dot_upper;
+
+                    xy2.x = 0.95 * q_dot_guess_upper;
+
+                    q_dot_upper_test_code = c_q_dot_solver.test_member_function(xy2.x, &xy2.y);
+
+                    while (q_dot_upper_test_code != 0)
+                    {
+                        xy2.x *= 1.005;
+
+                        if (xy2.x > xy1.x)
+                        {
+                            break;
+                        }
+
+                        q_dot_upper_test_code = c_q_dot_solver.test_member_function(xy2.x, &xy2.y);
+                    }
+                }
+
+                if (q_dot_upper_test_code == 0)
+                {
+                    c_q_dot_solver.settings(od_tol, 50, 0.0, q_dot_max_pinch, false);
+
+                    double tol_solved, q_dot_solved;
+                    tol_solved = q_dot_solved = std::numeric_limits<double>::quiet_NaN();
+                    int iter_solved = -1;
+
+                    int q_dot_hx_code = 0;
+
+                    try
+                    {
+                        q_dot_hx_code = c_q_dot_solver.solve(xy1, xy2, 0.0,
+                            q_dot_solved, tol_solved, iter_solved);
+                    }
+                    catch (C_csp_exception)
+                    {
+                        throw(C_csp_exception("C_HX_counterflow_CRM::off_design_solution threw exception trying to solve for the off-design"
+                            "heat transfer for off design hx conductance"));
+                    }
+
+                    if (q_dot_hx_code != C_monotonic_eq_solver::CONVERGED)
+                    {
+                        if (!(q_dot_hx_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) <= 0.1))
+                        {
+                            throw(C_csp_exception("C_HX_counterflow_CRM::off_design_solution did not solve for the off-design"
+                                "heat transfer for off design hx conductance within the specified tolerance"));
+                        }
+                    }
+
+                    q_dot = q_dot_solved;
+                }
+                else
+                {
+                    q_dot_upper_test_code = c_q_dot_solver.test_member_function(q_dot_guess_upper, &diff_q_dot_upper);
+                    q_dot = q_dot_guess_upper;
+                }
+            }
+            else
+            {
+                // Off-design HX wants a q_dot resulting in an effectiveness greater than limit
+                // What to do about this?        
+                q_dot = q_dot_calc_local;
+                //T_h_out = T_h_out_q_max;
+                //T_c_out = T_c_out_q_max;
+            }
+
+            double eff_max_limit = fmin(0.99999, ms_des_calc_UA_par.m_eff_max);  //[-]
+            double q_dot_upper_eff = eff_max_limit * q_dot_max;     //[kWt]
+
+            if (q_dot_upper_eff < q_dot)
+            {
+                q_dot = q_dot_upper_eff;
+
+                try
+                {
+                    /*NS_HX_counterflow_eqs::calc_req_UA(ms_init_par.m_hot_fl, mc_hot_fl, ms_init_par.m_cold_fl, mc_cold_fl,
+                        ms_init_par.m_N_sub_hx,
+                        q_dot, m_dot_c, m_dot_h,
+                        T_c_in, T_h_in, P_c_in, P_c_out, P_h_in, P_h_out,
+                        UA_local, min_DT_local, eff_local, NTU_local,
+                        T_h_out_local, T_c_out_local, q_dot_calc_local,
+                        v_s_node_info_local);*/
+
+                    NS_HX_counterflow_eqs::calc_req_UA_enth(ms_init_par.m_hot_fl, mc_hot_fl, ms_init_par.m_cold_fl, mc_cold_fl,
+                        ms_init_par.m_N_sub_hx,
+                        q_dot, m_dot_c, m_dot_h,
+                        h_c_in, h_h_in, P_c_in, P_c_out, P_h_in, P_h_out,
+                        h_h_out_local, T_h_out_local, h_c_out_local, T_c_out_local,
+                        UA_local, min_DT_local, eff_local, NTU_local, q_dot_calc_local,
+                        v_s_node_info_local);
+                }
+                catch (C_csp_exception& csp_except)
+                {
+                    throw(C_csp_exception("C_HX_counterflow_CRM::off_design_solution failed to solve 'calc_req_UA'"
+                        " at effectiveness-limited heat transfer."));
+                }
+
+                h_h_out = h_h_out_local;
+                h_c_out = h_c_out_local;
+
+                ms_od_solved.m_min_DT = min_DT_local;
+                ms_od_solved.m_UA_total = UA_local;
+            }
+            else
+            {
+                double h_hot_out = c_q_dot_eq.m_h_hot_out;      //[kJ/kg]
+                double h_cold_old = c_q_dot_eq.m_h_cold_out;    //[kJ/kg]
+
+                h_h_out = h_hot_out;
+                h_c_out = h_cold_old;
+
+                ms_od_solved.m_min_DT = c_q_dot_eq.m_min_dT;    //[K]
+                ms_od_solved.m_UA_total = c_q_dot_eq.m_UA_tot_calc;     //[kW/K]
+            }
+        }
+        else
+        {
+            // HX q_dot = 0.0
+                // What to do about this?        
+            q_dot = q_dot_max;
+            h_h_out = h_h_out_q_max;
+            h_c_out = T_c_out_q_max;
+            ms_od_solved.m_min_DT = 0.0;
+            ms_od_solved.m_UA_total = 0.0;
+        }
+
+        ms_od_solved.m_eff = q_dot / q_dot_max; //[-]
+        //ms_od_solved.m_NTU = NTU;			//[-]
+        ms_od_solved.m_P_c_out = P_c_out;	//[kPa]
+        ms_od_solved.m_P_h_out = P_h_out;	//[kPa]
+        ms_od_solved.m_q_dot = q_dot;		//[kWt]
+        //ms_od_solved.m_T_c_out = T_c_out;	//[K]
+        //ms_od_solved.m_T_h_out = T_h_out;	//[K]
+
+        ms_od_solved.m_deltaP_cold = P_c_in - P_c_out;      //[kPa]
+        ms_od_solved.m_deltaP_hot = P_h_in - P_h_out;       //[kPa]
+    }
+    else
+    {
+        // Set o.d. UA as solver target
+        double UA_target = od_UA(m_dot_c, m_dot_h);	//[kW/K]
+        double eff_target = ms_des_calc_UA_par.m_eff_max;
+
+
+        ms_od_solved.m_q_dot = ms_od_solved.m_T_c_out = ms_od_solved.m_P_c_out =
+            ms_od_solved.m_T_h_out = ms_od_solved.m_P_h_out = ms_od_solved.m_UA_total =
+            ms_od_solved.m_min_DT = ms_od_solved.m_eff = ms_od_solved.m_NTU = std::numeric_limits<double>::quiet_NaN();
+
+        double eff_calc, min_DT, NTU, UA_calc;
+        eff_calc = min_DT = NTU = UA_calc = std::numeric_limits<double>::quiet_NaN();
+
+        // Off-design should always use UA as the performance target
+        // So set min_dT_target and eff_target parameters = nan
+        int hx_target_code = NS_HX_counterflow_eqs::TARGET_UA;
+
+        if (!m_is_single_node_des_set)
+        {
+            ms_node_info_des.UA = ms_des_solved.m_UA_design;
+
+            // Hot fluid
+            double P_h_in_des = ms_des_calc_UA_par.m_P_h_in;        //[kPa]
+            double T_h_in_des = ms_des_calc_UA_par.m_T_h_in;        //[K]
+            double h_h_in_des = ms_des_calc_UA_par.m_h_h_in;        //[kJ/kg]
+
+            double P_h_out_des = ms_des_calc_UA_par.m_P_h_out;      //[kPa]
+            double T_h_out_des = ms_des_solved.m_T_h_out;           //[K]
+            double h_h_out_des = ms_des_solved.m_h_h_out;           //[kJ/kg]
+
+            double P_h_avg_des = 0.5 * (P_h_in_des + P_h_out_des);
+            double h_h_avg_des = 0.5 * (h_h_in_des + h_h_out_des);
+
+            NS_HX_counterflow_eqs::C_hx_fl__Ph__core c_Ph_hot(ms_init_par.m_hot_fl, &mc_hot_fl, P_h_avg_des, h_h_avg_des, true);
+            ms_node_info_des.s_fl_hot.k = c_Ph_hot.m_k;
+            ms_node_info_des.s_fl_hot.rho = c_Ph_hot.m_rho;
+            ms_node_info_des.s_fl_hot.mu = c_Ph_hot.m_mu;
+            ms_node_info_des.s_fl_hot.cp = c_Ph_hot.m_cp;
+            ms_node_info_des.s_fl_hot.m_dot = ms_des_calc_UA_par.m_m_dot_hot_des;       //[kg/s]
+
+            // Cold fluid
+            double P_c_in_des = ms_des_calc_UA_par.m_P_c_in;        //[kPa]
+            double T_c_in_des = ms_des_calc_UA_par.m_T_c_in;        //[K]
+            double h_c_in_des = ms_des_calc_UA_par.m_h_c_in;
+
+            double P_c_out_des = ms_des_calc_UA_par.m_P_c_out;      //[kPa]
+            double T_c_out_des = ms_des_solved.m_T_c_out;           //[K]       
+            double h_c_out_des = ms_des_solved.m_h_c_out;           //[kJ/kg]
+
+            double P_c_avg_des = 0.5 * (P_c_in_des + P_c_out_des);
+            double h_c_avg_des = 0.5 * (h_c_in_des + h_c_out_des);
+
+            NS_HX_counterflow_eqs::C_hx_fl__Ph__core c_Ph_cold(ms_init_par.m_cold_fl, &mc_cold_fl, P_c_avg_des, h_c_avg_des, true);
+            ms_node_info_des.s_fl_cold.k = c_Ph_cold.m_k;
+            ms_node_info_des.s_fl_cold.rho = c_Ph_cold.m_rho;
+            ms_node_info_des.s_fl_cold.mu = c_Ph_cold.m_mu;
+            ms_node_info_des.s_fl_cold.cp = c_Ph_cold.m_cp;
+            ms_node_info_des.s_fl_cold.m_dot = ms_des_calc_UA_par.m_m_dot_cold_des;
+
+            m_is_single_node_des_set = true;
+        }
+
+        double T_c_out_calc, T_h_out_calc;
+
+        double P_c_out_guess = P_c_out;
+        double P_c_out_calc = P_c_out_guess;
+
+        double P_h_out_guess = P_h_out;
+        double P_h_out_calc = P_h_out_guess;
+
+        bool is_hx_deltaP_converge = true;
+
+        double diff_P_c_out = std::numeric_limits<double>::quiet_NaN();
+        double diff_P_h_out = std::numeric_limits<double>::quiet_NaN();
+
+        size_t iter_deltaP = 0;
+
+        do
+        {
+            if (P_c_out_calc != P_c_out_guess)
+            {
+                P_c_out_guess = 0.9 * P_c_out_calc + 0.1 * P_c_out_guess;
+            }
+
+            if (P_h_out_calc != P_h_out_guess)
+            {
+                P_h_out_guess = 0.9 * P_h_out_calc + 0.1 * P_h_out_guess;
+            }
+
+            if (iter_deltaP > 10)
+            {
+                P_c_out_guess = P_c_in - (ms_des_calc_UA_par.m_P_c_in - ms_des_calc_UA_par.m_P_c_out);
+                P_h_out_guess = P_h_in - (ms_des_calc_UA_par.m_P_h_in - ms_des_calc_UA_par.m_P_h_out);
+                is_hx_deltaP_converge = false;
+            }
+            
+            NS_HX_counterflow_eqs::solve_q_dot_for_fixed_UA_enth(
+                ms_init_par.m_hot_fl, mc_hot_fl,
+                ms_init_par.m_cold_fl, mc_cold_fl,
+                ms_node_info_des,
+                ms_init_par.m_N_sub_hx, m_od_UA_target_type,
+                h_c_in, P_c_in, m_dot_c, P_c_out_guess,
+                h_h_in, P_h_in, m_dot_h, P_h_out_guess,
+                UA_target, 
+                eff_target, ms_des_solved.m_eff_design,
+                od_tol,
+                T_c_out_calc, h_c_out,
+                T_h_out_calc, h_h_out,
+                q_dot, eff_calc, min_DT, NTU, UA_calc,
+                mv_s_node_info_des);
+
+            double P_c_avg = 0.5 * (P_c_in + P_c_out_guess);
+            double h_c_avg = 0.5 * (h_c_in + h_c_out);
+            NS_HX_counterflow_eqs::C_hx_fl__Ph__core c_c_fl_props(ms_init_par.m_cold_fl, &mc_cold_fl, P_c_avg, h_c_avg, false);
+            double rho_c_avg = c_c_fl_props.m_rho;
+
+            double P_h_avg = 0.5 * (P_h_in + P_h_out_guess);
+            double h_h_avg = 0.5 * (h_h_in + h_h_out);
+            NS_HX_counterflow_eqs::C_hx_fl__Ph__core c_h_fl_props(ms_init_par.m_hot_fl, &mc_hot_fl, P_h_avg, h_h_avg, false);
+            double rho_h_avg = c_h_fl_props.m_rho;
+
+            P_c_out_calc = P_c_in - (ms_des_calc_UA_par.m_P_c_in - ms_des_calc_UA_par.m_P_c_out) *
+                (std::pow(m_dot_c, 2) / rho_c_avg) /
+                (std::pow(ms_node_info_des.s_fl_cold.m_dot, 2) / ms_node_info_des.s_fl_cold.rho);
+
+            P_h_out_calc = P_h_in - (ms_des_calc_UA_par.m_P_h_in - ms_des_calc_UA_par.m_P_h_out) *
+                (std::pow(m_dot_h, 2) / rho_h_avg) /
+                (std::pow(ms_node_info_des.s_fl_hot.m_dot, 2) / ms_node_info_des.s_fl_hot.rho);
+
+            diff_P_c_out = (P_c_out_calc - P_c_out_guess) / P_c_out_guess;  //[-]
+            diff_P_h_out = (P_h_out_calc - P_h_out_guess) / P_h_out_guess;  //[-]
+
+            iter_deltaP++;
+
+        } while (is_hx_deltaP_converge && (std::abs(diff_P_c_out) > od_tol || std::abs(diff_P_h_out) > od_tol));
+
+        ms_od_solved.m_eff = eff_calc;			//[-]
+        ms_od_solved.m_min_DT = min_DT;		//[K]
+        ms_od_solved.m_NTU = NTU;			//[-]
+        ms_od_solved.m_P_c_out = P_c_out_guess;	//[kPa]
+        ms_od_solved.m_P_h_out = P_h_out_guess;	//[kPa]
+        ms_od_solved.m_q_dot = q_dot;		//[kWt]
+        ms_od_solved.m_T_c_out = T_c_out_calc;	//[K]
+        ms_od_solved.m_T_h_out = T_h_out_calc;	//[K]
+        ms_od_solved.m_UA_total = UA_calc;	//[kW/K]
+
+        ms_od_solved.m_deltaP_cold = P_c_in - ms_od_solved.m_P_c_out;      //[kPa]
+        ms_od_solved.m_deltaP_hot = P_h_in - ms_od_solved.m_P_h_out;       //[kPa]
+    }
+}
+
 double C_HX_counterflow_CRM::od_delta_p_cold_frac(double m_dot_c /*kg/s*/)
 {
     return pow(m_dot_c / ms_des_calc_UA_par.m_m_dot_cold_des, 1.75);
@@ -2543,13 +3085,319 @@ double C_HX_counterflow_CRM::od_UA_frac(double m_dot_c /*kg/s*/, double m_dot_h 
     return pow(m_dot_ratio, 0.8);
 }
 
+void C_HX_htf_to_steam::initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+{
+    // Hard-code some of the design parameters
+    ms_init_par.m_N_sub_hx = N_sub_hx;  //[-]
+    ms_init_par.m_cold_fl = NS_HX_counterflow_eqs::WATER;
+
+    // Read-in hot side HTF props
+    ms_init_par.m_hot_fl = hot_fl;
+    ms_init_par.mc_hot_fl_props = hot_fl_props;
+
+    m_od_UA_target_type = od_UA_target_type;
+
+    // Set up HTFProperties for the hot fluid
+    if (ms_init_par.m_hot_fl != HTFProperties::User_defined && ms_init_par.m_hot_fl < HTFProperties::End_Library_Fluids)
+    {
+        if (!mc_hot_fl.SetFluid(ms_init_par.m_hot_fl, true))
+        {
+            throw(C_csp_exception("Hot fluid code is not recognized", "C_HX_co2_to_htf::initialization"));
+        }
+    }
+    else if (ms_init_par.m_hot_fl == HTFProperties::User_defined)
+    {
+        int n_rows = (int)ms_init_par.mc_hot_fl_props.nrows();
+        int n_cols = (int)ms_init_par.mc_hot_fl_props.ncols();
+        if (n_rows > 2 && n_cols == 7)
+        {
+            if (!mc_hot_fl.SetUserDefinedFluid(ms_init_par.mc_hot_fl_props, true))
+            {
+                std::string error_msg = util::format(mc_hot_fl.UserFluidErrMessage(), n_rows, n_cols);
+                throw(C_csp_exception(error_msg, "C_HX_co2_to_htf::initialization"));
+            }
+        }
+        else
+        {
+            std::string error_msg = util::format("The user defined hot fluid table must contain at least 3 rows and exactly 7 columns. The current table contains %d row(s) and %d column(s)", n_rows, n_cols);
+            throw(C_csp_exception(error_msg, "C_HX_co2_to_htf::initialization"));
+        }
+    }
+    else
+    {
+        throw(C_csp_exception("Hot fluid code is not recognized", "C_HX_co2_to_htf::initialization"));
+    }
+
+    // Class is initialized
+    m_is_HX_initialized = true;
+
+}
+
+void C_HX_htf_to_steam::initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+{
+    util::matrix_t<double> null_fluid_props;
+
+    initialize(hot_fl, null_fluid_props, N_sub_hx, od_UA_target_type);
+}
+
+void C_HX_htf_to_steam::design_w_TP_PH(double T_h_in /*K*/, double P_h_in /*kPa*/, double T_h_out /*K*/, double P_h_out /*kPa*/,
+    double P_c_in /*kPa*/, double h_c_in /*kJ/kg*/, double P_c_out /*kPa*/, double h_c_out /*kJ/kg*/,
+    double q_dot_design /*kWt*/,
+    C_HX_counterflow_CRM::S_des_solved& des_solved)
+{
+    double T_htf_cold = T_h_out;	//[C]
+
+    double h_h_in = mc_hot_fl.enth_lookup(T_h_in);	//[kJ/kg]
+    double h_h_out = mc_hot_fl.enth_lookup(T_htf_cold);			//[kJ/kg]
+    double m_dot_hot_des = q_dot_design / (h_h_in - h_h_out);
+
+    water_state ms_water_props;
+    int prop_error_code = water_PH(P_c_in, h_c_in, &ms_water_props);
+    if (prop_error_code != 0)
+    {
+        throw(C_csp_exception("Hot side water/steam inlet enthalpy calculations failed",
+            "C_HX_counterflow::calc_max_q_dot_enth", 12));
+    }
+    double h_steam_in = ms_water_props.enth;	//[kJ/kg]
+    prop_error_code = water_PH(P_c_out, h_c_out, &ms_water_props);
+    if (prop_error_code != 0)
+    {
+        throw(C_csp_exception("Hot side water/steam inlet enthalpy calculations failed",
+            "C_HX_counterflow::calc_max_q_dot_enth", 12));
+    }
+    double h_steam_out = ms_water_props.enth;   //[kJ/kg]
+    double m_dot_cold_des = q_dot_design / (h_steam_out - h_steam_in);   //[kg/s]
+
+    S_des_calc_UA_par des_par;
+    des_par.m_T_h_in = T_h_in;
+    des_par.m_P_h_in = P_h_in;
+    des_par.m_P_h_out = P_h_out;
+    des_par.m_m_dot_hot_des = m_dot_hot_des;
+    des_par.m_h_h_in = h_h_in;
+    des_par.m_T_c_in = numeric_limits<double>::quiet_NaN(); // Cold steam temp should never be used
+    des_par.m_P_c_in = P_c_in;
+    des_par.m_P_c_out = P_c_out;
+    des_par.m_m_dot_cold_des = m_dot_cold_des;
+    des_par.m_h_c_in = h_c_in;
+
+    des_par.m_eff_max = 1.0;
+
+    design_calc_UA_TP_to_PH(des_par, h_h_in, h_c_in, h_c_out, q_dot_design, des_solved);
+
+    double T_htf_in_solve = des_par.m_T_h_in;
+    double T_htf_out_solve = des_solved.m_T_h_out;
+    double h_htf_in_solve = mc_hot_fl.enth_lookup(T_htf_in_solve);
+    double h_htf_out_solve = mc_hot_fl.enth_lookup(T_htf_out_solve);
+    double mdot_htf_solve = des_par.m_m_dot_hot_des;
+    double Q_htf_calc = mdot_htf_solve * (h_htf_in_solve - h_htf_out_solve);
+
+    double T_steam_in_solve = des_par.m_T_c_in;
+    double T_steam_out_solve = des_solved.m_T_c_out;
+    prop_error_code = water_TP(T_steam_in_solve /*K*/, des_par.m_P_c_in /*kPa*/, &ms_water_props);
+    double h_steam_in_solve = ms_water_props.enth;
+    prop_error_code = water_TP(T_steam_out_solve /*K*/, des_par.m_P_c_out /*kPa*/, &ms_water_props);
+    double h_steam_out_solve = ms_water_props.enth;
+    double mdot_steam_solve = des_par.m_m_dot_cold_des;
+    double Q_steam_calc = mdot_steam_solve * (h_steam_out_solve - h_steam_in_solve);
+
+
+    int x = 0;
+}
+
+int C_HX_htf_to_steam::off_design_target_cold_PH_out(double h_c_out_target /*kJ/kg*/,
+    double m_dot_c_min /*kg/s*/, double m_dot_c_max /*kg/s*/,
+    double P_c_in /*kPa*/, double h_c_in /*kJ/kg*/, double P_c_out /*kPa*/,
+    double P_h_in /*kPa*/, double h_h_in /*kJ/kg*/, double P_h_out /*kPa*/, double m_dot_h /*kg/s*/,
+    double od_tol /*-*/,
+    double& q_dot /*kWt*/, double& h_c_out /*kJ/kg*/, double& h_h_out /*kJ/kg*/, double& m_dot_c /*kg/s*/,
+    double& tol_solved, double& T_c_out /*C*/, double& x_c_out /**/, double& hx_min_dT /*C*/)
+{
+    // ADD inputs
+    double max_iter = 1000;
+    double slvr_tol = od_tol;
+
+
+    C_MEQ__target_cold_PH_out h_out_eq(this, h_c_out_target, h_c_in, P_c_in, P_c_out,
+        h_h_in, P_h_in, P_h_out, m_dot_h, od_tol);
+    C_monotonic_eq_solver h_out_solver(h_out_eq);
+    h_out_solver.settings(od_tol, max_iter, m_dot_c_min, m_dot_c_max, false);
+
+    double mdot_guess = ms_des_calc_UA_par.m_m_dot_cold_des * (m_dot_h / ms_des_calc_UA_par.m_m_dot_hot_des);
+
+    double delta_h_target_rel = std::numeric_limits<double>::quiet_NaN();
+
+    double m_dot_guess_i = std::min(mdot_guess, m_dot_c_max);
+
+    C_monotonic_eq_solver::S_xy_pair xy_1;
+    xy_1.x = m_dot_guess_i;    //[kg/s]
+
+    C_monotonic_eq_solver::S_xy_pair xy_2;
+
+    int solver_code = h_out_solver.test_member_function(xy_1.x, &delta_h_target_rel);
+
+    double adj = 0.1;
+
+    if (solver_code != 0) {
+
+        while (solver_code != 0)
+        {
+            if (m_dot_guess_i > m_dot_c_max) {
+                return -3;
+            }
+
+            m_dot_guess_i *= 1.0 + adj;   // increase guess if solver code != 0
+
+            xy_1.x = std::min(m_dot_guess_i, m_dot_c_max);
+            solver_code = h_out_solver.test_member_function(xy_1.x, &delta_h_target_rel);
+        }
+        xy_1.y = delta_h_target_rel;
+
+        // if first successful x is the max, then we're going to have trouble finding a second value
+        if (xy_1.x == m_dot_c_max) {
+            xy_2.x = xy_1.x * 0.995;
+
+            solver_code = h_out_solver.test_member_function(xy_2.x, &delta_h_target_rel);
+
+            if (solver_code != 0) {
+                return -4;
+            }
+
+            xy_2.y = delta_h_target_rel;
+        }
+    }
+    else {
+        xy_1.y = delta_h_target_rel;
+
+        // if error is negative, then outlet enthalpy is too low and mass flow rate is too high
+        if (delta_h_target_rel < 0.0) {
+
+            // So decrease mass flow rate to get new guess
+            // Decreasing mass flow rate can lead to pinch fails, so cut down 'adj' a bit
+            xy_2.x = xy_1.x * (1.0 - 0.5 * adj);
+
+            solver_code = h_out_solver.test_member_function(xy_2.x, &delta_h_target_rel);
+
+            // If new guess failed, just try larger than xy1 guess. This approach isn't optimal but should work...
+            if (solver_code != 0) {
+                xy_2.x = std::min(xy_1.x * 1.1, m_dot_c_max);
+
+                solver_code = h_out_solver.test_member_function(xy_2.x, &delta_h_target_rel);
+                if (solver_code != 0) {
+                    return -6;
+                }
+            }
+        }
+        if (delta_h_target_rel > 0.0 || solver_code != 0) {
+
+            // Increase mass flow rate to get new guess
+            xy_2.x = std::min(xy_1.x * (1.0 + adj), m_dot_c_max);
+
+            solver_code = h_out_solver.test_member_function(xy_2.x, &delta_h_target_rel);
+
+            // If higher mass flow rate fails, try a guess close to xy1 guess
+            // If that fails, give up
+            if (solver_code != 0) {
+                xy_2.x = std::min(xy_1.x * 1.01, m_dot_c_max);
+                solver_code = h_out_solver.test_member_function(xy_2.x, &delta_h_target_rel);
+
+                if (solver_code != 0) {
+                    return -5;
+                }
+            }
+        }
+
+        xy_2.y = delta_h_target_rel;
+    }
+
+    /*
+    if (false)
+    {
+        double frac = (m_dot_c_max - m_dot_c_min) / 1000;
+        std::vector<double> mdot_vec;
+        std::vector<double> h_c_out_vec;
+        std::vector<double> h_c_out_diff_vec;
+        for (double mdot = m_dot_c_min; mdot < m_dot_c_max; mdot += frac)
+        {
+            double q_dot_temp, h_c_out_temp, h_h_out_temp;
+            off_design_solution_fixed_dP_enth(h_c_in, P_c_in, mdot, P_c_out,
+                h_h_in, P_h_in, m_dot_h, P_h_out,
+                od_tol,
+                q_dot_temp, h_c_out_temp, h_h_out_temp);
+
+            mdot_vec.push_back(mdot);
+            h_c_out_vec.push_back(h_c_out_temp);
+            h_c_out_diff_vec.push_back(h_c_out_temp - h_c_out_target);
+        }
+
+        int xasdf = 0;
+    } */
+   
+    // Solve
+    double m_dot_c_solved;
+    int iter_solved = -1;
+    int m_dot_code = -1;
+    try
+    {
+        //m_dot_code = h_out_solver.solve(m_dot_c_min, m_dot_c_max, 0.0, m_dot_c_solved, tol_solved, iter_solved);
+        m_dot_code = h_out_solver.solve(xy_1, xy_2, 0.0, m_dot_c_solved, tol_solved, iter_solved);
+    }
+    catch (C_csp_exception)
+    {
+        return -1;
+    }
+
+    if (m_dot_code != C_monotonic_eq_solver::CONVERGED)
+    {
+        if (!(m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) <= 0.01))
+        {
+            return -2;
+        }
+    }
+
+    // Converge Succesfully
+    q_dot = h_out_eq.m_q_dot;       //[kJ]        
+    h_c_out = h_out_eq.m_h_c_out;   //[kJ/kg]
+    h_h_out = h_out_eq.m_h_h_out;   //[kJ/kg]
+    m_dot_c = h_out_eq.m_m_dot_c;   //[kg/s]
+
+    T_c_out = h_out_eq.m_T_c_out;     //[C]
+    hx_min_dT = h_out_eq.m_hx_min_dT;   //[C]
+
+    water_state ms_water_props;
+    int prop_error_code = water_PH(P_c_out, h_c_out, &ms_water_props);
+
+    x_c_out = ms_water_props.qual;
+
+    return 0;
+}
+
+int C_HX_htf_to_steam::C_MEQ__target_cold_PH_out::operator()(double m_dot_c /*kg/s*/, double* diff_h_c_out /*kJ/kg*/)
+{
+    m_m_dot_c = m_dot_c;
+
+    mpc_hx->off_design_solution_fixed_dP_enth(m_h_c_in, m_P_c_in, m_dot_c, m_P_c_out,
+        m_h_h_in, m_P_h_in, m_m_dot_h, m_P_h_out,
+        m_tol,
+        m_q_dot, m_h_c_out, m_h_h_out);
+
+    m_T_c_out = mpc_hx->ms_od_solved.m_T_c_out - 273.15;//[C]
+    m_P_c_out = mpc_hx->ms_od_solved.m_P_c_out;         //[kPa]
+    m_hx_min_dT = mpc_hx->ms_od_solved.m_min_DT;        //[C]
+
+    *diff_h_c_out = (m_h_c_out - m_h_c_out_target) / m_h_c_out_target;   //[kJ/kg]
+
+    return 0;
+}
+
+
 double NS_HX_counterflow_eqs::UA_scale_vs_m_dot(double m_dot_cold_over_des /*-*/, double m_dot_hot_over_des /*-*/)
 {
     double m_dot_ratio = 0.5*(m_dot_cold_over_des + m_dot_hot_over_des);
     return pow(m_dot_ratio, 0.8);
 }
 
-void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                                     double yr_inflation)
 {
     // Set design parameters member structure
     ms_init_par.m_N_sub_hx = N_sub_hx;
@@ -2558,9 +3406,11 @@ void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_t
     m_is_HX_initialized = true;
 
     m_od_UA_target_type = od_UA_target_type;
+    m_yr_inflation = yr_inflation;
 }
 
-void C_HX_co2_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+void C_HX_co2_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                                 double yr_inflation)
 {
 	// Hard-code some of the design parameters
     ms_init_par.m_N_sub_hx = N_sub_hx;  //[-]
@@ -2606,13 +3456,16 @@ void C_HX_co2_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props
 	// Class is initialized
 	m_is_HX_initialized = true;
 
+    m_yr_inflation = yr_inflation;
+
 }
 
-void C_HX_co2_to_htf::initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type)
+void C_HX_co2_to_htf::initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                                 double yr_inflation)
 {
 	util::matrix_t<double> null_fluid_props;
 
-	initialize(hot_fl, null_fluid_props, N_sub_hx, od_UA_target_type);
+	initialize(hot_fl, null_fluid_props, N_sub_hx, od_UA_target_type, yr_inflation);
 }
 
 void C_HX_co2_to_htf::design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc_UA_par& des_par,
@@ -2870,7 +3723,8 @@ bool C_CO2_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_d
 	solver_code = -1;
 	i_W_par = -1;
 
-	while (solver_code != 0 || std::abs(T_hot_in_calc_2 - T_hot_in_calc) / T_hot_in_calc < 0.01)
+    while (solver_code != 0 || std::abs(T_hot_in_calc_2 - T_hot_in_calc) / T_hot_in_calc < 0.01
+        || ms_des_par_cycle_dep.m_T_hot_in_des - T_hot_in_calc_2 > 100.0)
 	{
 		i_W_par++;
 
@@ -2953,7 +3807,7 @@ bool C_CO2_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_d
 	ms_hx_des_sol.m_W_dot_fan = ms_des_par_cycle_dep.m_W_dot_fan_des;	//[MWe]
 
 	ms_hx_des_sol.m_cost_equipment = calculate_equipment_cost(ms_hx_des_sol.m_UA_total*1.E-3, ms_hx_des_sol.m_V_total,
-		ms_hx_des_sol.m_T_in_co2, ms_hx_des_sol.m_P_in_co2, ms_hx_des_sol.m_m_dot_co2);		//[M$]
+		ms_hx_des_sol.m_T_in_co2, ms_hx_des_sol.m_P_in_co2, ms_hx_des_sol.m_m_dot_co2, des_par_ind.m_yr_inflation);		//[M$]
 
     ms_hx_des_sol.m_cost_bare_erected = calculate_bare_erected_cost(ms_hx_des_sol.m_cost_equipment);
 
@@ -3540,14 +4394,24 @@ int C_CO2_to_air_cooler::C_MEQ_target_T_hot__width_parallel::operator()(double W
 }
 
 double /*M$*/ C_CO2_to_air_cooler::calculate_equipment_cost(double UA /*kWt/K*/, double V_material /*m^3*/,
-	double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/)
+	double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/, double yr_inflation/**/)
 {
 	switch (m_cost_model)
 	{
 	case C_CO2_to_air_cooler::E_CARLSON_17:
-		return 2.3*1.E-3*UA;		//[M$] needs UA in kWt/K
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 2.3 * 1.E-3 * UA * f_inflation;		//[M$] needs UA in kWt/K
+    }
+		
     case C_CO2_to_air_cooler::E_WEILAND_19:
-        return 32.88*std::pow(UA*1.E3, 0.75)*1.E-6; //[M$] needs UA in Wt/K
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 32.88 * std::pow(UA * 1.E3, 0.75) * 1.E-6 * f_inflation; //[M$] needs UA in Wt/K
+    }
+        
 	default:
 		return std::numeric_limits<double>::quiet_NaN();
 	}
@@ -4079,3 +4943,4 @@ double C_CO2_to_air_cooler::air_pressure(double elevation /*m*/)
 	// http://www.engineeringtoolbox.com/air-altitude-pressure-d_462.html	
 	return 101325.0*pow(1 - 2.25577E-5*elevation, 5.25588);	//[Pa] 
 }
+

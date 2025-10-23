@@ -70,7 +70,8 @@ void C_csp_reported_outputs::C_output::set_m_is_ts_weighted(int subts_weight_typ
 		  m_subts_weight_type == TS_1ST ||
 		  m_subts_weight_type == TS_LAST ||
           m_subts_weight_type == TS_MAX ||
-          m_subts_weight_type == DEPENDENT ))
+          m_subts_weight_type == DEPENDENT ||
+          m_subts_weight_type == SUMMED))
 	{
 		throw(C_csp_exception("C_csp_reported_outputs::C_output::send_to_reporting_ts_array did not recognize subtimestep weighting type"));
 	}
@@ -166,7 +167,18 @@ void C_csp_reported_outputs::C_output::send_to_reporting_ts_array(double report_
             //   if multiple csp-timesteps for one reporting timestep
             // ************************************************************
             mp_reporting_ts_array[m_counter_reporting_ts_array] =(float)(*std::max_element(mv_temp_outputs.begin(), mv_temp_outputs.end()));
-        }        
+        }
+        else if (m_subts_weight_type == SUMMED){
+            // *******************************************************
+            // If multiple csp-timesteps for one reporting timestep, sum them
+            // --- original use case is timestep simulation duration
+            // *************************************************************
+            double sum_val = 0;
+            for (size_t i = 0; i < n_report; i++) {
+                sum_val += mv_temp_outputs[i];
+            }
+            mp_reporting_ts_array[m_counter_reporting_ts_array] = (float)sum_val;
+        }
 		else
 		{
 			throw(C_csp_exception("C_csp_reported_outputs::C_output::send_to_reporting_ts_array did not recognize subtimestep weighting type"));

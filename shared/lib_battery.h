@@ -405,6 +405,12 @@ public:
 
     double SOC();
 
+    double SOC_max();
+
+    double SOC_min();
+
+    double nominal_energy();
+
     double V(); // the actual battery voltage
 
     double V_nominal(); // the nominal battery voltage

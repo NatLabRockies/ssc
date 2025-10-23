@@ -79,8 +79,8 @@ void pvsamv1_pv_defaults(ssc_data_t& data) {
 	ssc_data_set_number(data, "transformer_load_loss", 0);
 	ssc_data_set_number(data, "system_use_lifetime_output", 1);
 	ssc_data_set_number(data, "save_full_lifetime_variables", 1);
-	ssc_data_set_number(data, "analysis_period", 25);
-	ssc_number_t p_dc_degradation[1] = { 0.5 };
+    ssc_data_set_number(data, "analysis_period", 2); 
+    ssc_number_t p_dc_degradation[1] = { 0.5 };
 	ssc_data_set_array(data, "dc_degradation", p_dc_degradation, 1);
 	ssc_data_set_number(data, "en_dc_lifetime_losses", 0);
 	ssc_number_t p_dc_lifetime_losses[1] = { 0 };
@@ -825,7 +825,8 @@ void commercial_multiarray_default(ssc_data_t& data) {
 	ssc_data_set_number(data, "transformer_load_loss", 0);
 	ssc_data_set_number(data, "system_use_lifetime_output", 1);
 	ssc_data_set_number(data, "save_full_lifetime_variables", 1);
-	ssc_data_set_number(data, "analysis_period", 25);
+    ssc_data_set_number(data, "analysis_period", 2); 
+
     ssc_number_t p_federal_tax_rate[1] = { 21 };
     ssc_data_set_array(data, "federal_tax_rate", p_federal_tax_rate, 1);
     ssc_number_t p_state_tax_rate[1] = { 7 };

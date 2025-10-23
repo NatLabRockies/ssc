@@ -3117,3 +3117,37 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerSystemLoss, 0.0, error);
     EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
 }
+
+// Test to reproduce https://github.com/NREL/sam/issues/1914
+TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, AC_ExcessSystemLoss) {
+    m_batteryPower->connectionMode = ChargeController::AC_CONNECTED;
+
+    m_batteryPower->canSystemCharge = true;
+    m_batteryPower->canDischarge = true;
+    m_batteryPower->canGridCharge = false;
+    m_batteryPower->chargeOnlySystemExceedLoad = true;
+    m_batteryPower->dischargeOnlyLoadExceedSystem = true;
+    m_batteryPower->powerSystem = 0;
+    m_batteryPower->powerLoad = 5000;
+    m_batteryPower->powerFuelCell = 0;
+    m_batteryPower->powerSystemLoss = 1000;
+
+    // do not discharge battery
+    m_batteryPower->powerBatteryDC = 30;
+    m_batteryPowerFlow->calculate();
+
+    EXPECT_NEAR(m_batteryPower->powerBatteryAC, 28.8, error);
+    EXPECT_NEAR(m_batteryPower->powerSystemToLoad, 0, error);
+    EXPECT_NEAR(m_batteryPower->powerSystemToBatteryAC, 0, error);
+    EXPECT_NEAR(m_batteryPower->powerGridToBattery, 0, error);
+    EXPECT_NEAR(m_batteryPower->powerGridToLoad, 5000, error);
+    EXPECT_NEAR(m_batteryPower->powerSystemToGrid, 0, error);
+    EXPECT_NEAR(m_batteryPower->powerBatteryToLoad, 0, error);
+    EXPECT_NEAR(m_batteryPower->powerConversionLoss, 1.2, error);
+    EXPECT_NEAR(m_batteryPower->powerSystemLoss, 1000, error);
+
+    double gen = m_batteryPower->powerSystem + m_batteryPower->powerBatteryAC - m_batteryPower->powerSystemLoss;
+    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, gen, error);
+    EXPECT_NEAR(m_batteryPower->powerLoad, 5000, error);
+
+}

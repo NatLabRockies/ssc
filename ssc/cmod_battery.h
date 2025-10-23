@@ -231,6 +231,7 @@ struct batt_variables
 	util::matrix_t<size_t> ec_weekend_schedule;
 	util::matrix_t<double> ec_tou_matrix;
 	std::vector<double> ec_realtime_buy;
+    size_t start_day_of_year;
 
 	/* Battery replacement options */
 	int batt_replacement_option;
@@ -456,7 +457,8 @@ struct battstor
         * outPVS_P_pv_ac, // testing with input pv output
         * outPVS_PV_ramp_interval, // testing with sampled input pv output
         * outPVS_forecast_pv_energy, // testing with forecast based on input pv output
-        * outAdjustLosses;
+        * outAdjustLosses,
+        * outDispatchPeriod;
 
 	double outAverageCycleEfficiency;
 	double outAverageRoundtripEfficiency;

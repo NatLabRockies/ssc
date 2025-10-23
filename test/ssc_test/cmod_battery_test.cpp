@@ -186,3 +186,55 @@ TEST_F(CMBattery_cmod_battery, ResilienceMetricsFullLoadLifetime){
     }
     EXPECT_EQ(max_indices[0], 2);
 }
+
+/// Test standalone battery compute modeule with merchant plant prices
+TEST_F(CMBattery_cmod_battery_fom, MerchantPlantAutomatic) {
+
+    // Run with fixed output
+    ssc_number_t n_years;
+    ssc_data_get_number(data, "analysis_period", &n_years);
+    size_t n_lifetime = (size_t)(n_years) * 8760;
+
+    int errors = run_module(data, "battery"); // Happy path - expect no errors
+    EXPECT_FALSE(errors);
+
+    if (!errors)
+    {
+        // roundtrip efficiency test will ensure that the battery cycled
+        ssc_number_t roundtripEfficiency;
+        ssc_data_get_number(data, "average_battery_roundtrip_efficiency", &roundtripEfficiency);
+        EXPECT_NEAR(roundtripEfficiency, 87.47, 2);
+
+        // test that lifetime output is achieved
+        int n;
+        calculated_array = ssc_data_get_array(data, "gen", &n);
+        EXPECT_EQ(n_lifetime, (size_t)n);
+
+        // test that battery was replaced at some point
+        calculated_array = ssc_data_get_array(data, "batt_bank_replacement", &n);
+        int replacements = std::accumulate(calculated_array, calculated_array + n, 0);
+
+        EXPECT_EQ(replacements, 0);
+
+        // test temperature
+        double* arr = ssc_data_get_array(data, "batt_temperature", &n);
+        auto temp_array = std::vector<double>(arr, arr + n);
+        double max_temp = *std::max_element(temp_array.begin(), temp_array.end());
+        EXPECT_NEAR(max_temp, 34.3, 1);
+    }
+}
+
+/// Test standalone battery compute modeule with merchant plant price errors (ssc throws as expected)
+TEST_F(CMBattery_cmod_battery_fom, MerchantPlantAutomaticDimensionError) {
+
+    // Run with fixed output
+    ssc_number_t n_years;
+    ssc_data_get_number(data, "analysis_period", &n_years);
+    size_t n_lifetime = (size_t)(n_years) * 8760;
+
+    set_matrix(data, "mp_energy_market_revenue_single", mp_path, 1, 8760); // Swap the dimensions of the array (this is super easy to do by accident in PySAM)
+
+    int errors = run_module(data, "battery"); // Expect an error
+    EXPECT_TRUE(errors);
+
+}

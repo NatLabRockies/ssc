@@ -499,7 +499,7 @@ void BatteryPowerFlow::calculateACConnected()
             }
             else {
                 P_fuelcell_to_load_ac = std::fmin(P_fuelcell_ac, calc_load_ac - P_pv_to_load_ac);
-                P_batt_to_load_ac = std::fmin(P_battery_ac - P_system_loss_ac, calc_load_ac - P_pv_to_load_ac - P_fuelcell_to_load_ac);
+                P_batt_to_load_ac = std::fmax(0, std::fmin(P_battery_ac - P_system_loss_ac, calc_load_ac - P_pv_to_load_ac - P_fuelcell_to_load_ac));
             }
         }
         else {
@@ -581,7 +581,7 @@ void BatteryPowerFlow::calculateACConnected()
         P_grid_ac = P_gen_ac - P_load_ac;
 
         if (P_grid_ac > P_grid_limit_ac) {
-            double grid_diff = P_grid_ac - P_grid_limit_ac;
+            double grid_diff = P_grid_ac - P_grid_limit_ac - P_inverter_draw_ac;
             // Update grid variables first
             P_grid_ac -= grid_diff;
             P_interconnection_loss_ac += grid_diff;
@@ -1035,6 +1035,9 @@ void BatteryPowerFlow::calculateDCConnected()
         P_crit_load_unmet_ac = 0;
     if (std::abs(P_interconnection_loss_ac) < m_BatteryPower->tolerance) {
         P_interconnection_loss_ac = 0;
+    }
+    if (std::abs(P_batt_to_grid_ac) < m_BatteryPower->tolerance) {
+        P_batt_to_grid_ac = 0;
     }
 
 	// assign outputs

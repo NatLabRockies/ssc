@@ -89,7 +89,6 @@ s_solver_params::s_solver_params()
     obj_relaxed = std::numeric_limits<double>::quiet_NaN();
 
     //user settings
-    dispatch_optimize = false;
     steps_per_hour = 1;
     optimize_frequency = 24;
     optimize_horizon = 48;
@@ -109,34 +108,32 @@ s_solver_params::s_solver_params()
     ampl_exec_call = "";
 }
 
-void s_solver_params::set_user_inputs(bool is_dispatch, int disp_steps_per_hour, int disp_frequency, int disp_horizon,
+void s_solver_params::set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
     int disp_max_iter, double disp_mip_gap, double disp_timeout,
-    int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting,
-    bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec)
+    int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting)
 {
     //user settings
-    dispatch_optimize = is_dispatch;
+    steps_per_hour = disp_steps_per_hour;
+    optimize_frequency = disp_frequency;
+    optimize_horizon = disp_horizon;
 
-    if (dispatch_optimize)
-    {
-        steps_per_hour = disp_steps_per_hour;
-        optimize_frequency = disp_frequency;
-        optimize_horizon = disp_horizon;
+    max_bb_iter = disp_max_iter;
+    mip_gap = disp_mip_gap;
+    solution_timeout = disp_timeout;
 
-        max_bb_iter = disp_max_iter;
-        mip_gap = disp_mip_gap;
-        solution_timeout = disp_timeout;
+    presolve_type = disp_spec_presolve;
+    bb_type = disp_spec_bb;
+    scaling_type = disp_spec_scaling;
+    disp_reporting = disp_spec_reporting;
+}
 
-        presolve_type = disp_spec_presolve;
-        bb_type = disp_spec_bb;
-        scaling_type = disp_spec_scaling;
-        disp_reporting = disp_spec_reporting;
 
-        is_write_ampl_dat = is_write_ampl_dat_spec;
-        is_ampl_engine = is_ampl_engine_spec;
-        ampl_data_dir = ampl_data_dir_spec;
-        ampl_exec_call = ampl_exec_call_spec;
-    }
+void s_solver_params::set_ampl_inputs(bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec)
+{
+    is_write_ampl_dat = is_write_ampl_dat_spec;
+    is_ampl_engine = is_ampl_engine_spec;
+    ampl_data_dir = ampl_data_dir_spec;
+    ampl_exec_call = ampl_exec_call_spec;
 }
 
 void s_solver_params::reset()

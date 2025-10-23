@@ -126,8 +126,8 @@ std::ostream &operator<<(std::ostream &os, const cycle_state &p) {
             p.q_relative_cycle,
             p.rainflow_Xlt, p.rainflow_Ylt, p.rainflow_jlt);
     os << buf << p.rainflow_peaks;
-    os << ", cum_dt: " << p.cum_dt << ", DOD_max: " << p.DOD_max << ", DOD_min:" <<  p.DOD_min << ", ";
-    os << R"("cycle_DOD_max": ")" << p.cycle_DOD_max << "}";
+    os << ", \"cum_dt\": " << p.cum_dt << ", \"DOD_max\": " << p.DOD_max << ", \"DOD_min\":" <<  p.DOD_min << ", ";
+    os << R"("cycle_DOD_max": )" << p.cycle_DOD_max << "}";
     return os;
 }
 
@@ -166,7 +166,7 @@ std::ostream &operator<<(std::ostream &os, const lifetime_state &p) {
     os.precision(3);
     char buf[1024];
     sprintf(buf, R"("lifetime_state": { "q_relative": %f, "n_cycles": %d, "cycle_DOD": %.3f, "cycle_range": %.3f,
-                  "average_range": %.3f, day_age_of_battery": %.3f, )",
+                  "average_range": %.3f, "day_age_of_battery": %.3f, )",
             p.q_relative, p.n_cycles, p.cycle_DOD, p.cycle_range, p.average_range, p.day_age_of_battery);
     os << buf << *p.cycle << ", ";
     if (p.calendar) {

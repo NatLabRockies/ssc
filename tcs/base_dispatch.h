@@ -184,6 +184,7 @@ public:
 
     //Functions to write AMPL data files and solve AMPL model
     virtual std::string write_ampl();
+
     virtual bool optimize_ampl();
 
     //Populated dispatch outputs for csp solver core

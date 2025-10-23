@@ -342,6 +342,11 @@ namespace N_mspt
         double site_improvement_cost_per_m2,    // csp.mslf.cost.site_improvements.cost_per_m2
         double sf_area,                         // csp.mslf.cost.solar_field.area
         double sf_cost_per_m2,                  // csp.mslf.cost.solar_field.cost_per_m2
+
+        // Heater
+        double q_dot_heater_design,             //[MWt] Heater design thermal power
+        double heater_spec_cost,                //[$/kWe] Heater specific cost
+
         double htf_area,                        // csp.mslf.cost.htf_system.area
         double htf_cost_per_m2,                 // csp.mslf.cost.htf_system.cost_per_m2
         double ts_mwht,                         // csp.mslf.cost.ts_mwht
@@ -355,7 +360,7 @@ namespace N_mspt
         double contigency_percent,              // csp.mslf.cost.contingency_percent
 
         double total_land_area,                 // csp.mslf.cost.total_land_area
-        double nameplate_MWe,                       // csp.mslf.cost.nameplate
+        double nameplate_MWe,                   // csp.mslf.cost.nameplate
 
         double epc_per_acre,                    // csp.mslf.cost.epc.per_acre
         double epc_percent,                     // csp.mslf.cost.epc.percent
@@ -376,6 +381,7 @@ namespace N_mspt
         double& site_improvements_cost_out,     // csp.mslf.cost.site_improvements
         double& bop_out,                        // csp.mslf.cost.bop
         double& solar_field_cost_out,           // csp.mslf.cost.solar_field
+        double& heater_cost_out,
         double& htf_system_cost_out,            // csp.mslf.cost.htf_system
         double& fossil_backup_cost_out,         // csp.mslf.cost.fossil_backup
         double& contingency_cost_out,           // csp.mslf.cost.contingency

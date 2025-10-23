@@ -42,15 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 C_ud_power_cycle::C_ud_power_cycle()
 {
-    m_is_sco2_regr = false;
+    m_E_udpc_max_output_correction_mode = C_ud_power_cycle::E_udpc_max_output_correction_mode::SIMPLE_HEURISTIC;
     m_is_sco2_design_set = false;
 
     m_T_htf_cold_des_sco2_regr = m_deltaT_HTF_des = std::numeric_limits<double>::quiet_NaN();
 }
 
-void C_ud_power_cycle::set_is_sco2_regr(bool is_sco2_regr)
+void C_ud_power_cycle::set_is_sco2_regr(C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_max_output_correction_mode)
 {
-    m_is_sco2_regr = is_sco2_regr;
+    m_E_udpc_max_output_correction_mode = udpc_max_output_correction_mode;
 }
 
 void C_ud_power_cycle::set_sco2_design_for_sco2_regr(double T_htf_hot_des /*C*/, double T_htf_cold_des /*C*/)
@@ -63,7 +63,8 @@ void C_ud_power_cycle::set_sco2_design_for_sco2_regr(double T_htf_hot_des /*C*/,
     }
 }
 
-void C_ud_power_cycle::init(bool is_sco2_regr, const util::matrix_t<double>& udpc_table,
+void C_ud_power_cycle::init(C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_max_output_correction_mode,
+    const util::matrix_t<double>& udpc_table,
     int& n_T_htf_pars, int& n_T_amb_pars, int& n_m_dot_pars,
     double& T_htf_ref_calc /*C*/, double& T_htf_low_calc /*C*/, double& T_htf_high_calc /*C*/,
     double& T_amb_ref_calc /*C*/, double& T_amb_low_calc /*C*/, double& T_amb_high_calc /*C*/,
@@ -71,7 +72,7 @@ void C_ud_power_cycle::init(bool is_sco2_regr, const util::matrix_t<double>& udp
     std::vector<double>& Y_at_T_htf_ref, std::vector<double>& Y_at_T_amb_ref,
     std::vector<double>& Y_at_m_dot_htf_ND_ref, std::vector<double>& Y_avg_at_refs)
 {
-    m_is_sco2_regr = is_sco2_regr;
+    m_E_udpc_max_output_correction_mode = udpc_max_output_correction_mode;
 
     util::matrix_t<double> T_htf_ind_table, m_dot_htf_ND_ind_table, T_amb_ind_table;    
 
@@ -373,7 +374,7 @@ double C_ud_power_cycle::get_m_dot_water_ND_interp(double T_htf_hot /*C*/, doubl
 double C_ud_power_cycle::get_W_dot_gross_nd(double T_htf_hot /*C*/, double T_amb /*C*/,
     double m_dot_htf_ND /*-*/, double max_frac /*-*/)
 {
-    if (m_is_sco2_regr) {
+    if (m_E_udpc_max_output_correction_mode == C_ud_power_cycle::SCO2_HEURISTIC) {
         double W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND;
         udpc_sco2_regr_off_design(T_htf_hot, T_amb, m_dot_htf_ND, max_frac,
             W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND);
@@ -387,7 +388,7 @@ double C_ud_power_cycle::get_W_dot_gross_nd(double T_htf_hot /*C*/, double T_amb
 double C_ud_power_cycle::get_Q_dot_HTF_nd(double T_htf_hot /*C*/, double T_amb /*C*/,
     double m_dot_htf_ND /*-*/, double max_frac /*-*/)
 {
-    if (m_is_sco2_regr) {
+    if (m_E_udpc_max_output_correction_mode == C_ud_power_cycle::SCO2_HEURISTIC) {
         double W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND;
         udpc_sco2_regr_off_design(T_htf_hot, T_amb, m_dot_htf_ND, max_frac,
             W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND);
@@ -401,7 +402,7 @@ double C_ud_power_cycle::get_Q_dot_HTF_nd(double T_htf_hot /*C*/, double T_amb /
 double C_ud_power_cycle::get_W_dot_cooling_nd(double T_htf_hot /*C*/, double T_amb /*C*/,
     double m_dot_htf_ND /*-*/, double max_frac /*-*/)
 {
-    if (m_is_sco2_regr) {
+    if (m_E_udpc_max_output_correction_mode == C_ud_power_cycle::SCO2_HEURISTIC) {
         double W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND;
         udpc_sco2_regr_off_design(T_htf_hot, T_amb, m_dot_htf_ND, max_frac,
             W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND);
@@ -415,7 +416,7 @@ double C_ud_power_cycle::get_W_dot_cooling_nd(double T_htf_hot /*C*/, double T_a
 double C_ud_power_cycle::get_m_dot_water_nd(double T_htf_hot /*C*/, double T_amb /*C*/,
     double m_dot_htf_ND /*-*/, double max_frac /*-*/)
 {
-    if (m_is_sco2_regr) {
+    if (m_E_udpc_max_output_correction_mode == C_ud_power_cycle::SCO2_HEURISTIC) {
         double W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND;
         udpc_sco2_regr_off_design(T_htf_hot, T_amb, m_dot_htf_ND, max_frac,
             W_dot_gross_ND, q_dot_ND, W_dot_cooling_ND, m_dot_water_ND);
@@ -517,7 +518,7 @@ void C_ud_power_cycle::get_max_m_dot_and_W_dot_ND(double T_htf_hot /*C*/, double
 
     // Heuristic sets max ND mass flow to q_dot_ND at global max ND mass flow rate
 
-    if (m_is_sco2_regr) {
+    if (m_E_udpc_max_output_correction_mode == C_ud_power_cycle::SCO2_HEURISTIC) {
 
         double delta_T_HTF_OD, q_dot_htf_ND_max;
         delta_T_HTF_OD = m_dot_HTF_ND_max = q_dot_htf_ND_max = std::numeric_limits<double>::quiet_NaN();
@@ -525,7 +526,7 @@ void C_ud_power_cycle::get_max_m_dot_and_W_dot_ND(double T_htf_hot /*C*/, double
             delta_T_HTF_OD, m_dot_HTF_ND_max, q_dot_htf_ND_max);
 
     }
-    else {
+    else if(m_E_udpc_max_output_correction_mode == C_ud_power_cycle::SIMPLE_HEURISTIC) {
         // Calculate non-dimensional mass flow rate relative to design point
         m_dot_HTF_ND_max = max_frac;		//[-] Use max mass flow rate
 
@@ -540,6 +541,9 @@ void C_ud_power_cycle::get_max_m_dot_and_W_dot_ND(double T_htf_hot /*C*/, double
 
         // set m_dot_ND to q_dot_max
         m_dot_HTF_ND_max = q_dot_ND_max;
+    }
+    else if (m_E_udpc_max_output_correction_mode == C_ud_power_cycle::NO_CORRECTION) {
+        m_dot_HTF_ND_max = max_frac;
     }
 
     W_dot_gross_ND_max = get_W_dot_gross_nd(T_htf_hot,

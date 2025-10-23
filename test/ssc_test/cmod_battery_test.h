@@ -85,4 +85,13 @@ public:
 	}
 };
 
+class CMBattery_cmod_battery_fom : public CMBattery_cmod_battery {
+    void SetUp()
+    {
+        data = ssc_data_create();
+        battery_standalone_merchant_plant_lifetime(data);
+
+    }
+};
+
 #endif 

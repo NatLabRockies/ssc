@@ -61,12 +61,12 @@ public:
 
 	sandia_module_t( );	
 	
-	virtual double AreaRef() { return Area; }
-	virtual double VmpRef() { return Vmp0; }
-	virtual double ImpRef() { return Imp0; }
-	virtual double VocRef() { return Voc0; }
-	virtual double IscRef() { return Isc0; }
-	virtual bool operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &output);
+	virtual double AreaRef() const  { return Area; }
+	virtual double VmpRef() const { return Vmp0; }
+	virtual double ImpRef() const { return Imp0; }
+	virtual double VocRef() const { return Voc0; }
+	virtual double IscRef() const { return Isc0; }
+	virtual bool operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &output) const;
 };
 
 
@@ -75,7 +75,7 @@ class sandia_celltemp_t : public pvcelltemp_t
 {
 public:
 	double a, b, DT0, fd;	
-	virtual bool operator() ( pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell );
+	virtual bool operator() ( pvinput_t const &input, pvmodule_t const &module, double opvoltage, double &Tcell ) const;
 		
 	static double sandia_tcell_from_tmodule( double Tm, double poaIrr, double fd, double DT0);
 	static double sandia_module_temperature( double poaIrr, double Ws, double Ta, double fd, double a, double b );

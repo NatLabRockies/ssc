@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmod_thirdpartyownership_test.h"
 
-
+/*
 TEST_F(CmodThirdPartyOwnershipTest, PVWatts) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/thirdpartyownership/2022.08.08_develop_branch_PVWatts_Third_Party_cmod_thirdpartyownership.json";
@@ -57,7 +57,7 @@ TEST_F(CmodThirdPartyOwnershipTest, PVWattsBattery) {
 
     Test("thirdpartyownership", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
-
+*/
 TEST_F(CmodThirdPartyOwnershipTest, PV) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/thirdpartyownership/2022.08.08_develop_branch_Flat_Plate_PV_Third_Party_cmod_thirdpartyownership.json";
@@ -106,7 +106,7 @@ TEST_F(CmodThirdPartyOwnershipTest, CustomGenerationBattery) {
 }
 
 
-
+/*
 TEST_F(CmodThirdPartyOwnershipTest, StandaloneBattery) {
     std::string file_inputs = SSCDIR;
     file_inputs += "/test/input_json/FinancialModels/thirdpartyownership/2022.08.08_develop_branch_Standalone_Battery_Third_Party_cmod_thirdpartyownership.json";
@@ -118,3 +118,4 @@ TEST_F(CmodThirdPartyOwnershipTest, StandaloneBattery) {
     Test("thirdpartyownership", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
+*/

@@ -478,6 +478,7 @@ public:
 
     int m_cost_model;		//[-]
     int m_od_solution_type; //[-]
+    double m_yr_inflation = 0; //[yr]
 
     bool m_is_single_node_des_set;
     NS_HX_counterflow_eqs::S_hx_node_info ms_node_info_des;
@@ -519,6 +520,9 @@ public:
         double m_P_c_out;			//[kPa] Cold fluid outlet temperature
         double m_m_dot_cold_des;	//[kg/s] cold fluid design mass flow rate
 
+        double m_h_h_in;            //[kJ/kg] Design-point hot inlet enthalpy
+        double m_h_c_in;            //[kJ/kg] Design-point cold inlet enthalpy
+
         double m_eff_max;			//[-] Max allowable effectiveness
 
         S_des_calc_UA_par()
@@ -543,6 +547,8 @@ public:
         double m_NTU_design;		//[-] NTU at design
         double m_T_h_out;			//[K] Design-point hot outlet temperature
         double m_T_c_out;			//[K] Design-point cold outlet temperature
+        double m_h_h_out;           //[kJ/kg] Design-point hot outlet enthalpy
+        double m_h_c_out;           //[kJ/kg] Design-point cold outlet enthalpy
         double m_DP_cold_des;		//[kPa] cold fluid design pressure drop
         double m_DP_hot_des;		//[kPa] hot fluid design pressure drop
 
@@ -618,6 +624,11 @@ public:
     void design_calc_UA(C_HX_counterflow_CRM::S_des_calc_UA_par des_par,
         double q_dot_design /*kWt*/, C_HX_counterflow_CRM::S_des_solved &des_solved);
 
+    void design_calc_UA_TP_to_PH(C_HX_counterflow_CRM::S_des_calc_UA_par des_par,
+        double h_h_in /*kJ/kg*/,
+        double h_c_in /*kJ/kg*/, double h_c_out /*kJ/kg*/,
+        double q_dot_design /*kWt*/, C_HX_counterflow_CRM::S_des_solved& des_solved);
+
     double calc_max_q_dot_enth(double h_h_in /*kJ/kg*/, double P_h_in /*kPa*/, double P_h_out /*kPa*/, double m_dot_h /*kg/s*/,
         double h_c_in /*kJ/kg*/, double P_c_in /*kPa*/, double P_c_out /*kPa*/, double m_dot_c /*kg/s*/);
 
@@ -649,6 +660,11 @@ public:
         double od_tol /*-*/,
         double & q_dot /*kWt*/, double & T_c_out /*K*/, double & P_c_out /*kPa*/, double & T_h_out /*K*/, double & P_h_out /*kPa*/);
 
+    void off_design_solution_fixed_dP_enth(double h_c_in /*K*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/, double P_c_out /*kPa*/,
+        double h_h_in /*K*/, double P_h_in /*kPa*/, double m_dot_h /*kg/s*/, double P_h_out /*kPa*/,
+        double od_tol /*-*/,
+        double& q_dot /*kWt*/, double& h_c_out /*K*/, double& h_h_out /*K*/);
+
     double od_delta_p_cold_frac(double m_dot_c /*kg/s*/);
 
     double od_delta_p_cold(double m_dot_c /*kg/s*/);
@@ -663,7 +679,8 @@ public:
 
     double calculate_equipment_cost(double UA /*kWt/K*/,
         double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/,
-        double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/);
+        double T_cold_in /*K*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/,
+        double yr_inflation /*yr*/);
 
     double calculate_bare_erected_cost(double cost_equipment /*M$*/);
 
@@ -724,7 +741,79 @@ public:
 
 };
 
+class C_HX_htf_to_steam : public C_HX_counterflow_CRM
+{
+public:
 
+    C_HX_htf_to_steam()
+    {
+        m_cost_model = C_HX_counterflow_CRM::E_CARLSON_17_PHX;
+        m_od_solution_type = C_HX_counterflow_CRM::C_od_thermal_solution_type::E_DEFAULT;
+    }
+
+    // This method calculates the flow rates and UA given hot TP and cold PH at all points
+    void design_w_TP_PH(double T_h_in /*K*/, double P_h_in /*kPa*/, double T_h_out /*K*/, double P_h_out /*kPa*/,
+                        double P_c_in /*kPa*/, double h_c_in /*kJ/kg*/, double P_c_out /*kPa*/, double h_c_out /*kJ/kg*/, double q_dot_design /*kWt*/,
+                        C_HX_counterflow_CRM::S_des_solved& des_solved);
+
+
+    virtual void initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+
+    virtual void initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+
+    int off_design_target_cold_PH_out(double h_c_out_target /*kJ/kg*/,
+        double m_dot_c_min /*kg/s*/, double m_dot_c_max /*kg/s*/,
+        double P_c_in /*kPa*/, double h_c_in /*kJ/kg*/, double P_c_out /*kPa*/,
+        double P_h_in /*kPa*/, double h_h_in /*kJ/kg*/, double P_h_out /*kPa*/, double m_dot_h /*kg/s*/,
+        double od_tol /*-*/,
+        double& q_dot /*kWt*/, double& h_c_out /*kJ/kg*/, double& h_h_out /*kJ/kg*/, double& m_dot_c /*kg/s*/,
+        double& tol_solved, double& T_c_out /*C*/, double& x_c_out /**/, double& hx_min_dT /*C*/);
+
+    class C_MEQ__target_cold_PH_out : public C_monotonic_equation
+    {
+    private:
+        C_HX_counterflow_CRM* mpc_hx;
+
+        double m_h_c_out_target;    //[K]
+        double m_h_c_in;    //[K]
+        double m_P_c_in;    //[kPa]
+        double m_P_c_out;   //[kPa]
+        double m_h_h_in;    //[K]
+        double m_P_h_in;    //[kPa]
+        double m_P_h_out;   //[kPa]
+        double m_m_dot_h;   //[kg/s]
+
+        double m_tol;       //[-]
+        
+    public:
+
+        C_MEQ__target_cold_PH_out(C_HX_counterflow_CRM* pc_hx,
+            double h_c_out_target,
+            double h_c_in, double P_c_in, double P_c_out,
+            double h_h_in, double P_h_in, double P_h_out,
+            double m_dot_h,
+            double tol)
+            : m_h_c_out_target(h_c_out_target),
+            m_h_c_in(h_c_in), m_P_c_in(P_c_in), m_P_c_out(P_c_out),
+            m_h_h_in(h_h_in), m_P_h_in(P_h_in), m_P_h_out(P_h_out),
+            m_m_dot_h(m_dot_h), m_tol(tol)
+        {
+            mpc_hx = pc_hx;
+        }
+
+        double m_h_h_out;
+        double m_h_c_out;
+        double m_m_dot_c;
+        double m_q_dot;
+
+        double m_T_c_out;   //[C]
+        double m_hx_min_dT; //[C]
+
+        virtual int operator()(double m_dot_c /*kg/s*/, double* diff_h_c_out /*C/K*/);
+    
+    };
+
+};
 
 class C_HX_co2_to_htf : public C_HX_counterflow_CRM
 {
@@ -751,9 +840,10 @@ public:
 	void design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc_UA_par &des_par, 
 		double q_dot_design /*kWt*/, double dt_cold_approach /*C/K*/, C_HX_counterflow_CRM::S_des_solved &des_solved);
 
-	virtual void initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+	virtual void initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                            double yr_inflation);
 
-	virtual void initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+	virtual void initialize(int hot_fl, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type, double yr_inflation);
 	
 };
 
@@ -774,7 +864,8 @@ public:
 
     }
 
-    virtual void initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type);
+    virtual void initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+                            double yr_inflation);
 };
 
 namespace N_compact_hx
@@ -820,10 +911,12 @@ public:
 
         double m_eta_fan;       //[-] Fan isentropic efficiency
         int m_N_nodes_pass;     //[-] Number of nodes per pass
+        double m_yr_inflation;  //[yr] Inflation year target
 
 		S_des_par_ind()
 		{
-			m_T_amb_des = m_elev = std::numeric_limits<double>::quiet_NaN();
+			m_T_amb_des = m_elev = m_yr_inflation =
+                std::numeric_limits<double>::quiet_NaN();
 
             // Set realistic default values so model can solve without inputs for these values
             m_eta_fan = 0.5;
@@ -1327,7 +1420,8 @@ public:
 		double & k_air /*W/m-K*/, double & Pr_air);
 
 	double /*M$*/ calculate_equipment_cost(double UA /*kWt/K*/, double V_material /*m^3*/,
-		double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/);
+		double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/,
+        double yr_inflation /*yr*/);
 
     double /*M$*/ calculate_bare_erected_cost(double cost_equipment /*M$*/);
 };

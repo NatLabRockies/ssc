@@ -49,6 +49,8 @@ ssc_data_t trough_physical_iph_defaults()
 	//char load_profile_path[512];
 	int n1 = sprintf(solar_resource_path, "%s/test/input_cases/tcstrough_data/tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv", SSCDIR);
 
+    ssc_data_set_number(data, "hs_htf_mdot_max_frac", 1.0);
+
     ssc_data_set_string(data, "file_name", solar_resource_path);
     ssc_data_set_number(data, "track_mode", 1);
     ssc_data_set_number(data, "tilt", 0);
@@ -196,7 +198,7 @@ ssc_data_t trough_physical_iph_defaults()
     ssc_data_set_array(data, "SCADefocusArray", p_SCADefocusArray, 4);
     ssc_data_set_number(data, "pb_pump_coef", 0.55000000000000004);
     ssc_data_set_number(data, "init_hot_htf_percent", 30);
-    ssc_data_set_number(data, "h_tank", 15);
+    ssc_data_set_number(data, "h_tank_in", 15);
     ssc_data_set_number(data, "cold_tank_max_heat", 0.5);
     ssc_data_set_number(data, "u_tank", 0.29999999999999999);
     ssc_data_set_number(data, "tank_pairs", 1);

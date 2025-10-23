@@ -215,6 +215,8 @@ var_info vtab_battery_inputs[] = {
     // Powerflow calculation inputs
     { SSC_INPUT,       SSC_ARRAY,       "fuelcell_power",                              "Electricity from fuel cell AC",                           "kW",     "", "FuelCell",              "",                           "",                         "" },
 
+    // Start day of week for manual dispatch arrays
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "BatteryDispatch", "?=0", "", "" },
 
     var_info_invalid
 };
@@ -273,6 +275,8 @@ var_info vtab_battery_outputs[] = {
     { SSC_OUTPUT,        SSC_ARRAY,      "crit_load_unmet",                            "Critical load unmet in this timestep",                  "kW","",                      "Battery",       "",                           "",                              "" },
     { SSC_OUTPUT,        SSC_ARRAY,      "crit_load",                                  "Critical load in this timestep",                        "kW","",                      "Battery",       "",                           "",                              "" },
     { SSC_OUTPUT,        SSC_ARRAY,      "outage_losses_unmet",                        "Battery and system losses unmet in this timestep",     "kW","",                      "Battery",       "",                           "",                              "" },
+    { SSC_OUTPUT,        SSC_ARRAY,      "batt_dispatch_period",                       "Battery manual dispatch period in this timestep",              "","",                      "Battery",       "",                           "",                              "" },
+
 
     // PV Smoothing
     { SSC_OUTPUT,        SSC_ARRAY,      "batt_pvs_PV_ramp_interval",                  "PV smoothing PV power sampled", "kW", "", "Battery", "", "", "" },
@@ -622,7 +626,10 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                 }
                 else {
                     forecast_price_signal fps(&vt);
-                    fps.setup(step_per_hour);
+                    bool success = fps.setup(step_per_hour);
+                    if (!success) {
+                        throw exec_error("battery", fps.error());
+                    }
                     batt_vars->forecast_price_series_dollar_per_kwh = fps.forecast_price();
                     batt_vars->forecast_cleared_capacities_kw = fps.cleared_capacity();
                     batt_vars->capacity_forecast_type = fps.forecast_type;
@@ -745,6 +752,8 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                     batt_vars->batt_btm_can_discharge_to_grid = vt.as_vector_bool("dispatch_manual_btm_discharge_to_grid");
                 }
             }
+
+            batt_vars->start_day_of_year = vt.as_number("start_day_of_year");
 
             // Common to automated methods
             batt_vars->batt_dispatch_auto_can_charge = true;
@@ -1016,6 +1025,9 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
             outGridPowerTarget = vt.allocate("grid_power_target", nrec * nyears);
             outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
         }
+        else {
+            outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
+        }
     }
     else if (batt_vars->batt_meter_position == dispatch_t::FRONT)
     {
@@ -1035,6 +1047,9 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
             outBenefitGridcharge = vt.allocate("batt_revenue_gridcharge", nrec * nyears);
             outBenefitClipcharge = vt.allocate("batt_revenue_clipcharge", nrec * nyears);
             outBenefitDischarge = vt.allocate("batt_revenue_discharge", nrec * nyears);
+        }
+        else {
+            outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
         }
     }
     outSystemToBattAC = vt.allocate("system_to_batt", nrec * nyears);
@@ -1176,7 +1191,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
     }
 
     std::vector<double> adj_losses(1, 0.0);
-    if (vt.is_assigned("batt_adjust_costant") || vt.is_assigned("batt_adjust_periods") || vt.is_assigned("batt_adjust_timeindex")) {
+    if (vt.is_assigned("batt_adjust_constant") || vt.is_assigned("batt_adjust_periods") || vt.is_assigned("batt_adjust_timeindex")) {
         adj_losses.clear();
         adjustment_factors haf(&vt, "batt_adjust");
         if (!haf.setup(nrec, nyears)) {
@@ -1284,6 +1299,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                 batt_vars->batt_discharge_schedule_weekday, batt_vars->batt_discharge_schedule_weekend,
                 batt_vars->batt_can_charge, batt_vars->batt_can_discharge, batt_vars->batt_can_gridcharge, batt_vars->batt_can_fuelcellcharge, batt_vars->batt_btm_can_discharge_to_grid,
                 dm_percent_discharge, dm_percent_gridcharge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_curtailcharge, batt_vars->grid_interconnection_limit_kW,
+                batt_vars->start_day_of_year,
                 batt_vars->batt_dispatch_charge_only_system_exceeds_load,
                 batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
                 batt_vars->batt_minimum_outage_SOC,
@@ -1304,7 +1320,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
 
         // Create UtilityRate object only if utility rate is defined
         if (batt_vars->ec_rate_defined) {
-            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
+            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->start_day_of_year, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
         }
 
         // PV Smoothing dispatch model
@@ -1761,6 +1777,8 @@ battstor::battstor(const battstor& orig) {
 
     outAdjustLosses = orig.outAdjustLosses;
 
+    outDispatchPeriod = orig.outDispatchPeriod;
+
     // copy models
     if (orig.batt_vars) batt_vars = orig.batt_vars;
     battery_metrics = new battery_metrics_t(orig._dt_hour);
@@ -1952,6 +1970,9 @@ void battstor::outputs_topology_dependent()
             outGridPowerTarget[index] = (ssc_number_t)(dispatch_model->power_grid_target());
             outBattPowerTarget[index] = (ssc_number_t)(dispatch_model->power_batt_target());
         }
+        else {
+            outDispatchPeriod[index] = (ssc_number_t)(dispatch_model->get_dispatch_period());
+        }
 
         if (analyze_outage) {
             outCritLoadUnmet[index] = (ssc_number_t)(dispatch_model->power_crit_load_unmet());
@@ -1981,6 +2002,9 @@ void battstor::outputs_topology_dependent()
             outBenefitDischarge[index] = (ssc_number_t)(dispatch_fom->benefit_discharge());
             outBenefitClipcharge[index] = (ssc_number_t)(dispatch_fom->benefit_clipcharge());
             outBenefitGridcharge[index] = (ssc_number_t)(dispatch_fom->benefit_gridcharge());
+        }
+        else {
+            outDispatchPeriod[index] = (ssc_number_t)(dispatch_model->get_dispatch_period());
         }
     }
 

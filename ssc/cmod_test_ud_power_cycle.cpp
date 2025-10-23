@@ -152,7 +152,8 @@ public:
         double T_amb_ref_udpc_calc, T_amb_low_udpc_calc, T_amb_high_udpc_calc;
         double m_dot_htf_ref_udpc_calc, m_dot_htf_low_udpc_calc, m_dot_htf_high_udpc_calc;
         std::vector<double> Y_at_T_htf_ref, Y_at_T_amb_ref, Y_at_m_dot_htf_ND_ref, Y_avg_at_refs;
-        c_udpc.init(false, udpc_data_full,
+        C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_mode = C_ud_power_cycle::SIMPLE_HEURISTIC;
+        c_udpc.init(udpc_mode, udpc_data_full,
             n_T_htf_udpc_calc, n_T_amb_udpc_calc, n_m_dot_udpc_calc,
             T_htf_ref_udpc_calc, T_htf_low_udpc_calc, T_htf_high_udpc_calc,
             T_amb_ref_udpc_calc, T_amb_low_udpc_calc, T_amb_high_udpc_calc,

@@ -113,7 +113,7 @@ private:
     size_t m_step_per_hour_gen;
 
 public:
-	bool calculate(compute_module *cm);
+	bool calculate(compute_module *cm, bool heat = false);
 	std::vector<double>& hourly_energy() {
 		return m_hourly_energy;
 	}

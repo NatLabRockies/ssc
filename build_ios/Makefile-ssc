@@ -58,7 +58,6 @@ OBJECTS = \
 	cmod_pvsamv1.o \
 	cmod_wfreader.o \
 	cmod_irradproc.o \
-	cmod_fossilgen.o \
 	cmod_cashloan.o \
 	cmod_pvwattsv1.o \
 	cmod_pvwattsv0.o \
@@ -67,12 +66,7 @@ OBJECTS = \
 	cmod_saleleaseback.o \
 	cmod_singleowner.o \
 	cmod_timeseq.o \
-	cmod_utilityrate.o \
-	cmod_utilityrate2.o \
-	cmod_utilityrate3.o \
-	cmod_utilityrate4.o \
 	cmod_utilityrate5.o \
-	cmod_ippppa.o \
 	cmod_swh.o \
 	cmod_geothermal.o \
 	cmod_poacalib.o \

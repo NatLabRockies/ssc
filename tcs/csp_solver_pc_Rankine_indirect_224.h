@@ -265,7 +265,7 @@ public:
 
 		// Steam Rankine or User-Defined
 		bool m_is_user_defined_pc;				//[-] True: user-defined power cycle, False: Built-in Rankine Cycle model
-        bool m_is_udpc_sco2_regr;               //[-] False: default, base udpc interpolation, True: use sco2 heuristic regression
+        int m_is_udpc_sco2_regr;               //[-] False: default, base udpc interpolation, True: use sco2 heuristic regression
 
 			// Parameters that have different SSCINPUT names for Rankine Cycle and User Defined Cycle
 		double m_dT_cw_ref;			//[C] design temp difference between cooling water inlet/outlet
@@ -302,7 +302,7 @@ public:
 
 			// Initialize parameters for user-defined power cycle
 			m_is_user_defined_pc = false;
-            m_is_udpc_sco2_regr = false;
+            m_is_udpc_sco2_regr = C_ud_power_cycle::SIMPLE_HEURISTIC;
 				
 			m_W_dot_cooling_des = m_m_dot_water_des = std::numeric_limits<double>::quiet_NaN();
 

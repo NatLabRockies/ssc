@@ -64,7 +64,8 @@ static var_info _cm_vtab_pvsamv1[] = {
         // misc inputs
         {SSC_INPUT, SSC_NUMBER,   "en_snow_model",                        "Toggle snow loss estimation",                         "0/1",    "",                                                                                                                                                                                      "Losses",                                                "?=0",                                "BOOLEAN",             "" },
         { SSC_INPUT,        SSC_NUMBER,     "snow_slide_coefficient",		"Snow Slide Coefficient",			"",					"",					"Losses", "?=1.97",           "",                             "" },
-
+        {SSC_INPUT, SSC_ARRAY,    "snow_array",                           "Hourly snow depth ",                                 "cm",   "",                                                                                                                                                                                     "Losses",                                                "?", "", ""},
+        {SSC_INPUT, SSC_NUMBER,   "use_snow_weather_file",                "Use the snow depth from the weather file",             "0/1",   "0=user-specified,1=weatherfile", "Losses", "*", "", ""},
         {SSC_INPUT, SSC_NUMBER,   "system_capacity",                      "DC Nameplate capacity",                               "kWdc",   "",                                                                                                                                                                                      "System Design",                                         "*",                                  "",                    "" },
         {SSC_INPUT, SSC_NUMBER,   "use_wf_albedo",                        "Use albedo in weather file if provided",              "0/1",    "0=user-specified,1=weatherfile",                                                                                                                                                        "Solar Resource",                                        "?=1",                                "BOOLEAN",             "" },
         {SSC_INPUT, SSC_NUMBER,   "use_spatial_albedos",                  "Use spatial albedo values",                           "0/1",    "0=no,1=yes",                                                                                                                                                                            "Solar Resource",                                        "?=0",                                "BOOLEAN",             "" },
@@ -620,7 +621,7 @@ static var_info _cm_vtab_pvsamv1[] = {
         { SSC_OUTPUT,        SSC_ARRAY,      "tdry",                                       "Weather file ambient temperature",                                               "C",      "",                      "Time Series",       "*",                    "",                              "" },
         { SSC_OUTPUT,        SSC_ARRAY,      "alb",                                        "Albedo",							                                 "",       "",                     "Time Series",       "",                    "",                              "" },
         { SSC_OUTPUT,        SSC_MATRIX,     "alb_spatial",                                "Albedo spatial",  				                                     "",       "",                     "Time Series",       "",                    "",                              "" },
-        { SSC_OUTPUT,        SSC_ARRAY,      "snowdepth",                                  "Weather file snow depth",							                            "cm",       "",                    "Time Series",       "",                    "",                              "" },
+        { SSC_OUTPUT,        SSC_ARRAY,      "snowdepth",                                  "Snow depth",							                            "cm",       "",                    "Time Series",       "",                    "",                              "" },
 
         // calculated sun position data
         { SSC_OUTPUT,        SSC_ARRAY,      "sol_zen",                                    "Sun zenith angle",                                                  "degrees",    "",                      "Time Series",       "*",                    "",                              "" },
@@ -1031,6 +1032,8 @@ static var_info _cm_vtab_pvsamv1[] = {
                 //miscellaneous outputs
                 { SSC_OUTPUT,        SSC_NUMBER,     "ts_shift_hours",                            "Sun position time offset",   "hours",  "",  "Miscellaneous", "",                       "",                          "" },
                 { SSC_OUTPUT,        SSC_NUMBER,     "nameplate_dc_rating",                        "System nameplate DC rating", "kW",     "",  "Miscellaneous",       "*",                    "",                              "" },
+                { SSC_OUTPUT,       SSC_NUMBER,      "system_capacity_ac",             "System nameplate AC rating", "kWac",     "",                                             "Miscellaneous", "",                        "",                          "" },
+
 
 
                 // test outputs
@@ -1166,10 +1169,9 @@ void cm_pvsamv1::exec()
 
         if (Subarrays[nn]->tiltEqualLatitude)
             Subarrays[nn]->tiltDegrees = std::abs(Irradiance->weatherHeader.lat);
-        if (Subarrays[nn]->trackMode == irrad::SINGLE_AXIS && Subarrays[nn]->tiltDegrees > 0 && !Subarrays[nn]->Module->isBifacial)
+
+        if (Subarrays[nn]->trackMode == irrad::SINGLE_AXIS && Subarrays[nn]->tiltDegrees > 0)
             log(util::format("Subarray %d has one-axis tracking with a tilt angle of %f degrees. SAM can simulate one-axis tracking with non-zero tilt angles, but large one-axis tracking arrays typically have a tilt angle of zero. This message is a reminder in case you forgot to set the tilt angle to zero.", nn + 1, Subarrays[nn]->tiltDegrees), SSC_WARNING);
-        if (Subarrays[nn]->Module->isBifacial && Subarrays[nn]->trackMode == irrad::SINGLE_AXIS && Subarrays[nn]->tiltDegrees > 0)
-            log(util::format("Subarray %d uses bifacial modules with one-axis tracking and a tilt angle of %f degrees. The bifacial model is designed for one-axis tracking with a tilt angle of zero and may not produce reliable results for non-zero tilt angles.", nn + 1, Subarrays[nn]->tiltDegrees), SSC_WARNING);
     }
 
     // check for snow model with non-annual simulations: because snow model coefficients need to know the timestep, and we don't know timestep if non-annual
@@ -1276,6 +1278,11 @@ void cm_pvsamv1::exec()
     std::shared_ptr<battstor> batt = nullptr;
     bool en_batt = as_boolean("en_batt");
     int batt_topology = 0;
+    if (en_batt && !save_full_lifetime_variables) {
+        if (nyears != 1) {
+            throw exec_error("pvsamv1", "The PV Battery configuration requires full lifetime variables to be saved when multiple years are simulated.");
+        }
+    }
     if (en_batt) {
 
         // Single timestep or non-annual simulations are not enabled with batteries
@@ -1718,7 +1725,11 @@ void cm_pvsamv1::exec()
                         if (Subarrays[nn]->useCustomCellTemp == 1)
                             tcell = Subarrays[nn]->customCellTempArray[inrec];
                         else
-                            (*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, -1.0, tcell);
+                        {
+                            if (!(*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, -1.0, tcell)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
+                        }
                     }
                     double shadedb_str_vmp_stc = Subarrays[nn]->nModulesPerString * Subarrays[nn]->Module->voltageMaxPower;
                     double shadedb_mppt_lo = PVSystem->Inverter->mpptLowVoltage;
@@ -2153,7 +2164,11 @@ void cm_pvsamv1::exec()
                                 if (Subarrays[nn]->useCustomCellTemp == 1)
                                     tcell = Subarrays[nn]->customCellTempArray[inrec];
                                 else
-                                    (*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, V, tcell);
+                                {
+                                    if (!(*Subarrays[nn]->Module->cellTempModel)(in, *Subarrays[nn]->Module->moduleModel, V, tcell)) {
+                                        throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                                    }
+                                }
                                 // calculate module power output using conversion model previously specified
                                 (*Subarrays[nn]->Module->moduleModel)(in, tcell, V, out);
                             }
@@ -2218,9 +2233,17 @@ void cm_pvsamv1::exec()
                         if (Subarrays[nn]->useCustomCellTemp == 1)
                             tcell = Subarrays[nn]->customCellTempArray[inrec];
                         else {
-                            (*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell);
-                            if (std::isnan(tcell)) throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
-                            (*Subarrays[nn]->Module->cellTempModel)(in_cs[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell_cs);
+                            if (!(*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
+                            // Checking if isnan here is insufficient. The function above could have returned
+                            // without modifying tcell from the assignment of tdry into tcell earlier. 
+                            if (std::isnan(tcell)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
+                            if (!(*Subarrays[nn]->Module->cellTempModel)(in_cs[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell_cs)) {
+                                throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                            }
                         }
                         // begin Transient Thermal model
                         // steady state cell temperature - confirm modification from module model to cell temp
@@ -2340,8 +2363,12 @@ void cm_pvsamv1::exec()
                                 double module_voltage = avgVoltage / (double)Subarrays[nn]->nModulesPerString;
                                 if (Subarrays[nn]->useCustomCellTemp == 1)
                                     tcell = Subarrays[nn]->customCellTempArray[inrec];
-                                else
-                                    (*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell);
+                                else {
+                                    if (!(*Subarrays[nn]->Module->cellTempModel)(in[nn], *Subarrays[nn]->Module->moduleModel, module_voltage, tcell)) {
+                                        throw exec_error("pvsamv1", Subarrays[nn]->Module->cellTempModel->error());
+                                    }
+                                }
+                                    
                                 (*Subarrays[nn]->Module->moduleModel)(in[nn], tcell, module_voltage, out[nn]);
 
                                 if (iyear == 0 || save_full_lifetime_variables == 1)	mpptVoltageClipping[nn] -= out[nn].Power; //subtract the power that remains after voltage clipping in order to get the total loss. if no power was lost, all the power will be subtracted away again.
@@ -2439,9 +2466,20 @@ void cm_pvsamv1::exec()
                 if (PVSystem->enableSnowModel)
                 {
                     float smLoss = 0.0f;
-
+                    float snowDep = 0.0f;
+                    // Now we have the option to either use weather file snow data or user input snow data
+                    if (PVSystem->useWeatherFileSnow)
+                    {
+                        // Use weather file snow data
+                        snowDep = (float)wf.snow;
+                    }
+                    else
+                    {
+                        // Use user input snow data
+                        snowDep = Irradiance->userSpecifiedSnowDepth[idx % nrec];
+                    }
                     if (!Subarrays[nn]->snowModel.getLoss((float)(Subarrays[nn]->poa.poaBeamFront + Subarrays[nn]->poa.poaDiffuseFront + Subarrays[nn]->poa.poaGroundFront + ipoa_rear_after_losses[nn]),
-                        (float)Subarrays[nn]->poa.surfaceTiltDegrees, (float)wf.wspd, (float)wf.tdry, (float)wf.snow, sunup, 1.0f / step_per_hour, smLoss))
+                        (float)Subarrays[nn]->poa.surfaceTiltDegrees, (float)wf.wspd, (float)wf.tdry, snowDep, sunup, 1.0f / step_per_hour, smLoss))
                     {
                         if (!Subarrays[nn]->snowModel.good)
                             throw exec_error("pvsamv1", Subarrays[nn]->snowModel.msg);
@@ -2538,7 +2576,14 @@ void cm_pvsamv1::exec()
             {
                 Irradiance->p_weatherFileWindSpeed[idx] = (ssc_number_t)wf.wspd;
                 Irradiance->p_weatherFileAmbientTemp[idx] = (ssc_number_t)wf.tdry;
-                Irradiance->p_weatherFileSnowDepth[idx] = (ssc_number_t)wf.snow;
+                double snoDep;
+                if (PVSystem->useWeatherFileSnow) {
+                    snoDep = (ssc_number_t)wf.snow;
+                }
+                else {
+                    snoDep = Irradiance->userSpecifiedSnowDepth[idx % nrec];
+                }
+                Irradiance->p_snowDepth[idx] = snoDep;
                 Irradiance->p_sunZenithAngle[idx] = (ssc_number_t)solzen;
                 Irradiance->p_sunAltitudeAngle[idx] = (ssc_number_t)solalt;
                 Irradiance->p_sunAzimuthAngle[idx] = (ssc_number_t)solazi;
@@ -3594,6 +3639,7 @@ void cm_pvsamv1::exec()
             kWhACperkWAC = annual_energy / nameplate_ac_kW;
         }
         assign("capacity_factor_ac", var_data((ssc_number_t)(kWhACperkWAC / 87.6)));
+        assign("system_capacity_ac", var_data((ssc_number_t)nameplate_ac_kW));
 
         if (is_assigned("load"))
         {

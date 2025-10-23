@@ -629,7 +629,10 @@ void C_pc_Rankine_indirect_224::init(C_csp_power_cycle::S_solved_params &solved_
         }
         
         std::vector<double> Y_at_T_htf_ref, Y_at_T_amb_ref, Y_at_m_dot_htf_ND_ref, Y_avg_at_refs;
-        mc_user_defined_pc.init(ms_params.m_is_udpc_sco2_regr, ms_params.mc_combined_ind,
+
+        C_ud_power_cycle::E_udpc_max_output_correction_mode udpc_mode = static_cast<C_ud_power_cycle::E_udpc_max_output_correction_mode>(ms_params.m_is_udpc_sco2_regr);
+
+        mc_user_defined_pc.init(udpc_mode, ms_params.mc_combined_ind,
             m_n_T_htf_pars, m_n_T_amb_pars, m_n_m_dot_pars,
             m_T_htf_ref_udpc_calc, m_T_htf_low_udpc_calc, m_T_htf_high_udpc_calc,
             m_T_amb_ref_udpc_calc, m_T_amb_low_udpc_calc, m_T_amb_high_udpc_calc,

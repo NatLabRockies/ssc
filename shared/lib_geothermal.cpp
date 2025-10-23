@@ -824,6 +824,7 @@ double CGeothermalAnalyzer::GetInjectionPumpWorkft(void)
     double injection_pump_head_psi = -excess_pressure + reservoir_buildup + mo_geo_in.md_AdditionalPressure;
     mo_geo_in.md_InjWellPressurePSI = injection_pump_head_psi; 
     double injection_pump_head_ft = injection_pump_head_psi * 144 / InjectionDensity();
+    if (injection_pump_head_ft < 0.0) injection_pump_head_ft = 0;
     double P_inject_bottomhole_used = injection_pump_head_psi + bottom_hole_pressure;
     //double pump_inj_hp = (injection_pump_head_ft * (flowRateTotal() / mo_geo_in.md_RatioInjectionToProduction / 2500) / (60 * 33000)) / mo_geo_in.md_GFPumpEfficiency;
     //mp_geo_out->md_InjPump_hp = pump_inj_hp;
@@ -982,12 +983,12 @@ double CGeothermalAnalyzer::GetProductionPumpWorkft(void)
     }*/
     mo_geo_in.md_ProdWellFriction = friction_head_psid1 + friction_head_psid2 + friction_head_psid3;
     double pump_lift = pump_setting + friction_head_loss_ft;
+    if (pump_lift < 0.0) pump_lift = 0.0;
     double ideal_pumping_power = flow * pump_lift * 1 / physics::FT_PER_METER; //ft-lb/h
     double ideal_pumping_power_permin = ideal_pumping_power / 60; //ft-lb/min
     double ideal_pumping_power_hp = ideal_pumping_power_permin / 33000; //hp
     double pumping_power_hp = ideal_pumping_power_hp / mo_geo_in.md_GFPumpEfficiency;
     double pumping_power_ft = pumping_power_hp * (60 * 33000); //ft
-    
     return pump_lift;
 }
 
@@ -1158,11 +1159,11 @@ double CGeothermalAnalyzer::Gringarten()
 
 double CGeothermalAnalyzer::RameyWellbore()
 {
-    double alpharock = mo_geo_in.md_EGSThermalConductivity / (mo_geo_in.md_EGSRockDensity * mo_geo_in.md_EGSSpecificHeatConstant);
+    double alpharock = (mo_geo_in.md_EGSThermalConductivity) / (mo_geo_in.md_EGSRockDensity * mo_geo_in.md_EGSSpecificHeatConstant);
     double time = 0;
     double working_temp = md_WorkingTemperatureC;
     if (mp_geo_out->ElapsedHours < 0.1) {
-        time = 744 * 3600;
+        time = 8760 * 3600;
         working_temp = GetResourceTemperatureC();
     }
     else {
@@ -1170,12 +1171,12 @@ double CGeothermalAnalyzer::RameyWellbore()
         working_temp = md_WorkingTemperatureC;
     }
     double utilfactor = 1.0; //capacity factor?
-    double avg_gradient = 2 / GetResourceDepthM(); //local average geothermal gradient
-    double framey = -1.0 * log(1.1 * (0.3048 * (mo_geo_in.md_DiameterProductionWellInches / (2 * 12)) / sqrt(4.0 * alpharock * time * utilfactor))) - 0.29;
+    double avg_gradient = (GetResourceTemperatureC() - 11.6) / GetResourceDepthM(); //local average geothermal gradient
+    double framey = -1.0 * log(1.1 * (0.3048 * (mo_geo_in.md_DiameterPumpCasingInches / (2 * 12)) / sqrt(4.0 * alpharock * time * utilfactor))) - 0.29;
     double c_w = geothermal::EGSSpecificHeat(working_temp);
     double rameyA = mo_geo_in.md_ProductionFlowRateKgPerS * c_w * framey / (2 * physics::PI * mo_geo_in.md_EGSThermalConductivity);
     double ProdTempDrop = -1.0 * ((GetResourceTemperatureC() - working_temp) - avg_gradient * (GetResourceDepthM() - rameyA) + (working_temp - avg_gradient * rameyA - GetResourceTemperatureC()) * exp(-GetResourceDepthM() / rameyA));
-    return ProdTempDrop;
+    return (isfinite(ProdTempDrop)) ? ProdTempDrop : 0.0;
 }
 
 double CGeothermalAnalyzer::DT_prod_well(double prod_well_choice)
@@ -1513,8 +1514,83 @@ double CGeothermalAnalyzer::flowRateTotal(void) {
     }
 }								// lbs per hour, all wells
 
+void CGeothermalAnalyzer::WellCountDecisionTable(void)
+{
+    int well_stim = mo_geo_in.md_WellsStimulated; //0 - injection only, 1 - production only, 2 - both
+    double production_stim_well = 0; //Column A
+    double injection_stim_well = 0; //Column B
+    double stim_well = 0; //Column C
+    double SWDDE = mo_geo_in.md_ExplorationWellsProd;
+    switch (well_stim) {
+    case 0:
+        if (mo_geo_in.me_rt == HYDROTHERMAL) {
+            production_stim_well = SWDDE;
+            injection_stim_well = 0;
+        }
+        else if (SWDDE >= 1.0) {
+            production_stim_well = SWDDE - 1;
+            injection_stim_well = 1;
+        }
+        else if (SWDDE > 0.0) {
+            production_stim_well = 0;
+            injection_stim_well = SWDDE;
+        }
+        else {
+            production_stim_well = 0;
+            injection_stim_well = 0;
+        }
+        break;
+    case 1:
+        if (mo_geo_in.me_rt == HYDROTHERMAL) {
+            production_stim_well = SWDDE;
+            injection_stim_well = 0;
+        }
+        else if (SWDDE >= 1.0) {
+            production_stim_well = 1;
+            injection_stim_well = SWDDE - 1;
+        }
+        else if (SWDDE > 0.0) {
+            production_stim_well = 0;
+            injection_stim_well = SWDDE;
+        }
+        else {
+            production_stim_well = 0;
+            injection_stim_well = 0;
+        }
+        break;
+    case 2:
+        if (mo_geo_in.me_rt == HYDROTHERMAL) {
+            production_stim_well = SWDDE;
+            injection_stim_well = 0;
+        }
+        else if (SWDDE > 0.0) {
+            production_stim_well = SWDDE/2;
+            injection_stim_well = SWDDE/2;
+        }
+        else {
+            production_stim_well = 0;
+            injection_stim_well = 0;
+        }
+        break;
+    case 3:
+        if (mo_geo_in.me_rt == HYDROTHERMAL) {
+            production_stim_well = SWDDE;
+            injection_stim_well = 0;
+        }
+        else {
+            production_stim_well = 0;
+            injection_stim_well = 0;
+        }
+    }
+    mp_geo_out->ProdWellsExploration = production_stim_well;
+    mp_geo_out->InjWellsExploration = injection_stim_well;
+}
+
 double CGeothermalAnalyzer::GetNumberOfWells(void)
 {
+    WellCountDecisionTable();
+    bool inj_wells_stimulated = (mo_geo_in.md_WellsStimulated == 0 || mo_geo_in.md_WellsStimulated == 2);
+    bool prod_wells_stimulated = (mo_geo_in.md_WellsStimulated == 1 || mo_geo_in.md_WellsStimulated == 2);
     if (mo_geo_in.me_cb == NUMBER_OF_WELLS) {
 
         mp_geo_out->md_NumberOfWells = mo_geo_in.md_NumberOfWells;
@@ -1534,10 +1610,14 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
         mp_geo_out->md_PumpWorkWattHrPerLb = GetPumpWorkWattHrPerLb();
 		mp_geo_out->md_NumberOfWells = mo_geo_in.md_DesiredSalesCapacityKW / netCapacityPerWell;
         if (mp_geo_out->md_NumberOfWells < 0) mp_geo_out->md_NumberOfWells = 0;
-        mp_geo_out->md_NumberOfWellsProdExp = mp_geo_out->md_NumberOfWells - mo_geo_in.md_ExplorationWellsProd - mp_geo_out->md_FailedWells;
-        mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / (1 - (1 - mo_geo_in.md_StimSuccessRate) * (1 - mo_geo_in.md_DrillSuccessRate));
+        mp_geo_out->md_NumberOfWellsProdExp = (mp_geo_out->md_NumberOfWells > mp_geo_out->ProdWellsExploration) ? mp_geo_out->md_NumberOfWells - mp_geo_out->ProdWellsExploration : 0.0;
+        double prod_well_stim_success_rate = (prod_wells_stimulated) ? mo_geo_in.md_StimSuccessRate : 0.0;
+        mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / (1 - (1 - prod_well_stim_success_rate) * (1 - mo_geo_in.md_DrillSuccessRate));
         double num_prod_wells_successful = mp_geo_out->md_NumberOfWellsProdDrilled * mo_geo_in.md_DrillSuccessRate;
         double num_prod_wells_failed = mp_geo_out->md_NumberOfWellsProdDrilled * (1 - mo_geo_in.md_DrillSuccessRate);
+        mp_geo_out->md_NumberOfWellsProdFailed = num_prod_wells_failed;
+        //2.	# of Injection Wells Required = # successful injection wells required in drilling phase + # successful injection wells drilled in exploration phase
+
         double inj_flow = flowRatePerWell() * mp_geo_out->md_NumberOfWells;
         if (mo_geo_in.me_ct == FLASH) inj_flow -= inj_flow * (waterLoss() / 1000.0);
         double failed_prod_wells_inj = mp_geo_out->md_NumberOfWellsProdDrilled - num_prod_wells_successful;
@@ -1549,20 +1629,51 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
         double prod_failed_inj_rate = (mo_geo_in.md_FailedProdFlowRatio * mo_geo_in.md_ReservoirDeltaPressure) *
             (mo_geo_in.md_InjWellPressurePSI + geothermal::MetersToFeet(GetResourceDepthM()) * InjectionDensity() / 144.0 + (pressure_well_head) -
             mo_geo_in.md_ProdWellFriction * pow(mo_geo_in.md_FailedProdFlowRatio, 2) - pressureHydrostaticPSI());
-        double inj_failed_inj_rate = (mo_geo_in.md_FailedProdFlowRatio * mo_geo_in.md_ReservoirDeltaPressure) *
+        double inj_failed_inj_rate = (mo_geo_in.md_FailedProdFlowRatio > 0) ? (mo_geo_in.md_FailedProdFlowRatio * mo_geo_in.md_ReservoirDeltaPressure) *
             (mo_geo_in.md_InjWellPressurePSI + geothermal::MetersToFeet(GetResourceDepthM()) * InjectionDensity() / 144.0 + (pressure_well_head) -
-            mo_geo_in.md_InjWellFriction * pow(mo_geo_in.md_FailedProdFlowRatio, 2) - pressureHydrostaticPSI());
+            mo_geo_in.md_InjWellFriction * pow(mo_geo_in.md_FailedProdFlowRatio, 2) - pressureHydrostaticPSI()) : 0.0;
         double inj_rate_failed_prod_wells = MIN(prod_failed_inj_rate, flowRatePerWell()); //Injectivity of failed production well?
         double inj_rate_failed_inj_wells = MIN(inj_failed_inj_rate, flowRatePerWell());
+        double inj_rate_successful_inj_wells = flowRatePerWell() / mo_geo_in.md_RatioInjectionToProduction;
+        double num_failed_prod_wells_inj = (mo_geo_in.md_FailedProdFlowRatio > 0) ? mp_geo_out->md_NumberOfWellsProdDrilled - num_prod_wells_successful : 0.0;
+        double successful_inj_wells_required_drilling = (inj_flow - (num_failed_prod_wells_inj * prod_failed_inj_rate)) / (inj_rate_successful_inj_wells + (inj_rate_failed_inj_wells * (1 / (mo_geo_in.md_DrillSuccessRate) - 1)));
+        double successful_inj_wells_exploration = mp_geo_out->InjWellsExploration;
+        double num_injection_wells_required = successful_inj_wells_required_drilling + successful_inj_wells_exploration;
         mp_geo_out->md_NumberOfWellsInj = (inj_flow - (failed_prod_wells_inj * inj_rate_failed_prod_wells)) / (flowPerWellInj + inj_rate_failed_inj_wells * (1 / (mo_geo_in.md_DrillSuccessRate) - 1));
-        mp_geo_out->md_NumberOfWellsInjDrilled = (1 / mo_geo_in.md_DrillSuccessRate) * mp_geo_out->md_NumberOfWellsInj;
+        mp_geo_out->md_NumberOfWellsInjDrilled = (1 / mo_geo_in.md_DrillSuccessRate) * successful_inj_wells_required_drilling + successful_inj_wells_exploration;
         double num_inj_wells_successful = mp_geo_out->md_NumberOfWellsInjDrilled * mo_geo_in.md_DrillSuccessRate;
         double num_inj_wells_failed = mp_geo_out->md_NumberOfWellsInjDrilled * (1 - mo_geo_in.md_DrillSuccessRate);
         //mp_geo_out->md_NumberOfWellsInj = (mo_geo_in.md_DesiredSalesCapacityKW / (netBrineEffectiveness / 1000)) * (mp_geo_out->md_FractionGFInjected) / flowPerWellInj;
-        mp_geo_out->md_InjPump_hp = ( (mp_geo_out->md_NumberOfWellsInj * flowPerWellInj * GetInjectionPumpWorkft()) / (60 * 33000) ) / mo_geo_in.md_GFPumpEfficiency;
+        double pump_inj_hp = (GetInjectionPumpWorkft() * (inj_flow) / (60 * 33000)) / mo_geo_in.md_GFPumpEfficiency;
+        mp_geo_out->md_InjPump_hp = pump_inj_hp;
         if (mo_geo_in.me_rt == EGS) {
-            mp_geo_out->md_NumberOfWellsProdExp = mp_geo_out->md_NumberOfWells - 8;
-            mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / mo_geo_in.md_DrillSuccessRate;
+            //mp_geo_out->md_NumberOfWellsProdExp = mp_geo_out->md_NumberOfWells - 8;
+            if (mo_geo_in.md_WellsStimulated != 1) mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / (mo_geo_in.md_DrillSuccessRate);
+            else {
+                double failed_prod_well_stimulations = 0;
+                double successful_prod_well_stimulations = 0;
+                if (mo_geo_in.md_WellsStimulated == 3) {
+                    failed_prod_well_stimulations = 0;
+                    successful_prod_well_stimulations = 0;
+                }
+                else {
+                    failed_prod_well_stimulations = mp_geo_out->md_NumberOfWellsProdExp * (1 / mo_geo_in.md_StimSuccessRate - 1);
+                    successful_prod_well_stimulations = mp_geo_out->md_NumberOfWellsProdExp;
+                }
+                mp_geo_out->md_NumberOfWellsProdDrilled = (failed_prod_well_stimulations + successful_prod_well_stimulations) / mo_geo_in.md_DrillSuccessRate;
+
+            }
+            double inj_wells_drilled = 0;
+            if (inj_wells_stimulated) {
+                inj_wells_drilled = mp_geo_out->md_NumberOfWellsInj / (mo_geo_in.md_DrillSuccessRate * mo_geo_in.md_StimSuccessRate);
+            }
+            else {
+                inj_wells_drilled = mp_geo_out->md_NumberOfWellsInj / (mo_geo_in.md_DrillSuccessRate);
+            }
+            mp_geo_out->md_NumberOfWellsInj = inj_flow / inj_rate_successful_inj_wells - successful_inj_wells_exploration;
+            mp_geo_out->md_NumberOfWellsInjDrilled = inj_wells_drilled;
+            //mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / mo_geo_in.md_DrillSuccessRate;
+            /*
             num_prod_wells_failed = mp_geo_out->md_NumberOfWellsProdExp / mo_geo_in.md_DrillSuccessRate * (1 - mo_geo_in.md_DrillSuccessRate);
             num_prod_wells_successful = mp_geo_out->md_NumberOfWellsProdExp;
             inj_flow = flowRatePerWell() * mp_geo_out->md_NumberOfWells * (1 + (1 / (1 - 0.05) - 1));
@@ -1572,6 +1683,7 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
             num_inj_wells_failed = mp_geo_out->md_NumberOfWellsInjDrilled * mo_geo_in.md_DrillSuccessRate;
             double inj_wells_stim = successful_inj_wells_expl / mo_geo_in.md_StimSuccessRate;
             double failed_stim_wells = inj_wells_stim - successful_inj_wells_expl;
+            */
         }
 
         if (mp_geo_out->md_NumberOfWellsInj < 0) mp_geo_out->md_NumberOfWellsInj = 0;
@@ -2462,7 +2574,7 @@ bool CGeothermalAnalyzer::InterfaceOutputsFilled(void)
 	mp_geo_out->md_PlantBrineEffectiveness = GetPlantBrineEffectiveness();
 	ReplaceReservoir(0.0); // set the working temp so the further calculations are correct
 	mp_geo_out->md_GrossPlantOutputMW = PlantGrossPowerkW() / 1000;
-    mp_geo_out->md_GrossPowerMW = GrossPowerMW();
+    mp_geo_out->md_GrossPowerkW = GrossPowerMW();
 	mp_geo_out->md_PumpWorkKW = GetPumpWorkKW();
     mp_geo_out->md_PumpDepthFt = GetProductionPumpWorkft();
 	// mp_geo_out->md_BottomHolePressure  is calculated in GetCalculatedPumpDepthInFeet()

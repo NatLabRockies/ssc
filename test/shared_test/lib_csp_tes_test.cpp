@@ -200,7 +200,9 @@ NAMESPACE_TEST(csp_common, TesCspSolver, Default)
         311.8,                                        //[MWt]
         2,                                            //[-]
         311.8 * 6,                                    //[MWht]
+        true,                                         //[-]
         12,                                           //[m]
+        0.0,                                          //[m]
         0.4,                                          //[W/m^2-K]
         1,                                            //[-]
         365,                                          //[C]
@@ -357,7 +359,7 @@ NAMESPACE_TEST(csp_common, TesSubcomponentCmod, Default)
     ssc_data_set_number(inputs, "eta_ref", 0.356);
     ssc_data_set_number(inputs, "solar_mult", 2.);
     ssc_data_set_number(inputs, "tshours", 6.);
-    ssc_data_set_number(inputs, "h_tank", 12.);
+    ssc_data_set_number(inputs, "h_tank_in", 12.);
     ssc_data_set_number(inputs, "u_tank", 0.4);
     ssc_data_set_number(inputs, "tank_pairs", 1.);
     ssc_data_set_number(inputs, "hot_tank_Thtr", 365.);

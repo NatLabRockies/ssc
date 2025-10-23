@@ -540,6 +540,7 @@ public:
         else if (plant_commissioning_cost_method == 3)
             plant_commissioning = as_double("plant_commissioning_cost_input") * -1 * std::log(1.0 - as_double("plant_commissioning_cost_rvalue")) / std::log(2.0);
 
+
         site_access_port_staging = 0.011 * capex;
         assign("site_access_port_staging_cost_modeled", var_data(static_cast<ssc_number_t>(site_access_port_staging)));
         if (site_access_port_staging_cost_method == 0)
@@ -551,6 +552,8 @@ public:
         else if (site_access_port_staging_cost_method == 4)
             site_access_port_staging = as_double("site_access_port_staging_cost_input") * -1 * std::log(1.0 - as_double("site_access_port_staging_cost_rvalue")) / std::log(2.0);
 
+
+        //capex += plant_commissioning + site_access_port_staging;
         // Calculate the CapEx-dependent financial costs
 		project_contingency = 0.081 * capex;
         assign("project_contingency_cost_modeled", var_data(static_cast<ssc_number_t>(project_contingency)));

@@ -125,7 +125,7 @@ public:
     void exec()
     {
       
-        //if (as_integer("tidal_resource_model_choice") == 0) return;
+        if (as_integer("tidal_resource_model_choice") == 0) return; //Nothing to do
 
         std::string file;
         if (is_assigned("tidal_resource_filename") && as_integer("tidal_resource_model_choice")==1)

@@ -1354,15 +1354,6 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         is_pc_sb_allowed = true;
          
         q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
-        
-        //if (mc_tou.m_is_tod_pc_target_also_pc_max) {
-        //    q_dot_pc_max = q_dot_pc_target;     //[MW]
-        //    W_dot_system_max = W_dot_system_target; //[MWe]
-        //}
-        //else {
-        //    q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
-        //    W_dot_system_max = m_cycle_max_frac * m_W_dot_system_net_design;    //[MWe]
-        //}
 
         if( ms_system_params.m_is_control_target_elec ){
 
@@ -1370,9 +1361,23 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
 
             W_dot_system_target = f_turbine_tou * m_W_dot_system_net_design;    //[MWe]
 
-            double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
-                                    (1.0 - m_ratio_cycle_dep_par_design);
-            q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
+            // If system is generating electricity, need to consider relationship between cycle power output and heat input
+            if( W_dot_system_target > 0.0 ) {
+                double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
+                    (1.0 - m_ratio_cycle_dep_par_design);
+                q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
+            }
+            else {
+                double W_dot_heater_gross_est = W_dot_system_target + W_dot_rec_par_est + m_W_dot_fixed_design;
+
+                // If targeting net system import, then controller logic doesn't use 'q_dot_pc_target'
+                // But need to estimate it here, because later in this method it is used to set q_dot_elec_to_PAR_HTF
+                //    if conditions are met
+                // Controller will apply a tolerance to this guess
+                // Want target to be a little high so there's room for "defocus"
+                // But don't want to be so high as to accidentally trip into TES_FULL mode
+                q_dot_pc_target = W_dot_heater_gross_est;
+            }
         }
         else{
 
@@ -1566,6 +1571,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         q_dot_pc_max = mc_dispatch.disp_outputs.q_dot_pc_max;
         is_PAR_HTR_allowed = mc_dispatch.disp_outputs.is_eh_su_allowed;
         q_dot_elec_to_PAR_HTR = mc_dispatch.disp_outputs.q_eh_target;
+
     }
 }
 

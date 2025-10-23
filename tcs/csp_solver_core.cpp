@@ -1574,15 +1574,15 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         mc_dispatch.set_dispatch_outputs();
 
         //setting binaries and targets
-        is_rec_su_allowed = mc_dispatch.disp_outputs.is_rec_su_allowed;
-        is_pc_sb_allowed = mc_dispatch.disp_outputs.is_pc_sb_allowed;
-        is_pc_su_allowed = mc_dispatch.disp_outputs.is_pc_su_allowed;
-        double q_dot_pc_target_disp = mc_dispatch.disp_outputs.q_pc_target;
-        q_dot_elec_to_CR_heat = mc_dispatch.disp_outputs.q_dot_elec_to_CR_heat;
-        double q_dot_pc_max_disp = mc_dispatch.disp_outputs.q_dot_pc_max;      // Not used?
-        is_PAR_HTR_allowed = mc_dispatch.disp_outputs.is_eh_su_allowed;
-        double q_dot_elec_to_PAR_HTR_disp = mc_dispatch.disp_outputs.q_eh_target;
-        
+        is_rec_su_allowed = mc_dispatch.dispatch_outputs.is_rec_su_allowed;
+        is_pc_sb_allowed = mc_dispatch.dispatch_outputs.is_pc_sb_allowed;
+        is_pc_su_allowed = mc_dispatch.dispatch_outputs.is_pc_su_allowed;
+        double q_dot_pc_target_disp = mc_dispatch.dispatch_outputs.q_pc_target;
+        q_dot_elec_to_CR_heat = mc_dispatch.dispatch_outputs.q_dot_elec_to_CR_heat;
+        double q_dot_pc_max_disp = mc_dispatch.dispatch_outputs.q_dot_pc_max;      // Not used?
+        is_PAR_HTR_allowed = mc_dispatch.dispatch_outputs.is_eh_su_allowed;
+        double q_dot_elec_to_PAR_HTR_disp = mc_dispatch.dispatch_outputs.q_eh_target;
+
         // Add fixed parasitics to the system target and max
         double W_dot_system_target_disp = mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design;
         double W_dot_system_max_disp = (mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design) * 1.2;  // Not used?

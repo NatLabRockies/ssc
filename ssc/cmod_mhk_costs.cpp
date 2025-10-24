@@ -50,96 +50,92 @@ static var_info _cm_vtab_mhk_costs[] = {
 	{ SSC_INPUT,			SSC_STRING,			"lib_wave_device",							"Wave library name",								"",			"",				"MHKCosts",			"marine_energy_tech=0",					"",				"" },
     { SSC_INPUT,			SSC_STRING,			"lib_tidal_device",							"Tidal library name",								"",			"",				"MHKCosts",			"marine_energy_tech=1",					"",				"" },
 
-    { SSC_INPUT,			SSC_NUMBER,			"inter_array_cable_length",					"Inter-array cable length",								"m",			"",								"MHKCosts",			"*",					"MIN=0",					"" },
-	{ SSC_INPUT,			SSC_NUMBER,			"riser_cable_length",						"Riser cable length",									"m",			"",								"MHKCosts",			"*",					"MIN=0",					"" },
-	{ SSC_INPUT,			SSC_NUMBER,			"export_cable_length",						"Export cable length",									"m",			"",								"MHKCosts",			"*",					"MIN=0",					"" },
-
 	// User input for CapEx dependent costs
-		{ SSC_INPUT,			SSC_NUMBER,			"structural_assembly_cost_method",								"Structural assembly cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Use itemized costs in $",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+		{ SSC_INPUT,			SSC_NUMBER,			"structural_assembly_cost_method",								"Structural assembly cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Use itemized costs in $",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"structural_assembly_cost_input",								"Structural assembly cost",											"$",		"",	"MHKCosts",			"structural_assembly_cost_method<2",					"",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"structural_assembly_cost_total",								"Structural assembly itemized cost total",											"$",		"",	"MHKCosts",			"structural_assembly_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"structural_assembly_cost_rvalue",								"Structural assembly R-value",											"",		"",	"MHKCosts",			"structural_assembly_cost_method=4",					"MIN=0,MAX=1",				"" },
 
 
-        { SSC_INPUT,			SSC_NUMBER,			"power_takeoff_system_cost_method",								"Power take-off system cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Use itemized costs in $",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"power_takeoff_system_cost_method",								"Power take-off system cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Use itemized costs in $",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"power_takeoff_system_cost_input",								"Power take-off system cost",											"$",		"",	"MHKCosts",			"power_takeoff_system_cost_method<2",					"",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"power_takeoff_system_cost_total",								"Power take-off system cost itemized cost total",											"$",		"",	"MHKCosts",			"power_takeoff_system_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"structural_assembly_cost_rvalue",								"Power take-off system R-value",											"",		"",	"MHKCosts",			"power_takeoff_system_cost_method=4",					"MIN=0,MAX=1",				"" },
 
 
-        { SSC_INPUT,			SSC_NUMBER,			"mooring_found_substruc_cost_method",								"Mooring, foundation, and substructure cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Use itemized costs in $",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"mooring_found_substruc_cost_method",								"Mooring, foundation, and substructure cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Use itemized costs in $",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"mooring_found_substruc_cost_input",								"Mooring, foundation, and substructure cost",											"$",		"",	"MHKCosts",			"mooring_found_substruc_cost_method<2",					"",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"mooring_found_substruc_cost_total",								"Mooring, foundation, and substructure itemized cost total",											"$",		"",	"MHKCosts",			"mooring_found_substruc_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"mooring_found_substruc_cost_rvalue",								"Mooring, foundation, and substructure R-value",											"",		"",	"MHKCosts",			"mooring_found_substruc_cost_method=4",					"MIN=0,MAX=1",				"" },
 
 // User input BOS values
-		{ SSC_INPUT,			SSC_NUMBER,			"development_cost_method",								"Development cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Enter in itemized costs",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+		{ SSC_INPUT,			SSC_NUMBER,			"development_cost_method",								"Development cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Enter in itemized costs",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"development_cost_input",								"Development cost",											"$",		"",	"MHKCosts",			"development_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"development_cost_total",								"Development itemized cost total",											"$",		"",	"MHKCosts",			"development_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"development_cost_rvalue",								"Development R-value",											"",		"",	"MHKCosts",			"development_cost_method=4",					"MIN=0,MAX=1",				"" },
 
-        { SSC_INPUT,			SSC_NUMBER,			"eng_and_mgmt_cost_method",								"Engineering and management cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Enter in itemized costs",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"eng_and_mgmt_cost_method",								"Engineering and management cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value,3=Enter in itemized costs",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"eng_and_mgmt_cost_input",								"Engineering and management cost",											"$",		"",	"MHKCosts",			"eng_and_mgmt_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"eng_and_mgmt_cost_total",								"Engineering and management itemized cost total",											"$",		"",	"MHKCosts",			"eng_and_mgmt_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"eng_and_mgmt_cost_rvalue",								"Engineering and management R-value",											"",		"",	"MHKCosts",			"eng_and_mgmt_cost_method=4",					"MIN=0,MAX=1",				"" },
 
-        { SSC_INPUT,			SSC_NUMBER,			"assembly_and_install_cost_method",								"Assembly and installation cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"assembly_and_install_cost_method",								"Assembly and installation cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"assembly_and_install_cost_input",								"Assembly and installation cost",											"$",		"",	"MHKCosts",			"assembly_and_install_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"assembly_and_install_cost_total",								"Assembly and installation itemized cost total",											"$",		"",	"MHKCosts",			"assembly_and_install_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"assembly_and_install_cost_rvalue",								"Assembly and installation R-value",											"",		"",	"MHKCosts",			"assembly_and_install_cost_method=4",					"MIN=0,MAX=1",				"" },
 
-        { SSC_INPUT,			SSC_NUMBER,			"other_infrastructure_cost_method",								"Other infrastructure cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"other_infrastructure_cost_method",								"Other infrastructure cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
 		{ SSC_INPUT,			SSC_NUMBER,			"other_infrastructure_cost_input",								"Other infrastructure cost",											"$",		"",	"MHKCosts",			"other_infrastructure_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"other_infrastructure_cost_total",								"Other infrastructure itemized cost total",											"$",		"",	"MHKCosts",			"other_infrastructure_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"other_infrastructure_cost_rvalue",								"Other infrastructure R-value",											"",		"",	"MHKCosts",			"other_infrastructure_cost_method=4",					"MIN=0,MAX=1",				"" },
 
-        { SSC_INPUT,			SSC_NUMBER,			"elec_infras_cost_method",								"Electrical infrastructure cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"elec_infras_cost_method",								"Electrical infrastructure cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"elec_infras_cost_input",								"Electrical infrastructure cost",											"$",		"",	"MHKCosts",			"elec_infras_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"elec_infras_cost_modeled",								"Electrical infrastructure cost modeled",											"$",		"",	"MHKCosts",			"elec_infras_cost_method=2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"elec_infras_cost_total",								"Electrical infrastructure itemized cost total",											"$",		"",	"MHKCosts",			"elec_infras_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"elec_infras_cost_rvalue",								"Electrical infrastructure R-value",											"",		"",	"MHKCosts",			"elec_infras_cost_method=4",					"MIN=0,MAX=1",				"" },
 
         //Plant Commissioning
-        { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_method",								"Plant commissioning cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_method",								"Plant commissioning cost method",											"0-3",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_input",								"Plant commissioning cost",											"$",		"",	"MHKCosts",			"plant_commissioning_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"plant_commissioning_cost_rvalue",								"Plant commissioning R-value",											"",		"",	"MHKCosts",			"plant_commissioning_cost_method=4",					"MIN=0,MAX=1",				"" },
 
         //Site Access
-        { SSC_INPUT,			SSC_NUMBER,			"site_access_port_staging_cost_method",								"Site access and port staging cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"site_access_port_staging_cost_method",								"Site access and port staging cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"site_access_port_staging_cost_input",								"Site access and port staging cost",											"$",		"",	"MHKCosts",			"site_access_port_staging_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"site_access_port_staging_cost_total",								"Site access and port staging itemized cost total",											"$",		"",	"MHKCosts",			"site_access_port_staging_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"site_access_port_staging_cost_rvalue",								"Site access and port staging R-value",											"",		"",	"MHKCosts",			"site_access_port_staging_cost_method=4",					"MIN=0,MAX=1",				"" },
 
 
         //Project Contingency
-        { SSC_INPUT,			SSC_NUMBER,			"project_contingency_cost_method",								"Project contingency cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"project_contingency_cost_method",								"Project contingency cost method",											"0-3",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"project_contingency_cost_input",								"Project contingency cost",											"$",		"",	"MHKCosts",			"project_contingency_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"project_contingency_cost_rvalue",								"Project contingency R-value",											"",		"",	"MHKCosts",			"project_contingency_cost_method=3",					"MIN=0,MAX=1",				"" },
 
         //Insurance during construction
-        { SSC_INPUT,			SSC_NUMBER,			"insurance_during_construction_cost_method",								"Insurance during construction cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"insurance_during_construction_cost_method",								"Insurance during construction cost method",											"0-3",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"insurance_during_construction_cost_input",								"Insurance during construction cost",											"$",		"",	"MHKCosts",			"insurance_during_construction_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"insurance_during_construction_cost_rvalue",								"Insurance during construction R-value",											"",		"",	"MHKCosts",			"insurance_during_construction_cost_method=3",					"MIN=0,MAX=1",				"" },
 
         //Reserve Accounts
-       { SSC_INPUT,			SSC_NUMBER,			"reserve_accounts_cost_method",								"Reserve accounts cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+       { SSC_INPUT,			SSC_NUMBER,			"reserve_accounts_cost_method",								"Reserve accounts cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
        { SSC_INPUT,			SSC_NUMBER,			"reserve_accounts_cost_input",								"Reserve accounts cost",											"$",		"",	"MHKCosts",			"reserve_accounts_cost_method<2",					"",				"" },
        { SSC_INPUT,			SSC_NUMBER,			"reserve_accounts_cost_total",								"Reserve accounts itemized cost total",											"$",		"",	"MHKCosts",			"reserve_accounts_cost_method=3",					"",				"" },
        { SSC_INPUT,			SSC_NUMBER,			"reserve_accounts_cost_rvalue",								"Reserve accounts R-value",											"",		"",	"MHKCosts",			"reserve_accounts_cost_method=4",					"MIN=0,MAX=1",				"" },
 
        //Other financial costs
-        { SSC_INPUT,			SSC_NUMBER,			"other_financial_cost_method",								"Other financial cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"other_financial_cost_method",								"Other financial cost method",											"0-3",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"other_financial_cost_input",								"Other financial cost",											"$,$/kW",		"",	"MHKCosts",			"other_financial_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"other_financial_cost_rvalue",								"Other financial R-value",											"",		"",	"MHKCosts",			"other_financial_cost_method=3",					"MIN=0,MAX=1",				"" },
 
         //Operations
-       { SSC_INPUT,			SSC_NUMBER,			"operations_cost_method",								"Operations cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+       { SSC_INPUT,			SSC_NUMBER,			"operations_cost_method",								"Operations cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
        { SSC_INPUT,			SSC_NUMBER,			"operations_cost_input",								"Operations cost",											"$",		"",	"MHKCosts",			"operations_cost_method<2",					"",				"" },
        { SSC_INPUT,			SSC_NUMBER,			"operations_cost_total",								"Operations itemized cost total",											"$",		"",	"MHKCosts",			"operations_cost_method=3",					"",				"" },
        { SSC_INPUT,			SSC_NUMBER,			"operations_cost_rvalue",								"Operations R-value",											"",		"",	"MHKCosts",			"operations_cost_method=4",					"MIN=0,MAX=1",				"" },
 
         //Maintenance
-        { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_method",								"Maintenance cost method",											"0/1/2",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
+        { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_method",								"Maintenance cost method",											"0-4",		"0=Enter in $/kW,1=Enter in $,2=Use modeled value",	"MHKCosts",			"*",					"MIN=0,MAX=4",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_input",								"Maintenance cost",											"$",		"",	"MHKCosts",			"maintenance_cost_method<2",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_total",								"Maintenance itemized cost total",											"$",		"",	"MHKCosts",			"maintenance_cost_method=3",					"",				"" },
         { SSC_INPUT,			SSC_NUMBER,			"maintenance_cost_rvalue",								"Maintenance R-value",											"",		"",	"MHKCosts",			"maintenance_cost_method=4",					"MIN=0,MAX=1",				"" },
@@ -233,9 +229,9 @@ public:
 //		int device_type = as_integer("device_type");
 		int technology = as_integer("marine_energy_tech");
 		int devices_per_row = as_integer("devices_per_row");
-		double interarray_length = as_double("inter_array_cable_length");
+		/*double interarray_length = as_double("inter_array_cable_length");
 		double riser_length = as_double("riser_cable_length");
-		double export_length = as_double("export_cable_length");
+		double export_length = as_double("export_cable_length");*/
 
 
 		int device_type = 4;

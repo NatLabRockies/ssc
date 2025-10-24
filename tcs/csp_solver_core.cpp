@@ -1794,12 +1794,12 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
 
 std::string C_csp_solver::C_operating_mode_core::time_and_op_mode_to_string(double time /*s*/)
 {
-    return util::format("At time = %lg ", time / 3600.0) + " " + m_op_mode_name;
+    return util::format("At time = %lg", time / 3600.0) + " " + m_op_mode_name;
 }
 
 void C_csp_solver::C_CR_OFF__PC_OFF__TES_OFF__AUX_OFF::handle_solve_error(double time /*hr*/, bool& is_turn_off_rec_su)
 {
-    throw(C_csp_exception(util::format("At time = %lg ", time / 3600.0) + " operating mode " + m_op_mode_name + " failed", ""));
+    throw(C_csp_exception(util::format("At time = %lg", time / 3600.0) + " operating mode " + m_op_mode_name + " failed", ""));
 }
 
 void C_csp_solver::C_CR_ON__PC_SU__TES_OFF__AUX_OFF::check_system_limits(C_csp_solver* pc_csp_solver,

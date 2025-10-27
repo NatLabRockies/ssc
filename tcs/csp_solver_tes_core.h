@@ -40,11 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void two_tank_tes_sizing(HTFProperties& tes_htf_props, double Q_tes_des /*MWt-hr*/, double T_tes_hot /*K*/,
     double T_tes_cold /*K*/, double h_min /*m*/, double h_tank_in /*m*/, int tank_pairs /*-*/, double u_tank /*W/m^2-K*/,
+    double tes_packed_vol_frac /*-*/,
     double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/, double& d_tank_out /*m*/,
     double& q_dot_loss_des /*MWt*/);
 
 void two_tank_tes_sizing_fixed_diameter(HTFProperties& tes_htf_props, double Q_tes_des /*MWt-hr*/, double T_tes_hot /*K*/,
     double T_tes_cold /*K*/, double h_min /*m*/, double d_tank_in, int tank_pairs /*-*/, double u_tank /*W/m^2-K*/,
+    double tes_packed_vol_frac /*-*/,
     double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/, double& h_tank_out /*m*/,
     double& q_dot_loss_des /*MWt*/);
 

@@ -48,6 +48,7 @@ private:
     double m_V_total;			//[m^3] Total volume for *one temperature* tank
     double m_V_active;			//[m^3] active volume of *one temperature* tank (either cold or hot)
     double m_V_inactive;		//[m^3] Inactive volume of *one temperature* tank (either cold or hot)
+    double m_V_frac_packed;     //[-] Packed volume fraction
     double m_UA;				//[W/K] Tank loss conductance
 
     double m_T_htr;				//[K] Tank heater set point
@@ -92,7 +93,7 @@ public:
         double h_tank /*m*/, double h_min /*m*/, double u_tank /*W/m2-K*/,
         double tank_pairs /*-*/, double T_htr /*K*/, double max_q_htr /*MWt*/,
         double V_ini /*m3*/, double T_ini /*K*/,
-        double T_design /*K*/);
+        double T_design /*K*/, double V_frac_packed = 1.0 /*-*/);
 
     double m_dot_available(double f_unavail, double timestep);
 

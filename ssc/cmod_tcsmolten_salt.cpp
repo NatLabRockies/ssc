@@ -916,6 +916,7 @@ public:
         // System Design Parameters
         double W_dot_cycle_des = as_double("P_ref");            //[MWe]
         double eta_cycle = as_double("design_eff");             //[-]
+        double tshours = as_double("tshours");                  //[-]
 
         // System Design Calcs
         double q_dot_pc_des = W_dot_cycle_des / eta_cycle;      //[MWt]

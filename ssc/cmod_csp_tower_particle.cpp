@@ -306,6 +306,8 @@ static var_info _cm_vtab_csp_tower_particle[] = {
 
     { SSC_INPUT,     SSC_NUMBER, "is_dispatch_series",                 "Use time-series dispatch factors",                                                                                                        "",             "",                                  "System Control",                           "?=0",                                                                         "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_ARRAY,  "dispatch_series",                    "Time series dispatch factors",                                                                                                            "",             "",                                  "System Control",                           "",                                                                            "",              "SIMULATION_PARAMETER"},
+
+    { SSC_INPUT,     SSC_NUMBER, "start_day_of_year",                  "Start day of year for TOD periods",                                                                                                       "0..6",         "0=Monday, 6=Sunday",                "Time of Delivery Factors",                 "?=0",                                                                         "",              "" },
     { SSC_INPUT,     SSC_ARRAY,  "ppa_price_input",			           "PPA prices - yearly",			                                                                                                          "$/kWh",	      "",	                               "Revenue",			                       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",      	       "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_MATRIX, "mp_energy_market_revenue",           "Energy market revenue input",                                                                                                             "",             "Lifetime x 2[Cleared Capacity(MW),Price($/MWh)]", "Revenue",                    "csp_financial_model=6&is_dispatch=1&sim_type=1",                              "",              "SIMULATION_PARAMETER"},
 
@@ -1479,7 +1481,9 @@ public:
             as_double("P_ref") / as_double("design_eff"),   //[MWt]
             as_double("solarm"),                            //[-]
             as_double("P_ref") / as_double("design_eff") * as_double("tshours"),
+            true,                                   // Fixed height configuration
             as_double("h_tank"),
+            0.0,                                    // [m] No input diameter (use height instead)       
             as_double("u_tank"),
             as_integer("tank_pairs"),
             as_double("hot_tank_Thtr"),
@@ -1493,10 +1497,10 @@ public:
             as_double("T_htf_cold_des"),
             as_double("h_tank_min"),
             as_double("tes_init_hot_htf_percent"),
-            0.0,
-            false,      //[-]
-            as_double("packed_vol_frac"),
-            1.85,                                   //[m/s]
+            0.0,                                    // pumping coefficient not used in particle TES model
+            false,                                  // [-] is this an indirect TES system? No, direct only for particle tower
+            as_double("packed_vol_frac"),           // [-] packed bed volume fraction
+            1.85,                                   // [m/s]
             false                                   // for now, to get 'tanks_in_parallel' to work
         );
         
@@ -1524,7 +1528,7 @@ public:
         }
         else {      // Block schedules
             C_timeseries_schedule_inputs offtaker_block = C_timeseries_schedule_inputs(as_matrix("weekday_schedule"), as_matrix("weekend_schedule"),
-                as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN());
+                as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN(), as_number("start_day_of_year"));
             offtaker_schedule = offtaker_block;
         }
 
@@ -1589,7 +1593,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"), as_matrix("dispatch_sched_weekend"),
-                            as_vector_double("dispatch_tod_factors"), ppa_price_year1);
+                            as_vector_double("dispatch_tod_factors"), ppa_price_year1, as_number("start_day_of_year"));
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule
@@ -1675,19 +1679,15 @@ public:
                 heater_startup_cost = as_double("disp_hsu_cost_rel") * q_dot_heater_des;    //[$/start]
             }
 
-            dispatch.solver_params.set_user_inputs(as_boolean("is_dispatch"), steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
+            dispatch.solver_params.set_user_inputs(steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                 as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
-                as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"),
-                as_boolean("is_write_ampl_dat"), as_boolean("is_ampl_engine"), as_string("ampl_data_dir"), as_string("ampl_exec_call"));
+                as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"));
 
             double disp_csu_cost_calc = as_double("disp_csu_cost_rel")*W_dot_cycle_des; //[$/start]
             double disp_rsu_cost_calc = as_double("disp_rsu_cost_rel")*q_dot_rec_des;   //[$/start]
             dispatch.params.set_user_params(as_boolean("can_cycle_use_standby"), as_double("disp_time_weighting"),
                 disp_rsu_cost_calc, heater_startup_cost, disp_csu_cost_calc, as_double("disp_pen_ramping"),
                 as_double("disp_inventory_incentive"), 0.0, 0.0);
-        }
-        else {
-            dispatch.solver_params.dispatch_optimize = false;
         }
 
         // *****************************************************
@@ -1939,11 +1939,11 @@ public:
             // *************************
             // Thermal Energy Storage
         double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
-            d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
+            h_tank_calc /*m*/, d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
             Q_tes_des_calc /*MWt-hr*/, tes_total_mass /*kg*/;
 
         storage.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-            d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
+            h_tank_calc, d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
 
         assign("Q_tes_des", Q_tes_des_calc);                //[MWt-hr]
         assign("V_tes_htf_avail_des", V_tes_htf_avail_calc);    //[m3]

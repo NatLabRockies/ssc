@@ -47,7 +47,7 @@ void C_storage_tank::init(HTFProperties htf_class_in, double V_tank /*m3*/,
     double h_tank /*m*/, double h_min /*m*/, double u_tank /*W/m2-K*/,
     double tank_pairs /*-*/, double T_htr /*K*/, double max_q_htr /*MWt*/,
     double V_ini /*m3*/, double T_ini /*K*/,
-    double T_design /*K*/)
+    double T_design /*K*/, double V_frac_packed /*-*/)
 {
     mc_htf = htf_class_in;
 
@@ -55,11 +55,13 @@ void C_storage_tank::init(HTFProperties htf_class_in, double V_tank /*m3*/,
 
     m_V_total = V_tank;				//[m^3]
 
-    m_mass_total = m_V_total * rho_des;			//[kg]
+    m_V_frac_packed = V_frac_packed;    //[-] Volume fraction of HTF in tank
+
+    m_mass_total = m_V_total * rho_des * m_V_frac_packed;			//[kg]
 
     m_V_inactive = m_V_total * h_min / h_tank;	//[m^3]
 
-    m_mass_inactive = m_V_inactive * rho_des;	//[kg]
+    m_mass_inactive = m_V_inactive * rho_des * m_V_frac_packed;	//[kg]
 
     m_V_active = m_V_total - m_V_inactive;		//[m^3]
 
@@ -82,7 +84,7 @@ void C_storage_tank::init(HTFProperties htf_class_in, double V_tank /*m3*/,
 
 double C_storage_tank::calc_mass_at_prev()
 {
-    return m_V_prev * mc_htf.dens(m_T_prev, 1.0);	//[kg] 
+    return m_V_prev * mc_htf.dens(m_T_prev, 1.0) * m_V_frac_packed;	//[kg] 
 }
 
 double C_storage_tank::get_m_UA()
@@ -165,7 +167,7 @@ void C_storage_tank::energy_balance(double timestep /*s*/, double m_dot_in /*kg/
     else {
         m_dot_out_adj = m_dot_out;
     }
-    m_V_calc = m_m_calc / rho;					//[m^3] Available volume at end of timestep (using initial temperature...)
+    m_V_calc = m_m_calc / (rho * m_V_frac_packed);					//[m^3] Available volume at end of timestep (using initial temperature...)
 
     // Check for continual empty tank
     if (m_m_prev <= 1e-4 && tank_is_empty == true) {
@@ -282,7 +284,7 @@ void C_storage_tank::energy_balance_constant_mass(double timestep /*s*/, double 
 
     // Calculate ending volume levels
     m_m_calc = m_m_prev;						//[kg] Available mass at the end of this timestep, same as previous
-    m_V_calc = m_m_calc / rho;					//[m^3] Available volume at end of timestep (using initial temperature...)		
+    m_V_calc = m_m_calc / (rho * m_V_frac_packed);					//[m^3] Available volume at end of timestep (using initial temperature...)		
 
 
     //Analytical method
@@ -625,7 +627,7 @@ void C_csp_cold_tes::init(const C_csp_cold_tes::S_csp_cold_tes_init_inputs init_
     double d_tank_temp = std::numeric_limits<double>::quiet_NaN();
     double q_dot_loss_temp = std::numeric_limits<double>::quiet_NaN();
     two_tank_tes_sizing(mc_store_htfProps, Q_tes_des, ms_params.m_T_hot_des, ms_params.m_T_cold_des,
-        ms_params.m_h_tank_min, ms_params.m_h_tank, ms_params.m_tank_pairs, ms_params.m_u_tank,
+        ms_params.m_h_tank_min, ms_params.m_h_tank, ms_params.m_tank_pairs, ms_params.m_u_tank, 1.0,
         m_V_tank_active, m_vol_tank, d_tank_temp, q_dot_loss_temp);
 
     // 5.13.15, twn: also be sure that hx is sized such that it can supply full load to power cycle, in cases of low solar multiples

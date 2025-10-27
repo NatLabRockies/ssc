@@ -418,11 +418,12 @@ public:
         double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
             h_tank_calc /*m*/, d_tank_calc /*m*/, q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
             Q_tes_des_calc /*MWt-hr*/;
+        double tes_total_mass = 0.0; /*kg*/
 
         if (tes_type == C_csp_tes::csp_tes_types::E_TES_TWO_TANK)
         {
             storage_two_tank.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-                h_tank_calc, d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
+                h_tank_calc, d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
         }
         if (tes_type == C_csp_tes::csp_tes_types::E_TES_PACKED_BED)
         {

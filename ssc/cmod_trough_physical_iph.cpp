@@ -1992,8 +1992,9 @@ public:
                 double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
                     h_tank_calc /*m*/, d_tank_calc /*m*/,
                     q_dot_loss_tes_des_calc /*MWt*/, dens_store_htf_at_T_ave_calc /*kg/m3*/,
-                    Q_tes_des_calc /*MWht*/, tes_total_mass /*kg*/;
+                    Q_tes_des_calc /*MWht*/;
 
+                double tes_total_mass = 0;  /*kg*/
                 double tes_htf_min_temp = 0;
                 double tes_htf_max_temp = 0;
                 double vol_min = 0;
@@ -2014,13 +2015,13 @@ public:
                 else if (tes_type == C_csp_tes::csp_tes_types::E_TES_PACKED_BED)
                 {
                     storage_packedbed.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-                        h_tank_calc, d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
+                        h_tank_calc, d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
                     hot_vol_frac = storage_packedbed.get_hot_tank_vol_frac();
                 }
                 else if (tes_type == C_csp_tes::csp_tes_types::E_TES_CYL)
                 {
                     storage_cyl.get_design_parameters(V_tes_htf_avail_calc, V_tes_htf_total_calc,
-                        h_tank_calc, d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc, tes_total_mass);
+                        h_tank_calc, d_tank_calc, q_dot_loss_tes_des_calc, dens_store_htf_at_T_ave_calc, Q_tes_des_calc);
                     hot_vol_frac = storage_cyl.get_hot_tank_vol_frac();
                 }
 

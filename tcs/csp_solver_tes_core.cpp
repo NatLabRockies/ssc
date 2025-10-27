@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void two_tank_tes_sizing(HTFProperties& tes_htf_props, double Q_tes_des /*MWt-hr*/, double T_tes_hot /*K*/,
     double T_tes_cold /*K*/, double h_min /*m*/, double h_tank_in /*m*/, int tank_pairs /*-*/, double u_tank /*W/m^2-K*/,
+    double tes_packed_vol_frac /*-*/,
     double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/, double& d_tank_out /*m*/,
     double& q_dot_loss_des /*MWt*/)
 {
@@ -46,7 +47,7 @@ void two_tank_tes_sizing(HTFProperties& tes_htf_props, double Q_tes_des /*MWt-hr
 
     // Volume required to supply design hours of thermal energy storage
         //[m^3] = [MJ/s-hr] * [sec]/[hr] = [MJ] / (kg/m^3 * MJ/kg-K * K 
-    vol_one_temp_avail = Q_tes_des * 3600.0 / (rho_ave * cp_ave / 1000.0 * (T_tes_hot - T_tes_cold));
+    vol_one_temp_avail = Q_tes_des * 3600.0 / (rho_ave * tes_packed_vol_frac * cp_ave / 1000.0 * (T_tes_hot - T_tes_cold));
 
     // Additional volume necessary due to minimum tank limits
     vol_one_temp_total = vol_one_temp_avail / (1.0 - h_min / h_tank_in);	//[m^3]
@@ -66,6 +67,7 @@ void two_tank_tes_sizing(HTFProperties& tes_htf_props, double Q_tes_des /*MWt-hr
 
 void two_tank_tes_sizing_fixed_diameter(HTFProperties& tes_htf_props, double Q_tes_des /*MWt-hr*/, double T_tes_hot /*K*/,
     double T_tes_cold /*K*/, double h_min /*m*/, double d_tank_in, int tank_pairs /*-*/, double u_tank /*W/m^2-K*/,
+    double tes_packed_vol_frac /*-*/,
     double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/, double& h_tank_out /*m*/,
     double& q_dot_loss_des /*MWt*/)
 {
@@ -76,7 +78,7 @@ void two_tank_tes_sizing_fixed_diameter(HTFProperties& tes_htf_props, double Q_t
 
     // Volume required to supply design hours of thermal energy storage
         //[m^3] = [MJ/s-hr] * [sec]/[hr] = [MJ] / (kg/m^3 * MJ/kg-K * K 
-    vol_one_temp_avail = Q_tes_des * 3600.0 / (rho_ave * cp_ave / 1000.0 * (T_tes_hot - T_tes_cold));
+    vol_one_temp_avail = Q_tes_des * 3600.0 / (rho_ave * tes_packed_vol_frac * cp_ave / 1000.0 * (T_tes_hot - T_tes_cold));
 
     double A_cs = CSP::pi * std::pow(d_tank_in, 2.0) * 0.25 ;		//[m^2] Cross-sectional area of a single tank
 

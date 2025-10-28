@@ -1859,7 +1859,7 @@ void C_csp_solver::C_CR_OFF__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_c
                 util::format(" converged to a %s %lg %s larger than the maximum %s %lg %s. Controller shut off plant",
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), s_dep_desc.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             is_model_converged = false;
             is_turn_off_plant = true;
@@ -1917,7 +1917,7 @@ void C_csp_solver::C_CR_ON__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_cs
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
                 util::format(" solved with a %s %lg %s greater than the maximum %lg %s. Controller shut off plant",
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -1943,7 +1943,7 @@ void C_csp_solver::C_CR_ON__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_cs
         std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
             util::format(" solved with a PC HTF mass flow rate %lg [kg/s] less than the minimum %lg [kg/s]. Controller shut off plant",
                 m_dot_pc_solved / 3600.0, m_dot_pc_min / 3600.0);
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2018,7 +2018,7 @@ void C_csp_solver::C_CR_ON__PC_TARGET__TES_CH__AUX_OFF::check_system_limits(C_cs
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
                 util::format(" solved with a PC HTF mass flow rate %lg [kg/s] smaller than the minimum %lg [kg/s]. Controller shut off plant",
                     m_dot_pc_solved / 3600.0, m_dot_pc_min / 3600.0);
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             turn_off_mode_availability();
             is_model_converged = false;
@@ -2072,7 +2072,7 @@ void C_csp_solver::C_CR_OFF__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_c
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         turn_off_mode_availability();
         is_model_converged = false;
@@ -2104,7 +2104,7 @@ void C_csp_solver::C_CR_ON__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(),
                     q_pc_or_w_sys_max, s_dep_units.c_str());
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             turn_off_mode_availability();
             is_model_converged = false;
@@ -2132,7 +2132,7 @@ void C_csp_solver::C_CR_ON__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         turn_off_mode_availability();
         is_model_converged = false;
@@ -2187,7 +2187,7 @@ void C_csp_solver::C_CR_OFF__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C
                 util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str()); // pc_csp_solver->m_q_dot_pc_max);
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2210,7 +2210,7 @@ void C_csp_solver::C_CR_OFF__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2241,7 +2241,7 @@ void C_csp_solver::C_CR_ON__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_cs
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2303,7 +2303,7 @@ void C_csp_solver::C_CR_SU__PC_TARGET__TES_DC__AUX_OFF::check_system_limits(C_cs
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
                 util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2371,7 +2371,7 @@ void C_csp_solver::C_CR_SU__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits(C_cs
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2438,7 +2438,7 @@ void C_csp_solver::C_CR_SU__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limits(C_
                 util::format(" converged to a %s %lg %s larger than the maximum of %lg %s. Controller shut off plant",
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2493,7 +2493,7 @@ void C_csp_solver::C_CR_OFF__PC_SB__TES_DC__AUX_OFF::check_system_limits(C_csp_s
                 util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
                     q_dot_pc_in_calc, q_pc_or_w_sys_max);
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2621,7 +2621,7 @@ void C_csp_solver::C_CR_ON__PC_SB__TES_CH__AUX_OFF::check_system_limits(C_csp_so
                 util::format(" solved with a PC HTF mass flow rate %lg [kg/s] smaller than the minimum %lg [kg/s]. Controller shut off plant",
                     m_dot_pc_solved / 3600.0, m_dot_pc_min / 3600.0);
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2686,7 +2686,7 @@ void C_csp_solver::C_CR_ON__PC_SB__TES_DC__AUX_OFF::check_system_limits(C_csp_so
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
                 util::format(" solved with a PC thermal power %lg [MWt] greater than the maximum %lg [MWt]. Controller shut off plant",
                     q_dot_pc_in_calc, q_pc_or_w_sys_max);
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2706,7 +2706,7 @@ void C_csp_solver::C_CR_ON__PC_SB__TES_DC__AUX_OFF::check_system_limits(C_csp_so
         std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
             util::format(" solved with a PC HTF mass flow rate %lg [kg/s] less than the minimum %lg [kg/s]. Controller shut off plant",
                 m_dot_pc_solved / 3600.0, m_dot_pc_min / 3600.0);
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2752,7 +2752,7 @@ void C_csp_solver::C_CR_SU__PC_SB__TES_DC__AUX_OFF::check_system_limits(C_csp_so
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
                 util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
                     q_dot_pc_in_calc, q_pc_or_w_sys_max);
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2812,7 +2812,7 @@ void C_csp_solver::C_CR_ON__PC_SB__TES_OFF__AUX_OFF::check_system_limits(C_csp_s
             util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
                 q_dot_pc_in_calc, q_pc_or_w_sys_max);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2826,7 +2826,7 @@ void C_csp_solver::C_CR_ON__PC_SB__TES_OFF__AUX_OFF::check_system_limits(C_csp_s
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2889,7 +2889,7 @@ void C_csp_solver::C_CR_TO_COLD__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits
                 util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
                     q_pc_or_w_sys_calc, q_pc_or_w_sys_max);
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2904,7 +2904,7 @@ void C_csp_solver::C_CR_TO_COLD__PC_MIN__TES_EMPTY__AUX_OFF::check_system_limits
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2941,7 +2941,7 @@ void C_csp_solver::C_CR_TO_COLD__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limi
                 util::format(" converged to a %s of %lg %s larger than the maximum of %lg %s. Controller shut off plant",
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
 
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -2964,7 +2964,7 @@ void C_csp_solver::C_CR_TO_COLD__PC_RM_LO__TES_EMPTY__AUX_OFF::check_system_limi
             util::format(" converged to a HTF mass flow rate %lg [kg/s] larger than the maximum PC mass flow rate %lg [kg/s]. Controller shut off plant",
                 pc_csp_solver->mc_pc_out_solver.m_m_dot_htf / 3600.0, m_dot_pc_max / 3600.0);
 
-        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+        pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
         m_is_mode_available = false;
         is_model_converged = false;
@@ -2994,7 +2994,7 @@ void C_csp_solver::C_CR_TO_COLD__PC_TARGET__TES_DC__AUX_OFF::check_system_limits
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
                 util::format(" converged to a %s of %lg %s larger than the maximum of %lg %s. Controller shut off plant",
                     s_dep_desc.c_str(), q_pc_or_w_sys_calc, s_dep_units.c_str(), q_pc_or_w_sys_max, s_dep_units.c_str());
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;
@@ -3052,7 +3052,7 @@ void C_csp_solver::C_CR_TO_COLD__PC_SB__TES_DC__AUX_OFF::check_system_limits(C_c
             std::string error_msg = time_and_op_mode_to_string(pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time) +
                 util::format(" converged to a PC thermal power %lg [MWt] larger than the maximum PC thermal power %lg [MWt]. Controller shut off plant",
                     q_dot_pc_in_calc, q_pc_or_w_sys_max);
-            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, error_msg);
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::WARNING, error_msg);
 
             m_is_mode_available = false;
             is_model_converged = false;

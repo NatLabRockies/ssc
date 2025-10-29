@@ -8,7 +8,7 @@ env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
-  ORTOOLS_VER: "9.8"
+  ORTOOLS_VER: "9.12"
 
 jobs:
   build-on-ubuntu:
@@ -272,7 +272,7 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
-        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools/install
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools
         echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
 
     - name: Get cached OR-Tools
@@ -282,14 +282,23 @@ jobs:
         path: ${{env.ORTOOLSDIR}}
         key: ortools-windows
 
-    - name: Download OR-Tools
+    - name: Clone OR-Tools
+      if: steps.cachedortools.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: google/or-tools
+        path: or-tools
+        ref: ${{env.ORTOOLSDIR_REF}}
+
+    - name: build OR-Tools
       if: steps.cachedortools.outputs.cache-hit != 'true'
       shell: bash
-      run: |
-        cd $GITHUB_WORKSPACE
-        curl -LJO https://github.com/google/or-tools/releases/download/v${ORTOOLS_VER}/or-tools_x64_VisualStudio2022_cpp_v${ORTOOLS_VER}.3296.zip
-        unzip or-tools_x64_VisualStudio2022_cpp_* -d or-tools
-        mv or-tools/or-tools_* $ORTOOLSDIR
+      run: | 
+          mkdir ${ORTOOLSDIR}/build
+          cd ${ORTOOLSDIR}/build
+          cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}/install_release
+          cmake --build build --config Release --target ALL_BUILD -j -v
+          cmake --build build --config Release --target INSTALL -v
 
     - name: Get cached GTest
       uses: actions/cache@v4

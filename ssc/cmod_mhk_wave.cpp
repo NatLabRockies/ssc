@@ -444,9 +444,13 @@ public:
 			    for (size_t j = 0; j < (size_t)wave_power_matrix.ncols(); j++) {
 
 				    //Calculate and allocate annual_energy_distribution:
-				    if (j == 0 || i == 0)	//Where (i = 0) is the row header, and (j =  0) is the column header.
-					    p_annual_energy_dist[k] = (ssc_number_t) wave_resource_matrix.at(i, j); //Don't do anything with top left corner of matrix as this value is always 0 and not part of the grid
-				    else {
+                    if (j == 0 || i == 0) {	//Where (i = 0) is the row header, and (j =  0) is the column header.
+                        if (wave_resource_matrix.at(i, j) != wave_power_matrix.at(i, j)) {
+                            throw exec_error("mhk_wave", "Resource matrix and Power matrix bins do not match.");
+                        }
+                        p_annual_energy_dist[k] = (ssc_number_t)wave_resource_matrix.at(i, j); //Don't do anything with top left corner of matrix as this value is always 0 and not part of the grid
+                    }
+                    else {
                         //Find annual probability (as a %) of wave at height i and period j, multiply by 8760/100 to find fractional hours per year that wave(i,j) is achieved;
                         //Mult. by number of devices and total loss multiplier to find energy for certain wave type in grid
                         p_annual_energy_dist[k] = (ssc_number_t)(wave_resource_matrix.at(i,j) * wave_power_matrix.at(i,j) * 8760.0 / 100.0) * (1-total_loss/100) * number_devices; 

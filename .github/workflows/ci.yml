@@ -295,7 +295,7 @@ jobs:
       shell: bash
       run: | 
           mkdir ${ORTOOLSDIR}/build
-          cd ${ORTOOLSDIR}/build
+          cd ${ORTOOLSDIR}
           cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}/install_release
           cmake --build build --config Release --target ALL_BUILD -j -v
           cmake --build build --config Release --target INSTALL -v

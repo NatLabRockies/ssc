@@ -1392,6 +1392,7 @@ public:
 
 	public:
 		double m_t_ts_calc; //[s]
+        std::string m_m_dot_tes_return_message;
 
         C_MEQ__T_field_cold(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_csp_solver* pc_csp_solver,
             double q_dot_pc_target /*MWt*/,
@@ -1464,6 +1465,8 @@ public:
         double m_defocus_PAR_HTR;   //[-]
 
 	public:
+        std::string m_m_dot_tes_return_message;
+
 		C_MEQ__timestep(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_MEQ__timestep::E_timestep_target_modes step_target_mode,
 			C_csp_solver* pc_csp_solver,
 			double q_dot_pc_target /*MWt*/,
@@ -1494,6 +1497,8 @@ public:
 		}
 
 		virtual int operator()(double t_ts_guess /*s*/, double* diff_t_ts_guess /*s*/);
+
+        void init_calc_member_vars();
 	};
 
     class C_MEQ__defocus : public C_monotonic_equation
@@ -1528,6 +1533,8 @@ public:
     
     public:
 
+        std::string m_m_dot_tes_return_message;
+
         C_MEQ__defocus(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, 
 			E_defocus_target_modes df_target_mode, C_MEQ__timestep::E_timestep_target_modes ts_target_mode,
             C_csp_solver *pc_csp_solver, 
@@ -1561,6 +1568,8 @@ public:
         virtual int operator()(double defocus /*-*/, double *target /*-*/);
 
         double calc_meq_target();
+
+        void init_calc_member_vars();
     };
 
 	int solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes cr_mode,
@@ -1570,7 +1579,8 @@ public:
 		double q_dot_pc_target /*MWt*/, double offtaker_power_max /*MWe*/,
         bool is_defocus, bool is_rec_outlet_to_hottank,
         double q_dot_elec_to_CR_heat /*MWt*/, double q_dot_elec_to_PAR_HTR /*MWt*/,
-        std::string op_mode_str, double& defocus_solved);
+        std::string op_mode_str, double& defocus_solved,
+        std::string& m_dot_tes_return_message);
 
 
     class C_operating_mode_core

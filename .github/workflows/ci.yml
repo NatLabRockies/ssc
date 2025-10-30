@@ -294,6 +294,7 @@ jobs:
       if: steps.cachedortools.outputs.cache-hit != 'true'
       shell: bash
       run: | 
+          mkdir ${ORTOOLSDIR}
           cd ${ORTOOLSDIR}
           cd ..
           mkdir build

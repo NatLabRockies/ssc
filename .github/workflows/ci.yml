@@ -272,7 +272,7 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
-        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools/install_release
         echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
 
     - name: Get cached OR-Tools
@@ -294,9 +294,10 @@ jobs:
       if: steps.cachedortools.outputs.cache-hit != 'true'
       shell: bash
       run: | 
-          mkdir ${ORTOOLSDIR}/build
           cd ${ORTOOLSDIR}
-          cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}/install_release
+          cd ..
+          mkdir build
+          cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
           cmake --build build --config Release --target ALL_BUILD -j -v
           cmake --build build --config Release --target INSTALL -v
 

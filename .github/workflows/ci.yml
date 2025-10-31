@@ -8,7 +8,8 @@ env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
-  ORTOOLS_VER: "9.12"
+  ORTOOLS_REF: b85864c64758dec007208e56af933fc3f52044ef
+  ORTOOLS_VER: "9.14"
 
 jobs:
   build-on-ubuntu:
@@ -272,7 +273,7 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
-        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools/install_release
+        ORTOOLSDIR=$GITHUB_WORKSPACE/../or-tools/install_release
         echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
 
     - name: Get cached OR-Tools
@@ -288,7 +289,7 @@ jobs:
       with:
         repository: google/or-tools
         path: or-tools
-        ref: ${{env.ORTOOLSDIR_REF}}
+        ref: ${{env.ORTOOLS_REF}}
 
     - name: build OR-Tools
       if: steps.cachedortools.outputs.cache-hit != 'true'

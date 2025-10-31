@@ -294,7 +294,7 @@ jobs:
       shell: bash
       run: | 
           mkdir ${ORTOOLSDIR}
-          cd or-tools-$env:ORTOOLS_VER
+          cd or-tools-$ORTOOLS_VER
           mkdir build
           cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
           cmake --build build --config Release --target ALL_BUILD -j -v

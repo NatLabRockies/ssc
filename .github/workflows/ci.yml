@@ -287,7 +287,7 @@ jobs:
       shell: bash
       run: |
         curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools-$ORTOOLS_VER.tar.gz -o or-tools-$ORTOOLS_VER.tar.gz
-        tar jxf or-tools-$ORTOOLS_VER.tar.gz
+        tar xvzf or-tools-$ORTOOLS_VER.tar.gz
 
     - name: build OR-Tools
       if: steps.cachedortools.outputs.cache-hit != 'true'

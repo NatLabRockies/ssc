@@ -8,7 +8,6 @@ env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
-  ORTOOLS_REF: 20fecf08cfdd7e7cde6ab787659cdd4943e3d561
   ORTOOLS_VER: "9.14"
 
 jobs:
@@ -273,31 +272,29 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
-        ORTOOLSDIR=$GITHUB_WORKSPACE/../or-tools/install_release
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools/install_release
         echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
 
     - name: Get cached OR-Tools
       uses: actions/cache@v4
       id: cachedortools
       with:
-        path: ${{env.ORTOOLSDIR}}
-        key: ortools-windows
+        path: ${{env.ORTOOLSDIR}}/
+        key: ortools-${{env.ORTOOLS_VER}}-windows
 
-    - name: Clone OR-Tools
+    - name: Download OR-Tools
       if: steps.cachedortools.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: google/or-tools
-        path: or-tools
-        ref: ${{env.ORTOOLS_REF}}
+      shell: bash
+      run: |
+        curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools-$ORTOOLS_VER.tar.gz -o or-tools-$ORTOOLS_VER.tar.gz
+        tar jxf or-tools-$ORTOOLS_VER.tar.gz
 
     - name: build OR-Tools
       if: steps.cachedortools.outputs.cache-hit != 'true'
       shell: bash
       run: | 
           mkdir ${ORTOOLSDIR}
-          cd ${ORTOOLSDIR}
-          cd ..
+          cd or-tools-$env:ORTOOLS_VER
           mkdir build
           cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
           cmake --build build --config Release --target ALL_BUILD -j -v
@@ -338,7 +335,7 @@ jobs:
         # Downloaded OR-Tools has CoinOR enabled
         mkdir $SSCDIR/build
         cd $SSCDIR/build
-        cmake .. -DSAM_SKIP_TOOLS=1 -DCMAKE_CONFIGURATION_TYPES="Release" -DCMAKE_SYSTEM_VERSION="10.0" -DCMAKE_GENERATOR_PLATFORM=x64 -DUSE_COINOR=1 -DCMAKE_GENERATOR_PLATFORM=x64 -DUSE_COINOR=1 
+        cmake -G "Visual Studio 17 2022" -DCMAKE_CONFIGURATION_TYPES="Release"  -DSAM_SKIP_AUTOGEN=0 -DSAMAPI_EXPORT=1 -DSAMPRIVATE=1 -DUSE_XPRESS=0 -DUSE_COINOR=1 -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_PREFIX_PATH=${ORTOOLSDIR} -Dabsl_DIR=${ORTOOLSDIR}\lib\cmake\absl" -Dutf8_range_DIR=${ORTOOLSDIR}\lib\cmake\utf8_range"  ..
         cmake --build . --config Release -j4 --target Test
         cp ssc/Release/* test/Release
 

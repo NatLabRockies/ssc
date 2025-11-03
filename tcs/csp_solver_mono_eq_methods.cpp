@@ -53,8 +53,11 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
     double q_dot_pc_target /*MWt*/, double offtaker_power_max /*MWe*/,
     bool is_defocus, bool is_rec_outlet_to_hottank,
     double q_dot_elec_to_CR_heat /*MWe*/, double q_dot_elec_to_PAR_HTR /*MWt*/,
-    std::string op_mode_str, double & defocus_solved)
+    std::string op_mode_str, double & defocus_solved,
+    std::string& m_dot_tes_return_message)
 {
+    m_dot_tes_return_message = "";
+
     double t_ts_initial = mc_kernel.mc_sim_info.ms_ts.m_step;   //[s]
 
     C_MEQ__defocus c_mdot_eq(solver_mode, C_MEQ__defocus::E_M_DOT_BAL, step_target_mode, this,
@@ -74,7 +77,9 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
         reset_time(t_ts_initial);
         return -1;
     }
-    
+
+    m_dot_tes_return_message = c_mdot_eq.m_m_dot_tes_return_message;
+
     defocus_solved = df_full;      //[-]
     bool is_m_dot_bal_converged = false;
     if (is_defocus)
@@ -176,6 +181,8 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
         else if (offtaker_power_max_denom > -0.001 && offtaker_power_max_denom < 0.0) {
             offtaker_power_max_denom = -0.001;
         }
+
+        m_dot_tes_return_message = c_mdot_eq.m_m_dot_tes_return_message;
 
         // What if output max and output calc are both negative? E.g. electric heater targeting net system import
         // -- If system requires "defocus", need to turn down heater, so calc is more negative (e.g. -90) than max (e.g. -70)
@@ -301,6 +308,8 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
                     return -7;
                 }
             }
+
+            m_dot_tes_return_message = c_q_dot_eq.m_m_dot_tes_return_message;
         }
         else if (defocus_solved == 1.0)
         {
@@ -337,6 +346,8 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
                 reset_time(t_ts_initial);
                 return -8;
             }
+
+            m_dot_tes_return_message = c_bal_eq.m_m_dot_tes_return_message;
         }
     }
 
@@ -371,6 +382,13 @@ double C_csp_solver::C_MEQ__defocus::calc_meq_target()
             return mpc_csp_solver->mc_system_metrics.get_W_dot_net();   //[MWe]
         }
     }
+}
+
+void C_csp_solver::C_MEQ__defocus::init_calc_member_vars(){
+
+    m_m_dot_tes_return_message = "";
+
+    return;
 }
 
 int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *target /*-*/)
@@ -510,6 +528,8 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
 
             mpc_csp_solver->reset_time(m_t_ts_initial);
 
+            m_m_dot_tes_return_message = c_T_cold_eq.m_m_dot_tes_return_message;
+
             return 0;
         }
 
@@ -624,6 +644,7 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
         }
     }
 
+    m_m_dot_tes_return_message = c_T_cold_eq.m_m_dot_tes_return_message;
 
     // Have been mucking with mc_kernel.mc_sim_info.ms_ts.m_time, so need to reset these
     mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_step = t_ts_solved;						//[s]
@@ -632,6 +653,13 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
     *target = calc_meq_target();
 
     return 0;
+}
+
+void C_csp_solver::C_MEQ__timestep::init_calc_member_vars(){
+
+    m_m_dot_tes_return_message = "";
+
+    return;
 }
 
 int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *target /*varying*/)
@@ -717,6 +745,8 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
             }
         }
     }
+
+    m_m_dot_tes_return_message = c_eq.m_m_dot_tes_return_message;
 
     if (m_step_target_mode == E_STEP_FROM_COMPONENT)
     {
@@ -1289,6 +1319,7 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
 void C_csp_solver::C_MEQ__T_field_cold::init_calc_member_vars()
 {
     m_t_ts_calc = std::numeric_limits<double>::quiet_NaN();
+    m_m_dot_tes_return_message = "";
 }
 
 int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, double *diff_T_field_cold /*-*/)
@@ -1375,13 +1406,11 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
                 }
                 else if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
                 {
-                    
+                    std::string msg = util::format("the mass flow rate iteration only reached a convergence "
+                        "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results.",
+                        tol_solved);
 
-                    std::string msg = util::format("At time = %lg power cycle mass flow for startup "
-                        "iteration to find a defocus resulting in the maximum power cycle mass flow rate only reached a convergence "
-                        "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
-                        mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
-                    mpc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+                    m_m_dot_tes_return_message = msg;
                 }
                 else
                 {

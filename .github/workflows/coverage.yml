@@ -45,7 +45,7 @@ jobs:
       id: cached-ortools-restore
       uses: actions/cache/restore@v4
       with:
-        key: ortools-${{env.ORTOOLS_VER}}-linux
+        key: ortools-${{env.ORTOOLS_VER}}-ubuntu
         path: ${{env.ORTOOLSDIR}}/
 
     - name: Download OR-Tools

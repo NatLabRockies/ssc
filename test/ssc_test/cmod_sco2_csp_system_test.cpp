@@ -246,6 +246,14 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, recompression_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 NAMESPACE_TEST(sco2_design_tests, SCO2Design, simple_default)
@@ -274,6 +282,14 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, simple_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 NAMESPACE_TEST(sco2_design_tests, SCO2Design, partial_default)
@@ -302,6 +318,14 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, partial_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot") + sco2.GetOutput("pc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_default)
@@ -336,6 +360,14 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_default)
@@ -366,6 +398,14 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot") + sco2.GetOutput("t2_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 // Design method 1 (hit target eta by varying total UA)
@@ -402,6 +442,14 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_des1)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 

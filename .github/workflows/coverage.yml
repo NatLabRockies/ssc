@@ -63,8 +63,8 @@ jobs:
           cd or-tools-$ORTOOLS_VER
           mkdir build
           cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
-          cmake --build build --config Release --target all -j -v
-          cmake --build build --config Release --target install -v
+          cmake --build build --config Debug --target all -j -v
+          cmake --build build --config Debug --target install -v
 
     - name: Always save OR-Tools build
       id: cached-ortools-save

@@ -272,7 +272,7 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
-        ORTOOLSDIR=or-tools-$ORTOOLS_VER/install_release
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools-$ORTOOLS_VER/install_release
         echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
 
     - name: Get cached OR-Tools

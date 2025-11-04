@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __base_dispatch_ortools_
 #define __base_dispatch_ortools_
 
+#define OR_PROTO_DLL
+
 #include "base_dispatch.h"
 #include "ortools/linear_solver/linear_solver.h"
 

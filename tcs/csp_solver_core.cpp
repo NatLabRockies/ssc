@@ -1375,20 +1375,22 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
 
             // If system is generating electricity, need to consider relationship between cycle power output and heat input
             if( W_dot_system_target > 0.0 ) {
-                double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
+                double W_dot_pc_gross_est = (W_dot_system_target + W_dot_rec_par_est + m_W_dot_fixed_design) /
                     (1.0 - m_ratio_cycle_dep_par_design);
                 q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
             }
             else {
-                double W_dot_heater_gross_est = W_dot_system_target + W_dot_rec_par_est + m_W_dot_fixed_design;
+                //double W_dot_heater_gross_est = W_dot_system_target + W_dot_rec_par_est + m_W_dot_fixed_design;
 
                 // If targeting net system import, then controller logic doesn't use 'q_dot_pc_target'
                 // But need to estimate it here, because later in this method it is used to set q_dot_elec_to_PAR_HTF
                 //    if conditions are met
                 // Controller will apply a tolerance to this guess
+                // q_dot_pc_target is also used to set max heater output this timestep, so need to cover worst case
+                //    which is that parasitics vanish (e.g. rec turns off)
                 // Want target to be a little high so there's room for "defocus"
                 // But don't want to be so high as to accidentally trip into TES_FULL mode
-                q_dot_pc_target = W_dot_heater_gross_est;
+                q_dot_pc_target = W_dot_system_target;
             }
         }
         else{

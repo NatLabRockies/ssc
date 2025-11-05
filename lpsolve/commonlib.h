@@ -292,7 +292,7 @@ void strtolo(char *s);
 void strcpyup(char *t, char *s);
 void strcpylo(char *t, char *s);
 
-MYBOOL so_stdname(char *stdname, char *descname, int buflen);
+MYBOOL so_stdname(const char *stdname, const char *descname, int buflen);
 int gcd(LLONG a, LLONG b, int *c, int *d);
 
 int findIndex(int target, int *attributes, int count, int offset);

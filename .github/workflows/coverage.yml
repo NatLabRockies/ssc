@@ -45,7 +45,7 @@ jobs:
       id: cached-ortools-restore
       uses: actions/cache/restore@v4
       with:
-        key: ortools-${{env.ORTOOLS_VER}}-ubuntu
+        key: ortools-${{env.ORTOOLS_VER}}-linux-debug
         path: ${{env.ORTOOLSDIR}}/
 
     - name: Download OR-Tools
@@ -62,7 +62,7 @@ jobs:
           mkdir ${ORTOOLSDIR}
           cd or-tools-$ORTOOLS_VER
           mkdir build
-          cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
           cmake --build build --config Debug --target all -j4 -v
           cmake --build build --config Debug --target install -v
 

@@ -174,8 +174,7 @@ endif()
 
 
 if (UNIX)
-    find_package(ortools
-                CONFIG REQUIRED)
+    find_package(ortools NO_MODULE REQUIRED)
     target_link_libraries(shared ortools::ortools)
 elseif(MSVC)
     find_package(ortools NO_MODULE REQUIRED)

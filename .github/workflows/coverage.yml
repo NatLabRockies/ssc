@@ -104,18 +104,15 @@ jobs:
       with:
          path: ssc
 
-    - name: Configure CMake
-      # Configure cmake to build ssc tests but not tools
+    - name: Build SSC
+      shell: bash
       run: |
-        mkdir ${SSCDIR}/build
-        cd ${SSCDIR}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=1 -DSAM_SKIP_TOOLS=1 
-
-    - name: Build
-      # Build your program with the given configuration
-      run: |
-        cd ${SSCDIR}/build
-        make -j4
+        # Downloaded OR-Tools has CoinOR enabled
+        mkdir $SSCDIR/build
+        cd $SSCDIR/build
+        cmake -DCMAKE_CONFIGURATION_TYPES="Debug"  -DSAM_SKIP_AUTOGEN=0 -DSAMAPI_EXPORT=1 -DSAM_SKIP_TOOLS=1  -DSAMPRIVATE=1 -DUSE_XPRESS=0 -DUSE_COINOR=1 -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_PREFIX_PATH=${ORTOOLSDIR} -Dabsl_DIR=${ORTOOLSDIR}\lib\cmake\absl" -Dutf8_range_DIR=${ORTOOLSDIR}\lib\cmake\utf8_range"  ..
+        cmake --build . --config Release -j4 --target Test
+        cp ssc/Release/* test/Release
 
     - name: Test
       shell: bash

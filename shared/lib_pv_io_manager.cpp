@@ -451,6 +451,7 @@ Subarray_IO::Subarray_IO(compute_module* cm, const std::string& cmName, size_t s
         if (cm->is_assigned(prefix + "azimuth")) azimuthDegrees = cm->as_double(prefix + "azimuth");
 
         trackerRotationLimitDegrees = cm->as_double(prefix + "rotlim");
+        azimuthTrackerRotationLimitDegrees = cm->as_double(prefix + "azmlim");
         groundCoverageRatio = cm->as_double(prefix + "gcr");
         slopeTilt = cm->as_double(prefix + "slope_tilt");
         slopeAzm = cm->as_double(prefix + "slope_azm");
@@ -709,7 +710,7 @@ void PVSystem_IO::SetupPOAInput()
 
 
                 if (tms[2] > 0) {
-                    incidence(Subarrays[nn]->trackMode, Subarrays[nn]->tiltDegrees, Subarrays[nn]->azimuthDegrees, Subarrays[nn]->trackerRotationLimitDegrees, sun[1], sun[0], Subarrays[nn]->backtrackingEnabled, Subarrays[nn]->groundCoverageRatio, Subarrays[nn]->slopeTilt, Subarrays[nn]->slopeAzm, false, 0.0, false, 0.0, angle);
+                    incidence(Subarrays[nn]->trackMode, Subarrays[nn]->tiltDegrees, Subarrays[nn]->azimuthDegrees, Subarrays[nn]->trackerRotationLimitDegrees, Subarrays[nn]->azimuthTrackerRotationLimitDegrees, sun[1], sun[0], Subarrays[nn]->backtrackingEnabled, Subarrays[nn]->groundCoverageRatio, Subarrays[nn]->slopeTilt, Subarrays[nn]->slopeAzm, false, 0.0, false, 0.0, angle);
                 }
                 else {
                     angle[0] = -999;

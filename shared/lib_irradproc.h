@@ -762,6 +762,7 @@ void solarpos_spa(int year, int month, int day, int hour, double minute, double 
 * \param[in] tilt tilt angle of surface from horizontal in degrees (mode 0), or tilt angle of tracker axis from horizontal in degrees (mode 1), MUST BE FROM 0 to 90 degrees.
 * \param[in] sazm surface azimuth in degrees of collector (mode 0), or surface azimuth of tracker axis (mode 1) with axis azimuth directed from raised to lowered end of axis if axis tilted.
 * \param[in] rlim plus or minus rotation in degrees permitted by physical constraints of tracker, range is 0 to 180 degrees.
+* \param[in] alim plus or minus azimuth in degrees permitted by physical constraints of azimuth axis, range is 0 to 360 degrees.
 * \param[in] zen sun zenith in radians, MUST BE LESS THAN PI/2
 * \param[in] azm sun azimuth in radians, measured east from north
 * \param[in] en_backtrack enable backtracking, using Ground coverage ratio ( below )
@@ -779,7 +780,7 @@ void solarpos_spa(int year, int month, int day, int hour, double minute, double 
 * \param[out] angle[3] tracking axis rotation angle in radians, measured from surface normal of unrotating axis (only for 1 axis trackers)
 * \param[out] angle[4] backtracking difference (rot - ideal_rot) will be zero except in case of backtracking for 1 axis tracking
 */
-void incidence(int mode, double tilt, double sazm, double rlim, double zen, double azm, bool en_backtrack, double gcr, double slope_tilt, double slope_azm, bool force_to_stow, double stow_angle_deg, bool useCustomAngle, double customAngle, double angle[5]);
+void incidence(int mode, double tilt, double sazm, double rlim, double alim, double zen, double azm, bool en_backtrack, double gcr, double slope_tilt, double slope_azm, bool force_to_stow, double stow_angle_deg, bool useCustomAngle, double customAngle, double angle[5]);
 
 
 /**
@@ -1050,6 +1051,7 @@ protected:
     double tiltDegrees;				///< Surface tilt of subarray in degrees
     double surfaceAzimuthDegrees;	///< Surface azimuth of subarray in degrees
     double rotationLimitDegrees;	///< Rotation limit for subarray in degrees
+    double azimuthLimitDegrees;		///< Azimuth limit for subarray in degrees
     double stowAngleDegrees;		///< Optional stow angle for the subarray in degrees
     double groundCoverageRatio;		///< Ground coverage ratio of subarray
     double slopeTilt;
@@ -1120,7 +1122,7 @@ public:
     irrad(weather_header wh,
         int skyModel, int radiationModeIn, int trackModeIn,
         bool instantaneousWeather, bool backtrackingEnabled, bool forceToStowIn,
-        double dtHour, double tiltDegrees, double azimuthDegrees, double trackerRotationLimitDegrees, double stowAngleDegreesIn,
+        double dtHour, double tiltDegrees, double azimuthDegrees, double trackerRotationLimitDegrees, double azimuthLimitDegrees, double stowAngleDegreesIn,
         double groundCoverageRatio, double slopeTilt, double slopeAzm, poaDecompReq *poaAllIn, bool enableSubhourlyClipping = false);
 
     /// Construct the irrad class with an Irradiance_IO() object and Subarray_IO() object

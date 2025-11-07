@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class IrradTest : public ::testing::Test {
 protected:
-    double lat, lon, tz, alb, tilt, azim, rotlim, gcr, elev, pres, tdry;
+    double lat, lon, tz, alb, tilt, azim, rotlim, azmlim, gcr, elev, pres, tdry;
     int year, month, day, skymodel, tracking;
     bool backtrack_on;
     double calc_sunrise, calc_sunset;
@@ -75,6 +75,7 @@ protected:
         tilt = 10;
         azim = 180;
         rotlim = 0;
+        azmlim = 0;
         backtrack_on = false;
         gcr = 0;
         e = 0.0001;

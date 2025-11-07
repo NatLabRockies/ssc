@@ -1233,7 +1233,7 @@ solarpos_spa(int year, int month, int day, int hour, double minute, double secon
     sunn[8] = hextra; //extraterrestrial solar irradaince on horizontal at particular time (W/m2)
 }
 
-void incidence(int mode, double tilt, double sazm, double rlim, double zen,
+void incidence(int mode, double tilt, double sazm, double rlim, double alim, double zen,
                double azm, bool en_backtrack, double gcr, double slope_tilt, double slope_azm,
                bool force_to_stow, double stow_angle_deg, bool useCustomAngle, double customAngle, double angle[5]) {
     /*
@@ -1257,7 +1257,18 @@ void incidence(int mode, double tilt, double sazm, double rlim, double zen,
         case 0:              /* Fixed-Tilt, */
         case 3:              /* or Azimuth Axis*/
             tilt = tilt * DTOR;    /* Change tilt and surface azimuth to radians */
-            sazm = (mode == 0) ? sazm * DTOR : azm; /* either fixed surface azimuth or solar azimuth */
+            if (mode == 0) {
+                sazm = sazm * DTOR;
+            }
+            else {
+                sazm = azm;
+                alim = alim * DTOR;
+                if (sazm < (M_PI - alim) )/* Do not let azimuth exceed physical constraints */
+                    sazm = -alim;
+                else if (sazm > (M_PI + alim))
+                    sazm = alim;
+            }
+            //sazm = (mode == 0) ? sazm * DTOR : azm; /* either fixed surface azimuth or solar azimuth */
             arg = sin(zen) * cos(azm - sazm) * sin(tilt) + cos(zen) * cos(tilt);
             rot = 0;
             if (arg < -1.0)
@@ -1870,12 +1881,12 @@ irrad::irrad() {
 irrad::irrad(weather_header hdr,
              int skyModelIn, int radiationModeIn, int trackModeIn,
              bool instantaneousWeather, bool backtrackingEnabled, bool forceToStowIn,
-             double dtHour, double tiltDegreesIn, double azimuthDegreesIn, double trackerRotationLimitDegreesIn, double stowAngleDegreesIn,
+             double dtHour, double tiltDegreesIn, double azimuthDegreesIn, double trackerRotationLimitDegreesIn, double azimuthLimitDegrees, double stowAngleDegreesIn,
              double groundCoverageRatioIn, double slopeTiltIn, double slopeAzmIn, poaDecompReq *poaAllIn, bool enableSubhourlyClipping) :
         skyModel(skyModelIn), radiationMode(radiationModeIn), trackingMode(trackModeIn),
         enableBacktrack(backtrackingEnabled), forceToStow(forceToStowIn),
         delt(dtHour), tiltDegrees(tiltDegreesIn), surfaceAzimuthDegrees(azimuthDegreesIn),
-        rotationLimitDegrees(trackerRotationLimitDegreesIn),
+        rotationLimitDegrees(trackerRotationLimitDegreesIn), azimuthLimitDegrees(azimuthLimitDegrees),
         stowAngleDegrees(stowAngleDegreesIn), groundCoverageRatio(groundCoverageRatioIn), slopeTilt(slopeTiltIn), slopeAzm(slopeAzmIn), poaAll(poaAllIn) {
     setup();
 
@@ -2388,7 +2399,7 @@ int irrad::calc() {
     // do irradiance calculations if sun is up
     if (timeStepSunPosition[2] > 0) {
         // compute incidence angles onto fixed or tracking surface
-        incidence(trackingMode, tiltDegrees, surfaceAzimuthDegrees, rotationLimitDegrees, sunAnglesRadians[1],
+        incidence(trackingMode, tiltDegrees, surfaceAzimuthDegrees, rotationLimitDegrees, azimuthLimitDegrees, sunAnglesRadians[1],
                   sunAnglesRadians[0],
                   enableBacktrack, groundCoverageRatio, slopeTilt, slopeAzm, forceToStow, stowAngleDegrees, useCustomRotAngles, customRotAngle, surfaceAnglesRadians);
         if (radiationMode < irrad::POA_R) {
@@ -2813,7 +2824,7 @@ void irrad::getFrontSurfaceIrradiances(double pvFrontShadeFraction, double rowTo
 
     // Calculate irradiance components for a 90 degree tilt to get horizon brightening
     double angleTmp[5] = {0, 0, 0, 0, 0};            // ([0] = incidence angle, [1] = tilt)
-    incidence(0, 90.0, 180.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack,
+    incidence(0, 90.0, 180.0, 45.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack,
               this->groundCoverageRatio, this->slopeTilt, this->slopeAzm, this->forceToStow, this->stowAngleDegrees, this->useCustomRotAngles, this->customRotAngle, angleTmp);
     perez(0, calculatedDirectNormal, calculatedDiffuseHorizontal, albedo, angleTmp[0], angleTmp[1], solarZenithRadians,
           poa, diffc);
@@ -2948,7 +2959,7 @@ void irrad::getFrontSurfaceIrradiances(double pvFrontShadeFraction, double rowTo
                                  (1.0 - MarionAOICorrectionFactorsGlass[j] * (1.0 - reflectanceNormalIncidence));
         }
         // Calculate and add direct and circumsolar irradiance components
-        incidence(0, tiltRadians * RTOD, surfaceAzimuthRadians * RTOD, 45.0, solarZenithRadians, solarAzimuthRadians,
+        incidence(0, tiltRadians * RTOD, surfaceAzimuthRadians * RTOD, 45.0, 45.0, solarZenithRadians, solarAzimuthRadians,
                   this->enableBacktrack, this->groundCoverageRatio, this->slopeTilt, this->slopeAzm, 
                   this->forceToStow, this->stowAngleDegrees, this->useCustomRotAngles, this->customRotAngle, surfaceAnglesRadians);
         perez(0, calculatedDirectNormal, calculatedDiffuseHorizontal, albedo, surfaceAnglesRadians[0],
@@ -2994,7 +3005,7 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
 
     // Calculate components for a 90 degree tilt to get horizon brightening
     double surfaceAnglesRadians90[5] = {0, 0, 0, 0, 0};
-    incidence(0, 90.0, 180.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack,
+    incidence(0, 90.0, 180.0, 45.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack,
               this->groundCoverageRatio, this->slopeTilt, this->slopeAzm, this->forceToStow, this->stowAngleDegrees, this->useCustomRotAngles, this->customRotAngle, surfaceAnglesRadians90);
     perez(0, calculatedDirectNormal, calculatedDiffuseHorizontal, albedo, surfaceAnglesRadians90[0],
           surfaceAnglesRadians90[1], solarZenithRadians, planeOfArrayIrradianceRear, diffuseIrradianceRear);
@@ -3193,7 +3204,7 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
             rearGroundReflected[i] += rear_ground_reflected;                    
         }
         // Calculate and add direct and circumsolar irradiance components
-        incidence(0, 180.0 - tiltRadians * RTOD, (surfaceAzimuthRadians * RTOD - 180.0), 45.0, solarZenithRadians,
+        incidence(0, 180.0 - tiltRadians * RTOD, (surfaceAzimuthRadians * RTOD - 180.0), 45.0, 45.0, solarZenithRadians,
                   solarAzimuthRadians, this->enableBacktrack,
                   this->groundCoverageRatio, this->slopeTilt, this->slopeAzm, this->forceToStow, this->stowAngleDegrees, this->useCustomRotAngles, this->customRotAngle, surfaceAnglesRadians);
         perez(0, calculatedDirectNormal, calculatedDiffuseHorizontal, albedo, surfaceAnglesRadians[0],
@@ -3255,7 +3266,7 @@ void irrad::getBackSurfaceIrradiancesCS(double pvBackShadeFraction, double rowTo
 
     // Calculate components for a 90 degree tilt to get horizon brightening
     double surfaceAnglesRadians90[5] = { 0, 0, 0, 0, 0 };
-    incidence(0, 90.0, 180.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack,
+    incidence(0, 90.0, 180.0, 45.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack,
         this->groundCoverageRatio, this->slopeTilt, this->slopeAzm, this->forceToStow, this->stowAngleDegrees, this->useCustomRotAngles, this->customRotAngle, surfaceAnglesRadians90);
     perez(0, clearskyIrradiance[1], clearskyIrradiance[2], albedo, surfaceAnglesRadians90[0],
         surfaceAnglesRadians90[1], solarZenithRadians, planeOfArrayIrradianceRearCS, diffuseIrradianceRear);
@@ -3454,7 +3465,7 @@ void irrad::getBackSurfaceIrradiancesCS(double pvBackShadeFraction, double rowTo
             rearGroundReflected[i] += rear_ground_reflected;
         }
         // Calculate and add direct and circumsolar irradiance components
-        incidence(0, 180.0 - tiltRadians * RTOD, (surfaceAzimuthRadians * RTOD - 180.0), 45.0, solarZenithRadians,
+        incidence(0, 180.0 - tiltRadians * RTOD, (surfaceAzimuthRadians * RTOD - 180.0), 45.0, 45.0, solarZenithRadians,
             solarAzimuthRadians, this->enableBacktrack,
             this->groundCoverageRatio, this->slopeTilt, this->slopeAzm, this->forceToStow, this->stowAngleDegrees, this->useCustomRotAngles, this->customRotAngle, surfaceAnglesRadians);
         perez(0, clearskyIrradiance[1], clearskyIrradiance[2], albedo, surfaceAnglesRadians[0],

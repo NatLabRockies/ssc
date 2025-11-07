@@ -68,7 +68,9 @@ static var_info _cm_vtab_irradproc[] = {
         { SSC_INPUT,        SSC_NUMBER,      "azimuth",                    "Azimuth angle",                  "deg",    "E=90,S=180,W=270",      "Irradiance Processor",      "*",                       "MIN=0,MAX=360",                            "" },
         { SSC_INPUT,        SSC_NUMBER,      "tilt",                       "Tilt angle",                     "deg",    "H=0,V=90",              "Irradiance Processor",      "?",                       "MIN=0,MAX=90",                             "" },
         { SSC_INPUT,        SSC_NUMBER,      "rotlim",                     "Rotational limit on tracker",    "deg",    "",                      "Irradiance Processor",      "?=45",                    "MIN=0,MAX=90",                             "" },
-        { SSC_INPUT,        SSC_NUMBER,      "backtrack",                  "Enable backtracking",            "0/1",    "",                      "Irradiance Processor",      "?=0",                    "BOOLEAN",                                   "" },
+        { SSC_INPUT,        SSC_NUMBER,      "azmlim",                     "Azimuth rotational limit",    "deg",    "",                      "Irradiance Processor",      "?=90",                    "MIN=0,MAX=360",                             "" },
+
+    { SSC_INPUT,        SSC_NUMBER,      "backtrack",                  "Enable backtracking",            "0/1",    "",                      "Irradiance Processor",      "?=0",                    "BOOLEAN",                                   "" },
         { SSC_INPUT,        SSC_NUMBER,      "gcr",                        "Ground coverage ratio",          "0..1",   "",                      "Irradiance Processor",      "backtrack=1",              "MIN=0,MAX=1",                             "" },
         { SSC_INPUT,        SSC_NUMBER,      "slope_tilt",                        "Terrain slope",          "deg",   "",                      "Irradiance Processor",      "?=0",              "MIN=0,MAX=1",                             "" },
         { SSC_INPUT,        SSC_NUMBER,      "slope_azm",                        "Terrain azimuth",          "deg",   "",                      "Irradiance Processor",      "?=0",              "MIN=0,MAX=1",                             "" },
@@ -180,6 +182,7 @@ public:
         double azimuth = as_double("azimuth");
         int track_mode = as_integer("track_mode");
         double rotlim = as_double("rotlim");
+        double azmlim = as_double("azmlim");
         bool en_backtrack = as_boolean("backtrack");
         double gcr = 0; //use a default value since it's needed to be passed into the set_surface function, but isn't used subsequently
         if (is_assigned("gcr")) gcr = as_double("gcr");

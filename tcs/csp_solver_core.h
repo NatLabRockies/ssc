@@ -1186,6 +1186,10 @@ private:
 	
     double m_q_dot_pc_max;  //[MWt]
 
+    // Convergence parameters
+    double m_tol_m_dot_iter_target;     //[-]
+    double m_tol_m_dot_iter_max;        //[-]
+
 	std::vector<double> mv_time_local;
 
 	bool(*mpf_callback)(std::string &log_msg, std::string &progress_msg, void *data, double progress, int log_type);

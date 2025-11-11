@@ -335,6 +335,10 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
 	// Solved Controller Variables
 	m_defocus = std::numeric_limits<double>::quiet_NaN();
     m_q_dot_pc_max = std::numeric_limits<double>::quiet_NaN();  //[MWt]
+
+    // Convergence parameters
+    m_tol_m_dot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_m_dot_iter_max = std::numeric_limits<double>::quiet_NaN();
 }
 
 void C_csp_solver::send_callback(double percent)
@@ -369,7 +373,7 @@ double C_csp_solver::get_cr_aperture_area()
 
 void C_csp_solver::init()
 {
-	// First, initialize each component and update solver-level membe data as necessary
+	// First, initialize each component and update solver-level member data as necessary
 		// Weather reader
 	mc_weather.init();
 		// Collector-receiver
@@ -477,6 +481,10 @@ void C_csp_solver::init()
 
         mc_tes_outputs.m_m_dot_cold_tank_to_hot_tank = 0.0;
     }
+
+    // Convergence parameters
+    m_tol_m_dot_iter_target = 1.E-3;
+    m_tol_m_dot_iter_max = 0.1;
 
         // System control logic
     m_is_rec_to_coldtank_allowed = ms_system_params.m_is_rec_to_coldtank_allowed;

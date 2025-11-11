@@ -1367,12 +1367,12 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
 
             return 0;
         }
-        else if(diff_m_dot < -1.E-3)
+        else if(diff_m_dot < -mpc_csp_solver->m_tol_m_dot_iter_target )
         {
             return -4;
         }
 
-        if (std::abs(diff_m_dot) > 1.E-3)
+        if (std::abs(diff_m_dot) > mpc_csp_solver->m_tol_m_dot_iter_target )
         {
             C_monotonic_eq_solver::S_xy_pair xy1;
             xy1.x = f_m_dot_guess_1;        //[-]
@@ -1381,7 +1381,7 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
             // Use difference from guess 1 to generate a new guess
             double f_m_dot_guess_2 = 1.0 / (1.0 + diff_m_dot);      //[-]
 
-            c_solver.settings(1.E-3, 50, 0.0, 1.0, false);
+            c_solver.settings(mpc_csp_solver->m_tol_m_dot_iter_target, 50, 0.0, 1.0, false);
 
             double f_m_dot_solved, tol_solved;
             f_m_dot_solved = tol_solved = std::numeric_limits<double>::quiet_NaN();
@@ -1404,7 +1404,7 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
                 {
                     return -5;
                 }
-                else if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+                else if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < mpc_csp_solver->m_tol_m_dot_iter_max )
                 {
                     // The code below chooses the smallest negative error (as opposed to the smallest absolute overall error)
                     //    when the solver misses the convergence target

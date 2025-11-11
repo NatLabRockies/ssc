@@ -993,6 +993,54 @@ bool C_monotonic_eq_solver::is_a_prior_x_best(double & x_at_lowest, double y_tar
     return is_use_earlier_x;
 }
 
+bool C_monotonic_eq_solver::get_smallest_neg_diff_no_err(double y_target,
+    double& x_at_smallest_negative_error, double& y_err_smallest_negative)
+{
+    // This method returns a boolean representing whether a feasible solution was found
+    //    and a double reference returning the x value resulting in the smallest negative error
+    //    and a double reference returing the smallest negative error
+    x_at_smallest_negative_error = std::numeric_limits<double>::quiet_NaN();
+    y_err_smallest_negative = std::numeric_limits<double>::quiet_NaN();
+
+    int len = ms_eq_call_tracker.size();
+    if( len == 0 )
+    {
+        return false;
+    }
+
+    bool is_feasible_neg_error_found = false;
+    double smallest_negative_err = std::numeric_limits<double>::quiet_NaN();
+    double y_err = std::numeric_limits<double>::quiet_NaN();
+    C_monotonic_eq_solver::S_eq_chars i_ms_eq;
+
+    for( int i = 0; i < len; i++ )
+    {
+        i_ms_eq = ms_eq_call_tracker[i];
+        if( i_ms_eq.err_code == 0 && std::isfinite(i_ms_eq.y) )
+        {
+            y_err = i_ms_eq.y - y_target;
+            if( m_is_err_rel )
+            {
+                y_err = y_err / std::abs(y_target);
+            }
+
+            if( is_feasible_neg_error_found && y_err < 0.0 && y_err > y_err_smallest_negative )
+            {
+                y_err_smallest_negative = y_err;
+                x_at_smallest_negative_error = i_ms_eq.x;
+            }
+            else if( !is_feasible_neg_error_found && y_err < 0.0 )
+            {
+                y_err_smallest_negative = y_err;
+                is_feasible_neg_error_found = true;
+                x_at_smallest_negative_error = i_ms_eq.x;
+            }
+        }
+    }
+
+    return is_feasible_neg_error_found;
+}
+
  bool C_monotonic_eq_solver::get_min_abs_diff_no_err(C_monotonic_eq_solver::S_eq_chars & s_eq_chars_min_abs_diff,
                                             double y_target)
 {

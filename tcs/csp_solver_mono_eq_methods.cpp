@@ -1406,6 +1406,40 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
                 }
                 else if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
                 {
+                    // The code below chooses the smallest negative error (as opposed to the smallest absolute overall error)
+                    //    when the solver misses the convergence target
+                    // I tested it by manually forcing the debugger to run this section of code
+                    // To implement, we would need to assign a boolean only in the certain cases where this operation makes sense
+                    //    (e.g. target is maximum so want to miss low)
+                    
+                    /*
+                    // If we can only accept missing low, then
+                    if(false && tol_solved > 0.0){
+
+                        // Check that negative error exists; if not
+                        if(c_solver.is_no_negative_error(f_m_dot_code)){
+                            return -6;
+                        }
+
+                        // Get x value at smallest negative error
+                        double x_at_smallest_negative_error, y_err_smallest_negative;
+                        if(!c_solver.get_smallest_neg_diff_no_err(0.0, x_at_smallest_negative_error, y_err_smallest_negative)){
+                            return -7;
+                        }
+
+                        // Check that smallest negative error meets larger tolerance
+                        if(std::abs(y_err_smallest_negative) >= 0.1){
+                            return -8;
+                        }
+
+                        // Solve at x to update models
+                        tol_solved = c_solver.call_mono_eq_calc_y_err(x_at_smallest_negative_error, 0.0);
+                        if( !std::isfinite(tol_solved) || std::abs(tol_solved) >= 0.1 ){
+                            return -9;
+                        }
+                    }
+                    */
+
                     std::string msg = util::format("the mass flow rate iteration only reached a convergence "
                         "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results.",
                         tol_solved);

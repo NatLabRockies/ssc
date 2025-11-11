@@ -658,12 +658,15 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
 void C_csp_solver::C_MEQ__timestep::init_calc_member_vars(){
 
     m_m_dot_tes_return_message = "";
+    m_T_field_cold_return_msg = "";
 
     return;
 }
 
 int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *target /*varying*/)
 {
+    init_calc_member_vars();
+
     C_MEQ__T_field_cold c_eq(m_solver_mode, mpc_csp_solver, 
         m_q_dot_pc_target,
         m_pc_mode, m_cr_mode, m_htr_mode, m_pc_target_type_at_operating_mode,
@@ -694,7 +697,7 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
     }
 
     // Check if iteration is required
-    if (std::abs(diff_T_field_cold) > 1.E-3)
+    if (std::abs(diff_T_field_cold) > mpc_csp_solver->m_tol_T_field_cold_iter_target)
     {
         // Set up solver
         c_solver.settings(1.E-3, 50, mpc_csp_solver->m_T_field_cold_limit, mpc_csp_solver->m_T_field_in_hot_limit, false);
@@ -729,14 +732,17 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
 
         if (T_field_cold_code != C_monotonic_eq_solver::CONVERGED)
         {
-            if (T_field_cold_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+            if (T_field_cold_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < mpc_csp_solver->m_tol_T_field_cold_iter_max)
             {
-                double abc = 1.23;
                 //std::string msg = util::format("At time = %lg C_csp_solver:::solver_pc_fixed__tes_dc failed "
                 //    "iteration to find the cold HTF temperature to balance energy between the TES and PC only reached a convergence "
                 //    "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
                 //    mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
                 //mpc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+
+                m_T_field_cold_return_msg = util::format("the field inlet temperature iteration only reached a convergence "
+                    "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results.",
+                    tol_solved);
             }
             else
             {

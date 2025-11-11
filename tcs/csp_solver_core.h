@@ -1190,6 +1190,9 @@ private:
     double m_tol_m_dot_iter_target;     //[-]
     double m_tol_m_dot_iter_max;        //[-]
 
+    double m_tol_T_field_cold_iter_target;  //[-]
+    double m_tol_T_field_cold_iter_max;     //[-]
+
 	std::vector<double> mv_time_local;
 
 	bool(*mpf_callback)(std::string &log_msg, std::string &progress_msg, void *data, double progress, int log_type);
@@ -1470,6 +1473,7 @@ public:
 
 	public:
         std::string m_m_dot_tes_return_message;
+        std::string m_T_field_cold_return_msg;
 
 		C_MEQ__timestep(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_MEQ__timestep::E_timestep_target_modes step_target_mode,
 			C_csp_solver* pc_csp_solver,

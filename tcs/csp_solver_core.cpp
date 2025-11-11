@@ -339,6 +339,9 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
     // Convergence parameters
     m_tol_m_dot_iter_target = std::numeric_limits<double>::quiet_NaN();
     m_tol_m_dot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_T_field_cold_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_T_field_cold_iter_max = std::numeric_limits<double>::quiet_NaN();
 }
 
 void C_csp_solver::send_callback(double percent)
@@ -485,6 +488,9 @@ void C_csp_solver::init()
     // Convergence parameters
     m_tol_m_dot_iter_target = 1.E-3;
     m_tol_m_dot_iter_max = 0.1;
+
+    m_tol_T_field_cold_iter_target = 1.E-3;
+    m_tol_T_field_cold_iter_max = 0.1;
 
         // System control logic
     m_is_rec_to_coldtank_allowed = ms_system_params.m_is_rec_to_coldtank_allowed;

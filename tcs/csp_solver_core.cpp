@@ -1764,6 +1764,7 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
     }
 
     std::string m_dot_tes_return_message;
+    std::string T_field_cold_return_msg;
 
     int solve_error_code = pc_csp_solver->solve_operating_mode(m_cr_mode,
         m_pc_mode, m_htr_mode, pc_target_type_at_operating_mode,
@@ -1772,7 +1773,8 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
         is_defocus_local, is_rec_outlet_to_hottank,
         q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
         m_op_mode_name, defocus_solved,
-        m_dot_tes_return_message);
+        m_dot_tes_return_message,
+        T_field_cold_return_msg);
 
     bool is_converged = true;
     bool is_turn_off_plant_local = false;
@@ -1817,6 +1819,15 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
 
             //m_dot_tes_return_message += "HEREABCD";
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + m_dot_tes_return_message);
+        }
+        if(T_field_cold_return_msg != ""){
+
+            std::string s_time = util::format("At time = %lg ", pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0)
+                + " and operating mode " + m_op_mode_name + " ";
+
+            //T_field_cold_return_msg += "HEREABCD";
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + T_field_cold_return_msg);
+
         }
     }
 

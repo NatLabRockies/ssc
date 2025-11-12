@@ -1542,6 +1542,7 @@ public:
     public:
 
         std::string m_m_dot_tes_return_message;
+        std::string m_T_field_cold_return_msg;
 
         C_MEQ__defocus(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, 
 			E_defocus_target_modes df_target_mode, C_MEQ__timestep::E_timestep_target_modes ts_target_mode,
@@ -1588,7 +1589,8 @@ public:
         bool is_defocus, bool is_rec_outlet_to_hottank,
         double q_dot_elec_to_CR_heat /*MWt*/, double q_dot_elec_to_PAR_HTR /*MWt*/,
         std::string op_mode_str, double& defocus_solved,
-        std::string& m_dot_tes_return_message);
+        std::string& m_dot_tes_return_message,
+        std::string& T_field_cold_msg);
 
 
     class C_operating_mode_core

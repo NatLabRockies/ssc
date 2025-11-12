@@ -54,9 +54,11 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
     bool is_defocus, bool is_rec_outlet_to_hottank,
     double q_dot_elec_to_CR_heat /*MWe*/, double q_dot_elec_to_PAR_HTR /*MWt*/,
     std::string op_mode_str, double & defocus_solved,
-    std::string& m_dot_tes_return_message)
+    std::string& m_dot_tes_return_message,
+    std::string& T_field_cold_msg)
 {
     m_dot_tes_return_message = "";
+    T_field_cold_msg = "";
 
     double t_ts_initial = mc_kernel.mc_sim_info.ms_ts.m_step;   //[s]
 
@@ -79,6 +81,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
     }
 
     m_dot_tes_return_message = c_mdot_eq.m_m_dot_tes_return_message;
+    T_field_cold_msg = c_mdot_eq.m_T_field_cold_return_msg;
 
     defocus_solved = df_full;      //[-]
     bool is_m_dot_bal_converged = false;
@@ -183,6 +186,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
         }
 
         m_dot_tes_return_message = c_mdot_eq.m_m_dot_tes_return_message;
+        T_field_cold_msg = c_mdot_eq.m_T_field_cold_return_msg;
 
         // What if output max and output calc are both negative? E.g. electric heater targeting net system import
         // -- If system requires "defocus", need to turn down heater, so calc is more negative (e.g. -90) than max (e.g. -70)
@@ -310,6 +314,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             }
 
             m_dot_tes_return_message = c_q_dot_eq.m_m_dot_tes_return_message;
+            T_field_cold_msg = c_q_dot_eq.m_T_field_cold_return_msg;
         }
         else if (defocus_solved == 1.0)
         {
@@ -348,6 +353,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             }
 
             m_dot_tes_return_message = c_bal_eq.m_m_dot_tes_return_message;
+            T_field_cold_msg = c_bal_eq.m_T_field_cold_return_msg;
         }
     }
 
@@ -387,12 +393,15 @@ double C_csp_solver::C_MEQ__defocus::calc_meq_target()
 void C_csp_solver::C_MEQ__defocus::init_calc_member_vars(){
 
     m_m_dot_tes_return_message = "";
+    m_T_field_cold_return_msg = "";
 
     return;
 }
 
 int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *target /*-*/)
 {
+    init_calc_member_vars();
+
     double defocus_CR = defocus;
     double defocus_PAR_HTR = 1.0;
 
@@ -529,6 +538,7 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
             mpc_csp_solver->reset_time(m_t_ts_initial);
 
             m_m_dot_tes_return_message = c_T_cold_eq.m_m_dot_tes_return_message;
+            m_T_field_cold_return_msg = c_T_cold_eq.m_T_field_cold_return_msg;
 
             return 0;
         }
@@ -645,6 +655,7 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
     }
 
     m_m_dot_tes_return_message = c_T_cold_eq.m_m_dot_tes_return_message;
+    m_T_field_cold_return_msg = c_T_cold_eq.m_T_field_cold_return_msg;
 
     // Have been mucking with mc_kernel.mc_sim_info.ms_ts.m_time, so need to reset these
     mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_step = t_ts_solved;						//[s]
@@ -734,12 +745,6 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
         {
             if (T_field_cold_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < mpc_csp_solver->m_tol_T_field_cold_iter_max)
             {
-                //std::string msg = util::format("At time = %lg C_csp_solver:::solver_pc_fixed__tes_dc failed "
-                //    "iteration to find the cold HTF temperature to balance energy between the TES and PC only reached a convergence "
-                //    "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
-                //    mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
-                //mpc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
-
                 m_T_field_cold_return_msg = util::format("the field inlet temperature iteration only reached a convergence "
                     "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results.",
                     tol_solved);

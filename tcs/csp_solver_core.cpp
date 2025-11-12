@@ -342,6 +342,15 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
 
     m_tol_T_field_cold_iter_target = std::numeric_limits<double>::quiet_NaN();
     m_tol_T_field_cold_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_timestep_qdot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_timestep_qdot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_defocus_mdot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_defocus_mdot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_defocus_qdot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_defocus_qdot_iter_max = std::numeric_limits<double>::quiet_NaN();
 }
 
 void C_csp_solver::send_callback(double percent)
@@ -491,6 +500,15 @@ void C_csp_solver::init()
 
     m_tol_T_field_cold_iter_target = 1.E-3;
     m_tol_T_field_cold_iter_max = 0.1;
+
+    m_tol_timestep_qdot_iter_target = 1.E-3;
+    m_tol_timestep_qdot_iter_max = 0.1;
+
+    m_tol_defocus_mdot_iter_target = 1.E-3;
+    m_tol_defocus_mdot_iter_max = 0.1;
+
+    m_tol_defocus_qdot_iter_target = 1.E-3;
+    m_tol_defocus_qdot_iter_max = 0.1;
 
         // System control logic
     m_is_rec_to_coldtank_allowed = ms_system_params.m_is_rec_to_coldtank_allowed;
@@ -1765,6 +1783,8 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
 
     std::string m_dot_tes_return_message;
     std::string T_field_cold_return_msg;
+    std::string timestep_return_message;
+    std::string defocus_return_message;
 
     int solve_error_code = pc_csp_solver->solve_operating_mode(m_cr_mode,
         m_pc_mode, m_htr_mode, pc_target_type_at_operating_mode,
@@ -1774,7 +1794,9 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
         q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
         m_op_mode_name, defocus_solved,
         m_dot_tes_return_message,
-        T_field_cold_return_msg);
+        T_field_cold_return_msg,
+        timestep_return_message,
+        defocus_return_message);
 
     bool is_converged = true;
     bool is_turn_off_plant_local = false;
@@ -1827,6 +1849,24 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
 
             //T_field_cold_return_msg += "HEREABCD";
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + T_field_cold_return_msg);
+
+        }
+        if( timestep_return_message != "" ) {
+
+            std::string s_time = util::format("At time = %lg ", pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0)
+                + " and operating mode " + m_op_mode_name + " ";
+
+            //T_field_cold_return_msg += "HEREABCD";
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + timestep_return_message);
+
+        }
+        if( defocus_return_message != "" ) {
+
+            std::string s_time = util::format("At time = %lg ", pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0)
+                + " and operating mode " + m_op_mode_name + " ";
+
+            //T_field_cold_return_msg += "HEREABCD";
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + defocus_return_message);
 
         }
     }

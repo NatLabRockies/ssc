@@ -238,6 +238,9 @@ foreach( name ${DEPENDENCIES} )
 endforeach()
 
 if (UNIX)
+    find_package(ortools REQUIRED)
+    target_link_libraries(shared ortools::ortools)
+
 	find_package(Threads REQUIRED)
 	target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
 	find_library(MATH_LIBRARY m)

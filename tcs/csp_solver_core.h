@@ -1202,6 +1202,10 @@ private:
     double m_tol_defocus_qdot_iter_target;  //[-]
     double m_tol_defocus_qdot_iter_max;     //[-]
 
+    // Tolerance comparing q_dot and m_dot targets
+    //    and accepting or rejecting operating mode
+    double m_limit_and_target_success_tolerance;    //[-]
+
 	std::vector<double> mv_time_local;
 
 	bool(*mpf_callback)(std::string &log_msg, std::string &progress_msg, void *data, double progress, int log_type);

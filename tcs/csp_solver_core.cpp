@@ -351,6 +351,8 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
 
     m_tol_defocus_qdot_iter_target = std::numeric_limits<double>::quiet_NaN();
     m_tol_defocus_qdot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_limit_and_target_success_tolerance = std::numeric_limits<double>::quiet_NaN();
 }
 
 void C_csp_solver::send_callback(double percent)
@@ -509,6 +511,10 @@ void C_csp_solver::init()
 
     m_tol_defocus_qdot_iter_target = 1.E-3;
     m_tol_defocus_qdot_iter_max = 0.1;
+
+    // Tolerance comparing q_dot and m_dot targets
+    //    and accepting or rejecting operating mode
+    m_limit_and_target_success_tolerance = 1.E-2;    //[-]
 
         // System control logic
     m_is_rec_to_coldtank_allowed = ms_system_params.m_is_rec_to_coldtank_allowed;
@@ -1010,7 +1016,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
                 q_pc_min, m_q_dot_pc_max, q_dot_pc_su_max,
                 W_dot_system_max, W_dot_system_target,
                 m_m_dot_pc_max_startup, m_m_dot_pc_max, m_m_dot_pc_min,
-                q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR, 1.E-3,
+                q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR, m_limit_and_target_success_tolerance,
                 defocus_solved, is_op_mode_avail, is_turn_off_plant, is_turn_off_rec_su);
             if (is_turn_off_rec_su) {
                 is_rec_su_allowed = false;

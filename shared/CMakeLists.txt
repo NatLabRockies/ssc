@@ -182,7 +182,7 @@ elseif(MSVC)
 endif()
 
 if (UNIX)
-   set(CMAKE_SHARED_LINKER_FLAGS "-lm")
+   set(CMAKE_SHARED_LINKER_FLAGS "-lm -ldl")
  endif ()
 if (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")

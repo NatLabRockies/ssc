@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 #include <algorithm>
+#include <cstdint>
 
 /*
 Dispatch base class
@@ -1141,15 +1142,14 @@ bool byLowestMarginalCost::operator() (grid_point const& a, grid_point const& b)
     {
         if (std::abs(a.Grid()) < 1e-7 || std::abs(b.Grid()) < 1e-7)
         {
-            return a.Grid() < b.Grid();
+                return a.Grid() < b.Grid();
         }
         else if (std::abs((a.Cost() / a.Grid()) - (b.Cost() / b.Grid())) < 1e-7)
         {
-            return a.Grid() < b.Grid();
+                return a.Grid() < b.Grid();
         }
         return (a.Cost() / a.Grid()) < (b.Cost() / b.Grid());
     }
-
     return a.MarginalCost() < b.MarginalCost();
 
 }

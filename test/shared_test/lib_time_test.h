@@ -59,6 +59,7 @@ protected:
 	double multiplier = 2.0;
     double interpolation_factor = 1.0;
 
+    size_t start_day_of_year = 0;
 
 	void SetUp()
 	{

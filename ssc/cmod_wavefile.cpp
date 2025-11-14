@@ -206,6 +206,7 @@ public:
                 value = "";
                 if (!values[i].empty())
                     value = trimboth(values[i]);
+                if (value == "") continue;
 
                 // required metadata (see checks below)
                 if (name == "lat" || name == "latitude")

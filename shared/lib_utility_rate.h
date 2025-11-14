@@ -50,6 +50,7 @@ public:
 	UtilityRate(){};
 
 	UtilityRate(bool useRealTimePrices,
+        size_t start_day_of_year,
 		util::matrix_t<size_t> ecWeekday, 
 		util::matrix_t<size_t> ecWeekend, 
 		util::matrix_t<double> ecRatesMatrix,
@@ -77,6 +78,11 @@ protected:
 
 	/// Use real time prices or not
 	bool m_useRealTimePrices;
+
+    /// <summary>
+    ///  Monday = 0, Sunday = 6
+    /// </summary>
+    size_t m_start_day_of_year;
 };
 
 class UtilityRateCalculator : protected UtilityRate

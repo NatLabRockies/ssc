@@ -39,12 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 UtilityRate::UtilityRate(
 	bool useRealTimePrices,
+    size_t start_day_of_year,
 	util::matrix_t<size_t> ecWeekday, 
 	util::matrix_t<size_t> ecWeekend, 
 	util::matrix_t<double> ecRatesMatrix,
 	std::vector<double> ecRealTimeBuy)
 {
-	m_useRealTimePrices = useRealTimePrices,
+    m_useRealTimePrices = useRealTimePrices;
+    m_start_day_of_year = start_day_of_year;
 	m_ecWeekday = ecWeekday;
 	m_ecWeekend = ecWeekend;
 	m_ecRatesMatrix = ecRatesMatrix;
@@ -53,6 +55,7 @@ UtilityRate::UtilityRate(
 
 UtilityRate::UtilityRate(const UtilityRate& tmp){
     m_useRealTimePrices = tmp.m_useRealTimePrices;
+    m_start_day_of_year = tmp.m_start_day_of_year;
     m_ecWeekday = tmp.m_ecWeekday;
     m_ecWeekend = tmp.m_ecWeekend;
     m_ecRatesMatrix = tmp.m_ecRatesMatrix;
@@ -144,7 +147,7 @@ size_t UtilityRateCalculator::getEnergyPeriod(size_t hourOfYear)
 	size_t period, month, hour;
 	util::month_hour(hourOfYear, month, hour);
 
-	if (util::weekday(hourOfYear)) {
+	if (util::weekday(hourOfYear, m_start_day_of_year)) {
 		if (m_ecWeekday.nrows() == 1 && m_ecWeekday.ncols() == 1) {
 			period = m_ecWeekday.at(0, 0);
 		}

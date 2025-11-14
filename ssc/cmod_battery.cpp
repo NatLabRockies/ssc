@@ -215,6 +215,8 @@ var_info vtab_battery_inputs[] = {
     // Powerflow calculation inputs
     { SSC_INPUT,       SSC_ARRAY,       "fuelcell_power",                              "Electricity from fuel cell AC",                           "kW",     "", "FuelCell",              "",                           "",                         "" },
 
+    // Start day of week for manual dispatch arrays
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "BatteryDispatch", "?=0", "", "" },
 
     var_info_invalid
 };
@@ -750,6 +752,8 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                     batt_vars->batt_btm_can_discharge_to_grid = vt.as_vector_bool("dispatch_manual_btm_discharge_to_grid");
                 }
             }
+
+            batt_vars->start_day_of_year = vt.as_number("start_day_of_year");
 
             // Common to automated methods
             batt_vars->batt_dispatch_auto_can_charge = true;
@@ -1295,6 +1299,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                 batt_vars->batt_discharge_schedule_weekday, batt_vars->batt_discharge_schedule_weekend,
                 batt_vars->batt_can_charge, batt_vars->batt_can_discharge, batt_vars->batt_can_gridcharge, batt_vars->batt_can_fuelcellcharge, batt_vars->batt_btm_can_discharge_to_grid,
                 dm_percent_discharge, dm_percent_gridcharge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_curtailcharge, batt_vars->grid_interconnection_limit_kW,
+                batt_vars->start_day_of_year,
                 batt_vars->batt_dispatch_charge_only_system_exceeds_load,
                 batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
                 batt_vars->batt_minimum_outage_SOC,
@@ -1315,7 +1320,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
 
         // Create UtilityRate object only if utility rate is defined
         if (batt_vars->ec_rate_defined) {
-            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
+            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->start_day_of_year, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
         }
 
         // PV Smoothing dispatch model

@@ -25,6 +25,9 @@ public:
 		RC_OUT,			// Recompresor outlet
 		PC_IN,			// Precompressor inlet (partial cooling cycle)
 		PC_OUT,			// Precompressor outlet (partial cooling cycle)
+        BYPASS_OUT,     // Bypass outlet (htr bypass cycle)
+        MIXER2_OUT,     // Mixer 2 Outlet (htr bypass cycle)
+        TURB2_OUT,      // Secondary Turbine Outlet (turbine split flow cycle)
 
 		END_SCO2_STATES
 	};
@@ -33,6 +36,52 @@ public:
     {
         E_SOLVE_PHX = 0,    // Model solves co2/HTF PHX to find turbine inlet temperature
         E_SET_T_T_IN        // Model sets turbine inlet temperature to HTF inlet temperature
+    };
+
+    class E_cycle_error_msg
+    {
+    public:
+
+        // Error Types
+        enum E_cycle_error_types
+        {
+            E_CANNOT_PRODUCE_POWER = 200,
+            E_CO2_PROPS_ERROR,
+            E_ETA_THRESHOLD,
+            E_HTR_LTR_CONVERGENCE,
+            E_AIR_COOLER_CONVERGENCE,
+            E_NOT_SUPPORTED,
+            E_NO_ERROR
+        };
+
+        // Get error message corresponding to error type
+        // NO COMMAS in message
+        static std::string get_error_string(int error_enum)
+        {
+            switch (error_enum)
+            {
+                case((int)E_NO_ERROR):
+                    return "No error";
+                    break;
+                case((int)E_CANNOT_PRODUCE_POWER):
+                    return "Cycle cannot produce power";
+                    break;
+                case((int)E_CO2_PROPS_ERROR):
+                    return "Error calculating sCO2 properties";
+                case((int)E_ETA_THRESHOLD):
+                    return "Eta below threshold";
+                case((int)E_HTR_LTR_CONVERGENCE):
+                    return "HTR LTR convergence issue";
+                case((int)E_AIR_COOLER_CONVERGENCE):
+                    return "Air cooler did not converge";
+                case((int)E_NOT_SUPPORTED):
+                    return "Feature not supported by configuration";
+                default:
+                    return "Error code not recognized";
+                    break;
+            }
+        }
+        
     };
 
     enum class E_turbo_gen_motor_config
@@ -66,6 +115,7 @@ public:
 		double m_m_dot_rc;		//[kg/s]
 		double m_m_dot_pc;		//[kg/s]
 		double m_m_dot_t;		//[kg/s]
+        double m_m_dot_t2;		//[kg/s]
 		double m_recomp_frac;	//[-]
 		double m_UA_LTR;			//[kW/K]
 		double m_UA_HTR;			//[kW/K]
@@ -73,6 +123,9 @@ public:
 		double m_W_dot_rc;		//[kWe]
 		double m_W_dot_pc;		//[kWe]
 		double m_W_dot_t;		//[kWe]
+        double m_W_dot_t2;      //[kWe]
+        double m_bypass_frac;       //[-] Bypass Fraction
+        double m_turbine_split_frac;    // [-] Turbine split fraction (TSF only)
 
 		double m_W_dot_cooler_tot;	//[kWe]
 
@@ -82,6 +135,7 @@ public:
 		C_comp_multi_stage::S_des_solved ms_rc_ms_des_solved;
 		C_comp_multi_stage::S_des_solved ms_pc_ms_des_solved;
 		C_turbine::S_design_solved ms_t_des_solved;
+        C_turbine::S_design_solved ms_t2_des_solved;
 		C_HX_counterflow_CRM::S_des_solved ms_LTR_des_solved;
 		C_HX_counterflow_CRM::S_des_solved ms_HTR_des_solved;
 
@@ -122,11 +176,14 @@ public:
 		double m_eta_pc;					//[-] design-point efficiency of the pre-compressor; 
 		double m_des_tol;					//[-] Convergence tolerance
 		double m_des_opt_tol;				//[-] Optimization tolerance
-		
+
+        double m_eta_thermal_cutoff;        //[] Minimum eta to fully design cycle (returns failure below value)
+
 		// Air cooler parameters
 		bool m_is_des_air_cooler;		//[-] False will skip physical air cooler design. UA will not be available for cost models.
 
 		double m_is_recomp_ok;          //[-] 1 = Yes, 0 = simple cycle only, < 0 = fix f_recomp to abs(input)
+        double m_is_bypass_ok;          //[-] 1 = Yes, 0 = no bp, < 0 = fix f_bypass to abs(input)
 
 		int m_des_objective_type;			//[2] = min phx deltat then max eta, [else] max eta
 		double m_min_phx_deltaT;			//[C]
@@ -145,12 +202,12 @@ public:
 
 		S_auto_opt_design_hit_eta_parameters()
 		{
-                m_T_pc_in =
+            m_eta_thermal = m_T_pc_in =
                 m_LTR_UA = m_LTR_min_dT = m_LTR_eff_target = m_LTR_eff_max = 
                 m_HTR_UA = m_HTR_min_dT = m_HTR_eff_target = m_HTR_eff_max =
                 m_eta_pc = 
 				m_des_tol = m_des_opt_tol = 
-                m_is_recomp_ok =
+                m_is_recomp_ok = m_is_bypass_ok =
 				m_PR_HP_to_LP_guess = m_f_PR_HP_to_IP_guess = std::numeric_limits<double>::quiet_NaN();
 
             // Recuperator design target codes
@@ -202,11 +259,15 @@ public:
 
 		double m_des_tol;					//[-] Convergence tolerance
 		double m_des_opt_tol;				//[-] Optimization tolerance
-		
+
+        double m_eta_thermal_cutoff;        //[] Minimum eta to fully design cycle (returns failure below value)
+
 		// Air cooler parameters
 		bool m_is_des_air_cooler;		//[-] False will skip physical air cooler design. UA will not be available for cost models.
 
 		double m_is_recomp_ok;			//[-] 1 = Yes, 0 = simple cycle only, < 0 = fix f_recomp to abs(input)
+        double m_is_bypass_ok;          //[-] 1 = Yes, 0 = no bypass, < 0 = fix bp_frac to abs(input)
+        double m_is_turbinesplit_ok;    //[-] 1 = Yes, 0 = no secondary turbine, < 0 = fix split_frac to abs(input) (Turbine split flow ONLY)
 
 		bool m_fixed_P_mc_out;			//[-] if true, P_mc_out is fixed at 'm_P_high_limit'
 
@@ -226,12 +287,12 @@ public:
 
 		S_auto_opt_design_parameters()
 		{
-                m_T_pc_in =
+            m_T_pc_in =
 				m_UA_rec_total = 
                 m_LTR_UA = m_LTR_min_dT = m_LTR_eff_target = m_LTR_eff_max = 
                 m_HTR_UA = m_HTR_min_dT = m_HTR_eff_target = m_HTR_eff_max =
                 m_eta_pc = m_des_tol = m_des_opt_tol = 
-                m_is_recomp_ok =
+                m_is_recomp_ok = m_is_bypass_ok =
 				m_PR_HP_to_LP_guess = m_f_PR_HP_to_IP_guess = std::numeric_limits<double>::quiet_NaN();
 
             // Recuperator design target codes
@@ -417,7 +478,7 @@ protected:
     double m_T_amb_des;		    //[K] Design point ambient temperature
     double m_elevation;			//[m] Elevation (used to calculate ambient pressure)
     int m_N_nodes_pass;         //[-] Number of nodes per pass
-
+    double m_yr_inflation;      //[yr] Inflation target year
 
 public:
 
@@ -434,7 +495,8 @@ public:
         double eta_t /*-*/, double N_turbine /*rpm*/,
         double frac_fan_power /*-*/, double eta_fan /*-*/, double deltaP_cooler_frac /*-*/,
         int N_nodes_pass /*-*/,
-        double T_amb_des /*K*/, double elevation /*m*/)
+        double T_amb_des /*K*/, double elevation /*m*/,
+        double yr_inflation /*yr*/)
 	{
         m_turbo_gen_motor_config = turbo_gen_motor_config;
         m_eta_generator = eta_generator;    //[-]
@@ -466,6 +528,8 @@ public:
 
         m_T_amb_des = T_amb_des;                    //[K]
         m_elevation = elevation;                    //[m]
+
+        m_yr_inflation = yr_inflation;                //[]
 
         // Set design limits!!!!
 		ms_des_limits.m_UA_net_power_ratio_max = 2.0;		//[-/K]

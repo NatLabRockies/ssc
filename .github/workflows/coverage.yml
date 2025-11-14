@@ -81,7 +81,6 @@ jobs:
         make -j4
 
     - name: Test
-      # Turn off fast fail for when the landbosse tests write to cerr
       shell: bash
       run: |
         set -e

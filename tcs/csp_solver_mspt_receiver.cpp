@@ -61,7 +61,9 @@ C_mspt_receiver::C_mspt_receiver(double h_tower /*m*/, double epsilon /*-*/,
     double fill_time /*hr*/, double flux_ramp_time /*hr*/,
     double preheat_target /*C*/, double startup_target_delta /*C*/,
     double initial_temperature /*C*/,
-    bool is_startup_from_solved_profile, bool is_enforce_min_startup) : C_mspt_receiver_222(h_tower, epsilon,
+    bool is_startup_from_solved_profile, bool is_enforce_min_startup,
+    int rec_shutdown_method, double rec_horizon,
+    int rec_low_power_flow_method) : C_mspt_receiver_222(h_tower, epsilon,
         T_htf_hot_des, T_htf_cold_des,
         f_rec_min, q_dot_rec_des,
         rec_su_delay, rec_qf_delay,
@@ -75,7 +77,7 @@ C_mspt_receiver::C_mspt_receiver(double h_tower /*m*/, double epsilon /*-*/,
         n_panels, d_rec, h_rec,
         flow_type, crossover_shift, hl_ffact,
         T_salt_hot_target, csky_frac,
-        is_calc_od_tube, W_dot_rec_target)
+        is_calc_od_tube, W_dot_rec_target, rec_shutdown_method, rec_horizon, rec_low_power_flow_method)
 {    
 	m_ncall = -1;
 
@@ -127,6 +129,7 @@ C_mspt_receiver::C_mspt_receiver(double h_tower /*m*/, double epsilon /*-*/,
 	m_total_fill_time_initial = std::numeric_limits<double>::quiet_NaN();
 	m_total_fill_time = std::numeric_limits<double>::quiet_NaN();
 	m_crossover_index = -1;
+
 
 }
 
@@ -325,9 +328,12 @@ void C_mspt_receiver::initialize_transient_parameters()
 void C_mspt_receiver::call(double step /*s*/,
     double P_amb /*Pa*/, double T_amb /*K*/, double T_sky /*K*/,
     double clearsky_to_input_dni /*-*/,
+    double clearsky_to_nominal_clearsky  /*-*/,
     double v_wind_10 /*m/s*/,
     double plant_defocus /*-*/,
-    const util::matrix_t<double>* flux_map_input, C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
+    const util::matrix_t<double>* flux_map_input,
+    const util::matrix_t<double>* flux_map_input_clearsky,
+    C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
     double T_salt_cold_in /*K*/)
 {
 	// Increase call-per-timestep counter
@@ -347,10 +353,12 @@ void C_mspt_receiver::call(double step /*s*/,
 
     call_common(P_amb, T_amb,
         clearsky_to_input_dni,
+        clearsky_to_nominal_clearsky,
         v_wind_10, T_sky,
         T_salt_cold_in,
         plant_defocus,
         flux_map_input,
+        flux_map_input_clearsky,
         input_operation_mode,
         step,
         // outputs
@@ -404,6 +412,10 @@ void C_mspt_receiver::call(double step /*s*/,
 	q_startup = 0.0;
 
 	double time_required_su = step/3600.0;
+
+    m_current_step = step;
+    m_q_dot_inc_sum = q_dot_inc_sum;
+    m_m_dot_htf = m_dot_salt_tot;
 
 	if( !rec_is_off )
 	{
@@ -765,17 +777,6 @@ void C_mspt_receiver::call(double step /*s*/,
 				m_t_su = m_t_su_prev;
 				m_mode = C_csp_collector_receiver::ON;
 				q_startup = 0.0;
-
-				if (q_dot_inc_sum < m_q_dot_inc_min)
-				{
-					// If output here is less than specified allowed minimum, then need to shut off receiver
-					m_mode = C_csp_collector_receiver::OFF;
-
-					// Include here outputs that are ONLY set to zero if receiver completely off, and not attempting to start-up
-					W_dot_pump = 0.0;
-					// Pressure drops
-                    DELTAP = 0.0; Pres_D = 0.0; u_coolant = 0.0; ratio_dP_tower_to_rec = 0.0;
-				}
 				
 				q_thermal = m_dot_salt_tot*c_p_coolant*(T_salt_hot - T_salt_cold_in);
 				calc_pump_performance(rho_coolant, m_dot_salt_tot, f, Pres_D, W_dot_pump, ratio_dP_tower_to_rec);
@@ -798,26 +799,15 @@ void C_mspt_receiver::call(double step /*s*/,
 				q_thermal = m_dot_salt_tot*c_p_coolant*(T_salt_hot - T_salt_cold_in);			// Steady state thermal power (W)
 				calc_pump_performance(rho_coolant, m_dot_salt_tot, f, Pres_D, W_dot_pump, ratio_dP_tower_to_rec);
 
-				if (q_dot_inc_sum < m_q_dot_inc_min)				// Receiver is not allowed to operate
-				{
-					m_mode = C_csp_collector_receiver::OFF;
-					W_dot_pump = 0.0;
-                    DELTAP = 0.0; Pres_D = 0.0; u_coolant = 0.0; ratio_dP_tower_to_rec = 0.0;
-				}
-				else
-				{
-					param_inputs.tm = m_tm;	// Set thermal mass values with both fluid and solid
-					param_inputs.mflow_tot = m_dot_salt_tot;
-					param_inputs.finitial = 1.0;
-					param_inputs.ffinal = 1.0;
-					param_inputs.ramptime = 0.0;
-					solve_transient_model(step, 100.0, param_inputs, trans_inputs, trans_outputs);
-					trans_outputs.timeavg_eta_therm = 1.0 - (trans_outputs.timeavg_conv_loss + trans_outputs.timeavg_rad_loss) / (q_dot_inc_sum);	//[-] Time-averaged recevier thermal efficiency during the time step
-				}
-			}
+				param_inputs.tm = m_tm;	// Set thermal mass values with both fluid and solid
+				param_inputs.mflow_tot = m_dot_salt_tot;
+				param_inputs.finitial = 1.0;
+				param_inputs.ffinal = 1.0;
+				param_inputs.ramptime = 0.0;
+				solve_transient_model(step, 100.0, param_inputs, trans_inputs, trans_outputs);
+				trans_outputs.timeavg_eta_therm = 1.0 - (trans_outputs.timeavg_conv_loss + trans_outputs.timeavg_rad_loss) / (q_dot_inc_sum);	//[-] Time-averaged recevier thermal efficiency during the time step
 
-			if (q_dot_inc_sum < m_q_dot_inc_min)
-				rec_is_off = true;
+			}
 
 			break;
 
@@ -829,15 +819,20 @@ void C_mspt_receiver::call(double step /*s*/,
 
 			if (m_is_startup_transient && startup_low_flux)    // Incident flux is high enough for startup but not for steady state operation. Report nonzero q_thermal to allow startup
 				q_thermal = q_dot_inc_sum;
-			else
-			{
-				if (q_dot_inc_sum < m_q_dot_inc_min && m_mode_prev == C_csp_collector_receiver::ON)
-					rec_is_off = true;
-			}
+
 
 			break;
 		
 		}	// End switch() on input_operation_mode
+
+        // After convergence, determine whether the incident power falls below the lower limit and if receiver is allowed to continue operating
+        bool allow_low_power_operation = check_min_turndown(q_dot_inc_sum, step, input_operation_mode, rec_is_off);
+        if (m_is_below_cutoff && !allow_low_power_operation && input_operation_mode == C_csp_collector_receiver::ON)
+        {
+            // Include here outputs that are ONLY set to zero if receiver is completely off, and not attempting to start-up
+            W_dot_pump = 0.0;
+            DELTAP = 0.0; Pres_D = 0.0; u_coolant = 0.0; ratio_dP_tower_to_rec = 0.0;
+        }
 
 	}
 	else
@@ -1034,6 +1029,9 @@ void C_mspt_receiver::off(const C_csp_weatherreader::S_outputs &weather,
 
     ms_outputs = outputs;
 
+    m_current_step = sim_info.ms_ts.m_step;	//[s]
+    m_q_dot_inc_sum = 0.0;
+
 	return;
 }
 
@@ -1051,6 +1049,7 @@ void C_mspt_receiver::converged()
 
 	m_tinit = trans_outputs.t_profile;
 	m_tinit_wall = trans_outputs.t_profile_wall;
+
 }
 
 double C_mspt_receiver::calc_external_convection_coeff(double T_amb, double P_amb, double wspd, double Twall)
@@ -1169,10 +1168,11 @@ double C_mspt_receiver::integrate(double xlow, double xhigh, const std::vector<d
 	// yarray = dependent variable points
 	// klow, khigh = lowest,highest indicies of interest 
 
-	size_t i = klow; size_t j = (size_t)khigh - 1;
+	int i = klow;
+    int j = khigh - 1;
 	while (i < khigh && xarray.at(i) < xlow)		// i = first point > lower integration bound
 		i++;
-	while (j >= klow && xarray.at(i) > xhigh)		// j = last point < upper integration bound
+	while (j >= klow && xarray.at(j) > xhigh)		// j = last point < upper integration bound
 		j--;
 
 	// Interpolate to find values at lower and upper integration bounds

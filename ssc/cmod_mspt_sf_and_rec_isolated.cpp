@@ -70,6 +70,10 @@ static var_info _cm_vtab_mspt_sf_and_rec_isolated[] = {
     { SSC_INPUT,  SSC_NUMBER, "piping_length_const",                "Piping constant length",                                                                                "m",            "",              "Tower and Receiver",                       "*",                                  "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "piping_loss_coefficient",            "Thermal loss per meter of piping",                                                                      "Wt/m2-K",      "",              "Tower and Receiver",                       "",                                   "",              ""},
 
+    { SSC_INPUT,  SSC_NUMBER, "rec_shutdown_method",                "Method for receiver on/off operations decisions: 0 = current incident power, 1 = moving average, 2 = time lag",                     "",          "",     "Tower and Receiver",       "?=0",                                "",              "" },
+    { SSC_INPUT,  SSC_NUMBER, "rec_horizon",                        "Time horizon (min) used in receiver on/off operational decisions (moving average or time lag depending on rec_shutdown_method)",    "min",       "",     "Tower and Receiver",       "?=0.0",                              "",              "" },
+    { SSC_INPUT,  SSC_NUMBER, "rec_low_power_flow_method",          "Method for setting HTF flow during low-power operation: 0 = min turndown, 1 = previous flow, 2 = clear-sky flow",                   "",          "",     "Tower and Receiver",       "?=0",                                "",              "" },
+
     // Transient receiver parameters
     { SSC_INPUT,  SSC_NUMBER, "is_rec_model_trans",                 "Formulate receiver model as transient?",                                                                "",             "",              "Tower and Receiver",                       "?=0",                                "",              ""},
     { SSC_INPUT,  SSC_NUMBER, "rec_tm_mult",                        "Receiver thermal mass multiplier",                                                                      "",             "",              "Tower and Receiver",                       "is_rec_model_trans=1",               "",              ""},
@@ -222,7 +226,8 @@ public:
                 min_fill_time, startup_ramp_time,
                 as_double("T_htf_cold_des"), std::min(0.0, startup_target_Tdiff),
                 T_initial,
-                is_rec_startup_from_T_soln, is_enforce_min_startup
+                is_rec_startup_from_T_soln, is_enforce_min_startup,
+                as_integer("rec_shutdown_method"), as_double("rec_horizon"), as_integer("rec_low_power_flow_method")
                 ));    // transient receiver
 
             cr_receiver = trans_receiver;
@@ -245,7 +250,8 @@ public:
                 n_panels, D_rec, H_rec,
                 as_integer("Flow_type"), as_integer("crossover_shift"), as_double("hl_ffact"),
                 as_double("T_htf_hot_des"), rec_clearsky_fraction,
-                is_calc_od_tube, W_dot_rec_target
+                is_calc_od_tube, W_dot_rec_target,
+                as_integer("rec_shutdown_method"), as_double("rec_horizon"), as_integer("rec_low_power_flow_method")
                 ));   // steady-state receiver
 
             cr_receiver = ss_receiver; // std::copy(ss_receiver);
@@ -432,9 +438,9 @@ public:
             try
             {
                 mspt_base->call(step, P_amb, T_amb, T_sky,
-                    clearsky_to_measured_dni,
+                    clearsky_to_measured_dni, clearsky_to_measured_dni,
                     v_wind_10, plant_defocus,
-                    &flux_map_input, input_operation_mode,
+                    &flux_map_input, &flux_map_input, input_operation_mode,
                     T_salt_cold_in);
             }
             catch (C_csp_exception& csp_exception)

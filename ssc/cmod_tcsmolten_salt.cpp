@@ -164,6 +164,11 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "piping_length_mult",                 "Piping length multiplier",                                                                                                                "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "piping_length_const",                "Piping constant length",                                                                                                                  "m",            "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
 
+    { SSC_INPUT,     SSC_NUMBER, "rec_shutdown_method",                "Method for receiver on/off operations decisions: 0 = current incident power, 1 = moving average, 2 = time lag",                           "",             "",                                  "Tower and Receiver",                       "?=0",                                                              "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "rec_horizon",                        "Time horizon (min) used in receiver on/off operational decisions (moving average or time lag depending on rec_shutdown_method)",          "min",          "",                                  "Tower and Receiver",                       "?=0.0",                                                            "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "rec_low_power_flow_method",          "Method for setting HTF flow during low-power operation: 0 = min turndown, 1 = previous flow, 2 = clear-sky flow",                         "",             "",                                  "Tower and Receiver",                       "?=0",                                                              "",              "" },
+
+
         // Cavity inputs that should *not* be reset during call to this cmod
     { SSC_INPUT,     SSC_NUMBER, "n_cav_rec_panels",                   "Cavity receiver number of panels",                                                                                                        "",             "",                                  "Tower and Receiver",                       "receiver_type=1",                                                  "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "cav_rec_span",                       "Cavity receiver span angle",                                                                                                              "deg",          "",                                  "Tower and Receiver",                       "receiver_type=1",                                                  "",              "" },
@@ -1652,7 +1657,7 @@ public:
 
         std::unique_ptr<C_pt_receiver> receiver;
         bool is_rec_model_trans = as_boolean("is_rec_model_trans");
-        bool is_rec_model_clearsky = as_double("rec_clearsky_fraction") > 0.0;
+        bool is_rec_model_clearsky = as_double("rec_clearsky_fraction") > 0.0 || (as_integer("rec_low_power_flow_method")==2);
 
         if (rec_type == 1) {    // Cavity receiver
 
@@ -1749,7 +1754,8 @@ public:
                     as_integer("N_panels"), D_rec, rec_height,
                     as_integer("Flow_type"), as_integer("crossover_shift"), as_double("hl_ffact"),
                     as_double("T_htf_hot_des"), as_double("rec_clearsky_fraction"),
-                    is_calc_od_tube, W_dot_rec_target
+                    is_calc_od_tube, W_dot_rec_target,
+                    as_integer("rec_shutdown_method"), as_double("rec_horizon"), as_integer("rec_low_power_flow_method")
                     ));   // steady-state receiver
 
                 // Set initial state
@@ -1808,7 +1814,8 @@ public:
                     as_double("min_fill_time"), as_double("startup_ramp_time"),
                     as_double("T_htf_cold_des"), min(0.0, as_double("startup_target_Tdiff")),
                     5.0,
-                    as_boolean("is_rec_startup_from_T_soln"), is_enforce_min_startup
+                    as_boolean("is_rec_startup_from_T_soln"), is_enforce_min_startup,
+                    as_integer("rec_shutdown_method"), as_double("rec_horizon"), as_integer("rec_low_power_flow_method")
                     ));    // transient receiver
 
                 // Set initial state

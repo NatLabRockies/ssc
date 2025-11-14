@@ -139,6 +139,7 @@ public:
 		double m_q_dot_field_inc;	//[MWt] Field incident thermal power (from the sun!)
 
 		util::matrix_t<double> m_flux_map_out;
+        util::matrix_t<double> m_flux_map_out_clearsky;
 		double m_pparasi;		//[MWe]
 		double m_eta_field;		//[-] field efficiency * sf_adjust. plant defocus not applied
         double m_sf_adjust_out;

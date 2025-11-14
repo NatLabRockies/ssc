@@ -224,7 +224,8 @@ public:
         double fill_time /*hr*/, double flux_ramp_time /*hr*/,
         double preheat_target /*C*/, double startup_target_delta /*C*/,
         double initial_temperature /*C*/,
-        bool is_startup_from_solved_profile, bool is_enforce_min_startup);
+        bool is_startup_from_solved_profile, bool is_enforce_min_startup,
+        int rec_shutdown_method, double rec_horizon, int rec_low_power_flow_method);
 
 	~C_mspt_receiver(){};
 
@@ -233,9 +234,12 @@ public:
     void call(double step /*s*/,
         double P_amb /*Pa*/, double T_amb /*K*/, double T_sky /*K*/,
         double clearsky_to_input_dni /*-*/,
+        double clearsky_to_nominal_clearsky /*-*/,
         double v_wind_10 /*m/s*/, 
         double plant_defocus /*-*/,
-        const util::matrix_t<double>* flux_map_input, C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
+        const util::matrix_t<double>* flux_map_input,
+        const util::matrix_t<double>* flux_map_input_clearsky,
+        C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
         double T_salt_cold_in /*K*/) override;
 
 	void off(const C_csp_weatherreader::S_outputs &weather,

@@ -130,6 +130,32 @@ protected:
         // Derived class should overwrite
     bool m_use_constant_piping_loss;
 
+
+    // Parameters governing receiver shutdown behavior
+    int m_shutdown_method;         // Approach used to decide when the receiver can operate: 0 = Receiver always shuts down when below min power, 1 = Rolling average incident power, 2 = Shutdown time lag with or without reset horizon, 
+    bool m_is_below_cutoff;        // Is receiver currently below the cutoff incident power?
+    int m_low_power_flow_method;   // Method for setting receiver mass flow when operating below the operational minimum: 0 = min turndown ratio, 1 = previous mass flow above cutoff, 2 = mass flow based on clear-ksy DNI
+    double m_m_dot_htf;            // Current salt mass flow
+    int m_m_dot_htf_prev;          // Mass flow from previous solution above operational minimum
+
+    // Parameters required for m_shutdown_mode == 1  (not used if shutdown_mode == 0 or 2)
+    double m_moving_avg_horizon; // Rolling average time horizon [s]
+    double m_q_dot_inc_sum;      // Current incident power [W]
+    double m_current_step;       // Current time step [s]
+    double m_moving_avg_power;   // Current moving average incident power over the moving average horizon (including current time step) [W]
+    util::matrix_t<double> m_recent_power;  // Incident power at past time points (most-to-least recent)
+    util::matrix_t<double> m_recent_steps;  // Simulation time steps at past time points (most-to-least recent)
+
+    // Parameters required for m_shutdown_mode == 2 (not used if shutdown_mode == 0 or 1)
+    double m_shutdown_time_lag;       // Time that the receiver is allowed to continue operating below the minimum incident power threshold [s]
+    double m_reset_lag;               // Prior consecutive time horizon with "good" DNI conditions that must exist to reset the low_power time counter
+    double m_low_power_counter;       // [s]  Time that receiver has been operating in poor DNI conditions
+    double m_low_power_counter_prev;  // [s]
+    double m_reset_counter;           // [s]
+    double m_reset_counter_prev;      // [s]
+
+
+
     // Calculated parameters
     // MSPT common external (steady state and transient)
     double m_id_tube;           //[m]
@@ -224,11 +250,13 @@ protected:
     void call_common(double P_amb /*Pa*/, double T_amb /*K*/,
         //double I_bn /*W/m2*/,
         double clearsky_to_input_dni /*-*/,
+        double clearsky_to_nominal_clearsky,
         double v_wind_10 /*m/s*/, double T_sky /*K*/,
         //double clearsky_dni /*W/m2*/,
         double T_salt_cold_in /*K*/,
         double plant_defocus /*-*/,
         const util::matrix_t<double>* flux_map_input,
+        const util::matrix_t<double>* flux_map_input_clearsky,
         C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
         double step /*s*/,
         // outputs:
@@ -245,6 +273,8 @@ protected:
         double& q_thermal_cksy /*Wt*/, double& q_thermal_steadystate /*Wt*/,
         double& od_control /*-*/,
         s_steady_state_soln& soln);
+
+    bool check_min_turndown(double q_dot_inc_sum, double step, C_csp_collector_receiver::E_csp_cr_modes input_operation_mode, bool& rec_is_off);
 
 public:
 	// Class to save messages for up stream classes
@@ -264,7 +294,7 @@ public:
         int n_panels /*-*/, double d_rec /*m*/, double h_rec /*m*/,
         int flow_type /*-*/, int crossover_shift /*-*/, double hl_ffact /*-*/,
         double T_salt_hot_target /*C*/, double csky_frac /*-*/,
-        bool is_calc_od_tube /*-*/, double W_dot_rec_target /*MWe*/);
+        bool is_calc_od_tube /*-*/, double W_dot_rec_target /*MWe*/, int rec_shutdown_method /**/, double rec_horizon /*min*/, int rec_low_power_flow_method /**/);
 
 	~C_mspt_receiver_222(){};
 
@@ -281,9 +311,12 @@ public:
     virtual void call(double step /*s*/,
         double P_amb /*Pa*/, double T_amb /*K*/, double T_sky /*K*/,
         double clearsky_to_input_dni /*-*/,
+        double clearsky_to_nominal_clearsky,
         double v_wind_10 /*m/s*/,
         double plant_defocus /*-*/,
-        const util::matrix_t<double>* flux_map_input, C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
+        const util::matrix_t<double>* flux_map_input,
+        const util::matrix_t<double>* flux_map_clearsky,
+        C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
         double T_salt_cold_in /*K*/);
 
 	virtual void off(const C_csp_weatherreader::S_outputs &weather,

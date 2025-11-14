@@ -175,6 +175,7 @@ void C_pt_sf_perf_interp::init()
 	}
 
 	ms_outputs.m_flux_map_out.resize_fill(m_n_flux_y, m_n_flux_x, 0.0);
+    ms_outputs.m_flux_map_out_clearsky.resize_fill(m_n_flux_y, m_n_flux_x, 0.0);
 
 	/*
 	------------------------------------------------------------------------------
@@ -264,6 +265,7 @@ void C_pt_sf_perf_interp::call(const C_csp_weatherreader::S_outputs &weather, do
 
 	// clear out the existing flux map
 	ms_outputs.m_flux_map_out.fill(0.0);
+    ms_outputs.m_flux_map_out_clearsky.fill(0.0);
 
 	// Parasitics for startup or shutdown
 	double pparasi = 0.0;
@@ -350,6 +352,8 @@ void C_pt_sf_perf_interp::call(const C_csp_weatherreader::S_outputs &weather, do
     {
         for (int i = 0; i < m_n_flux_x; i++)
         {
+            if (ms_outputs.m_clearsky_dni == ms_outputs.m_clearsky_dni)
+                ms_outputs.m_flux_map_out_clearsky(j, i) = ms_outputs.m_flux_map_out(j, i) * ms_params.m_A_sf * eta_field / m_A_rec_flux_node * ms_outputs.m_clearsky_dni * 1.E-3;  //[kW/m2] Flux profile with clear-sky DNI
             ms_outputs.m_flux_map_out(j, i) *= ms_params.m_A_sf*eta_field/m_A_rec_flux_node*weather.m_beam*1.E-3;  //[kW/m2]
         }
     }
@@ -388,6 +392,7 @@ void C_pt_sf_perf_interp::off(const C_csp_weatherreader::S_outputs& weather,
 	// Other outputs
 		// clear out the existing flux map
 	ms_outputs.m_flux_map_out.fill(0.0);
+    ms_outputs.m_flux_map_out_clearsky.fill(0.0);
 	ms_outputs.m_q_dot_field_inc = 0.0;		//[MWt]
 	ms_outputs.m_eta_field = 0.0;			//[-], field efficiency
 

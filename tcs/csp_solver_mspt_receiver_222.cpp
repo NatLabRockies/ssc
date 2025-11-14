@@ -50,7 +50,8 @@ C_mspt_receiver_222::C_mspt_receiver_222(double h_tower /*m*/, double epsilon /*
     int n_panels /*-*/, double d_rec /*m*/, double h_rec /*m*/,
     int flow_type /*-*/, int crossover_shift /*-*/, double hl_ffact /*-*/,
     double T_salt_hot_target /*C*/, double csky_frac /*-*/,
-    bool is_calc_od_tube /*-*/, double W_dot_rec_target /*MWe*/) : C_pt_receiver(h_tower, epsilon,
+    bool is_calc_od_tube /*-*/, double W_dot_rec_target /*MWe*/,
+    int rec_shutdown_method /**/, double rec_horizon /*min*/, int rec_low_power_flow_method /**/) : C_pt_receiver(h_tower, epsilon,
         T_htf_hot_des, T_htf_cold_des,
         f_rec_min, q_dot_rec_des,
         rec_su_delay, rec_qf_delay,
@@ -112,6 +113,31 @@ C_mspt_receiver_222::C_mspt_receiver_222(double h_tower /*m*/, double epsilon /*
 	m_ncall = -1;
 
     m_use_constant_piping_loss = true;
+
+
+    // Receiver on/off operational decisions
+    m_shutdown_method = rec_shutdown_method;
+    m_low_power_flow_method = rec_low_power_flow_method;
+    if (m_shutdown_method == 1)
+    {
+        m_moving_avg_horizon = rec_horizon * 60; // Rolling average time horizon for on/off operational decisions [s]
+    }
+    else if (m_shutdown_method == 2)
+    {
+        m_shutdown_time_lag = rec_horizon * 60;
+        m_reset_lag = rec_horizon * 60;
+    }
+    m_is_below_cutoff = false;
+    m_m_dot_htf = std::numeric_limits<double>::quiet_NaN();
+    m_m_dot_htf_prev = std::numeric_limits<double>::quiet_NaN();
+    m_moving_avg_power = std::numeric_limits<double>::quiet_NaN();
+    m_q_dot_inc_sum = std::numeric_limits<double>::quiet_NaN();
+    m_current_step = std::numeric_limits<double>::quiet_NaN();
+    m_low_power_counter = std::numeric_limits<double>::quiet_NaN();
+    m_low_power_counter_prev = std::numeric_limits<double>::quiet_NaN();
+    m_reset_counter = std::numeric_limits<double>::quiet_NaN();
+    m_reset_counter_prev = std::numeric_limits<double>::quiet_NaN();
+
 }
 
 void C_mspt_receiver_222::get_solved_design_common(double& m_dot_rec_total /*kg/s*/,
@@ -180,6 +206,21 @@ void C_mspt_receiver_222::init_mspt_common()
 
     m_LoverD = m_h_rec / m_id_tube;     //[-]
     m_RelRough = (4.5e-5) / m_id_tube;	//[-] Relative roughness of the tubes. http:www.efunda.com/formulae/fluids/roughness.cfm
+
+
+    m_moving_avg_power = 0.0;
+    if (m_shutdown_method == 1)
+    {
+        size_t n = (m_moving_avg_horizon == 0.0) ? 2 : (size_t)(2 * m_moving_avg_horizon / 60);
+        m_recent_power.resize_fill(n, 0.0);   // We don't know the simulation time step here, so for now size the array for 1 min time steps (with a buffer to deal with split time steps)
+        m_recent_steps.resize_fill(n, 0.0);
+    }
+
+    m_low_power_counter = 0.0;
+    m_low_power_counter_prev = 0.0;
+    m_reset_counter = 0.0;
+    m_reset_counter_prev = 0.0;
+
 
     // Initialize output arrays
     m_q_dot_inc.resize(m_n_panels);
@@ -262,11 +303,13 @@ void C_mspt_receiver_222::set_inital_state(C_csp_collector_receiver::E_csp_cr_mo
 }
 
 void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
-    double clearsky_to_input_dni /*-*/,
+    double clearsky_to_input_dni /*adjusted clear-sky dni over actual dni*/,
+    double clearsky_to_nominal_clearsky /* adjusted clear-sky dni over nominal clear-sky dni used to create flux_map_input_clearsky*/,
     double v_wind_10 /*m/s*/, double T_sky /*K*/,
     double T_salt_cold_in /*K*/,
     double plant_defocus /*-*/,
-    const util::matrix_t<double>* flux_map_input,
+    const util::matrix_t<double>* flux_map_input /* Flux map from actual DNI [kW/m2]*/,
+    const util::matrix_t<double>* flux_map_input_clearsky /* Flux map from nominal clearsky DNI [kW/m2]*/,
     C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
     double step /*s*/,
     // outputs:
@@ -382,6 +425,7 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
     soln.mode = input_operation_mode;
     soln.rec_is_off = rec_is_off;
 
+    
     //if (std::isnan(clearsky_dni) && m_csky_frac > 0.0001)
     if((std::isnan(clearsky_to_input_dni) || clearsky_to_input_dni < 0.9999) && m_csky_frac > 0.0001)
         throw(C_csp_exception("Clearsky DNI to measured is NaN or less than 1 but is required >= 1 in the clearsky receiver model"));
@@ -393,13 +437,15 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
         q_dot_inc_pre_defocus += mt_q_dot_inc_pre_defocus.at(i);
     }
 
+    double csky_tol = 0.0001;
+
     if (rec_is_off)
         soln.q_dot_inc.resize_fill(m_n_panels, 0.0);
 
     else
     {
         //--- Solve for mass flow at actual and/or clear-sky DNI extremes
-        if (m_csky_frac <= 0.9999 || clearsky_to_input_dni < 1.0001) // Solve for mass flow at actual DNI?
+        if (m_csky_frac <= 1.0-csky_tol || clearsky_to_input_dni < 1.0001) // Solve for mass flow at actual DNI?
         {
             soln_actual = soln;  // Sets initial solution properties (inlet T, initial defocus control, etc.)
             //soln_actual.dni = I_bn;
@@ -413,7 +459,7 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
             m_mflow_soln_prev = soln_actual;
         }
 
-        if (m_csky_frac >= 0.0001) // Solve for mass flow at clear-sky DNI?
+        if (m_csky_frac >= csky_tol) // Solve for mass flow at clear-sky DNI?
         {
             if (clearsky_to_input_dni < 1.0001) 
                 soln_clearsky = soln_actual;
@@ -433,7 +479,7 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
         }
 
         //--- Set mass flow and calculate final solution
-        if ( clearsky_to_input_dni < 1.0001 || m_csky_frac < 0.0001)  // Flow control based on actual DNI
+        if ( clearsky_to_input_dni < 1.0001 || m_csky_frac < csky_tol)  // Flow control based on actual DNI
             soln = soln_actual;
 
         else if (soln_clearsky.rec_is_off)    // Receiver can't operate at this time point 
@@ -442,7 +488,7 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
             soln.q_dot_inc = soln_clearsky.q_dot_inc;
         }
 
-        else if (m_csky_frac > 0.9999)   // Flow control based only on clear-sky DNI
+        else if (m_csky_frac > 1-csky_tol)   // Flow control based only on clear-sky DNI
         {
             soln.m_dot_salt = soln_clearsky.m_dot_salt;
             soln.rec_is_off = soln_clearsky.rec_is_off;
@@ -478,8 +524,96 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
         }
     }
 
-    // Set variables for use in the rest of the solution
+    // Check if receiver can operate at existing DNI conditions
     rec_is_off = soln.rec_is_off;
+
+    // Calculate total absorbed solar energy and minimum absorbed per panel (if not already calculated during steady state solution)
+    q_dot_inc_sum = soln.Q_inc_sum;
+    q_dot_inc_min_panel = soln.Q_inc_min;
+    if (soln.Q_inc_sum != soln.Q_inc_sum)
+    {
+        q_dot_inc_sum = 0.0;
+        q_dot_inc_min_panel = soln.q_dot_inc.at(0);
+        for (int i = 0; i < m_n_panels; i++)
+        {
+            q_dot_inc_sum += soln.q_dot_inc.at(i);
+            q_dot_inc_min_panel = fmin(q_dot_inc_min_panel, soln.q_dot_inc.at(i));
+        }
+    }
+
+
+    // Calculate moving average power (if needed) for shutdown decisions
+    m_moving_avg_power = 0.0;
+    if (m_shutdown_method == 1)
+    {
+        double sum_time = step;
+        double sum_power = step * q_dot_inc_sum;
+        if (step < m_moving_avg_horizon)
+        {
+            for (size_t j = 0; j < m_recent_steps.length(); j++)
+            {
+                if (m_recent_steps.at(j) == 0.0)
+                    break;
+
+                double f = 1.0;
+                if (sum_time + m_recent_steps.at(j) - m_moving_avg_horizon > 0)
+                    f = (m_moving_avg_horizon - sum_time) / m_recent_steps.at(j);
+                sum_time += f*m_recent_steps.at(j);
+                sum_power += f*m_recent_steps.at(j) *m_recent_power.at(j);
+                if (sum_time >= m_moving_avg_horizon)
+                    break;
+            }
+        }
+        m_moving_avg_power = sum_power / sum_time;
+    }
+
+    // Check for conditions where receiver will be allowed to continue operating despite current incident power below the cutoff, and solve again with different mass flow
+    if ( plant_defocus > 0.0 && (m_mode_prev == C_csp_collector_receiver::ON || m_mode_prev == C_csp_collector_receiver::STARTUP) && (rec_is_off || q_dot_inc_sum < m_q_dot_inc_min))
+    {
+        if ((m_shutdown_method == 1 && m_moving_avg_power >= m_q_dot_inc_min) || (m_shutdown_method == 2 && m_low_power_counter_prev + step <= m_shutdown_time_lag))  // Continued receiver operation is allowed
+        {
+            // Set new mass flow
+            if (m_low_power_flow_method == 0)        // Mass flow from minimum turndown
+                soln.m_dot_salt = (m_m_dot_htf_des * m_f_rec_min) / m_n_lines;  
+            else if (m_low_power_flow_method == 1)   // Mass flow from previous solution above incident power cutoff
+                soln.m_dot_salt = m_m_dot_htf_prev / m_n_lines;
+            else if (m_low_power_flow_method == 2)   // Mass flow from clear-sky DNI
+            {
+                if (soln_clearsky.m_dot_salt == soln_clearsky.m_dot_salt)  // Mass flow with clearsky DNI has already been solved
+                    soln.m_dot_salt = soln_clearsky.m_dot_salt;
+                else
+                {
+                    s_steady_state_soln soln_clearsky2;
+                    soln_clearsky2.T_amb = T_amb;
+                    soln_clearsky2.v_wind_10 = v_wind_10;
+                    soln_clearsky2.p_amb = P_amb;
+                    soln_clearsky2.T_sky = T_sky;
+                    soln_clearsky2.T_salt_cold_in = T_salt_cold_in;
+                    soln_clearsky2.plant_defocus = plant_defocus;
+                    soln_clearsky2.od_control = od_control;
+                    soln_clearsky2.rec_is_off = false;
+                    soln_clearsky2.mode = input_operation_mode;
+                    soln_clearsky2.flux_sum = 2.0;      // Actual value doesn't matter, only need a value > 1.0 to force it to solve with no DNI
+                    soln_clearsky2.dni_applied_to_measured = clearsky_to_nominal_clearsky;  // Need to use this ratio with and scaled clear-sky flux profile below since actual DNI might be zero
+                    solve_for_mass_flow_and_defocus(soln_clearsky2, m_m_dot_htf_max, flux_map_input_clearsky);
+                    soln.m_dot_salt = soln_clearsky2.m_dot_salt;
+                }
+            }
+
+            // Solve for temperature profiles with new mass flow
+            if (soln.m_dot_salt == soln.m_dot_salt) 
+            {
+                soln.mode = input_operation_mode;
+                soln.rec_is_off = false;
+                soln.od_control = 1.0;
+                calculate_steady_state_soln(soln, 0.00025, m_use_constant_piping_loss);
+                rec_is_off = soln.rec_is_off;
+            }
+        }
+    }
+    
+
+    // Set variables for use in the rest of the solution
     m_mode = soln.mode;
     od_control = soln.od_control;
 
@@ -497,8 +631,7 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
     q_conv_sum = soln.Q_conv_sum;
     q_rad_sum = soln.Q_rad_sum;
     q_dot_piping_loss = soln.Q_dot_piping_loss;
-    q_dot_inc_sum = soln.Q_inc_sum;
-    q_dot_inc_min_panel = soln.Q_inc_min;
+
 
     m_T_s = soln.T_s;
     m_T_panel_in = soln.T_panel_in;
@@ -510,18 +643,6 @@ void C_mspt_receiver_222::call_common(double P_amb /*Pa*/, double T_amb /*K*/,
     m_q_dot_loss = soln.q_dot_conv + soln.q_dot_rad;
     m_q_dot_abs = soln.q_dot_abs;
     m_q_dot_inc = soln.q_dot_inc;
-
-    // Calculate total absorbed solar energy and minimum absorbed per panel if needed
-    if (soln.Q_inc_sum != soln.Q_inc_sum)
-    {
-        q_dot_inc_sum = 0.0;
-        q_dot_inc_min_panel = m_q_dot_inc.at(0);
-        for (int i = 0; i < m_n_panels; i++)
-        {
-            q_dot_inc_sum += m_q_dot_inc.at(i);
-            q_dot_inc_min_panel = fmin(q_dot_inc_min_panel, m_q_dot_inc.at(i));
-        }
-    }
 
     q_thermal_steadystate = soln.Q_thermal;
     q_thermal_csky = 0.0;
@@ -540,6 +661,7 @@ void C_mspt_receiver_222::call(const C_csp_weatherreader::S_outputs& weather,
 
     double plant_defocus = inputs.m_plant_defocus;          //[-]
     const util::matrix_t<double>* flux_map_input = inputs.m_flux_map_input;
+    const util::matrix_t<double>* flux_map_input_clearsky = inputs.m_flux_map_input_clearsky;
     C_csp_collector_receiver::E_csp_cr_modes input_operation_mode = inputs.m_input_operation_mode;
     double clearsky_dni = inputs.m_clearsky_dni;
 
@@ -556,6 +678,7 @@ void C_mspt_receiver_222::call(const C_csp_weatherreader::S_outputs& weather,
 
     double clearsky_adj = std::fmax(clearsky_dni, I_bn);
     double clearsky_to_input_dni = clearsky_adj / I_bn;
+    double clearsky_to_nom_clearsky = clearsky_adj / clearsky_dni;
     if (I_bn < 1.E-6) {
         clearsky_to_input_dni = 1.0;
     }
@@ -563,9 +686,11 @@ void C_mspt_receiver_222::call(const C_csp_weatherreader::S_outputs& weather,
     call(step,
         P_amb, T_amb, T_sky,
         clearsky_to_input_dni,
+        clearsky_to_nom_clearsky,
         v_wind_10,
         plant_defocus,
-        flux_map_input, input_operation_mode,
+        flux_map_input, flux_map_input_clearsky,
+        input_operation_mode,
         T_salt_cold_in);
 }
  
@@ -615,11 +740,10 @@ int C_mspt_receiver_222::C_MEQ__q_dot_des::operator()(double flux_max /*kW/m2*/,
 
     mpc_rec->call(m_step,
         mpc_rec->m_P_amb_des, mpc_rec->m_T_amb_des, mpc_rec->m_T_sky_des,
-        1.0,
-
+        1.0, 1.0,
         mpc_rec->m_v_wind_10_des,
         m_plant_defocus,
-        &m_flux_map_input, m_input_operation_mode,
+        &m_flux_map_input, &m_flux_map_input, m_input_operation_mode,
         mpc_rec->m_T_htf_cold_des);
 
     *q_dot_des = mpc_rec->ms_outputs.m_Q_thermal;   //[MWt]
@@ -668,9 +792,12 @@ void C_mspt_receiver_222::design_point_steady_state(double& eta_thermal_des_calc
 void C_mspt_receiver_222::call(double step /*s*/,
     double P_amb /*Pa*/, double T_amb /*K*/, double T_sky /*K*/,
     double clearsky_to_input_dni /*-*/,
+    double clearsky_to_nominal_clearsky /*-*/,
     double v_wind_10 /*m/s*/,
     double plant_defocus /*-*/,
-    const util::matrix_t<double>* flux_map_input, C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
+    const util::matrix_t<double>* flux_map_input,
+    const util::matrix_t<double>* flux_map_input_clearsky,
+    C_csp_collector_receiver::E_csp_cr_modes input_operation_mode,
     double T_salt_cold_in /*K*/)
 {
 	// Increase call-per-timestep counter
@@ -690,10 +817,12 @@ void C_mspt_receiver_222::call(double step /*s*/,
 
     call_common(P_amb, T_amb,
         clearsky_to_input_dni,
+        clearsky_to_nominal_clearsky,
         v_wind_10, T_sky,
         T_salt_cold_in,
         plant_defocus,
         flux_map_input,
+        flux_map_input_clearsky,
         input_operation_mode,
         step,
         // outputs
@@ -717,6 +846,10 @@ void C_mspt_receiver_222::call(double step /*s*/,
 	q_startup = 0.0;
 
 	double time_required_su = step/3600.0;
+
+    m_current_step = step;
+    m_q_dot_inc_sum = q_dot_inc_sum;
+    m_m_dot_htf = m_dot_salt_tot;
 
 	if( !rec_is_off )
 	{
@@ -764,17 +897,6 @@ void C_mspt_receiver_222::call(double step /*s*/,
 
 			q_thermal = m_dot_salt_tot*c_p_coolant*(T_salt_hot - T_salt_cold_in);
 
-			if(q_dot_inc_sum < m_q_dot_inc_min)
-			{
-				// If output here is less than specified allowed minimum, then need to shut off receiver
-				m_mode = C_csp_collector_receiver::OFF;
-
-				// Include here outputs that are ONLY set to zero if receiver completely off, and not attempting to start-up
-				W_dot_pump = 0.0;
-				// Pressure drops
-                DELTAP = 0.0; Pres_D = 0.0; u_coolant = 0.0; ratio_dP_tower_to_rec = 0.0;
-			}
-			
 			break;
 
 		case C_csp_collector_receiver::STEADY_STATE:
@@ -790,15 +912,17 @@ void C_mspt_receiver_222::call(double step /*s*/,
 
 		q_thermal = m_dot_salt_tot*c_p_coolant*(T_salt_hot - T_salt_cold_in);
 
-		// After convergence, determine whether the mass flow rate falls below the lower limit
-		if(q_dot_inc_sum < m_q_dot_inc_min)
-		{
-			// GOTO 900
-			// Steady State always reports q_thermal (even when much less than min) because model is letting receiver begin startup with this energy
-			// Should be a way to communicate to controller that q_thermal is less than q_min without losing this functionality
-			if(m_mode != C_csp_collector_receiver::STEADY_STATE || m_mode_prev == C_csp_collector_receiver::ON || m_mode_prev == C_csp_collector_receiver::OFF_NO_SU_REQ)
-				rec_is_off = true;
-		}
+
+		// After convergence, determine whether the incident power falls below the lower limit and if receiver is allowed to continue operating
+        bool allow_low_power_operation = check_min_turndown(q_dot_inc_sum, step, input_operation_mode, rec_is_off);
+        if (m_is_below_cutoff && !allow_low_power_operation && input_operation_mode == C_csp_collector_receiver::ON)
+        {
+            // Include here outputs that are ONLY set to zero if receiver is completely off, and not attempting to start-up
+            W_dot_pump = 0.0;
+            DELTAP = 0.0; Pres_D = 0.0; u_coolant = 0.0; ratio_dP_tower_to_rec = 0.0;
+        }
+
+
 	}
 	else
 	{	// If receiver was off BEFORE startup deductions
@@ -890,6 +1014,9 @@ void C_mspt_receiver_222::off(const C_csp_weatherreader::S_outputs &weather,
 	outputs.m_Q_thermal_ss = 0.0; //[MWt]
 
     ms_outputs = outputs;
+
+    m_current_step = sim_info.ms_ts.m_step;	//[s]
+    m_q_dot_inc_sum = 0.0;
 	
 	return;
 }
@@ -933,6 +1060,56 @@ void C_mspt_receiver_222::converged()
 	m_ncall = -1;
 
     ms_outputs = outputs;
+
+    if (m_shutdown_method == 1 && m_moving_avg_horizon > 0.0)
+    {
+        // Update arrays of recent time points
+        size_t ilast = 0;  // Index position of last time point in array that needs to be retained
+        double sum_time = m_current_step;
+        for (size_t j = 0; j < m_recent_steps.length() - 1; j++)
+        {
+            sum_time += m_recent_steps.at(j);
+            if (sum_time >= m_moving_avg_horizon)
+            {
+                ilast = j;
+                break;
+            }
+            else if (j > 0 && m_recent_steps.at(j) == 0.0)
+            {
+                ilast = j - 1;
+                break;
+            }
+        }
+
+        for (size_t j = ilast + 1; j > 0; j--)
+        {
+            m_recent_steps.at(j) = m_recent_steps.at(j - 1);
+            m_recent_power.at(j) = m_recent_power.at(j - 1);
+        }
+        m_recent_steps.at(0) = m_current_step;
+        m_recent_power.at(0) = m_q_dot_inc_sum;
+    }
+    
+    else if (m_shutdown_method == 2)
+    {
+        if ((m_mode == C_csp_collector_receiver::STARTUP || m_mode == C_csp_collector_receiver::ON) && !m_is_below_cutoff && m_reset_counter >= m_reset_lag)
+        {
+            m_low_power_counter = 0.0;     // Reset shutdown counter if receiver is able to operate and isn't below the cutoff
+        }
+        if (m_mode == C_csp_collector_receiver::OFF || m_mode == C_csp_collector_receiver::OFF_NO_SU_REQ || m_is_below_cutoff)
+        {
+            m_reset_counter = 0.0;
+        }
+        m_low_power_counter_prev = m_low_power_counter;
+        m_reset_counter_prev = m_reset_counter;
+    }
+
+    if ((m_mode == C_csp_collector_receiver::STARTUP || m_mode == C_csp_collector_receiver::ON) && !m_is_below_cutoff)
+        m_m_dot_htf_prev = m_m_dot_htf;
+
+
+ 
+
 }
 
 
@@ -1287,8 +1464,15 @@ void C_mspt_receiver_222::calculate_steady_state_soln(s_steady_state_soln &soln,
 
 	} // End iterations
 
-	if (soln.T_salt_hot < soln.T_salt_cold_in)
-		soln.mode = C_csp_collector_receiver::OFF;
+    if (soln.T_salt_hot < soln.T_salt_cold_in)
+    {
+        if (m_shutdown_method == 0)
+            soln.mode = C_csp_collector_receiver::OFF;
+        else if (m_shutdown_method == 1 && m_moving_avg_horizon < 1e-6)
+            soln.mode = C_csp_collector_receiver::OFF;
+        else if (m_shutdown_method == 2 && m_shutdown_time_lag < 1e-6)
+            soln.mode = C_csp_collector_receiver::OFF;
+    }
 
 
 	// Save overall energy loss
@@ -1595,4 +1779,48 @@ double C_mspt_receiver_222::get_pumping_parasitic_coef()
 double C_mspt_receiver_222::area_proj()
 {
     return CSP::pi * m_d_rec * m_h_rec; //[m^2] projected or aperture area of the receiver
+}
+
+bool C_mspt_receiver_222::check_min_turndown(double q_dot_inc_sum, double step, C_csp_collector_receiver::E_csp_cr_modes input_operation_mode, bool &rec_is_off)
+{
+    m_is_below_cutoff = false;
+    bool allow_low_power_operation = false;
+    if (q_dot_inc_sum < m_q_dot_inc_min)
+    {
+        m_is_below_cutoff = true;
+        if ((m_mode_prev == C_csp_collector_receiver::ON || m_mode_prev == C_csp_collector_receiver::STARTUP))
+        {
+            if (m_shutdown_method == 1 && m_moving_avg_power >= m_q_dot_inc_min)
+                allow_low_power_operation = true;
+            else if (m_shutdown_method == 2 && m_low_power_counter_prev + step <= m_shutdown_time_lag)
+                allow_low_power_operation = true;
+        }
+
+        if (allow_low_power_operation)
+        {
+            if (m_mode == C_csp_collector_receiver::ON)  // Receiver was already operating and is allowed to continue operating despite low power.  Note that startup isn't included here becuase we've always allowed startup to happen with low power
+            {
+                m_low_power_counter = m_low_power_counter_prev + step;
+            }
+        }
+        else
+        {
+            // Receiver can't operate
+            // Steady State always reports q_thermal (even when much less than min) because model is letting receiver begin startup with this energy
+            // Should be a way to communicate to controller that q_thermal is less than q_min without losing this functionality
+            if (m_mode != C_csp_collector_receiver::STEADY_STATE || m_mode_prev == C_csp_collector_receiver::ON || m_mode_prev == C_csp_collector_receiver::OFF_NO_SU_REQ)
+                rec_is_off = true;
+
+            if (input_operation_mode == C_csp_collector_receiver::ON)   //Use input_operation_mode instead of m_mode to allow startup (m_mode is updated to "ON" in the startup case above when startup is completed)
+            {
+                m_mode = C_csp_collector_receiver::OFF;
+            }
+
+        }
+    }
+    else if (m_shutdown_method == 2)
+    {
+        m_reset_counter = m_reset_counter_prev + step;
+    }
+    return allow_low_power_operation;
 }

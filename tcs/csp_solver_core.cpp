@@ -341,6 +341,24 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
 	// Solved Controller Variables
 	m_defocus = std::numeric_limits<double>::quiet_NaN();
     m_q_dot_pc_max = std::numeric_limits<double>::quiet_NaN();  //[MWt]
+
+    // Convergence parameters
+    m_tol_m_dot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_m_dot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_T_field_cold_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_T_field_cold_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_timestep_qdot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_timestep_qdot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_defocus_mdot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_defocus_mdot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_tol_defocus_qdot_iter_target = std::numeric_limits<double>::quiet_NaN();
+    m_tol_defocus_qdot_iter_max = std::numeric_limits<double>::quiet_NaN();
+
+    m_limit_and_target_success_tolerance = std::numeric_limits<double>::quiet_NaN();
 }
 
 void C_csp_solver::send_callback(double percent)
@@ -375,7 +393,7 @@ double C_csp_solver::get_cr_aperture_area()
 
 void C_csp_solver::init()
 {
-	// First, initialize each component and update solver-level membe data as necessary
+	// First, initialize each component and update solver-level member data as necessary
 		// Weather reader
 	mc_weather.init();
 		// Collector-receiver
@@ -483,6 +501,26 @@ void C_csp_solver::init()
 
         mc_tes_outputs.m_m_dot_cold_tank_to_hot_tank = 0.0;
     }
+
+    // Convergence parameters
+    m_tol_m_dot_iter_target = 1.E-3;
+    m_tol_m_dot_iter_max = 0.1;
+
+    m_tol_T_field_cold_iter_target = 1.E-3;
+    m_tol_T_field_cold_iter_max = 0.1;
+
+    m_tol_timestep_qdot_iter_target = 1.E-3;
+    m_tol_timestep_qdot_iter_max = 0.1;
+
+    m_tol_defocus_mdot_iter_target = 1.E-3;
+    m_tol_defocus_mdot_iter_max = 0.1;
+
+    m_tol_defocus_qdot_iter_target = 1.E-3;
+    m_tol_defocus_qdot_iter_max = 0.1;
+
+    // Tolerance comparing q_dot and m_dot targets
+    //    and accepting or rejecting operating mode
+    m_limit_and_target_success_tolerance = 1.E-2;    //[-]
 
         // System control logic
     m_is_rec_to_coldtank_allowed = ms_system_params.m_is_rec_to_coldtank_allowed;
@@ -984,7 +1022,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
                 q_pc_min, m_q_dot_pc_max, q_dot_pc_su_max,
                 W_dot_system_max, W_dot_system_target,
                 m_m_dot_pc_max_startup, m_m_dot_pc_max, m_m_dot_pc_min,
-                q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR, 1.E-3,
+                q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR, m_limit_and_target_success_tolerance,
                 defocus_solved, is_op_mode_avail, is_turn_off_plant, is_turn_off_rec_su);
             if (is_turn_off_rec_su) {
                 is_rec_su_allowed = false;
@@ -1380,6 +1418,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
                 q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
             }
             else {
+                // W_dot_system_target is negative; parasitics are positive
                 //double W_dot_heater_gross_est = W_dot_system_target + W_dot_rec_par_est + m_W_dot_fixed_design;
 
                 // If targeting net system import, then controller logic doesn't use 'q_dot_pc_target'
@@ -1819,6 +1858,9 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
     }
 
     std::string m_dot_tes_return_message;
+    std::string T_field_cold_return_msg;
+    std::string timestep_return_message;
+    std::string defocus_return_message;
 
     int solve_error_code = pc_csp_solver->solve_operating_mode(m_cr_mode,
         m_pc_mode, m_htr_mode, pc_target_type_at_operating_mode,
@@ -1827,7 +1869,10 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
         is_defocus_local, is_rec_outlet_to_hottank,
         q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
         m_op_mode_name, defocus_solved,
-        m_dot_tes_return_message);
+        m_dot_tes_return_message,
+        T_field_cold_return_msg,
+        timestep_return_message,
+        defocus_return_message);
 
     bool is_converged = true;
     bool is_turn_off_plant_local = false;
@@ -1872,6 +1917,33 @@ bool C_csp_solver::C_operating_mode_core::solve(C_csp_solver* pc_csp_solver, boo
 
             //m_dot_tes_return_message += "HEREABCD";
             pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + m_dot_tes_return_message);
+        }
+        if(T_field_cold_return_msg != ""){
+
+            std::string s_time = util::format("At time = %lg ", pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0)
+                + " and operating mode " + m_op_mode_name + " ";
+
+            //T_field_cold_return_msg += "HEREABCD";
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + T_field_cold_return_msg);
+
+        }
+        if( timestep_return_message != "" ) {
+
+            std::string s_time = util::format("At time = %lg ", pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0)
+                + " and operating mode " + m_op_mode_name + " ";
+
+            //T_field_cold_return_msg += "HEREABCD";
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + timestep_return_message);
+
+        }
+        if( defocus_return_message != "" ) {
+
+            std::string s_time = util::format("At time = %lg ", pc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0)
+                + " and operating mode " + m_op_mode_name + " ";
+
+            //T_field_cold_return_msg += "HEREABCD";
+            pc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, s_time + defocus_return_message);
+
         }
     }
 

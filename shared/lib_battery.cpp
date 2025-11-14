@@ -502,8 +502,8 @@ double battery_t::calculate_current_for_power_kw(double &P_kw) {
     if (P_kw < 0) {
         double max_P = calculate_max_charge_kw(&current);
         if (max_P > P_kw) {
-            P_kw = max_P;
-            return current;
+            P_kw = -max_P;
+            return -current;
         }
     } else {
         double max_P = calculate_max_discharge_kw(&current);

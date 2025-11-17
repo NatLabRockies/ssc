@@ -1598,8 +1598,8 @@ void C_mspt_receiver_222::solve_for_mass_flow(s_steady_state_soln &soln)
 				break;
 			}
 		}
-		else if (err > 0.0)  // Solution has converged but outlet T is above target.  CSP solver seems to perform better with slighly under-design temperature than with slighly over-design temperatures. 
-			m_dot_salt_guess *= (soln.T_salt_hot - soln.T_salt_cold_in) / ((1.0 - 0.5*tol) * m_T_salt_hot_target - soln.T_salt_cold_in);
+		else if (err > 0.0 && qq<qq_max)  // Solution has converged but outlet T is above target.  CSP solver seems to perform better with slighly under-design temperature than with slighly over-design temperatures. 
+			m_dot_salt_guess *= (soln.T_salt_hot - soln.T_salt_cold_in) / ((1.0 - 0.25*tol) * m_T_salt_hot_target - soln.T_salt_cold_in);
 		else
 			converged = true;
 

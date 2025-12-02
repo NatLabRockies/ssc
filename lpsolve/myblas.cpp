@@ -53,7 +53,7 @@ BLAS_dnormi_func *BLAS_dnormi;
 void init_BLAS(void)
 {
   if(mustinitBLAS) {
-    load_BLAS(NULL);
+    load_BLAS(nullptr);
     mustinitBLAS = FALSE;
   }
 }
@@ -61,7 +61,7 @@ void init_BLAS(void)
 MYBOOL is_nativeBLAS(void)
 {
 #ifdef LoadableBlasLib
-  return( (MYBOOL) (hBLAS == NULL) );
+  return( (MYBOOL) (hBLAS == nullptr) );
 #else
   return( TRUE );
 #endif
@@ -72,12 +72,12 @@ MYBOOL load_BLAS(const char *libname)
   MYBOOL result = TRUE;
 
 #ifdef LoadableBlasLib
-  if(hBLAS != NULL) {
+  if(hBLAS != nullptr) {
     my_FreeLibrary(hBLAS);
   }
 #endif
 
-  if(libname == NULL) {
+  if(libname == nullptr) {
     if(!mustinitBLAS && is_nativeBLAS())
       return( FALSE );
     BLAS_dscal = my_dscal;
@@ -133,7 +133,7 @@ MYBOOL load_BLAS(const char *libname)
         (BLAS_dload  == NULL) ||
         (BLAS_dnormi == NULL))
       ) {
-      load_BLAS(NULL);
+      load_BLAS(nullptr);
       result = FALSE;
     }
   }
@@ -141,7 +141,7 @@ MYBOOL load_BLAS(const char *libname)
 }
 MYBOOL unload_BLAS(void)
 {
-  return( load_BLAS(NULL) );
+  return( load_BLAS(nullptr) );
 }
 
 

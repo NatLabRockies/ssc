@@ -157,7 +157,7 @@ jobs:
       id: cached-ortools-restore
       uses: actions/cache/restore@v4
       with:
-        key: ortools-${{env.ORTOOLS_VER}}-linux
+        key: ortools-${{env.ORTOOLS_VER}}-macos
         path: ${{env.ORTOOLSDIR}}/
 
     - name: Download OR-Tools
@@ -242,7 +242,7 @@ jobs:
 
     - name: Upload Test Times CSV
       if: ${{ matrix.os == 'macos-latest' }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
           name: SSC Mac Arm Test Time Elapsed
           path: |
@@ -267,7 +267,7 @@ jobs:
 
     - name: Upload Shared Libraries
       if: ${{ matrix.os != 'macos-latest' }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
           name: SSC Mac Intel Shared Libraries
           path: |

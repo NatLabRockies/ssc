@@ -184,22 +184,22 @@ else()
 endif()
 
 # dltest executable for checking ssc library
-if(UNIX AND NOT SAMAPI_EXPORT)
-	add_executable(dltest ../build_resources/dltest.c)
-	if (APPLE)
-		add_custom_command(
-			TARGET ssc
-			POST_BUILD
-			COMMAND codesign --force --deep --sign - $<TARGET_FILE:ssc>
-			COMMAND dltest $<TARGET_FILE:ssc>)
-	else()
-		target_link_libraries(dltest -ldl -Wl,--no-as-needed)
-		add_custom_command(
-			TARGET ssc
-			POST_BUILD
-			COMMAND dltest $<TARGET_FILE:ssc>)
-	endif()
-endif()
+#if(UNIX AND NOT SAMAPI_EXPORT)
+#	add_executable(dltest ../build_resources/dltest.c)
+#	if (APPLE)
+#		add_custom_command(
+#			TARGET ssc
+#			POST_BUILD
+#			COMMAND codesign --force --deep --sign - $<TARGET_FILE:ssc>
+#			COMMAND dltest $<TARGET_FILE:ssc>)
+#	else()
+#		target_link_libraries(dltest -ldl -Wl,--no-as-needed)
+#		add_custom_command(
+#			TARGET ssc
+#			POST_BUILD
+#			COMMAND dltest $<TARGET_FILE:ssc>)
+#	endif()
+#endif()
 
 # libssc for PySAM
 if(UNIX)

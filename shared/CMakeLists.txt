@@ -173,13 +173,8 @@ if (USE_XPRESS)
 endif()
 
 
-if (UNIX)
-    find_package(ortools NO_MODULE REQUIRED)
-    target_link_libraries(shared ortools::ortools)
-elseif(MSVC)
-    find_package(ortools NO_MODULE REQUIRED)
-    target_link_libraries(shared ortools::ortools)
-endif()
+find_package(ortools NO_MODULE REQUIRED)
+target_link_libraries(shared ortools::ortools)
 
 if (UNIX)
    set(CMAKE_SHARED_LINKER_FLAGS "-lm -ldl")

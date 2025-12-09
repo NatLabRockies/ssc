@@ -33,4 +33,4 @@ SSC is licensed with BSD-3-Clause terms, found [here](https://github.com/NREL/SA
 
 # Citing this package
 
-System Advisor Model Version 2025.4.16 (2025). SSC source code. Laboratory of the Rockies. Golden, CO. Accessed December 5, 2025. https://github.com/NREL/ssc
+System Advisor Model Version 2025.4.16 (2025). SSC source code. National Laboratory of the Rockies. Golden, CO. Accessed December 5, 2025. https://github.com/NREL/ssc

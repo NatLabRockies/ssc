@@ -67,7 +67,7 @@ MYBOOL is_nativeBLAS(void)
 #endif
 }
 
-MYBOOL load_BLAS( char *libname)
+MYBOOL load_BLAS(const char *libname)
 {
   MYBOOL result = TRUE;
 

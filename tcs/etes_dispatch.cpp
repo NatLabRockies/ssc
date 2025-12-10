@@ -51,7 +51,7 @@ etes_dispatch_opt::etes_dispatch_opt()
     params.clear();
 }
 
-void etes_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
+void etes_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic)
 {
     set_default_solver_parameters();
 

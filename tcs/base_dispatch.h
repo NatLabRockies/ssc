@@ -174,6 +174,7 @@ public:
         double q_eh_target = 0.;                // [MWt] Target electric heater thermal output
         double w_dot_target = 0.;               // [MWe] Target power cycle (net) electric output
         double w_dot_max = 0.;                  // [MWe] Maximum power cycle (net) electric output ???
+        double sys_parasitic = 0.;              // [MWe] System parasitic power consumption
 
         // Dispatch solution output for reporting
         double qsf_expect = 0.;                 // [MWt] Expected available thermal power from the solar field
@@ -192,7 +193,7 @@ public:
     //----- public member functions ----
     base_dispatch_opt();
 
-    virtual void init(double cycle_q_dot_des, double cycle_eta_des);
+    virtual void init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic = 0.0);
 
     //check parameters and inputs to make sure everything has been set up correctly
     bool check_setup();

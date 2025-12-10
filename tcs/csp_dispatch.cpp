@@ -49,7 +49,7 @@ csp_dispatch_opt::csp_dispatch_opt()
     params.clear();
 }
 
-void csp_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
+void csp_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic)
 {
     set_default_solver_parameters();
 
@@ -93,6 +93,7 @@ void csp_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
     params.q_pb_des = cycle_q_dot_des;
     params.eta_pb_des = cycle_eta_des;
     double w_pb_des = cycle_q_dot_des * params.eta_pb_des;
+    params.sys_par_fixed = fixed_parasitic;
 
     params.eff_table_load.init_linear_cycle_efficiency_table(params.q_pb_min, params.q_pb_des, params.eta_pb_des, pointers.mpc_pc);
     params.eff_table_Tdb.init_efficiency_ambient_temp_table(params.eta_pb_des, w_pb_des, pointers.mpc_pc, &params.wcondcoef_table_Tdb);
@@ -1275,7 +1276,7 @@ bool csp_dispatch_opt::optimize()
                         //row[i  ] - P["Ehs"] / P["delta"];	//kWe
                         //col[i++] = O.column("yrsd", t);
 
-                        add_constraintex(lp, i, row, col, LE, params.w_lim.at(t));
+                        add_constraintex(lp, i, row, col, LE, params.w_lim.at(t) + params.sys_par_fixed);
                     }
                     else // Power cycle operation is impossible at current constrained wlim
                     {

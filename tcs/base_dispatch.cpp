@@ -105,7 +105,7 @@ void base_dispatch_opt::clear_output()
     solver_outputs.clear_output();
 }
 
-void base_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
+void base_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic)
 {
     not_implemented_function((std::string)__func__);
 }

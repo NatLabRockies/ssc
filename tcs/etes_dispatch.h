@@ -193,7 +193,7 @@ public:
 
     etes_dispatch_opt();
 
-    void init(double cycle_q_dot_des, double cycle_eta_des);
+    void init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic);
 
     // Set default solver parameters if user did not set them
     void set_default_solver_parameters();

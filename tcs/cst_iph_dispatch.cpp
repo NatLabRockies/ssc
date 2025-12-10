@@ -49,7 +49,7 @@ cst_iph_dispatch_opt::cst_iph_dispatch_opt()
     params.clear();
 }
 
-void cst_iph_dispatch_opt::init(double hs_q_dot_des, double hs_eta_des)
+void cst_iph_dispatch_opt::init(double hs_q_dot_des, double hs_eta_des, double fixed_parasitic)
 {
     set_default_solver_parameters();
 

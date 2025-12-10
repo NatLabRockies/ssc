@@ -229,7 +229,9 @@ static C_csp_reported_outputs::S_output_info S_solver_output_info[] =
 	{C_csp_solver::C_solver_outputs::DISPATCH_SFEFF_EXPECT, C_csp_reported_outputs::TS_1ST},	  //[-] Expected solar field thermal efficiency adjustment in dispatch model
 	{C_csp_solver::C_solver_outputs::DISPATCH_QPBSU_EXPECT, C_csp_reported_outputs::TS_1ST},	  //[MWt] Power cycle startup energy consumption in dispatch model
 	{C_csp_solver::C_solver_outputs::DISPATCH_WPB_EXPECT, C_csp_reported_outputs::TS_1ST},		  //[MWe] Power cycle electricity production in dispatch model
-	{C_csp_solver::C_solver_outputs::DISPATCH_REV_EXPECT, C_csp_reported_outputs::TS_1ST},		  //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
+    {C_csp_solver::C_solver_outputs::DISPATCH_WPARASITIC_EXPECT, C_csp_reported_outputs::TS_1ST}, //[MWe] System parasitic power consumption in dispatch model
+    {C_csp_solver::C_solver_outputs::DISPATCH_QEH_EXPECT, C_csp_reported_outputs::TS_1ST},	      //[MWt] Parallel electric heater thermal power in dispatch model
+    {C_csp_solver::C_solver_outputs::DISPATCH_REV_EXPECT, C_csp_reported_outputs::TS_1ST},		  //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
     {C_csp_solver::C_solver_outputs::DISPATCH_PV_EXPECT, C_csp_reported_outputs::TS_1ST},		  //[MWe] Expected PV electricity production in dispatch model
 
 
@@ -538,19 +540,6 @@ void C_csp_solver::init()
 
     m_is_cr_config_recirc = true;
 
-    if (mc_tou.m_dispatch_model_type == C_csp_tou::C_dispatch_model_type::E_dispatch_model_type::UNDEFINED) {
-        throw(C_csp_exception("Either heuristic, imported dispatch targets, or dispatch optimization must be specified", "CSP Solver"));
-    }
-    else if (mc_tou.m_dispatch_model_type == C_csp_tou::C_dispatch_model_type::E_dispatch_model_type::DISPATCH_OPTIMIZATION) {
-        mc_dispatch.pointers.set_pointers(mc_weather, &mc_collector_receiver, &mc_power_cycle, &mc_tes, &mc_csp_messages, &mc_kernel.mc_sim_info, mp_heater);
-        mc_dispatch.init(m_cycle_q_dot_des, m_cycle_eta_des);
-    }
-
-    // Value helps solver get out of T_field_htf_cold iteration when weird conditions cause the solution to be a very cold value
-    // Should update with technology-specific htf freeze protection values
-    m_T_field_cold_limit = -100.0;      //[C]
-    m_T_field_in_hot_limit = (0.9*m_cycle_T_htf_hot_des + 0.1*m_T_htf_cold_des) - 273.15;   //[C]
-
     // System parasitics
     double W_dot_ratio_des = 1.0;       //[-]
     m_W_dot_bop_design = m_cycle_W_dot_des * ms_system_params.m_bop_par * ms_system_params.m_bop_par_f *
@@ -562,6 +551,19 @@ void C_csp_solver::init()
     //if (!std::isfinite(W_dot_rec_pumping_power_des)) {
     //    W_dot_rec_pumping_power_des = 0.02 * m_cycle_W_dot_des;
     //}
+
+    if (mc_tou.m_dispatch_model_type == C_csp_tou::C_dispatch_model_type::E_dispatch_model_type::UNDEFINED) {
+        throw(C_csp_exception("Either heuristic, imported dispatch targets, or dispatch optimization must be specified", "CSP Solver"));
+    }
+    else if (mc_tou.m_dispatch_model_type == C_csp_tou::C_dispatch_model_type::E_dispatch_model_type::DISPATCH_OPTIMIZATION) {
+        mc_dispatch.pointers.set_pointers(mc_weather, &mc_collector_receiver, &mc_power_cycle, &mc_tes, &mc_csp_messages, &mc_kernel.mc_sim_info, mp_heater);
+        mc_dispatch.init(m_cycle_q_dot_des, m_cycle_eta_des, m_W_dot_fixed_design);
+    }
+
+    // Value helps solver get out of T_field_htf_cold iteration when weird conditions cause the solution to be a very cold value
+    // Should update with technology-specific htf freeze protection values
+    m_T_field_cold_limit = -100.0;      //[C]
+    m_T_field_in_hot_limit = (0.9*m_cycle_T_htf_hot_des + 0.1*m_T_htf_cold_des) - 273.15;   //[C]
 
     m_W_dot_system_net_design = m_cycle_W_dot_des - W_dot_col_tracking_des - W_dot_rec_pumping_power_des -
         W_dot_cycle_pump_des - W_dot_cycle_cooling_des - W_dot_tes_pumping_des -
@@ -1244,6 +1246,8 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SFEFF_EXPECT, mc_dispatch.dispatch_outputs.etasf_expect);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_QPBSU_EXPECT, mc_dispatch.dispatch_outputs.qpbsu_expect);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_WPB_EXPECT, mc_dispatch.dispatch_outputs.wpb_expect);
+        mc_reported_outputs.value(C_solver_outputs::DISPATCH_WPARASITIC_EXPECT, mc_dispatch.dispatch_outputs.sys_parasitic);
+        mc_reported_outputs.value(C_solver_outputs::DISPATCH_QEH_EXPECT, mc_dispatch.dispatch_outputs.q_eh_target);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_REV_EXPECT, mc_dispatch.dispatch_outputs.rev_expect);
         mc_reported_outputs.value(C_solver_outputs::DISPATCH_PV_EXPECT, mc_dispatch.dispatch_outputs.pv_expect);
 

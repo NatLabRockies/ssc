@@ -205,6 +205,7 @@ public:
         double w_stow;				        //[MWe-hr] Heliostat stow electricity requirement
         double w_cycle_pump;		        //[MWe/MWt] Cycle HTF pumping power per thermal energy consumed
         double w_cycle_standby;		        //[MWe] Cycle HTF pumping power during standby
+        double sys_par_fixed;               //[MWe] Fixed parasitic load of the system
 
         double inventory_incentive;         //[-]   Terminal storage inventory objective incentive multiplier
 
@@ -276,6 +277,7 @@ public:
             w_stow = std::numeric_limits<double>::quiet_NaN();
             w_cycle_pump = std::numeric_limits<double>::quiet_NaN();
             w_cycle_standby = std::numeric_limits<double>::quiet_NaN();
+            sys_par_fixed = 0.0;
 
             inventory_incentive = 0.;
         }
@@ -412,6 +414,7 @@ public:
         std::vector<double> q_pb_startup;        // [MWt] Thermal power going to startup
         std::vector<double> q_rec_startup;       // [MWt] Thermal Power going to startup
         std::vector<double> w_pb_target;         // [MWe] Optimized electricity generation
+        std::vector<double> sys_parasitic;       // [MWe] Total system parasitic power
 
         std::vector<bool> htr_operation;         // [-] is heater allowed to operate
         std::vector<double> q_eh_target;         // [MWt] Heater target thermal power
@@ -429,6 +432,7 @@ public:
             q_pb_startup.clear();
             q_rec_startup.clear();
             w_pb_target.clear();
+            sys_parasitic.clear();
 
             htr_operation.clear();
             q_eh_target.clear();
@@ -446,6 +450,7 @@ public:
             q_pb_startup.resize(nt, 0.);
             q_rec_startup.resize(nt, 0.);
             w_pb_target.resize(nt, 0.);
+            sys_parasitic.resize(nt, 0.);
 
             htr_operation.resize(nt, false);
             q_eh_target.resize(nt, 0.);
@@ -458,7 +463,7 @@ public:
 
     csp_dispatch_ortools();
 
-    void init(double cycle_q_dot_des, double cycle_eta_des);
+    void init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic);
 
     //check parameters and inputs to make sure everything has been set up correctly
     bool check_setup(int nstep);

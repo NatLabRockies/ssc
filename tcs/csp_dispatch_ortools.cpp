@@ -43,7 +43,7 @@ csp_dispatch_ortools::csp_dispatch_ortools()
     outputs.clear();
 }
 
-void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
+void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic)
 {
     // Moved to the init call because solver is not being initialized when in debug mode
     // TODO: Create a switch to select the solver type based on input
@@ -113,6 +113,7 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
     }
 
     double w_pb_des = cycle_q_dot_des * params.eta_pb_des;
+    params.sys_par_fixed = fixed_parasitic;
 
     params.eff_table_load.init_linear_cycle_efficiency_table(params.q_pb_min, params.q_pb_des, params.eta_pb_des, pointers.mpc_pc);
     params.eff_table_Tdb.init_efficiency_ambient_temp_table(params.eta_pb_des, w_pb_des, pointers.mpc_pc, &params.wcondcoef_table_Tdb);
@@ -1405,7 +1406,7 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
 
             if (params.is_pv_included) c->SetCoefficient(cont_vars.w_pv[t], 1.0);
 
-            c->SetUB(ts_params.w_lim.at(t));
+            c->SetUB(ts_params.w_lim.at(t) + params.sys_par_fixed);     // Add fixed system parasitic power to limit
         }
     }
 
@@ -1520,17 +1521,31 @@ void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, 
         outputs.q_sf_expected.at(t) = cont_vars.xr.at(t)->solution_value();
         // net electricity production
         //outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value();
-        outputs.w_pb_target.at(t) = (cont_vars.wdot.at(t)->solution_value() * (1.0 - ts_params.w_condf_expected.at(t))
-            - cont_vars.xr.at(t)->solution_value() * P["Lr"]
-            - cont_vars.xrsu.at(t)->solution_value() * P["Lr"]
-            - bin_vars.yrsu.at(t)->solution_value() * ((P["Wrsb"] / P["delta"]) + (P["Ehs"] / P["delta"]))
-            - bin_vars.yr.at(t)->solution_value() * P["Wh"]
-            - cont_vars.x.at(t)->solution_value() * P["Lc"]
-            );
+
+
+        // TODO: save parasitic losses and pass through cmod
+        outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value() * (1.0 - ts_params.w_condf_expected.at(t));
+        if (bin_vars.ycsu.at(t)->solution_value()) {
+            outputs.w_pb_target.at(t) /= (1.0 - params.dt_pb_startup_cold);     // Start-up adjustment
+        }
+        // Parasitic losses
+        outputs.sys_parasitic.at(t) = (cont_vars.xr.at(t)->solution_value() * P["Lr"]
+            + cont_vars.xrsu.at(t)->solution_value() * P["Lr"]
+            + bin_vars.yrsu.at(t)->solution_value() * ((P["Wrsb"] / P["delta"]) + (P["Ehs"] / P["delta"]))
+            + bin_vars.yr.at(t)->solution_value() * P["Wh"]
+            + cont_vars.x.at(t)->solution_value() * P["Lc"])
+            + params.sys_par_fixed;
+
+        outputs.w_pb_target.at(t) -= outputs.sys_parasitic.at(t);
+
         //if (params.can_cycle_use_standby) outputs.w_pb_target.at(t) -= bin_vars.ycsb.at(t)->solution_value() * P["Wb"];
         if (params.is_parallel_heater) {
-            outputs.w_pb_target.at(t) -= cont_vars.qeh.at(t)->solution_value() * (1 / P["eta_eh"]);
-            outputs.w_pb_target.at(t) -= bin_vars.yhsup.at(t)->solution_value() * params.e_eh_su * (1 / P["eta_eh"]);
+            double heater_power = cont_vars.qeh.at(t)->solution_value() * (1 / P["eta_eh"]);
+            if (bin_vars.yhsup.at(t)->solution_value()) {
+                heater_power /= (1.0 - params.dt_eh_startup);
+            }
+            outputs.w_pb_target.at(t) -= heater_power;
+            //outputs.w_pb_target.at(t) -= bin_vars.yhsup.at(t)->solution_value() * params.e_eh_su * (1 / P["eta_eh"]);
         }
 
         // cycle standby
@@ -1625,6 +1640,7 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
         dispatch_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
         dispatch_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
         dispatch_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
+        dispatch_outputs.sys_parasitic = outputs.sys_parasitic.at(m_current_read_step);
         dispatch_outputs.rev_expect = dispatch_outputs.wpb_expect * ts_params.sell_price.at(m_current_read_step);
         dispatch_outputs.etapb_expect = dispatch_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
             * (outputs.pb_operation.at(m_current_read_step) ? 1. : 0.);

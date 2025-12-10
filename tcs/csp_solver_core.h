@@ -939,6 +939,8 @@ public:
 			DISPATCH_SFEFF_EXPECT,      //[-] Expected solar field thermal efficiency adjustment in dispatch model
 			DISPATCH_QPBSU_EXPECT,      //[MWt] Power cycle startup energy consumption in dispatch model
 			DISPATCH_WPB_EXPECT,        //[MWe] Power cycle electricity production in dispatch model
+            DISPATCH_WPARASITIC_EXPECT, //[MWe] System parasitic electricity consumption in dispatch model
+            DISPATCH_QEH_EXPECT,        //[MWt] Parallel electric heater thermal consumption in dispatch model
 			DISPATCH_REV_EXPECT,        //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
             DISPATCH_PV_EXPECT,         //[MWe] PV electricity production in dispatch model
 

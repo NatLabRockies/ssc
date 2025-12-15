@@ -347,8 +347,9 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "disp_inventory_incentive",           "Dispatch storage terminal inventory incentive multiplier",                                                                                "",             "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "q_rec_standby",                      "Receiver standby energy consumption",                                                                                                     "kWt",          "",                                  "System Control",                           "?=9e99",                                                           "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "q_rec_heattrace",                    "Receiver heat trace energy consumption during startup",                                                                                   "kWhe",         "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_ARRAY,  "pv_generation_profile",              "Co-located PV generation for CSP to dispatch around.",                                                                                    "kWe",          "",                                  "System Control",                           "",                                                                 "",              "SIMULATION_PARAMETER" },
 
+    { SSC_INPUT,     SSC_ARRAY,  "pv_generation_profile",              "Co-located PV generation for CSP to dispatch around.",                                                                                    "kWe",          "",                                  "System Control",                           "",                                                                 "",              "SIMULATION_PARAMETER" },
+    { SSC_INPUT,     SSC_NUMBER, "pv_total_installed_cost",            "Total installed cost of co-located PV system",                                                                                            "$",            "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER" },
 
     // Pricing schedules and multipliers
         // Ideally this would work with sim_type = 2, but UI inputs availability depends on financial mode
@@ -727,8 +728,10 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_OUTPUT,    SSC_ARRAY,  "disp_thermeff_expected",             "Dispatch expected SF thermal efficiency adj.",                                                                                            "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "disp_qpbsu_expected",                "Dispatch expected power cycle startup energy",                                                                                            "MWht",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "disp_wpb_expected",                  "Dispatch expected power generation",                                                                                                      "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
+    { SSC_OUTPUT,    SSC_ARRAY,  "disp_wparasitic_expected",           "Dispatch expected parasitic power generation",                                                                                                      "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              "" }, 
+    { SSC_OUTPUT,    SSC_ARRAY,  "disp_qeh_expected",                  "Dispatch expected electric heater thermal power",                                                                                         "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "disp_rev_expected",                  "Dispatch expected revenue factor",                                                                                                        "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-    { SSC_OUTPUT,    SSC_ARRAY,  "disp_pv_expected",                   "Dispatch expected PV generation",                                                                                                         "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              "" },
+    { SSC_OUTPUT,    SSC_ARRAY,  "disp_pv_expected",                   "Dispatch expected PV generation",                                                                                                         "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
         // These outputs correspond to the first csp-solver timestep in the reporting timestep.
         //     Subsequent csp-solver timesteps within the same reporting timestep are not tracked
@@ -2053,18 +2056,17 @@ public:
         // Schedules
 
         // PV generation for hybridization
+        std::vector<double> pv_generation_profile;
         C_timeseries_schedule_inputs pv_schedule;
         double max_pv_gen = 0.0;
         if (is_assigned("pv_generation_profile")) {
             // TODO: Should we normalize the input profile?
-            std::vector<double> pv_generation_profile = as_vector_double("pv_generation_profile");  //[MWe] PV generation profile at the same time steps as the simulation
-            C_timeseries_schedule_inputs pv_profile = C_timeseries_schedule_inputs(pv_generation_profile, 1.0);
-            pv_schedule = pv_profile;
+            pv_generation_profile = as_vector_double("pv_generation_profile");  //[MWe] PV generation profile at the same time steps as the simulation
+            pv_schedule = C_timeseries_schedule_inputs(pv_generation_profile, 1.0);
             max_pv_gen = *std::max_element(pv_generation_profile.begin(), pv_generation_profile.end());
         }
         else {
-            C_timeseries_schedule_inputs no_pv_profile = C_timeseries_schedule_inputs(0.0, std::numeric_limits<double>::quiet_NaN());
-            pv_schedule = no_pv_profile;
+            pv_schedule = C_timeseries_schedule_inputs(0.0, std::numeric_limits<double>::quiet_NaN());  // No generation
             max_pv_gen = 0.0;
         }
 
@@ -2387,6 +2389,8 @@ public:
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::DISPATCH_SFEFF_EXPECT, allocate("disp_thermeff_expected", n_steps_fixed), n_steps_fixed);
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::DISPATCH_QPBSU_EXPECT, allocate("disp_qpbsu_expected", n_steps_fixed), n_steps_fixed);
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::DISPATCH_WPB_EXPECT, allocate("disp_wpb_expected", n_steps_fixed), n_steps_fixed);
+        csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::DISPATCH_WPARASITIC_EXPECT, allocate("disp_wparasitic_expected", n_steps_fixed), n_steps_fixed);
+        csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::DISPATCH_QEH_EXPECT, allocate("disp_qeh_expected", n_steps_fixed), n_steps_fixed);
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::DISPATCH_REV_EXPECT, allocate("disp_rev_expected", n_steps_fixed), n_steps_fixed);
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::DISPATCH_PV_EXPECT, allocate("disp_pv_expected", n_steps_fixed), n_steps_fixed);
 
@@ -2812,7 +2816,13 @@ public:
         );
 
         // 1.5.2016 twn: financial model needs an updated total_installed_cost, remaining are for reporting only
-        assign("total_installed_cost", (ssc_number_t)total_installed_cost);
+        if (is_assigned("pv_total_installed_cost")) {
+            double pv_total_installed_cost = as_double("pv_total_installed_cost");
+            assign("total_installed_cost", (ssc_number_t)(total_installed_cost + pv_total_installed_cost));
+        }
+        else {
+            assign("total_installed_cost", (ssc_number_t)total_installed_cost);
+        }
 
         assign("h_rec_input_to_cost_model", (ssc_number_t)h_rec_cost_in);       //[m]
         assign("csp.pt.cost.site_improvements", (ssc_number_t)site_improvement_cost);
@@ -3013,12 +3023,17 @@ public:
         if( !haf.setup(n_steps_full) )
             throw exec_error("tcsmolten_salt", "failed to setup adjustment factors: " + haf.error());
 
+
+        std::vector<double> disp_pv_expected = as_vector_double("disp_pv_expected");
         ssc_number_t *p_gen = allocate("gen", count);
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
-        for( size_t i = 0; i < count; i++ )
-        {
+        for( size_t i = 0; i < count; i++ ) {
             size_t hour = (size_t)ceil(p_time_final_hr[i]);
             p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            if (is_assigned("pv_generation_profile")) {
+                //p_gen[i] += (ssc_number_t)pv_generation_profile[i];               //[kWe]     // TODO: This assumes all PV is sold to grid...
+                p_gen[i] += (ssc_number_t)(disp_pv_expected[i] * 1.E3);             //[kWe]     // TODO: Limits are not withheld 
+            }
             p_gensales_after_avail[i] = max(0.0, p_gen[i]);                         //[kWe]
         }
 

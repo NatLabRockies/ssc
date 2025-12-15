@@ -89,7 +89,8 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
     params.q_pb_des = cycle_q_dot_des;
     params.eta_pb_des = cycle_eta_des;
     params.q_pb_max = pointers.mpc_pc->get_max_thermal_power();
-    params.q_pb_min = pointers.mpc_pc->get_min_thermal_power();
+    //params.q_pb_min = pointers.mpc_pc->get_min_thermal_power();
+    params.q_pb_min = pointers.mpc_pc->get_min_thermal_power() * 1.5;
     params.q_rec_min = pointers.col_rec->get_min_power_delivery();
     params.w_rec_pump = pointers.col_rec->get_pumping_parasitic_coef();
 

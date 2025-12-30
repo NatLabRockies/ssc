@@ -121,16 +121,16 @@ void strcpylo(char *t, char *s)
   }
 }
 
-/* Unix library naming utility function */
-MYBOOL so_stdname(char *stdname, char *descname, int buflen)
+/* Unix library naming utility function
+MYBOOL so_stdname(  char *stdname,  char *descname, int buflen)
 {
   char *ptr;
 
-  if((descname == NULL) || (stdname == NULL) || (((int) strlen(descname)) >= buflen - 6))
+  if((descname == nullptr) || (stdname == nullptr) || (((int) strlen(descname)) >= buflen - 6))
     return( FALSE );
 
   strcpy(stdname, descname);
-  if((ptr = strrchr(descname, '/')) == NULL)
+  if((ptr = strrchr(descname, '/')) == nullptr)
     ptr = descname;
   else
     ptr++;
@@ -155,9 +155,9 @@ int gcd(LLONG a, LLONG b, int *c, int *d)
     return( -1 );
 
   /* Use local multiplier instances, if necessary */
-  if(c == NULL)
+  if(c == nullptr)
     c = &cret;
-  if(d == NULL)
+  if(d == nullptr)
     d = &dret;
 
   /* Normalize so that 0 < a <= b */

@@ -56,7 +56,9 @@ int sco2_cycle_plot_data_PH(int cycle_config,
 	std::vector<double> & P_rc /*MPa*/,
 	std::vector<double> & h_rc /*kJ/kg*/,
 	std::vector<double> & P_pc /*MPa*/,
-	std::vector<double> & h_pc /*kJ/kg*/);
+	std::vector<double> & h_pc /*kJ/kg*/,
+    std::vector<double> & P_t2 /*MPa*/,
+    std::vector<double> & h_t2 /*kJ/kg*/);
 
 int Ts_arrays_over_constP(double T_cold /*C*/, double T_hot /*C*/, std::vector<double> P_consts /*kPa*/,
 	std::vector<std::vector<double>> & T_data /*C*/, std::vector<std::vector<double>> & s_data);
@@ -70,6 +72,8 @@ int Ts_full_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::v
 	std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data /*kJ/kg*/);
 
 int Ph_dome(double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data);
+
+double calculate_inflation_factor(double yr_base, double yr_target);
 
 class C_MEQ_CO2_props_at_2phase_P : public C_monotonic_equation
 {
@@ -162,11 +166,13 @@ public:
 		// Mass flow rate
 		double m_m_dot;						//[kg/s] (cycle, not basis)
 
+        double m_yr_inflation;              //[yr] Inflation target year
+
 		S_design_parameters()
 		{
 			m_N_design = m_N_comp_design_if_linked =
 				m_P_in = m_T_in = m_D_in = m_h_in = m_s_in = m_P_out = m_h_out =
-				m_m_dot = std::numeric_limits<double>::quiet_NaN();
+				m_m_dot = m_yr_inflation = std::numeric_limits<double>::quiet_NaN();
 		}
 	};
 
@@ -246,7 +252,7 @@ public:
 	}
 
 	double calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/);
+		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double yr_inflation /*yr*/);
 
     double /*M$*/ calculate_bare_erected_cost(double cost_equipment /*M$*/);
 
@@ -659,12 +665,13 @@ public:
 	};
 
 	double calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/);
+		double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/,
+        double yr_inflation /*yr*/);
 
     double calculate_bare_erected_cost(double cost_equipment /*M$*/);
 
 	int design_given_outlet_state(int comp_model_code, double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-		double T_out /*K*/, double P_out /*K*/, double tol /*-*/);
+		double T_out /*K*/, double P_out /*K*/, double tol /*-*/, double yr_inflation /*yr*/);
 
 	void off_design_given_N(double T_in /*K*/, double P_in /*kPa*/, double m_dot_cycle /*kg/s*/, double N_rpm /*rpm*/,
 		int & error_code, double & T_out /*K*/, double & P_out /*kPa*/);

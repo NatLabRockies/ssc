@@ -1,8 +1,8 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
-All rights reserved.
+Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -30,28 +30,53 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __base_dispatch_ortools_
-#define __base_dispatch_ortools_
-
-#define OR_PROTO_DLL
-
-#include "base_dispatch.h"
-#include "ortools/linear_solver/linear_solver.h"
-
-class base_dispatch_opt_ortools : public base_dispatch_opt
-{
-protected:
-    std::unique_ptr<operations_research::MPSolver> solver;          // OR-Tools solver instance
-
-    void set_solver_outputs(double time_elapsed_sec);
-
-    void print_dispatch_update();
 
 
+#ifndef CMOD_MHK_COST_TEST_H_
+#define CMOD_MHK_COST_TEST_H_
+
+#include <gtest/gtest.h>
+#include "../test/input_cases/mhk/mhk_cost_inputs.h"
+
+#include "core.h"
+#include "sscapi.h"
+
+#include "vartab.h"
+#include "../ssc/common.h"
+#include "../test/input_cases/code_generator_utilities.h"
+
+class CM_MHKCost : public ::testing::Test {
+private:
 public:
-    void count_solutions_by_type(std::vector<int>& flag, int dispatch_freq, std::string& log_msg);
+	ssc_data_t data;
+	ssc_number_t calculated_value;
+	ssc_number_t * calculated_array;
 
-    double calc_avg_subopt_gap(std::vector<double>& gap, std::vector<int>& flag, int dispatch_freq);
+	void SetUp() {
+		data = ssc_data_create();
+		mhk_cost_inputs(data);
+	}
+	
+	void TearDown() {
+//		if (data)
+//			ssc_data_clear(data);
+        ssc_data_free(data);
+	}
+
+	void SetCalculated(std::string name)
+	{
+		ssc_data_get_number(data, const_cast<char *>(name.c_str()), &calculated_value);
+	}
+	// apparently memory of the array is managed internally to the sscapi.
+	void SetCalculatedArray(std::string name)
+	{
+		int n;
+		calculated_array = ssc_data_get_array(data, const_cast<char *>(name.c_str()), &n);
+	}
+
+    
+
 };
 
-#endif //__base_dispatch_ortools_
+#endif // !CMOD_MHK_COST_TEST_H_
+

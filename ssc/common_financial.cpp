@@ -1197,8 +1197,8 @@ bool dispatch_calculations::setup()
 	schedwkend.assign(disp_weekend, nrows, ncols);
 
 	int tod[8760];
-
-	if (!util::translate_schedule(tod, schedwkday, schedwkend, 1, 9))
+    int start_day = m_cm->as_number("start_day_of_year");
+	if (!util::translate_schedule(tod, schedwkday, schedwkend, 1, 9, start_day))
 	{
 		m_error = "could not translate weekday and weekend schedules for dispatch values";
 		throw general_error(m_error);
@@ -3315,6 +3315,7 @@ var_info vtab_tod_dispatch_periods[] = {
         { SSC_INPUT,        SSC_ARRAY,      "dispatch_tod_factors",                   "TOD factors for periods 1 through 9",                           "",   "",                          "Revenue",             "ppa_multiplier_model=0",						   "",                 "" },
         { SSC_INPUT,        SSC_MATRIX,     "dispatch_sched_weekday",                 "Diurnal weekday TOD periods",                                   "1..9", "12 x 24 matrix",    "Revenue", "ppa_multiplier_model=0", "", "" },
         { SSC_INPUT,        SSC_MATRIX,     "dispatch_sched_weekend",                 "Diurnal weekend TOD periods",                                   "1..9", "12 x 24 matrix",    "Revenue", "ppa_multiplier_model=0", "", "" },
+        { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Revenue", "?=0", "", "" },
         var_info_invalid };
 
 var_info vtab_update_tech_outputs[] = {

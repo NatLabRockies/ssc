@@ -96,8 +96,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR "Release" IN_LIST CMAKE_CONFIGURATION_
 endif()
 target_link_libraries(Test ssc splinter)
 if (UNIX)
-    find_package(Threads REQUIRED)
-    target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
+#    find_package(Threads REQUIRED)
+#    target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
+    target_link_libraries(Test -ldl -lpthread)
 endif()
 
 

@@ -26,9 +26,9 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 /* ************************************************************************ */
 MYBOOL mustinitBLAS = TRUE;
 #if (defined LPWINAPP) || (defined WIN64)
-  HINSTANCE hBLAS = NULL;
+  HINSTANCE hBLAS = nullptr;
 #else
-  void     *hBLAS = NULL;
+  void     *hBLAS = nullptr;
 #endif
 
 
@@ -53,7 +53,7 @@ BLAS_dnormi_func *BLAS_dnormi;
 void init_BLAS(void)
 {
   if(mustinitBLAS) {
-    load_BLAS(NULL);
+    load_BLAS(nullptr);
     mustinitBLAS = FALSE;
   }
 }
@@ -61,7 +61,7 @@ void init_BLAS(void)
 MYBOOL is_nativeBLAS(void)
 {
 #ifdef LoadableBlasLib
-  return( (MYBOOL) (hBLAS == NULL) );
+  return( (MYBOOL) (hBLAS == nullptr) );
 #else
   return( TRUE );
 #endif
@@ -72,12 +72,12 @@ MYBOOL load_BLAS(const char *libname)
   MYBOOL result = TRUE;
 
 #ifdef LoadableBlasLib
-  if(hBLAS != NULL) {
+  if(hBLAS != nullptr) {
     my_FreeLibrary(hBLAS);
   }
 #endif
 
-  if(libname == NULL) {
+  if(libname == nullptr) {
     if(!mustinitBLAS && is_nativeBLAS())
       return( FALSE );
     BLAS_dscal = my_dscal;
@@ -94,19 +94,19 @@ MYBOOL load_BLAS(const char *libname)
   }
   else {
 #ifdef LoadableBlasLib
-  #if (defined LPWINAPP) || (defined WIN64)
+//  #if (defined LPWINAPP) || (defined WIN64)
     const char *blasname = libname;
-  #else
+//  #else
    /* First standardize UNIX .SO library name format. */
-    char blasname[260];
-    if(!so_stdname(blasname, libname, 260))
-      return( FALSE );
-  #endif
+//    char blasname[260];
+//    if(!so_stdname(blasname, libname, 260))
+//      return( FALSE );
+//  #endif
    /* Get a handle to the Windows DLL module. */
     hBLAS = my_LoadLibrary(blasname);
 
    /* If the handle is valid, try to get the function addresses. */
-    result = (MYBOOL) (hBLAS != NULL);
+    result = (MYBOOL) (hBLAS != nullptr);
     if(result) {
       BLAS_dscal  = (BLAS_dscal_func *)  my_GetProcAddress(hBLAS, BLAS_prec "scal");
       BLAS_dcopy  = (BLAS_dcopy_func *)  my_GetProcAddress(hBLAS, BLAS_prec "copy");
@@ -123,17 +123,17 @@ MYBOOL load_BLAS(const char *libname)
 #endif
     /* Do validation */
     if(!result ||
-       ((BLAS_dscal  == NULL) ||
-        (BLAS_dcopy  == NULL) ||
-        (BLAS_daxpy  == NULL) ||
-        (BLAS_dswap  == NULL) ||
-        (BLAS_ddot   == NULL) ||
-        (BLAS_idamax == NULL) ||
-        (BLAS_idamin == NULL) ||
-        (BLAS_dload  == NULL) ||
-        (BLAS_dnormi == NULL))
+       ((BLAS_dscal  == nullptr) ||
+        (BLAS_dcopy  == nullptr) ||
+        (BLAS_daxpy  == nullptr) ||
+        (BLAS_dswap  == nullptr) ||
+        (BLAS_ddot   == nullptr) ||
+        (BLAS_idamax == nullptr) ||
+        (BLAS_idamin == nullptr) ||
+        (BLAS_dload  == nullptr) ||
+        (BLAS_dnormi == nullptr))
       ) {
-      load_BLAS(NULL);
+      load_BLAS(nullptr);
       result = FALSE;
     }
   }
@@ -141,7 +141,7 @@ MYBOOL load_BLAS(const char *libname)
 }
 MYBOOL unload_BLAS(void)
 {
-  return( load_BLAS(NULL) );
+  return( load_BLAS(nullptr) );
 }
 
 

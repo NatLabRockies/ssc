@@ -9,6 +9,7 @@ env:
   BUILD_TYPE: Release
   GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
   ORTOOLS_VER: "9.14"
+  ORTOOLS_RELEASE: "6206"
 
 jobs:
   build-on-ubuntu:
@@ -42,19 +43,19 @@ jobs:
       if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools-$ORTOOLS_VER.tar.gz -o or-tools-$ORTOOLS_VER.tar.gz
+        curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools_amd64_ubuntu-24.04_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE.tar.gz -o or-tools-$ORTOOLS_VER.tar.gz
         tar xvzf or-tools-$ORTOOLS_VER.tar.gz
 
-    - name: build OR-Tools
-      if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
-      shell: bash
-      run: | 
-          mkdir ${ORTOOLSDIR}
-          cd or-tools-$ORTOOLS_VER
-          mkdir build
-          cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
-          cmake --build build --config Release --target all -j4 -v
-          cmake --build build --config Release --target install -v
+   # - name: build OR-Tools
+   #   if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
+   #   shell: bash
+   #   run: | 
+   #       mkdir ${ORTOOLSDIR}
+   #       cd or-tools-$ORTOOLS_VER
+   #       mkdir build
+   #       cmake -S . -B build -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
+   #       cmake --build build --config Release --target all -j4 -v
+   #       cmake --build build --config Release --target install -v
 
     - name: Always save OR-Tools build
       id: cached-ortools-save
@@ -85,7 +86,7 @@ jobs:
           export 
           mkdir ${GTEST}/build
           cd ${GTEST}/build
-          cmake -DCMAKE_CXX_FLAGS=-std=c++11 ..
+          cmake -DCMAKE_CXX_FLAGS=-std=c++17 ..
           make          
 
     - name: Checkout SSC

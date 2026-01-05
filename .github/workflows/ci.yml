@@ -106,11 +106,8 @@ jobs:
             ${{env.SSCDIR}}/build/ssc/ssc.so
       
   
-  build-on-mac:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-14-large]
+  build-on-macos:
+    runs-on: macos-latest
 
     steps:
     - name: Setup cmake

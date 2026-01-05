@@ -24,7 +24,7 @@ jobs:
       run: cmake --version
     
     - name: Set relative paths
-      run: | 
+      run: |
         GTEST=$GITHUB_WORKSPACE/googletest
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
@@ -60,7 +60,7 @@ jobs:
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
-      run: | 
+      run: |
           export 
           mkdir ${GTEST}/build
           cd ${GTEST}/build
@@ -109,6 +109,7 @@ jobs:
             ${{env.SSCDIR}}/build/ssc/libssc.so
             ${{env.SSCDIR}}/build/ssc/ssc.so
       
+  
   build-on-mac:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -124,7 +125,7 @@ jobs:
       run: cmake --version
     
     - name: Set relative paths
-      run: | 
+      run: |
         GTEST=$GITHUB_WORKSPACE/googletest
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
@@ -157,7 +158,7 @@ jobs:
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
-      run: | 
+      run: |
           export 
           mkdir ${GTEST}/build
           cd ${GTEST}/build
@@ -244,7 +245,7 @@ jobs:
     
     - name: Set relative paths
       shell: bash
-      run: | 
+      run: |
         GTEST=$GITHUB_WORKSPACE/googletest
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
@@ -279,7 +280,7 @@ jobs:
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
       shell: bash
-      run: | 
+      run: |
           mkdir ${GTEST}/build
           cd ${GTEST}/build
           cmake -Dgtest_force_shared_crt=ON ..

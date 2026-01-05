@@ -12,7 +12,7 @@ env:
   ORTOOLS_RELEASE: "6206"
 
 jobs:
-  build-on-macos:
+  build-on-mac:
     runs-on: macos-latest
 
     steps:

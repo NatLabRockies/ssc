@@ -12,8 +12,12 @@ env:
   ORTOOLS_RELEASE: "6206"
 
 jobs:
+      
   build-on-mac:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-14-large]
 
     steps:
     - name: Setup cmake

@@ -29,7 +29,7 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
-        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools_amd64_ubuntu-24.04_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools_x86_64_Ubuntu-24.04_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE
         echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
     
     - name: Restore cached OR-Tools

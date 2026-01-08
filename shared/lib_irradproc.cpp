@@ -1264,9 +1264,9 @@ void incidence(int mode, double tilt, double sazm, double rlim, double alim, dou
                 sazm = azm;
                 alim = alim * DTOR;
                 if (sazm < (M_PI - alim) )/* Do not let azimuth exceed physical constraints */
-                    sazm = -alim;
+                    sazm = M_PI - alim;
                 else if (sazm > (M_PI + alim))
-                    sazm = alim;
+                    sazm = M_PI + alim;
             }
             //sazm = (mode == 0) ? sazm * DTOR : azm; /* either fixed surface azimuth or solar azimuth */
             arg = sin(zen) * cos(azm - sazm) * sin(tilt) + cos(zen) * cos(tilt);

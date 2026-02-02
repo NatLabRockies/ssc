@@ -769,7 +769,11 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
             *diff_target = std::numeric_limits<double>::quiet_NaN();
             return -1;
         }
-
+        if (isnan(mpc_csp_solver->mc_cr_out_solver.m_T_salt_hot))
+        {
+            *diff_target = std::numeric_limits<double>::quiet_NaN();
+            return -1;
+        }
         T_htf_cr_out = mpc_csp_solver->mc_cr_out_solver.m_T_salt_hot;      //[C]
         if (mpc_csp_solver->m_is_cr_config_recirc)
         {

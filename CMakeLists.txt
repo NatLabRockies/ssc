@@ -41,6 +41,7 @@ if (UNIX AND NOT CMAKE_C_COMPILER)
     set(CMAKE_C_COMPILER gcc)
     set(CMAKE_CXX_COMPILER g++)
 endif()
+
 if(MSVC)
     set(CMAKE_CXX_STANDARD 20)
 else()

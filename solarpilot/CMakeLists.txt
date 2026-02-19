@@ -56,11 +56,7 @@ set(SOLARPILOT_SRC
 # Compile Options per Platform
 #
 #####################################################################################################################
-if(MSVC)
-  set(CMAKE_CXX_STANDARD 20)
-else()
-  set(CMAKE_CXX_STANDARD 17)
-endif()
+set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 

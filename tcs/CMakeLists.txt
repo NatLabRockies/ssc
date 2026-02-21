@@ -16,6 +16,7 @@ set(TCS_SRC
 		csp_solver_core.cpp
 		csp_solver_cr_electric_resistance.cpp
 		csp_solver_cr_heat_pump.cpp
+		csp_solver_cr_reactor.cpp
         csp_solver_fresnel_collector_receiver.cpp
 		csp_solver_gen_collector_receiver.cpp
 		csp_solver_lf_dsg_collector_receiver.cpp

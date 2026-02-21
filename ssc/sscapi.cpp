@@ -157,7 +157,8 @@ extern module_entry_info
     cm_entry_csp_subcomponent,
     cm_entry_hybrid_steps,
     cm_entry_hybrid,
-    cm_entry_csp_heatsink
+    cm_entry_csp_heatsink,
+    cm_entry_reactor_tes_power
     ;
 
 /* official module table */
@@ -253,6 +254,7 @@ static module_entry_info *module_table[] = {
     &cm_entry_hybrid_steps,
     &cm_entry_hybrid,
     &cm_entry_csp_heatsink,
+    &cm_entry_reactor_tes_power,
 0 };
 
 extern var_info vtab_oandm[];

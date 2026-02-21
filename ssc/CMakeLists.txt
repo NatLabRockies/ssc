@@ -80,6 +80,7 @@ set(SSC_SRC
 		cmod_pvwattsv5.cpp
 		cmod_pvwattsv7.cpp
 		cmod_pvwattsv8.cpp
+		cmod_reactor_tes_power.cpp
 		cmod_saleleaseback.cpp
 		cmod_sco2_air_cooler.cpp
 		cmod_sco2_csp_system.cpp

@@ -1,6 +1,7 @@
 {
-	"solar_resource_file" : "C:/Users/tneises/Documents/Projects/Repos/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv",
-    "is_dispatch" : 0,
+	"solar_resource_file1" : "C:/Users/tneises/Documents/Projects/Repos/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv",
+    "solar_resource_file" : "daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv",
+	"is_dispatch" : 0,
     "csp_financial_model" : 1,
     "time_start" : 0,
     "time_stop" : 31536000,
@@ -491,7 +492,7 @@
 	"grid_curtailment_price" : [ 0 ],
     "grid_curtailment_price_esc" : 0,
     "batt_salvage_percentage" : 0,
-	"compute_module_0" : "tcsmolten_salt",
+	"compute_module_0" : "reactor_tes_power",
 	"compute_module_1" : "grid",
 	"compute_module_2" : "utilityrate5",
 	"compute_module_3" : "singleowner",

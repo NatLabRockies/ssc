@@ -45,7 +45,7 @@ public:
     enum E_elec_resist_startup_mode
     {
         SEQUENCED = 0,
-        INSTANTANEOUS_NO_MAX_ELEC_IN
+        INSTANTANEOUS
     };
 
 private:
@@ -104,10 +104,14 @@ public:
 
     C_csp_reported_outputs mc_reported_outputs;
 
+//    C_csp_cr_reactor(double T_htf_cold_des /*C*/, double T_htf_hot_des /*C*/,
+//        double q_dot_heater_des /*MWt*/, double heater_efficiency /*-*/, double f_q_dot_min /*- rel design*/,
+//        double f_q_dot_des_allowable_su /*-*/, double hrs_startup_at_max_rate /*hr*/,
+//        int htf_code /*-*/, util::matrix_t<double> ud_htf_props, E_elec_resist_startup_mode startup_mode);
+
     C_csp_cr_reactor(double T_htf_cold_des /*C*/, double T_htf_hot_des /*C*/,
         double q_dot_heater_des /*MWt*/, double heater_efficiency /*-*/, double f_q_dot_min /*- rel design*/,
-        double f_q_dot_des_allowable_su /*-*/, double hrs_startup_at_max_rate /*hr*/,
-        int htf_code /*-*/, util::matrix_t<double> ud_htf_props, E_elec_resist_startup_mode startup_mode);
+        int htf_code /*-*/, util::matrix_t<double> ud_htf_props);
 
     ~C_csp_cr_reactor();
 
@@ -138,6 +142,12 @@ public:
     virtual void on(const C_csp_weatherreader::S_outputs& weather,
         const C_csp_solver_htf_1state& htf_state_in,
         double q_dot_elec_to_CR_heat /*MWt*/, double field_control,
+        C_csp_collector_receiver::S_csp_cr_out_solver& cr_out_solver,
+        const C_csp_solver_sim_info& sim_info);
+
+    void on_core(const C_csp_weatherreader::S_outputs& weather,
+        const C_csp_solver_htf_1state& htf_state_in,
+        double field_control,
         C_csp_collector_receiver::S_csp_cr_out_solver& cr_out_solver,
         const C_csp_solver_sim_info& sim_info);
 

@@ -56,6 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_cr_electric_resistance.h"
 #include "csp_solver_cavity_receiver.h"
 
+#include "csp_solver_cr_reactor.h"
+
 #include "csp_system_costs.h"
 
 #include <ctime>
@@ -1994,6 +1996,16 @@ public:
         }
         p_heater = p_electric_resistance;        
 
+        double q_dot_reactor = 0.9*q_dot_pc_des;
+        double reactor_efficiency = 1.0;
+        double reactor_min_frac = 0.01;
+        int reactor_htf_code = as_integer("rec_htf");
+        util::matrix_t<double> reactor_ud_htf_props = as_matrix("field_fl_props");
+        C_csp_cr_reactor c_reactor = C_csp_cr_reactor(T_htf_cold_des, T_htf_hot_des,
+            q_dot_pc_des, reactor_efficiency, reactor_min_frac,
+            reactor_htf_code, reactor_ud_htf_props);
+
+
         // Thermal energy storage
         C_csp_two_tank_tes storage(
             as_integer("rec_htf"),
@@ -2290,7 +2302,7 @@ public:
 
         // Instantiate Solver       
         C_csp_solver csp_solver(weather_reader, 
-                        collector_receiver, 
+                        c_reactor, // collector_receiver, 
                         *p_csp_power_cycle, 
                         storage, 
                         tou,

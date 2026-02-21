@@ -1,6 +1,5 @@
 {
-	"solar_resource_file1" : "C:/Users/tneises/Documents/Projects/Repos/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv",
-    "solar_resource_file" : "daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv",
+	"solar_resource_file" : "daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv",
 	"is_dispatch" : 0,
     "csp_financial_model" : 1,
     "time_start" : 0,

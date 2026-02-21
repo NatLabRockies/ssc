@@ -44,10 +44,14 @@ static C_csp_reported_outputs::S_output_info S_cr_electric_resistance_output_inf
     csp_info_invalid
 };
 
+//C_csp_cr_reactor::C_csp_cr_reactor(double T_htf_cold_des /*C*/, double T_htf_hot_des /*C*/,
+//    double q_dot_heater_des /*MWt*/, double heater_efficiency /*-*/, double f_q_dot_min /*-*/,
+//    double f_q_dot_des_allowable_su /*-*/, double hrs_startup_at_max_rate /*hr*/,
+//    int htf_code /*-*/, util::matrix_t<double> ud_htf_props, E_elec_resist_startup_mode startup_mode)
+
 C_csp_cr_reactor::C_csp_cr_reactor(double T_htf_cold_des /*C*/, double T_htf_hot_des /*C*/,
     double q_dot_heater_des /*MWt*/, double heater_efficiency /*-*/, double f_q_dot_min /*-*/,
-    double f_q_dot_des_allowable_su /*-*/, double hrs_startup_at_max_rate /*hr*/,
-    int htf_code /*-*/, util::matrix_t<double> ud_htf_props, E_elec_resist_startup_mode startup_mode)
+    int htf_code /*-*/, util::matrix_t<double> ud_htf_props)
 {
     // Pass arguements to member data
     m_T_htf_cold_des = T_htf_cold_des;      //[C]
@@ -56,8 +60,8 @@ C_csp_cr_reactor::C_csp_cr_reactor(double T_htf_cold_des /*C*/, double T_htf_hot
     m_heater_efficiency = heater_efficiency;    //[-]
     m_q_dot_min = f_q_dot_min*m_q_dot_heater_des; //[MWt]
 
-    m_f_q_dot_des_allowable_su = f_q_dot_des_allowable_su;  //[-]
-    m_hrs_startup_at_max_rate = hrs_startup_at_max_rate;    //[hr]
+    m_f_q_dot_des_allowable_su = 1.0;  // f_q_dot_des_allowable_su;  //[-]
+    m_hrs_startup_at_max_rate = 0.0;   // hrs_startup_at_max_rate;    //[hr]
 
     m_htf_code = htf_code;              //[-] htf fluid code
     m_ud_htf_props = ud_htf_props;      //[-] user defined fluid properties
@@ -75,7 +79,7 @@ C_csp_cr_reactor::C_csp_cr_reactor(double T_htf_cold_des /*C*/, double T_htf_hot
 
     mc_reported_outputs.construct(S_cr_electric_resistance_output_info);
 
-    m_startup_mode = startup_mode;
+    m_startup_mode = INSTANTANEOUS;     // startup_mode;
 }
 
 C_csp_cr_reactor::~C_csp_cr_reactor(){}
@@ -146,7 +150,7 @@ void C_csp_cr_reactor::init(const C_csp_collector_receiver::S_csp_cr_init_inputs
 
     // State variables
     m_E_su_initial = m_E_su_des;        //[MWt-hr]
-    if (m_E_su_initial == 0.0 || m_startup_mode == INSTANTANEOUS_NO_MAX_ELEC_IN) {
+    if (m_E_su_initial == 0.0 || m_startup_mode == INSTANTANEOUS) {
         m_operating_mode_converged = C_csp_collector_receiver::OFF_NO_SU_REQ;
     }
     else {
@@ -237,7 +241,7 @@ void C_csp_cr_reactor::startup(const C_csp_weatherreader::S_outputs& weather,
     C_csp_collector_receiver::S_csp_cr_out_solver& cr_out_solver,
     const C_csp_solver_sim_info& sim_info)
 {
-    if (m_startup_mode == INSTANTANEOUS_NO_MAX_ELEC_IN) {
+    if (m_startup_mode == INSTANTANEOUS) {
         throw(C_csp_exception("C_csp_cr_reactor::startup should not be called if startup mode is INSTANTANEOUS_NO_MAX_ELEC_IN"));
     }
 
@@ -286,22 +290,38 @@ void C_csp_cr_reactor::on(const C_csp_weatherreader::S_outputs& weather,
     C_csp_collector_receiver::S_csp_cr_out_solver& cr_out_solver,
     const C_csp_solver_sim_info& sim_info)
 {
-    // Assume:
-    // 1) no dependence between available heater output and weather
-    // 2) heater is always capable of design output
-    // 3) no mass flow rate bounds (for now)
-    // 4) heater is controlled to always return HTF at design hot temperature
+    // "heat" components that don't use electricity input as the heat source don't need 'q_dot_elec_to_CR_heat'
 
-    // Control may send separate q_dot_elec_to_CR_heat and field_control signals
-    // May eventually also want to apply a "component turn-down"
-    // .... e.g. inlet HTF temp is warm relative to design, causing mass flow rate to be too high
-    double heater_turn_down = 1.0;  //[-]
-    double q_dot_elec = q_dot_elec_to_CR_heat * field_control * heater_turn_down;  //[MWt]
+    on_core(weather,
+        htf_state_in,
+        field_control,
+        cr_out_solver,
+        sim_info);
+}
+
+void C_csp_cr_reactor::on_core(const C_csp_weatherreader::S_outputs& weather,
+    const C_csp_solver_htf_1state& htf_state_in,
+    double field_control,
+    C_csp_collector_receiver::S_csp_cr_out_solver& cr_out_solver,
+    const C_csp_solver_sim_info& sim_info)
+{
+    // Assume:
+    // 1) no dependence between available reactor output and weather
+    // 2) reactor is always capable of design output
+    // 3) no mass flow rate bounds (for now)
+    // 4) reactor is controlled to always return HTF at design hot temperature
+
+    // A more detailed reactor model that is conceptual similar to CSP models
+    //    might have an internal turndown governed by a max mass flow rate
+    //     that control would apply e.g. if the cold inlet temperature increased vs. design
+    //     and achieving the target outlet temp at design thermal power would violate the max mdot
+    double reactor_turn_down = 1.0;
+    double q_dot_reactor = field_control * m_q_dot_heater_des * reactor_turn_down;  //[MWt]
 
     // Check if value is less than min allowed
-    if (q_dot_elec < m_q_dot_min) {
+    if (q_dot_reactor < m_q_dot_min) {
         m_operating_mode = C_csp_collector_receiver::OFF;
-        q_dot_elec = 0.0;       //[MWt]
+        q_dot_reactor = 0.0;       //[MWt]
         m_E_su_calculated = m_E_su_des;     //[MWt-hr]
     }
     else {
@@ -309,37 +329,37 @@ void C_csp_cr_reactor::on(const C_csp_weatherreader::S_outputs& weather,
         m_E_su_calculated = 0.0;        //[MWt-hr]
     }
 
-    double W_dot_heater = q_dot_elec;       //[MWe]
-
     double cp_ave = mc_pc_htfProps.Cp_ave(physics::CelciusToKelvin(htf_state_in.m_temp), physics::CelciusToKelvin(m_T_htf_hot_des));
-    double m_dot_htf = q_dot_elec * 1.E3 / (cp_ave*(m_T_htf_hot_des - htf_state_in.m_temp));  //[kg/s]
+    double m_dot_htf = q_dot_reactor * 1.E3 / (cp_ave*(m_T_htf_hot_des - htf_state_in.m_temp));  //[kg/s]
+
+    // Would be easy to add pumping power parasitic
+    double W_dot_pumping_power = 0.0;   //[MWe]
 
     double q_startup = 0.0;         //[MWt-hr]
     double q_dot_startup = 0.0;     //[MWt-hr]
     // Apply startup if in INSTANTANEOUS startup mode
-    if (m_E_su_initial > 0.0 && m_startup_mode == INSTANTANEOUS_NO_MAX_ELEC_IN) {
+    if (m_E_su_initial > 0.0 && m_startup_mode == INSTANTANEOUS) {
         q_startup = m_E_su_initial;
         q_dot_startup = q_startup / (sim_info.ms_ts.m_step / 3600.0);   //[MWt]
     }
 
-    double W_dot_heater_total = (q_dot_elec + q_dot_startup) / m_heater_efficiency;       //[MWe]
-
+    
     // Set solver outputs and return
     cr_out_solver.m_q_startup = q_startup;        //[MWt-hr]
     cr_out_solver.m_time_required_su = 0.0; //[s]
     cr_out_solver.m_m_dot_salt_tot = m_dot_htf*3600.0;  //[kg/hr]
-    cr_out_solver.m_q_thermal = q_dot_elec; //[MWt]
+    cr_out_solver.m_q_thermal = q_dot_reactor; //[MWt]
     cr_out_solver.m_T_salt_hot = m_T_htf_hot_des;   //[C]
-    cr_out_solver.m_component_defocus = heater_turn_down;   //[-]
+    cr_out_solver.m_component_defocus = reactor_turn_down;   //[-]
 
     // Treat this as external heat input -> set to 0
     // Used for freeze protection in CSP collector-receiver models
     cr_out_solver.m_q_dot_heater = 0.0; // q_dot_elec + q_dot_startup; //[MWt]
 
-    cr_out_solver.m_W_dot_elec_in_tot = W_dot_heater_total;        //[MWe]
+    cr_out_solver.m_W_dot_elec_in_tot = W_dot_pumping_power;        //[MWe]
 
     // Set reported outputs
-    mc_reported_outputs.value(E_Q_DOT_HTF, q_dot_elec);         //[MWt] only heat to HTF - doesn't include startup in INST mode
+    mc_reported_outputs.value(E_Q_DOT_HTF, q_dot_reactor);         //[MWt] only heat to HTF - doesn't include startup in INST mode
 
     return;
 }
@@ -387,7 +407,7 @@ void C_csp_cr_reactor::converged()
         m_E_su_calculated = m_E_su_des;
     }
 
-    if ((m_startup_mode == INSTANTANEOUS_NO_MAX_ELEC_IN || m_E_su_des == 0.0)
+    if ((m_startup_mode == INSTANTANEOUS || m_E_su_des == 0.0)
         && m_operating_mode_converged == OFF) {
         m_operating_mode_converged = OFF_NO_SU_REQ;
     }
@@ -406,7 +426,7 @@ void C_csp_cr_reactor::write_output_intervals(double report_time_start,
 
 double C_csp_cr_reactor::get_design_electric_to_heat_cop()
 {
-    return m_heater_efficiency;
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 double C_csp_cr_reactor::calculate_optical_efficiency(const C_csp_weatherreader::S_outputs& weather, const C_csp_solver_sim_info& sim)

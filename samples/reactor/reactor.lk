@@ -1,0 +1,8 @@
+clear();
+json_to_ssc('reactor.json');
+num_cm = var('number_compute_modules');
+for (i=0;i<num_cm;i++)
+	run(var('compute_module_'+i));
+num_metrics = var('number_metrics');
+for (i=0;i<num_metrics;i++)
+	outln(var('metric_'+i+'_label') + ' = ' + var(var('metric_' + i)));

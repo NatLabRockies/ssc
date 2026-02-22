@@ -529,6 +529,8 @@
 	"metric_15_label" : "Size of debt",
 	"metric_16" : "debt_fraction",
 	"metric_16_label" : "Debt percent",
+	"metric_17" : "total_installed_cost",
+	"metric_17_label" : "Total installed cost",
 	"number_compute_modules" : 4,
-	"number_metrics" : 17
+	"number_metrics" : 18
 }

@@ -35,28 +35,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // for adjustment factors
 #include "common.h"
 
-// solarpilot header files
-#include "AutoPilot_API.h"
-#include "SolarField.h"
-#include "IOUtil.h"
 #include "csp_common.h"
 
-// Can probably delete these headers later...
 #include "csp_solver_util.h"
 #include "csp_solver_core.h"
-#include "csp_solver_pt_sf_perf_interp.h"
-#include "csp_solver_mspt_receiver_222.h"
-#include "csp_solver_mspt_receiver.h"
-#include "csp_solver_mspt_collector_receiver.h"
 #include "csp_solver_pc_Rankine_indirect_224.h"
 #include "csp_solver_two_tank_tes.h"
+#include "csp_solver_cr_reactor.h"
 
 #include "csp_dispatch.h"
 
 #include "csp_solver_cr_electric_resistance.h"
-#include "csp_solver_cavity_receiver.h"
-
-#include "csp_solver_cr_reactor.h"
 
 #include "csp_system_costs.h"
 
@@ -80,27 +69,16 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_INPUT,     SSC_NUMBER, "vacuum_arrays",                      "Allocate arrays for only the required number of steps",                                                                                   "",             "",                                  "System Control",                           "?=0",                                                              "",              "SIMULATION_PARAMETER"},
 
     // System Design
-    { SSC_INPUT,     SSC_NUMBER, "is_parallel_htr",                    "Does plant include a HTF heater parallel to solar field?",                                                                                "",             "",                                  "System Control",                           "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "T_htf_cold_des",                     "Cold HTF inlet temperature at design conditions",                                                                                         "C",            "",                                  "System Design",                            "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "T_htf_hot_des",                      "Hot HTF outlet temperature at design conditions",                                                                                         "C",            "",                                  "System Design",                            "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "P_ref",                              "Reference output electric power at design condition",                                                                                     "MW",           "",                                  "System Design",                            "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "design_eff",                         "Power cycle efficiency at design",                                                                                                        "none",         "",                                  "System Design",                            "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "tshours",                            "Equivalent full-load thermal storage hours",                                                                                              "hr",           "",                                  "System Design",                            "*",                                                                "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "solarm",                             "Solar multiple",                                                                                                                          "-",            "",                                  "System Design",                            "*",                                                                "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "reactor_mult",                       "Solar multiple",                                                                                                                          "-",            "",                                  "System Design",                            "*",                                                                "",              ""},
 
-    { SSC_INPUT,     SSC_NUMBER, "rec_htf",                            "Receiver HTF, 17=Salt (60% NaNO3, 40% KNO3) 10=Salt (46.5% LiF 11.5% NaF 42% KF) 50=Lookup tables",                                       "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
-    { SSC_INPUT,     SSC_MATRIX, "field_fl_props",                     "User defined field fluid property data",                                                                                                  "-",            "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
-
-    // Parallel heater parameters
-    { SSC_INPUT,     SSC_NUMBER, "heater_mult",                        "Heater multiple relative to design cycle thermal power",                                                                                  "-",            "",                                  "Parallel Heater",                          "is_parallel_htr=1",                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "heater_efficiency",                  "Heater electric to thermal efficiency",                                                                                                   "%",            "",                                  "Parallel Heater",                          "is_parallel_htr=1",                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "f_q_dot_des_allowable_su",           "Fraction of design power allowed during startup",                                                                                         "-",            "",                                  "Parallel Heater",                          "is_parallel_htr=1",                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "hrs_startup_at_max_rate",            "Duration of startup at max startup power",                                                                                                "hr",           "",                                  "Parallel Heater",                          "is_parallel_htr=1",                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "f_q_dot_heater_min",                 "Minimum allowable heater output as fraction of design",                                                                                   "",             "",                                  "Parallel Heater",                          "is_parallel_htr=1",                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "disp_hsu_cost_rel",                  "Heater startup cost",                                                                                                                     "$/MWt/start",  "",                                  "System Control",                           "is_dispatch=1&is_parallel_htr=1",                                  "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "heater_spec_cost",                   "Heater specific cost",                                                                                                                    "$/kWht",       "",                                  "System Costs",                             "is_parallel_htr=1",                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "allow_heater_no_dispatch_opt",       "Allow heater with no dispatch optimization? SAM UI relies on cmod default",                                                               "",             "",                                  "System Costs",                             "?=0",                                                              "",              "SIMULATION_PARAMETER" },
-
+    // Reactor
+    { SSC_INPUT,     SSC_NUMBER, "hot_htf_code",                       "Reactor HTF, 17=Salt (60% NaNO3, 40% KNO3) 10=Salt (46.5% LiF 11.5% NaF 42% KF) 50=Lookup tables",                                       "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
+    { SSC_INPUT,     SSC_MATRIX, "ud_hot_htf_props",                   "User defined htf property data",                                                                                                  "-",            "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
 
     // TES parameters - general
     { SSC_INPUT,     SSC_NUMBER, "tes_init_hot_htf_percent",           "Initial fraction of available volume that is hot",                                                                                        "%",            "",                                  "Thermal Storage",                          "*",                                                                "",              ""},
@@ -146,7 +124,6 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_INPUT,     SSC_NUMBER, "ud_m_dot_water_cool_des",            "Mass flow rate of water required at user-defined power cycle design point",                                                               "kg/s",         "",                                  "User Defined Power Cycle",                 "pc_config=1",                                                      "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "ud_is_sco2_regr",                    "0: (default) simple max htf mass flow correction; 1: sco2 heuristic regression; 2: no correction",                                        "",             "",                                  "User Defined Power Cycle",                 "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_MATRIX, "ud_ind_od",                          "Off design user-defined power cycle performance as function of T_htf, m_dot_htf [ND], and T_amb",                                         "",             "",                                  "User Defined Power Cycle",                 "pc_config=1",                                                      "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "use_net_cycle_output_as_capacity",   "False: default, use net calculation including system parasitic, True: for UDPC only, set as cycle output less cooling power",             "",             "",                                  "User Defined Power Cycle",                 "?=0",                                                              "",              "SIMULATION_PARAMETER" },
 
     // Aux and Balance of Plant
     { SSC_INPUT,     SSC_NUMBER, "pb_fixed_par",                       "Fixed parasitic load - runs at all times",                                                                                                "MWe/MWcap",    "",                                  "System Control",                           "*",                                                                "",              "" },
@@ -224,10 +201,9 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_INPUT,     SSC_ARRAY,  "is_rec_su_allowed_in",               "User-provided is receiver startup allowed?",                                                                                              "-",            "",                                  "System Control",                           "is_dispatch_targets=1",                                            "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,     SSC_ARRAY,  "is_pc_su_allowed_in",                "User-provided is power cycle startup allowed?",                                                                                           "-",            "",                                  "System Control",                           "is_dispatch_targets=1",                                            "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,     SSC_ARRAY,  "is_pc_sb_allowed_in",                "User-provided is power cycle standby allowed?",                                                                                           "-",            "",                                  "System Control",                           "is_dispatch_targets=1",                                            "",              "SIMULATION_PARAMETER" },
-    { SSC_INPUT,     SSC_ARRAY,  "q_dot_elec_to_PAR_HTR_in",           "User-provided electrical power to parallel heater",                                                                                       "-",            "",                                  "System Control",                           "is_dispatch_targets=1&is_parallel_htr=1",                                            "",              "SIMULATION_PARAMETER" },
-    { SSC_INPUT,     SSC_ARRAY,  "is_PAR_HTR_allowed_in",              "User-provided is electrical heater operation allowed?",                                                                                   "-",            "",                                  "System Control",                           "is_dispatch_targets=1&is_parallel_htr=1",                                            "",              "SIMULATION_PARAMETER" },
 
     // Costs
+    { SSC_INPUT,     SSC_NUMBER, "reactor_spec_cost",                  "Reactor specific cost",                                                                                                                   "$/kWt",        "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "plant_spec_cost",                    "Power cycle specific cost",                                                                                                               "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "bop_spec_cost",                      "BOS specific cost",                                                                                                                       "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "tes_spec_cost",                      "Thermal energy storage cost",                                                                                                             "$/kWht",       "",                                  "System Costs",                             "*",                                                                "",              "" },
@@ -303,8 +279,7 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_OUTPUT,    SSC_NUMBER, "V_tes_htf_total_des",                "TES total HTF volume",                                                                                                                    "m3",           "",                                 "TES Design Calc",                          "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "d_tank_tes",                         "TES tank diameter",                                                                                                                       "m",            "",                                 "TES Design Calc",                          "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "q_dot_loss_tes_des",                 "TES thermal loss at design",                                                                                                              "MWt",          "",                                 "TES Design Calc",                          "*",                                                                "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "tshours_rec",                        "TES duration at receiver design output",                                                                                                  "hr",           "",                                 "TES Design Calc",                          "*",                                                                "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "tshours_heater",                     "TES duration at heater design output",                                                                                                    "hr",           "",                                 "TES Design Calc",                          "*",                                                                "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "tshours_reactor",                    "TES duration at the reactor design output",                                                                                               "hr",           "",                                 "TES Design Calc",                          "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "dens_store_htf_at_T_ave",            "TES density of HTF at avg temps",                                                                                                         "kg/m3",        "",                                 "TES Design Calc",                          "*",                                                                "",              "" },
 
         // Balance of Plant
@@ -527,88 +502,6 @@ public:
         bool is_dispatch = as_boolean("is_dispatch");
 
         // *****************************************************
-        // Check deprecated variables
-            // Piping loss coefficient
-        bool is_piping_loss_assigned = is_assigned("piping_loss");
-        bool is_piping_loss_coefficient_assigned = is_assigned("piping_loss_coefficient");
-
-        if (is_piping_loss_assigned && is_piping_loss_coefficient_assigned) {
-            log("We replaced the functionality of input variable piping_loss with new input variable piping_loss_coefficient,"
-                " so the model does not use your piping_loss input.");
-        }
-        else if (is_piping_loss_assigned) {
-            throw exec_error("tcsmolten_salt", "We replaced the functionality of input variable piping_loss [Wt/m] with new input variable piping_loss_coefficient [Wt/m2-K]."
-                " The new input scales piping thermal losses as a function of receiver thermal power and design-point temperatures."
-                " Please define piping_loss_coefficient in your script.");
-        }
-
-        bool is_csp_pt_tes_init_hot_htf_percent_assigned = is_assigned("csp.pt.tes.init_hot_htf_percent");
-        bool is_tes_hot_htf_percent_assigned = is_assigned("tes_hot_htf_percent_assigned");
-        if (is_csp_pt_tes_init_hot_htf_percent_assigned && is_tes_hot_htf_percent_assigned) {
-            log("We renamed input variable csp.pt.tes.init_hot_htf_percent to tes_init_hot_htf_percent,"
-                " you provided both inputs, so the model does not use your csp.pt.tes.init_hot_htf_percent input.");
-        }
-        else if (is_csp_pt_tes_init_hot_htf_percent_assigned) {
-            throw exec_error("tcsmolten_salt", "We renamed input variable csp.pt.tes.init_hot_htf_percent to tes_init_hot_htf_percent,"
-                " please define tes_init_hot_htf_percent in your script.");
-        }
-
-        if (is_assigned("P_boil")) {
-            log("We removed boiler pressure (P_boil) as a user input to the Rankine Cycle model. Because the cycle efficiency"
-                " is provided by the user, the boiler pressure input does not modify the efficiency as one might expect. Instead the model"
-                " uses boiler pressure in second order calculations to 1) define a boiling temperature to normalize off-design HTF temperature and"
-                " 2) estimate steam mass flow for cycle make-up water calculations. Because boiler pressure only has influences"
-                " results in these minor non-intuitive ways, we decided to hardcode the valu to 100 bar.");
-        }
-
-        if (is_dispatch && sim_type == 1) {
-            // Cycle startup cost disp_csu_cost
-            bool is_disp_csu_cost_assigned = is_assigned("disp_csu_cost");
-            bool is_disp_csu_cost_rel_assigned = is_assigned("disp_csu_cost_rel");
-
-            if (is_disp_csu_cost_assigned && is_disp_csu_cost_rel_assigned) {
-                log("We replaced the functionality of input variable disp_csu_cost with new input variable disp_csu_cost_rel,"
-                    " so the model does not use your disp_csu_cost input.");
-            }
-            else if (is_disp_csu_cost_assigned) {
-                throw exec_error("tcsmolten_salt", "We replaced the functionality of input variable disp_csu_cost [$/start] with new input variable disp_csu_cost_rel [$/MWe-cycle/start]."
-                    " The new input represents cycle startup costs normalized by the cycle design capacity."
-                    " Please define disp_csu_cost_rel in your script.");
-            }
-
-            // Receiver startup cost disp_rsu_cost
-            bool is_disp_rsu_cost_assigned = is_assigned("disp_rsu_cost");
-            bool is_disp_rsu_cost_rel_assigned = is_assigned("disp_rsu_cost_rel");
-
-            if (is_disp_rsu_cost_assigned && is_disp_rsu_cost_rel_assigned) {
-                log("We replaced the funcationality of input variable disp_rsu_cost with new input variable disp_rsu_cost_rel,"
-                    " so the model does not use your disp_rsu_cost input.");
-            }
-            else if (is_disp_rsu_cost_assigned) {
-                throw exec_error("tcsmolten_salt", "We replaced the functionality of input variable disp_rsu_cost [$/start] with new input variable disp_rsu_cost_rel [$/MWe-cycle/start]."
-                    " The new input represents receiver startup costs normalized by the receiver design thermal power."
-                    " Please define disp_rsu_cost_rel in your script.");
-            }
-
-            // Cycle ramping
-            bool is_disp_pen_delta_w_assigned = is_assigned("disp_pen_delta_w");
-            bool is_disp_pen_ramping_assigned = is_assigned("disp_pen_ramping");
-            if (is_disp_pen_delta_w_assigned && is_disp_pen_ramping_assigned) {
-                log("We replaced the functionality of input variable disp_pen_delta_w with new input variable disp_pen_ramping,"
-                    " so the model does not use your disp_pen_delta_w input");
-            }
-            else if (is_disp_pen_delta_w_assigned) {
-                throw exec_error("tcsmolten_salt", "We replaced the functionality of input variable disp_pen_delta_w [$/kWe-change] with new input variable disp_pen_ramping [$/MWe-change]."
-                    " The new input represents the receiver startup costs in an optimization model that uses absolute grid prices."
-                    " Please define disp_pen_ramping in your script. SAM's default value in the molten salt power tower model is 1.0");
-            }
-        }
-
-        // *****************************************************
-        // *****************************************************
-
-
-        // *****************************************************
         // System Design Parameters
         double T_htf_cold_des = as_double("T_htf_cold_des");    //[C]
         double T_htf_hot_des = as_double("T_htf_hot_des");      //[C]
@@ -619,17 +512,13 @@ public:
         // System Design Calcs
         double q_dot_pc_des = W_dot_cycle_des / eta_cycle;      //[MWt]
         double Q_tes = q_dot_pc_des * tshours;                  //[MWht]
-        double solar_mult = as_number("solarm");                //[-]
-        double q_dot_rec_des = q_dot_pc_des * solar_mult;       //[MWt]
+        double reactor_mult = as_number("reactor_mult");                //[-]
+        double q_dot_reactor_des = q_dot_pc_des * reactor_mult;     //[MWt]
 
         // Weather reader
 		C_csp_weatherreader weather_reader;
 		if (is_assigned("solar_resource_file")){
 			weather_reader.m_weather_data_provider = make_shared<weatherfile>(as_string("solar_resource_file"));
-			if (weather_reader.m_weather_data_provider->has_message()) log(weather_reader.m_weather_data_provider->message(), SSC_WARNING);
-		}
-		if (is_assigned("solar_resource_data")){
-			weather_reader.m_weather_data_provider = make_shared<weatherdata>(lookup("solar_resource_data"));
 			if (weather_reader.m_weather_data_provider->has_message()) log(weather_reader.m_weather_data_provider->message(), SSC_WARNING);
 		}
 
@@ -645,13 +534,11 @@ public:
         double site_elevation = weather_reader.ms_solved_params.m_elev;     //[m]
 
         int tes_type = 1;       
-
         if( tes_type != 1 )
         {
             throw exec_error("MSPT CSP Solver", "Thermocline thermal energy storage is not yet supported by the new CSP Solver and Dispatch Optimization models.\n");
         }
 
-        
         // Set steps per hour
         C_csp_solver::S_sim_setup sim_setup;
         sim_setup.m_sim_time_start = as_double("time_start");       //[s] time at beginning of first time step
@@ -706,8 +593,8 @@ public:
             pc->m_startup_time = as_double("startup_time");
             pc->m_startup_frac = as_double("startup_frac");
             pc->m_htf_pump_coef = as_double("pb_pump_coef");
-            pc->m_pc_fl = as_integer("rec_htf");                            // power cycle HTF is same as receiver HTF
-            pc->m_pc_fl_props = as_matrix("field_fl_props");
+            pc->m_pc_fl = as_integer("hot_htf_code");                            // power cycle HTF is same as receiver HTF
+            pc->m_pc_fl_props = as_matrix("ud_hot_htf_props");
 
             pc->m_is_calc_htf_pump_coef = is_calc_pb_pump_coef;
             pc->m_W_dot_htf_pump_target = W_dot_htf_pump_target;    //[MWe]
@@ -803,16 +690,13 @@ public:
         C_csp_collector_receiver* p_heater;
         C_csp_cr_electric_resistance* p_electric_resistance = NULL;
         bool is_parallel_heater = false;
-        double q_dot_heater_des = 0.0;  //[MWt]
-        double heater_spec_cost = 0.0;
         p_heater = p_electric_resistance;        
 
         // Reactor
-        double q_dot_reactor = 0.9*q_dot_pc_des;
         double reactor_efficiency = 1.0;
         double reactor_min_frac = 0.01;
-        int reactor_htf_code = as_integer("rec_htf");
-        util::matrix_t<double> reactor_ud_htf_props = as_matrix("field_fl_props");
+        int reactor_htf_code = as_integer("hot_htf_code");
+        util::matrix_t<double> reactor_ud_htf_props = as_matrix("ud_hot_htf_props");
         C_csp_cr_reactor c_reactor = C_csp_cr_reactor(T_htf_cold_des, T_htf_hot_des,
             q_dot_pc_des, reactor_efficiency, reactor_min_frac,
             reactor_htf_code, reactor_ud_htf_props);
@@ -820,12 +704,12 @@ public:
 
         // Thermal energy storage
         C_csp_two_tank_tes storage(
-            as_integer("rec_htf"),
-            as_matrix("field_fl_props"),
-            as_integer("rec_htf"),
-            as_matrix("field_fl_props"),
+            as_integer("hot_htf_code"),
+            as_matrix("ud_hot_htf_props"),
+            as_integer("hot_htf_code"),
+            as_matrix("ud_hot_htf_props"),
             as_double("P_ref") / as_double("design_eff"),   //[MWt]
-            as_double("solarm"),                            //[-]
+            as_double("reactor_mult"),                            //[-]
             as_double("P_ref") / as_double("design_eff") * as_double("tshours"),
             true,                                              // Fixed height
             as_double("h_tank"),
@@ -1093,23 +977,7 @@ public:
 
         if (is_dispatch && sim_type == 1){
 
-            double heater_startup_cost = 0.0;
-            if (is_parallel_heater) {
-                double heater_mult = as_double("heater_mult");            //[-]
-                double q_dot_heater_des = q_dot_pc_des * heater_mult;     //[MWt]
-                heater_startup_cost = as_double("disp_hsu_cost_rel") * q_dot_heater_des;    //[$/start]
-            }
-
-            dispatch.solver_params.set_user_inputs(as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
-                as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
-                as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"));
-            dispatch.solver_params.set_ampl_inputs(as_boolean("is_write_ampl_dat"), as_boolean("is_ampl_engine"), as_string("ampl_data_dir"), as_string("ampl_exec_call"));
-
-            double disp_csu_cost_calc = as_double("disp_csu_cost_rel")*W_dot_cycle_des; //[$/start]
-            double disp_rsu_cost_calc = as_double("disp_rsu_cost_rel")*q_dot_rec_des;   //[$/start]
-            dispatch.params.set_user_params(as_boolean("can_cycle_use_standby"), as_double("disp_time_weighting"),
-                disp_rsu_cost_calc, heater_startup_cost, disp_csu_cost_calc, as_double("disp_pen_ramping"),
-                as_double("disp_inventory_incentive"), as_double("q_rec_standby"), as_double("q_rec_heattrace")); // , ppa_price_year1);
+            double reactor_su_cost = 0.0;
         }
 
         // Instantiate Solver       
@@ -1249,17 +1117,10 @@ public:
         assign("V_tes_htf_total_des", V_tes_htf_total_calc);    //[m3]
         assign("d_tank_tes", d_tank_calc);                      //[m]
         assign("q_dot_loss_tes_des", q_dot_loss_tes_des_calc);  //[MWt]
-        assign("tshours_rec", Q_tes_des_calc / q_dot_rec_des);  //[hr]
+        assign("tshours_reactor", Q_tes_des_calc / q_dot_reactor_des);  //[hr]
         assign("dens_store_htf_at_T_ave", dens_store_htf_at_T_ave_calc); //[kg/m3]
 
-        double tshours_heater = 0.0;
-        if (q_dot_heater_des > 0.0) {
-            tshours_heater = Q_tes_des_calc / q_dot_heater_des;     //[hr]
-        }
-
-        assign("tshours_heater", tshours_heater);
-
-            // *************************
+        // *************************
             // Power Cycle
         double m_dot_htf_pc_des;    //[kg/s]
         double cp_htf_pc_des;       //[kJ/kg-K]
@@ -1311,13 +1172,6 @@ public:
         double plant_net_capacity = W_dot_cycle_des - W_dot_col_tracking_des - 
                                         W_dot_pc_pump_des - W_dot_pc_cooling_des - W_dot_bop_design - W_dot_fixed_parasitic_design;    //[MWe]
 
-        bool use_net_cycle_output_as_capacity = as_boolean("use_net_cycle_output_as_capacity");
-        if (pb_tech_type == 1 && use_net_cycle_output_as_capacity) {
-            // Calculate system capacity using only net cycle output
-            double W_dot_pc_cooling_des_for_cap_calcs = rankine_pc.get_design_input_cooling_power();
-            plant_net_capacity = W_dot_cycle_des - W_dot_pc_cooling_des_for_cap_calcs;
-        }
-
         double plant_net_conv_calc = plant_net_capacity / W_dot_cycle_des; //[-]
 
         double system_capacity = plant_net_capacity * 1.E3;         //[kWe], convert from MWe
@@ -1331,10 +1185,11 @@ public:
         assign("cp_battery_nameplate", 0.0);             //[MWe]
 
             // ******* Costs ************
+        double reactor_spec_cost = as_double("reactor_spec_cost");
+
         double Q_storage = as_double("P_ref") / as_double("design_eff") * as_double("tshours");
         double tes_spec_cost = as_double("tes_spec_cost");
 
-        double W_dot_design = as_double("P_ref");
         double power_cycle_spec_cost = as_double("plant_spec_cost");
         double bop_spec_cost = as_double("bop_spec_cost");
 
@@ -1349,19 +1204,20 @@ public:
         double sales_tax_basis = as_double("sales_tax_frac");
         double sales_tax_rate = as_double("sales_tax_rate");
 
-        double tes_cost, power_cycle_cost,bop_cost, 
+        double reactor_cost, tes_cost, power_cycle_cost,bop_cost, 
             direct_capital_precontingency_cost, contingency_cost, total_direct_cost, epc_and_owner_cost, total_land_cost,
             sales_tax_cost, total_indirect_cost, total_installed_cost, estimated_installed_cost_per_cap;
 
-        tes_cost = power_cycle_cost = bop_cost = 
+        reactor_cost = tes_cost = power_cycle_cost = bop_cost = 
             direct_capital_precontingency_cost = contingency_cost = total_direct_cost = epc_and_owner_cost = total_land_cost =
             sales_tax_cost = total_indirect_cost = total_installed_cost = estimated_installed_cost_per_cap = std::numeric_limits<double>::quiet_NaN();
 
+        reactor_cost = q_dot_reactor_des * 1.E3 * reactor_spec_cost;    //[$]
         tes_cost = N_mspt::tes_cost(Q_storage, tes_spec_cost);
-        power_cycle_cost = N_mspt::power_cycle_cost(W_dot_design, power_cycle_spec_cost);
-        bop_cost = N_mspt::bop_cost(W_dot_design, bop_spec_cost);
+        power_cycle_cost = N_mspt::power_cycle_cost(W_dot_cycle_des, power_cycle_spec_cost);
+        bop_cost = N_mspt::bop_cost(W_dot_cycle_des, bop_spec_cost);
 
-        direct_capital_precontingency_cost = tes_cost + power_cycle_cost + bop_cost;
+        direct_capital_precontingency_cost = reactor_cost + tes_cost + power_cycle_cost + bop_cost;
 
         contingency_cost = N_mspt::contingency_cost(contingency_rate, direct_capital_precontingency_cost);
 

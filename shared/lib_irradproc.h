@@ -780,7 +780,7 @@ void solarpos_spa(int year, int month, int day, int hour, double minute, double 
 * \param[out] angle[3] tracking axis rotation angle in radians, measured from surface normal of unrotating axis (only for 1 axis trackers)
 * \param[out] angle[4] backtracking difference (rot - ideal_rot) will be zero except in case of backtracking for 1 axis tracking
 */
-void incidence(int mode, double tilt, double sazm, double rlim, double alim, double zen, double azm, bool en_backtrack, double gcr, double slope_tilt, double slope_azm, bool force_to_stow, double stow_angle_deg, bool useCustomAngle, double customAngle, double angle[5]);
+void incidence(int mode, double tilt, double sazm, double rlim, double alim, double aref, double zen, double azm, bool en_backtrack, double gcr, double slope_tilt, double slope_azm, bool force_to_stow, double stow_angle_deg, bool useCustomAngle, double customAngle, bool wind_stow_active, double wind_stow_tilt, double wind_stow_azm, double angle[5]);
 
 
 /**
@@ -1046,12 +1046,16 @@ protected:
     //Custom rotation angles for single-axis trackers
     bool useCustomRotAngles;
     double customRotAngle;         // custom tracker rotation angle in degrees
+    bool windStowMode;        // is wind stow active?
 
     // Subarray properties
     double tiltDegrees;				///< Surface tilt of subarray in degrees
     double surfaceAzimuthDegrees;	///< Surface azimuth of subarray in degrees
     double rotationLimitDegrees;	///< Rotation limit for subarray in degrees
     double azimuthLimitDegrees;		///< Azimuth limit for subarray in degrees
+    double azimuthRefDegrees;		///< Azimuth reference for subarray in degrees
+    double windStowTiltDegrees;        ///< Wind stow tilt angle for the subarray in degrees
+    double windStowAzmDegrees;         ///< Wind stow azimuth angle for the subarray in degrees
     double stowAngleDegrees;		///< Optional stow angle for the subarray in degrees
     double groundCoverageRatio;		///< Ground coverage ratio of subarray
     double slopeTilt;
@@ -1122,8 +1126,8 @@ public:
     irrad(weather_header wh,
         int skyModel, int radiationModeIn, int trackModeIn,
         bool instantaneousWeather, bool backtrackingEnabled, bool forceToStowIn,
-        double dtHour, double tiltDegrees, double azimuthDegrees, double trackerRotationLimitDegrees, double azimuthLimitDegrees, double stowAngleDegreesIn,
-        double groundCoverageRatio, double slopeTilt, double slopeAzm, poaDecompReq *poaAllIn, bool enableSubhourlyClipping = false);
+        double dtHour, double tiltDegrees, double azimuthDegrees, double trackerRotationLimitDegrees, double azimuthLimitDegrees, double azimuthRefDegrees, double stowAngleDegreesIn,
+        double groundCoverageRatio, double slopeTilt, double slopeAzm, bool windStowActive, double windStowTilt, double windStowAzm, poaDecompReq *poaAllIn, bool enableSubhourlyClipping = false);
 
     /// Construct the irrad class with an Irradiance_IO() object and Subarray_IO() object
     irrad();
@@ -1181,7 +1185,7 @@ public:
     /// Function to set time, albedo, tracking and optional inputs from weather record
     void set_from_weather_record(weather_record wf, weather_header hdr, int trackModeIn, std::vector<double>& monthlyTiltDegrees, 
             bool useWeatherFileAlbedo, std::vector<double>& userSpecifiedAlbedo, poaDecompReq *poaAllIn, bool useSpatialAlbedos, const util::matrix_t<double>* userSpecifiedSpatialAlbedos, 
-            bool useCustomRotAngles = false, double customRotAngle = 0);
+            bool useCustomRotAngles = false, double customRotAngle = 0, bool windStowActive = false);
 
     /// Run the irradiance processor and calculate the plane-of-array irradiance and diffuse components of irradiance
     int calc();

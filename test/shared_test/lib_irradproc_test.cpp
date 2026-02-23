@@ -380,7 +380,7 @@ TEST_F(NightCaseIrradProc, incidenceTest_lib_irradproc) {
     /* Just before sunrise test case */
     sun_azm = 0.95662;
     sun_zen = 1.79457;
-    incidence(mode, tilt, azim, rotlim, azmlim, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
+    incidence(mode, tilt, azim, rotlim, azmlim, azmref, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
     solutions = { 1.89243, 0.174533, 3.14159, 0, 0 };
     for (int i = 0; i < 5; i++) {
         EXPECT_NEAR(angle[i], solutions[i], e) << "before-sunrise case";
@@ -396,7 +396,7 @@ TEST_F(SunriseCaseIrradProc, incidenceTest_lib_irradproc) {
 
     sun_azm = 1.11047;
     sun_zen = 1.6031;
-    incidence(mode, tilt, azim, rotlim, azmlim, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
+    incidence(mode, tilt, azim, rotlim, azmlim, azmref, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
     solution = 1.67992;
     EXPECT_NEAR(angle[0], solution, e) << "sunrise case";
 }
@@ -410,7 +410,7 @@ TEST_F(DayCaseIrradProc, incidenceTest_lib_irradproc) {
 
     sun_azm = 0;
     sun_zen = 0;
-    incidence(mode, tilt, azim, rotlim, azmlim, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
+    incidence(mode, tilt, azim, rotlim, azmlim, azmref, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
     solution = 0.174533;
     EXPECT_NEAR(angle[0], solution, e) << "noon case";
 }
@@ -424,7 +424,7 @@ TEST_F(SunsetCaseIrradProc, incidenceTest_lib_irradproc) {
 
     sun_azm = 5.13947;
     sun_zen = 1.55886;
-    incidence(mode, tilt, azim, rotlim, azmlim, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
+    incidence(mode, tilt, azim, rotlim, azmlim, azmref, sun_zen, sun_azm, backtrack_on, gcr, 0, 0, false, 0.0, 0.0, 0.0, angle);
     solution = 1.631;
     EXPECT_NEAR(angle[0], solution, e) << "sunset case";
 }

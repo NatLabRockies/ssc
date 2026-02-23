@@ -481,6 +481,10 @@ public:
 	int trackMode;						// The tracking mode [0 = fixed, 1 = single-axis tracking, 2 = two-axis tracking, 3 = azimuth-axis tracking, 4 = seasonal-tilt
 	double trackerRotationLimitDegrees; // The rotational limit of the tracker [degrees]
     double azimuthTrackerRotationLimitDegrees; // The rotational limit of the azimuth tracker [degrees]
+    double azimuthTrackerRefDegrees;    // The reference azimuth for the azimuth tracker [degrees]
+    double windStowTiltDegrees;         // The tilt position to stow the tracker in high wind [degrees]
+    double windStowAzimuthDegrees;      // The azimuth position to stow the azimuth tracker in high wind [degrees]
+    double windStowSpeedLimit;
 	flag tiltEqualLatitude;				// Set the tilt equal to the latitude
 	std::vector<double> monthlyTiltDegrees; // The seasonal tilt [degrees]
 	flag backtrackingEnabled;			// Backtracking enabled or not

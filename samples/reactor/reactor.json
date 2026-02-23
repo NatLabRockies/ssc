@@ -15,7 +15,7 @@
 	"land_cost_fixed" : 0,
 	
 	"is_dispatch" : 0,
-    "csp_financial_model" : 1,
+    "reactor_financial_model" : 1,
     "time_start" : 0,
     "time_stop" : 31536000,
     "is_parallel_htr" : 0,

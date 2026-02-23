@@ -57,12 +57,11 @@ static var_info _cm_vtab_reactor_tes_power[] = {
 
     // VARTYPE       DATATYPE    NAME                                  LABEL                                                                                                                                      UNITS           META                                 GROUP                                       REQUIRED_IF                                                         CONSTRAINTS      UI_HINTS
     { SSC_INPUT,     SSC_STRING, "solar_resource_file",                "Local weather file path",                                                                                                                 "",             "",                                  "Solar Resource",                    "?",                                                                "LOCAL_FILE",    ""},
-    { SSC_INPUT,     SSC_TABLE,  "solar_resource_data",                "Weather resource data in memory",                                                                                                         "",             "",                                  "Solar Resource",                    "?",                                                                "",              "SIMULATION_PARAMETER"},
 
     // Simulation parameters
     { SSC_INPUT,     SSC_NUMBER, "is_dispatch",                        "Allow dispatch optimization?",                                                                                                            "",             "",                                  "System Control",                           "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "sim_type",                           "1 (default): timeseries, 2: design only",                                                                                                 "",             "",                                  "System Control",                           "?=1",                                                              "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_NUMBER, "csp_financial_model",                "",                                                                                                                                        "1-8",          "",                                  "Financial Model",                          "?=1",                                                              "INTEGER,MIN=0", ""},
+    { SSC_INPUT,     SSC_NUMBER, "reactor_financial_model",            "",                                                                                                                                        "1-8",          "",                                  "Financial Model",                          "?=1",                                                              "INTEGER,MIN=0", ""},
     { SSC_INPUT,     SSC_NUMBER, "time_start",                         "Simulation start time",                                                                                                                   "s",            "",                                  "System Control",                           "?=0",                                                              "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "time_stop",                          "Simulation stop time",                                                                                                                    "s",            "",                                  "System Control",                           "?=31536000",                                                       "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "time_steps_per_hour",                "Number of simulation time steps per hour",                                                                                                "",             "",                                  "System Control",                           "?=-1",                                                             "",              "SIMULATION_PARAMETER"},
@@ -167,19 +166,19 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     // Pricing schedules and multipliers
         // Ideally this would work with sim_type = 2, but UI inputs availability depends on financial mode
     { SSC_INPUT,     SSC_NUMBER, "ppa_multiplier_model",               "PPA multiplier model 0: dispatch factors dispatch_factorX, 1: hourly multipliers dispatch_factors_ts",                                    "0/1",          "0=diurnal,1=timestep",              "Time of Delivery Factors",                 "?=0", /*need a default so this var works in required_if*/          "INTEGER,MIN=0", "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_NUMBER, "ppa_soln_mode",                      "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                                                                           "",             "",                                  "Financial Solution Mode",                  "sim_type=1&ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",   "SIMULATION_PARAMETER" },
-    { SSC_INPUT,     SSC_ARRAY,  "dispatch_factors_ts",                "Dispatch payment factor array",                                                                                                           "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=1&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_NUMBER, "ppa_soln_mode",                      "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                                                                           "",             "",                                  "Financial Solution Mode",                  "sim_type=1&ppa_multiplier_model=0&reactor_financial_model<5&is_dispatch=1&sim_type=1",       "",   "SIMULATION_PARAMETER" },
+    { SSC_INPUT,     SSC_ARRAY,  "dispatch_factors_ts",                "Dispatch payment factor array",                                                                                                           "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=1&reactor_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "en_electricity_rates",               "Enable electricity rates for grid purchase",                                                                                              "0/1",          "",                                  "Electricity Rates",                        "?=0",                                                                         "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekday",             "PPA pricing weekday schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekend",             "PPA pricing weekend schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekday",             "PPA pricing weekday schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&reactor_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekend",             "PPA pricing weekend schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&reactor_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_ARRAY,  "dispatch_tod_factors",               "TOD factors for periods 1 through 9",                                                                                                     "",
-        "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                                                                                                         "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
+        "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                                                                                                         "Time of Delivery Factors",                 "ppa_multiplier_model=0&reactor_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
 
     // Day of week for weekday/weekend schedules
     { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",           "Start day of year for TOD periods",                                                                                                       "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors", "?=0", "", "" },
 
-    { SSC_INPUT,     SSC_ARRAY,  "ppa_price_input",			           "PPA prices - yearly",			                                                                                                          "$/kWh",	      "",	                               "Revenue",			                       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",      	       "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_MATRIX, "mp_energy_market_revenue",           "Energy market revenue input",                                                                                                             "",             "Lifetime x 2[Cleared Capacity(MW),Price($/MWh)]", "Revenue",                    "csp_financial_model=6&is_dispatch=1&sim_type=1",                              "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_ARRAY,  "ppa_price_input",			           "PPA prices - yearly",			                                                                                                          "$/kWh",	      "",	                               "Revenue",			                       "ppa_multiplier_model=0&reactor_financial_model<5&is_dispatch=1&sim_type=1",       "",      	       "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_MATRIX, "mp_energy_market_revenue",           "Energy market revenue input",                                                                                                             "",             "Lifetime x 2[Cleared Capacity(MW),Price($/MWh)]", "Revenue",                    "reactor_financial_model=6&is_dispatch=1&sim_type=1",                              "",              "SIMULATION_PARAMETER"},
 
     // Optional Component Initialization (state at start of first timestep)
         // Power cycle
@@ -241,8 +240,14 @@ static var_info _cm_vtab_reactor_tes_power[] = {
 
         // System capacity required by downstream financial model
     { SSC_OUTPUT,    SSC_NUMBER, "system_capacity",                    "System capacity",                                                                                                                         "kWe",          "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "cp_system_nameplate",                 "System capacity for capacity payments",                                                                                                   "MWe",          "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "cp_battery_nameplate",                "Battery nameplate",                                                                                                                       "MWe",          "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "cp_system_nameplate",                "System capacity for capacity payments",                                                                                                   "MWe",          "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "cp_battery_nameplate",               "Battery nameplate",                                                                                                                       "MWe",          "",                                  "System Costs",                             "*",                                                                "",              "" },
+
+    { SSC_OUTPUT,    SSC_NUMBER, "tshours_reactor",                    "Hours of TES relative to reactor output",                        "hr",           "",                                  "System Design Calc",                             "*",                                                                "",              "" },
+
+        // Reactor
+    { SSC_OUTPUT,    SSC_NUMBER, "q_dot_reactor_des",                  "Reactor thermal power output at design",                            "MWe",          "",                                  "Cycle Design Calc",                             "*",                                                                "",              "" },
+
 
         // Power Cycle
     { SSC_OUTPUT,    SSC_NUMBER, "m_dot_htf_cycle_des",                "PC HTF mass flow rate at design",                                                                                                         "kg/s",        "",                                  "Power Cycle",                              "*",                                                                "",              "" },
@@ -282,6 +287,7 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_OUTPUT,    SSC_NUMBER, "W_dot_fixed",                        "Fixed parasitic at design",                                                                                                               "MWe",          "",                                 "Balance of Plant",                         "*",                                                                "",              "" },
 
         // Costs
+    { SSC_OUTPUT,    SSC_NUMBER, "reactor_cost_calc",                  "Reactor cost",                                                                                                                                "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "tes_cost_calc",                      "TES cost",                                                                                                                                "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "cycle_cost_calc",                    "Power cycle cost",                                                                                                                        "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "bop_cost_calc",                      "BOP cost",                                                                                                                                "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
@@ -437,10 +443,10 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_OUTPUT,    SSC_NUMBER, "capacity_factor_highest_1000_ppas",  "Capacity factor at 1000 highest ppa timesteps",                                                                                           "-",            "",                                  "",                                         "sim_type=1",                                                       "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "capacity_factor_highest_2000_ppas",  "Capacity factor at 2000 highest ppa timesteps",                                                                                           "-",            "",                                  "",                                         "sim_type=1",                                                       "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "capacity_factor_warmest_100_Tambs",  "Capacity factor at 100 warmest ambient temperatures",                                                                                     "-",            "",                                  "",                                         "sim_type=1",                                                       "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "hot_hours_revenue_fraction",         "Fraction of potential revenue (based on system capacity) earned during hours hotter than 33 C",                                           "-",            "",                                  "",                                         "sim_type=1&csp_financial_model<5",                                 "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "all_hours_revenue_fraction",         "Fraction of potential annual revenue (based on system capacity)",                                                                         "-",            "",                                  "",                                         "sim_type=1&csp_financial_model<5",                                 "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "hot_hours_electricity_sales",        "Electricity sales during hours hotter than 33 C",                                                                                         "$",            "",                                  "",                                         "sim_type=1&csp_financial_model<5",                                 "",              "" },
-    { SSC_OUTPUT,    SSC_NUMBER, "all_hours_electricity_sales",        "Electricity sales",                                                                                                                       "$",            "",                                  "",                                         "sim_type=1&csp_financial_model<5",                                 "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "hot_hours_revenue_fraction",         "Fraction of potential revenue (based on system capacity) earned during hours hotter than 33 C",                                           "-",            "",                                  "",                                         "sim_type=1&reactor_financial_model<5",                                 "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "all_hours_revenue_fraction",         "Fraction of potential annual revenue (based on system capacity)",                                                                         "-",            "",                                  "",                                         "sim_type=1&reactor_financial_model<5",                                 "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "hot_hours_electricity_sales",        "Electricity sales during hours hotter than 33 C",                                                                                         "$",            "",                                  "",                                         "sim_type=1&reactor_financial_model<5",                                 "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "all_hours_electricity_sales",        "Electricity sales",                                                                                                                       "$",            "",                                  "",                                         "sim_type=1&reactor_financial_model<5",                                 "",              "" },
 
     { SSC_OUTPUT,    SSC_NUMBER, "disp_objective_ann",                 "Annual sum of dispatch objective function value",                                                                                         "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_NUMBER, "disp_iter_ann",                      "Annual sum of dispatch solver iterations",                                                                                                "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -750,9 +756,9 @@ public:
         // Electricity pricing schedule
         C_timeseries_schedule_inputs elec_pricing_schedule;
 
-        int csp_financial_model = as_integer("csp_financial_model");
+        int reactor_financial_model = as_integer("reactor_financial_model");
         if (sim_type == 1) {
-            if (csp_financial_model > 0 && csp_financial_model < 5) {   // Single Owner financial models
+            if (reactor_financial_model > 0 && reactor_financial_model < 5) {   // Single Owner financial models
 
                 double ppa_price_year1 = std::numeric_limits<double>::quiet_NaN();
 
@@ -816,7 +822,7 @@ public:
                     }
                 }
             }
-            else if (csp_financial_model == 6) {     // use 'mp_energy_market_revenue' -> from Merchant Plant model
+            else if (reactor_financial_model == 6) {     // use 'mp_energy_market_revenue' -> from Merchant Plant model
 
                 if (is_dispatch) {
                     util::matrix_t<double> mp_energy_market_revenue = as_matrix("mp_energy_market_revenue"); // col 0 = cleared capacity, col 1 = $/MWh
@@ -841,7 +847,7 @@ public:
                     elec_pricing_schedule = C_timeseries_schedule_inputs(1.0, std::numeric_limits<double>::quiet_NaN());
                 }
             }
-            else if (csp_financial_model == 8) {        // No Financial Model
+            else if (reactor_financial_model == 8) {        // No Financial Model
                 if (is_dispatch) {
                     throw exec_error("reactor_tes_power", "Can't select dispatch optimization if No Financial model");
                 }
@@ -851,7 +857,7 @@ public:
                 }
             }
             else {
-                throw exec_error("reactor_tes_power", "csp_financial_model must be 1, 2, 3, 4, or 6");
+                throw exec_error("reactor_tes_power", "reactor_financial_model must be 1, 2, 3, 4, or 6");
             }
         }
         else if (sim_type == 2) {
@@ -1085,6 +1091,12 @@ public:
 
         double W_dot_col_tracking_des = 0.0;    // collector_receiver.get_tracking_power();    //[MWe]
 
+            // System
+        assign("tshours_reactor", (ssc_number_t)(tshours / reactor_mult));
+
+            // Reactor
+        assign("q_dot_reactor_des", (ssc_number_t)q_dot_reactor_des);
+
             // *************************
             // Thermal Energy Storage
         double V_tes_htf_avail_calc /*m3*/, V_tes_htf_total_calc /*m3*/,
@@ -1224,6 +1236,7 @@ public:
 
         assign("total_installed_cost", (ssc_number_t)total_installed_cost);
 
+        assign("reactor_cost_calc", (ssc_number_t)reactor_cost);
         assign("tes_cost_calc", (ssc_number_t)tes_cost);
         assign("cycle_cost_calc", (ssc_number_t)power_cycle_cost);
         assign("bop_cost_calc", (ssc_number_t)bop_cost);
@@ -1560,7 +1573,7 @@ public:
         // **********************************************************
         // **********************************************************
 
-        if (csp_financial_model > 0 && csp_financial_model < 5) {   // Single Owner financial models
+        if (reactor_financial_model > 0 && reactor_financial_model < 5) {   // Single Owner financial models
 
             if (is_assigned("ppa_price_input")) {
 

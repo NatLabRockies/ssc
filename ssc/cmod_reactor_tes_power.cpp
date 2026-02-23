@@ -102,10 +102,6 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_INPUT,     SSC_NUMBER, "cycle_cutoff_frac",                  "Minimum turbine operation fraction before shutdown",                                                                                      "",             "",                                  "Power Cycle",                              "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "q_sby_frac",                         "Fraction of thermal power required for standby",                                                                                          "",             "",                                  "Power Cycle",                              "*",                                                                "",              ""},
 
-        // Optional cycle design parameters potentially useful for analysis
-    { SSC_INPUT,     SSC_NUMBER, "is_calc_pb_pump_coef",               "False (default): use input pb_pump_coef, True: calc pb_pump_coef to achieve W_dot_pb_pump_target",                                        "",             "",                                  "Tower and Receiver",                       "?=0",                                                              "",              "SIMULATION_PARAMETER" },
-    { SSC_INPUT,     SSC_NUMBER, "W_dot_pb_pump_target",               "Target HTF pumping power loss through cycle primary heat exchanger",                                                                      "MWe",          "",                                  "Tower and Receiver",                       "is_calc_pb_pump_coef=1",                                           "",              "SIMULATION_PARAMETER" },
-
     // Steam Rankine cycle
     { SSC_INPUT,     SSC_NUMBER, "dT_cw_ref",                          "Reference condenser cooling water inlet/outlet temperature difference",                                                                   "C",            "",                                  "Rankine Cycle",                            "pc_config=0",                                                      "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "T_amb_des",                          "Reference ambient temperature at design point",                                                                                           "C",            "",                                  "Rankine Cycle",                            "pc_config=0",                                                      "",              ""},
@@ -204,20 +200,18 @@ static var_info _cm_vtab_reactor_tes_power[] = {
 
     // Costs
     { SSC_INPUT,     SSC_NUMBER, "reactor_spec_cost",                  "Reactor specific cost",                                                                                                                   "$/kWt",        "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "plant_spec_cost",                    "Power cycle specific cost",                                                                                                               "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "bop_spec_cost",                      "BOS specific cost",                                                                                                                       "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "cycle_spec_cost",                    "Power cycle specific cost",                                                                                                               "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "tes_spec_cost",                      "Thermal energy storage cost",                                                                                                             "$/kWht",       "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "bop_spec_cost",                      "BOS specific cost",                                                                                                                       "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "contingency_rate",                   "Contingency for cost overrun",                                                                                                            "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "sales_tax_rate",                     "Sales tax rate",                                                                                                                          "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "sales_tax_frac",                     "Percent of cost to which sales tax applies",                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.percent",            "EPC cost percent of direct",                                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.per_watt",           "EPC cost per watt",                                                                                                                       "$/W",          "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.fixed",              "EPC fixed",                                                                                                                               "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.plm.percent",            "PLM cost percent of direct",                                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.plm.per_watt",           "PLM cost per watt",                                                                                                                       "$/W",          "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.plm.fixed",              "PLM fixed",                                                                                                                               "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.sf.fixed_land_area",          "Fixed land area",                                                                                                                         "acre",         "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "csp.pt.sf.land_overhead_factor",     "Land overhead factor",                                                                                                                    "",             "",                                  "Heliostat Field",                          "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "epc_cost_perc_of_direct",            "EPC cost percent of direct",                                    "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "epc_cost_per_watt",                  "EPC cost per watt",                                             "$/W",          "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "epc_cost_fixed",                     "EPC fixed",                                                     "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "land_cost_perc_of_direct",           "Land cost percent of direct",                                   "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "land_cost_per_watt",                 "Land cost per watt",                                            "$/W",          "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "land_cost_fixed",                    "Land fixed",                                                    "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
 
         // Construction financing inputs/outputs (SSC variable table from cmod_cb_construction_financing)
     { SSC_INPUT,     SSC_NUMBER, "const_per_interest_rate1",           "Interest rate, loan 1",                                                                                                                   "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              ""},
@@ -569,15 +563,6 @@ public:
         // Steam Rankine and User Defined power cycle classes
         C_pc_Rankine_indirect_224 rankine_pc;
 
-
-        // Set pb_pump_coef logic for cycle
-        bool is_calc_pb_pump_coef = as_boolean("is_calc_pb_pump_coef");
-        double W_dot_htf_pump_target = std::numeric_limits<double>::quiet_NaN();
-        if (is_calc_pb_pump_coef) {
-            W_dot_htf_pump_target = as_double("W_dot_pb_pump_target");    //[MWe]
-        }
-
-
         // Check power block type
         int pb_tech_type = as_integer("pc_config");
         if (pb_tech_type == 0 || pb_tech_type == 1)     // Rankine or User Defined
@@ -595,9 +580,6 @@ public:
             pc->m_htf_pump_coef = as_double("pb_pump_coef");
             pc->m_pc_fl = as_integer("hot_htf_code");                            // power cycle HTF is same as receiver HTF
             pc->m_pc_fl_props = as_matrix("ud_hot_htf_props");
-
-            pc->m_is_calc_htf_pump_coef = is_calc_pb_pump_coef;
-            pc->m_W_dot_htf_pump_target = W_dot_htf_pump_target;    //[MWe]
 
             // Check initialization variables
             pc->m_operating_mode_initial = C_csp_power_cycle::OFF;
@@ -1190,17 +1172,17 @@ public:
         double Q_storage = as_double("P_ref") / as_double("design_eff") * as_double("tshours");
         double tes_spec_cost = as_double("tes_spec_cost");
 
-        double power_cycle_spec_cost = as_double("plant_spec_cost");
+        double power_cycle_spec_cost = as_double("cycle_spec_cost");
         double bop_spec_cost = as_double("bop_spec_cost");
 
         double contingency_rate = as_double("contingency_rate");
 
-        double EPC_land_perc_direct_cost = as_double("csp.pt.cost.epc.percent");
-        double EPC_land_per_power_cost = as_double("csp.pt.cost.epc.per_watt");
-        double EPC_land_fixed_cost = as_double("csp.pt.cost.epc.fixed");
-        double total_land_perc_direct_cost = as_double("csp.pt.cost.plm.percent");
-        double total_land_per_power_cost = as_double("csp.pt.cost.plm.per_watt");
-        double total_land_fixed_cost = as_double("csp.pt.cost.plm.fixed");
+        double EPC_land_perc_direct_cost = as_double("epc_cost_perc_of_direct");
+        double EPC_land_per_power_cost = as_double("epc_cost_per_watt");
+        double EPC_land_fixed_cost = as_double("epc_cost_fixed");
+        double total_land_perc_direct_cost = as_double("land_cost_perc_of_direct");
+        double total_land_per_power_cost = as_double("land_cost_per_watt");
+        double total_land_fixed_cost = as_double("land_cost_fixed");
         double sales_tax_basis = as_double("sales_tax_frac");
         double sales_tax_rate = as_double("sales_tax_rate");
 

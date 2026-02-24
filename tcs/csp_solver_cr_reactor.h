@@ -42,7 +42,7 @@ class C_csp_cr_reactor : public C_csp_collector_receiver
 {
 public:
 
-    enum E_elec_resist_startup_mode
+    enum E_reactor_startup_mode
     {
         SEQUENCED = 0,
         INSTANTANEOUS
@@ -62,7 +62,7 @@ private:
     int m_htf_code;
     util::matrix_t<double> m_ud_htf_props;
 
-    E_elec_resist_startup_mode m_startup_mode;
+    E_reactor_startup_mode m_startup_mode;
 
     // Hardcoded in constructor
 

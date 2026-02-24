@@ -242,7 +242,6 @@ static var_info _cm_vtab_reactor_tes_power[] = {
         // Reactor
     { SSC_OUTPUT,    SSC_NUMBER, "q_dot_reactor_des",                  "Reactor thermal power output at design",                            "MWe",          "",                                  "Cycle Design Calc",                             "*",                                                                "",              "" },
 
-
         // Power Cycle
     { SSC_OUTPUT,    SSC_NUMBER, "m_dot_htf_cycle_des",                "PC HTF mass flow rate at design",                                                                                                         "kg/s",        "",                                  "Power Cycle",                              "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "q_dot_cycle_des",                    "PC thermal input at design",                                                                                                              "MWt",         "",                                  "Power Cycle",                              "*",                                                                "",              "" },
@@ -329,6 +328,11 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_OUTPUT,    SSC_ARRAY,  "rh",                                 "Resource relative humidity",                                                                                                              "%",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "wspd",                               "Resource wind velocity",                                                                                                                  "m/s",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
+        // Reactor outputs
+    { SSC_OUTPUT,    SSC_ARRAY,  "reactor_turn_down",                  "Reactor turn down",                                                                                                                       "",             "",                                  "",                                         "sim_type=1",                                                       "",              "" },
+    { SSC_OUTPUT,    SSC_ARRAY,  "reactor_thermal_power",              "Reactor thermal power output",                                                                                                            "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              "" },
+
+        
         // Power cycle outputs
     { SSC_OUTPUT,    SSC_ARRAY,  "eta",                                "PC efficiency, gross",                                                                                                                    "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "q_pb",                               "PC input energy",                                                                                                                         "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -582,7 +586,7 @@ public:
             pc->m_pc_fl_props = as_matrix("ud_hot_htf_props");
 
             // Check initialization variables
-            pc->m_operating_mode_initial = C_csp_power_cycle::OFF;
+            pc->m_operating_mode_initial = C_csp_power_cycle::ON;       // OFF;
             if (is_assigned("pc_op_mode_initial")) {
                 pc->m_operating_mode_initial = (C_csp_power_cycle::E_csp_power_cycle_modes)as_integer("pc_op_mode_initial");
                 if (is_assigned("pc_startup_time_remain_init")) {
@@ -682,6 +686,9 @@ public:
         C_csp_cr_reactor c_reactor = C_csp_cr_reactor(T_htf_cold_des, T_htf_hot_des,
             q_dot_pc_des, reactor_efficiency, reactor_min_frac,
             reactor_htf_code, reactor_ud_htf_props);
+
+        // Set reactor outputs
+        c_reactor.mc_reported_outputs.assign(C_csp_cr_reactor::E_Q_DOT_HTF, allocate("reactor_thermal_power", n_steps_fixed), n_steps_fixed);
 
 
         // Thermal energy storage
@@ -1034,7 +1041,8 @@ public:
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::TWET, allocate("twet", n_steps_fixed), n_steps_fixed);
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::RH, allocate("RH", n_steps_fixed), n_steps_fixed);
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::WSPD, allocate("wspd", n_steps_fixed), n_steps_fixed);
-        csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::CR_DEFOCUS, allocate("defocus", n_steps_fixed), n_steps_fixed);
+
+        csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::CR_DEFOCUS, allocate("reactor_turn_down", n_steps_fixed), n_steps_fixed);
 
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::TES_Q_DOT_DC, allocate("q_dc_tes", n_steps_fixed), n_steps_fixed);
         csp_solver.mc_reported_outputs.assign(C_csp_solver::C_solver_outputs::TES_Q_DOT_CH, allocate("q_ch_tes", n_steps_fixed), n_steps_fixed);

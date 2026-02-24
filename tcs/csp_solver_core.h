@@ -1956,7 +1956,7 @@ public:
     {
     public:
         C_CR_DF__PC_SU__TES_OFF__AUX_OFF() : C_operating_mode_core(C_csp_collector_receiver::ON,
-            C_csp_power_cycle::STARTUP_CONTROLLED, C_MEQ__m_dot_tes::E__TO_PC__ITER_M_DOT_SU, C_MEQ__timestep::E_STEP_FROM_COMPONENT,
+            C_csp_power_cycle::STARTUP, C_MEQ__m_dot_tes::E__TO_PC__ITER_M_DOT_SU, C_MEQ__timestep::E_STEP_FROM_COMPONENT,
             true, "CR_DF__PC_SU__TES_OFF__AUX_OFF", QUIETNAN, false) {}
 
     };

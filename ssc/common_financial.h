@@ -156,7 +156,7 @@ class advanced_financing_cost
 {
 private:
 	compute_module *m_cm;
-
+	
 public:
 	advanced_financing_cost(compute_module *cm);
 	bool compute_cost(double cost_installed, double equity, double debt, double cbi, double ibi);

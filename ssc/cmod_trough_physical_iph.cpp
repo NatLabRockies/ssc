@@ -2439,12 +2439,11 @@ public:
         double i_elec_cost = std::numeric_limits<double>::quiet_NaN();
         for(int i = 0; i < n_steps_fixed; i++)
         {
-            size_t hour = (size_t)ceil(p_time_final_hr[i]);
-            p_gen_heat[i] = (ssc_number_t)(p_q_dot_heat_sink[i] * haf(hour) * 1.E3);     //[kWt]
+            p_gen_heat[i] = (ssc_number_t)(p_q_dot_heat_sink[i] * haf(i) * 1.E3);     //[kWt]
             p_gen[i] = (ssc_number_t)0.0;   //[kWt] (no electrical generation for IPH trough)
             p_gen_heat_btu[i] = p_gen_heat[i] / MMBTU_TO_KWh;   //[MMBtu/hr]
             p_W_dot_parasitic_tot[i] *= -1.0;           //[kWe] Label is total parasitics, so change to a positive value
-            p_W_dot_par_tot_haf[i] = (ssc_number_t)(p_W_dot_parasitic_tot[i] * haf(hour) * 1.E3);       //[kWe]
+            p_W_dot_par_tot_haf[i] = (ssc_number_t)(p_W_dot_parasitic_tot[i] * haf(i) * 1.E3);       //[kWe]
             p_q_dot_defocus_est[i] = (ssc_number_t)(1.0 - p_SCAs_def[i])*p_q_dot_htf_sf_out[i]; //[MWt]
             //p_m_dot_tes_dc[i] = (ssc_number_t)(p_m_dot_tes_dc[i] / 3600.0);     //[kg/s] convert from kg/hr
             //p_m_dot_tes_ch[i] = (ssc_number_t)(p_m_dot_tes_ch[i] / 3600.0);     //[kg/s] convert from kg/hr

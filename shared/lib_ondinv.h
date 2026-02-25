@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,10 +63,10 @@ public:
 	double INomDC; // [A]
 	double INomAC; // [A]
 	double IMaxAC; // [A]
-	double TPNom; // [°C]
-	double TPMax; // [°C]
-	double TPLim1; // [°C]
-	double TPLimAbs; // [°C]
+	double TPNom; // [ï¿½C]
+	double TPMax; // [ï¿½C]
+	double TPLim1; // [ï¿½C]
+	double TPLimAbs; // [ï¿½C]
 	double PLim1; // [kW]
 	double PLimAbs; // [kW]
 	double VNomEff[3]; // [V]
@@ -87,7 +87,7 @@ public:
 		/* inputs */
 		double Pdc,			/* Input power to inverter (Wdc) */
 		double Vdc,			/* Voltage input to inverter (Vdc) */
-		double Tamb,		/* Ambient temperature (°C) */
+		double Tamb,		/* Ambient temperature (ï¿½C) */
 
 		/* outputs */
 		double *Pac,		/* AC output power (Wac) */

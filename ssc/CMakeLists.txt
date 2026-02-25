@@ -6,6 +6,8 @@
 
 # For CMake build option `SAMAPI_EXPORT`, see ../CMakeLists.txt
 
+set(CMAKE_PREFIX_PATH "../../../CoolProp/install_root")
+
 include_directories(. ../splinter ../shared ../nlopt ../lpsolve ../solarpilot ../tcs ../ssc)
 
 set(SSC_SRC
@@ -237,6 +239,13 @@ foreach( name ${DEPENDENCIES} )
 	target_link_libraries(ssc PUBLIC ${name})
 endforeach()
 
+# If CoolProp is not in a standard location, link the library directly (example for Windows and Linux)
+# Uncomment and set the correct path if needed:
+# target_link_libraries(ssc PUBLIC "${CMAKE_SOURCE_DIR}/../../../CoolProp/build/Release/CoolProp.lib")
+#target_link_libraries(ssc PUBLIC "C:/Users/tbrown2/Documents/repos/CoolProp/build/Release/CoolProp.lib")
+#find_package(CoolProp REQUIRED)
+#target_link_libraries(ssc PUBLIC CoolProp::CoolProp)
+
 if (UNIX)
 	find_package(Threads REQUIRED)
 	target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
@@ -256,13 +265,23 @@ endif()
 # Target Installation
 #
 #####################################################################################################################
-
+message(STATUS "CoolProp include: ${CMAKE_CURRENT_SOURCE_DIR}/../../../CoolProp/include")
+message(STATUS "CoolProp lib: ${CMAKE_CURRENT_SOURCE_DIR}/../../../CoolProp/build/Release/CoolProp")
 if (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
-	set(SSC_LIB $<TARGET_FILE_DIR:ssc>/$<TARGET_FILE_BASE_NAME:ssc>.lib)
-	set(SSC_H ${CMAKE_CURRENT_LIST_DIR}/sscapi.h)
+    set(SSC_LIB $<TARGET_FILE_DIR:ssc>/$<TARGET_FILE_BASE_NAME:ssc>.lib)
+    set(SSC_H ${CMAKE_CURRENT_LIST_DIR}/sscapi.h)
 
-	set(TESTDIR ${CMAKE_CURRENT_BINARY_DIR}/../test/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
+    # Add CoolProp as IMPORTED library for MSVC
+    add_library(CoolPropLib SHARED IMPORTED)
+    set_target_properties(CoolPropLib PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.dll"
+        IMPORTED_IMPLIB "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/include"
+    )
+    target_link_libraries(ssc PUBLIC CoolPropLib)
+
+    set(TESTDIR ${CMAKE_CURRENT_BINARY_DIR}/../test/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
 
 	if(DEFINED ENV{SAMNTDIR})
 		add_custom_command(

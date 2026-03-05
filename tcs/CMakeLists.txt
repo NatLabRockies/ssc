@@ -44,6 +44,8 @@ set(TCS_SRC
 		cst_iph_dispatch.cpp
 		dispatch_builder.cpp
 		etes_dispatch.cpp
+        fluid_co2_properties.cpp
+        fluid_water_properties.cpp
 		fmin.cpp
 		fmin_callbacks.cpp
 		heat_exchangers.cpp
@@ -121,6 +123,9 @@ set(TCS_SRC
 		dispatch_builder.h
 		etes_dispatch.h
 		flat_plate_solar_collector.h
+        fluid_co2_properties.h
+        fluid_properties.h
+        fluid_water_properties.h
 		fmin.h
 		fmin_callbacks.h
 		heat_exchangers.h

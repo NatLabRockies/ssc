@@ -6,6 +6,7 @@ extern "C" {
 
 TEST(CoolProp, SmokeTest)
 {
+    
     double h = PropsSI("H", "T", 25+273, "P", 300000, "IsoButane");
     h = PropsSI("H", "T", 251, "P", 101325, "Water");
     h = PropsSI("H", "T", 302, "P", 101325, "Water");

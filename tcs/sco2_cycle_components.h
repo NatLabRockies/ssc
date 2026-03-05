@@ -5,30 +5,31 @@
 #include <memory>
 
 #include "numeric_solvers.h"
-#include "CO2_properties.h"
+#include "fluid_properties.h"
 #include "interpolation_routines.h"
 
-void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/,
+void calculate_turbomachinery_outlet_1(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/,
 	double eta_isen /*-*/, bool is_comp, int & error_code,
 	double & enth_in /*kJ/kg*/, double & entr_in /*kJ/kg-K*/, double & dens_in /*kg/m3*/, double & temp_out /*K*/,
 	double & enth_out /*kJ/kg*/, double & entr_out /*kJ/kg-K*/, double & dens_out /*kg/m3*/, double & spec_work /*kJ/kg*/);
 
-void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/,
+void calculate_turbomachinery_outlet_1(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/,
 	double eta_isen /*-*/, bool is_comp, int & error_code, double & spec_work /*kJ/kg*/);
 
-void isen_eta_from_poly_eta(double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, double poly_eta /*-*/, bool is_comp, int & error_code, double & isen_eta);
+void isen_eta_from_poly_eta(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, double poly_eta /*-*/, bool is_comp, int & error_code, double & isen_eta);
 
-int calc_turbomachinery_eta_isen(double T_in /*K*/, double P_in /*kPa*/,
+int calc_turbomachinery_eta_isen(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/,
 	double T_out /*K*/, double P_out /*kPa*/, double & eta_isen);
 
-int Ts_data_over_linear_dP_ds(double P_in /*kPa*/, double s_in /*kJ/kg-K*/, double P_out /*kPa*/, double s_out /*kJ/kg-K*/,
+int Ts_data_over_linear_dP_ds(C_fluid_properties& fluid, double P_in /*kPa*/, double s_in /*kJ/kg-K*/, double P_out /*kPa*/, double s_out /*kJ/kg-K*/,
 	std::vector<double> & T_data /*C*/, std::vector<double> & s_data /*kJ/kg-K*/, int N_points = 30);
 
-int Ph_data_over_turbomachinery(double T_in /*K*/, double P_in /*kPa*/,
+int Ph_data_over_turbomachinery(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/,
 	double T_out /*K*/, double P_out /*kPa*/,
 	std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data /*kJ/kg*/, int N_points = 30);
 
-int sco2_cycle_plot_data_TS(int cycle_config,
+int sco2_cycle_plot_data_TS(C_fluid_properties& fluid,
+    int cycle_config,
 	const std::vector<double> pres /*kPa*/,
 	const std::vector<double> entr /*kJ/kg-K*/,
 	std::vector<double> & T_LTR_HP /*C*/,
@@ -46,7 +47,7 @@ int sco2_cycle_plot_data_TS(int cycle_config,
 	std::vector<double> & T_pre_cooler /*C*/,
 	std::vector<double> & s_pre_cooler /*kJ/kg-K*/);
 
-int sco2_cycle_plot_data_PH(int cycle_config,
+int sco2_cycle_plot_data_PH(C_fluid_properties& fluid, int cycle_config,
 	const std::vector<double> temp /*K*/,
 	const std::vector<double> pres /*kPa*/,
 	std::vector<double> & P_t /*MPa*/,
@@ -60,18 +61,18 @@ int sco2_cycle_plot_data_PH(int cycle_config,
     std::vector<double> & P_t2 /*MPa*/,
     std::vector<double> & h_t2 /*kJ/kg*/);
 
-int Ts_arrays_over_constP(double T_cold /*C*/, double T_hot /*C*/, std::vector<double> P_consts /*kPa*/,
+int Ts_arrays_over_constP(C_fluid_properties& fluid, double T_cold /*C*/, double T_hot /*C*/, std::vector<double> P_consts /*kPa*/,
 	std::vector<std::vector<double>> & T_data /*C*/, std::vector<std::vector<double>> & s_data);
 
-int Ph_arrays_over_constT(double P_low /*MPa*/, double P_high /*MPa*/, std::vector<double> T_consts /*C*/,
+int Ph_arrays_over_constT(C_fluid_properties& fluid, double P_low /*MPa*/, double P_high /*MPa*/, std::vector<double> T_consts /*C*/,
 	std::vector<std::vector<double>> & P_data /*MPa*/, std::vector<std::vector<double>> & h_data);
 
-int Ts_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data);
+int Ts_dome(C_fluid_properties& fluid, double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data);
 
-int Ts_full_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data /*kJ/kg-K*/,
+int Ts_full_dome(C_fluid_properties& fluid, double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data /*kJ/kg-K*/,
 	std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data /*kJ/kg*/);
 
-int Ph_dome(double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data);
+int Ph_dome(C_fluid_properties& fluid, double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data);
 
 double calculate_inflation_factor(double yr_base, double yr_target);
 
@@ -81,9 +82,13 @@ private:
 
 
 public:
-	C_MEQ_CO2_props_at_2phase_P(){}
+	C_MEQ_CO2_props_at_2phase_P(E_fluid_type fluid_type)
+    {
+        m_fluid = C_fluid_properties::create_fluid_properties(fluid_type);
+    }
 
-	CO2_state mc_co2_props;
+    std::unique_ptr<C_fluid_properties> m_fluid;
+	fluid_state mc_props;
 
 	virtual int operator()(double T_co2 /*K*/, double *P_calc /*kPa*/);
 };
@@ -228,10 +233,13 @@ private:
 	S_design_solved ms_des_solved;
 	S_od_solved ms_od_solved;
 
+    C_fluid_properties& m_fluid;
+
 public:
 	~C_turbine(){};
 
-	C_turbine()
+	C_turbine(C_fluid_properties& fluid)
+        : m_fluid(fluid)
 	{
 		m_r_W_dot_scale = 1.0;
 
@@ -265,6 +273,9 @@ public:
 
 class C_comp__psi_eta_vs_phi
 {
+private:
+    C_fluid_properties& m_fluid;
+
 public:
 
     enum E_comp_models
@@ -345,7 +356,9 @@ public:
         }
     };
 
-    C_comp__psi_eta_vs_phi(){}
+    C_comp__psi_eta_vs_phi(C_fluid_properties& fluid)
+        : m_fluid(fluid)
+    {}
 
     virtual ~C_comp__psi_eta_vs_phi(){}
 
@@ -366,7 +379,7 @@ public:
 
     int calc_m_dot__phi_des(double T_in /*K*/, double P_in /*kPa*/, double N_rpm /*rpm*/, double & m_dot /*kg/s*/);
 
-    static std::unique_ptr<C_comp__psi_eta_vs_phi> construct_derived_C_comp__psi_eta_vs_phi(int comp_model_code);
+    static std::unique_ptr<C_comp__psi_eta_vs_phi> construct_derived_C_comp__psi_eta_vs_phi(C_fluid_properties& fluid, int comp_model_code);
 
     virtual void set_design_solution(double phi /*-*/, double T_comp_in_des /*K*/, double P_comp_in /*kPa*/) = 0;
 
@@ -394,7 +407,8 @@ public:
     double m_phi_min;               //[-]
     double m_phi_max;               //[-]
 
-    C_comp__snl_radial_via_Dyreby()
+    C_comp__snl_radial_via_Dyreby(C_fluid_properties& fluid)
+        : C_comp__psi_eta_vs_phi(fluid)
     {
         m_phi_design = 0.02971;		//[-] Design-point flow coef. for Sandia compressor (corresponds to max eta)
         m_phi_min = 0.0225;			//[-] Approximate surge limit for SNL compressor
@@ -435,7 +449,9 @@ public:
     double m_phi_max;       //[-]  
     double m_eta_isen_norm; //[-]
 
-    C_comp__compA__PT_map_template(){}
+    C_comp__compA__PT_map_template(C_fluid_properties& fluid)
+        : C_comp__psi_eta_vs_phi(fluid)
+    {}
 
     virtual void set_design_solution(double phi /*-*/, double T_comp_in_des /*K*/, double P_comp_in /*kPa*/);
 
@@ -465,6 +481,8 @@ public:
 
 	int m_cost_model;		//[-]
     int m_compressor_model; //[-]
+
+    C_fluid_properties& m_fluid;
 
 	enum
 	{
@@ -575,7 +593,8 @@ public:
 
 	~C_comp_multi_stage(){};
 
-	C_comp_multi_stage()
+	C_comp_multi_stage(C_fluid_properties& fluid)
+        : m_fluid(fluid)
 	{
 		m_r_W_dot_scale = 1.0;
 		m_cost_model = E_CARLSON_17;
@@ -604,10 +623,13 @@ public:
 		double m_m_dot_basis;	//[kg/s]
         double m_tol_in;   //[-] Convergence tolerance
 
+        C_fluid_properties& m_fluid;
+
 	public:
-		C_MEQ_eta_isen__h_out(C_comp_multi_stage *pc_multi_stage,
+		C_MEQ_eta_isen__h_out(C_fluid_properties& fluid, C_comp_multi_stage *pc_multi_stage,
 			double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, double m_dot_basis /*kg/s*/,
             double tol /*-*/)
+            : m_fluid(fluid)
 		{
 			mpc_multi_stage = pc_multi_stage;
 			m_T_in = T_in;
@@ -629,9 +651,12 @@ public:
 		double m_m_dot_basis;	//[kg/s]
 		double m_eta_isen;	//[-]
 
+        C_fluid_properties& m_fluid;
+
 	public:
-		C_MEQ_N_rpm__P_out(C_comp_multi_stage *pc_multi_stage,
+		C_MEQ_N_rpm__P_out(C_fluid_properties& fluid, C_comp_multi_stage *pc_multi_stage,
 			double T_in /*K*/, double P_in /*kPa*/, double m_dot_basis /*kg/s*/, double eta_isen /*-*/)
+            : m_fluid(fluid)
 		{
 			mpc_multi_stage = pc_multi_stage;
 			m_T_in = T_in;	//[K]

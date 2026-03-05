@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "sco2_cycle_components.h"
 
-#include "CO2_properties.h"
 #include <limits>
 #include <algorithm>
 
@@ -1847,7 +1846,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
         ms_des_par.m_HTR_eff_target = 0.0;
 	}
 
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	// Initialize Recuperators
 		// LTR
@@ -1929,7 +1928,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
 	{
 		int poly_error_code = 0;
 
-		isen_eta_from_poly_eta(m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], std::abs(m_eta_mc),
+		isen_eta_from_poly_eta(*m_fluid, m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], std::abs(m_eta_mc),
 			true, poly_error_code, eta_mc_isen);
 
 		if( poly_error_code != 0 )
@@ -1945,7 +1944,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
 	{
 		int poly_error_code = 0;
 
-		isen_eta_from_poly_eta(m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], std::abs(m_eta_t),
+		isen_eta_from_poly_eta(*m_fluid, m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], std::abs(m_eta_t),
 			false, poly_error_code, eta_t_isen);
 
 		if( poly_error_code != 0 )
@@ -1961,7 +1960,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
 	int comp_error_code = 0;
 	double w_mc = std::numeric_limits<double>::quiet_NaN();
 	// Main compressor
-	calculate_turbomachinery_outlet_1(m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], eta_mc_isen, true,
+	calculate_turbomachinery_outlet_1(*m_fluid, m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], eta_mc_isen, true,
 		comp_error_code, m_enth_last[MC_IN], m_entr_last[MC_IN], m_dens_last[MC_IN], m_temp_last[MC_OUT],
 		m_enth_last[MC_OUT], m_entr_last[MC_OUT], m_dens_last[MC_OUT], w_mc);
 
@@ -1974,7 +1973,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
 	int turbine_error_code = 0;
 	double w_t = std::numeric_limits<double>::quiet_NaN();
 	// Turbine
-	calculate_turbomachinery_outlet_1(m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], eta_t_isen, false,
+	calculate_turbomachinery_outlet_1(*m_fluid, m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], eta_t_isen, false,
 		turbine_error_code, m_enth_last[TURB_IN], m_entr_last[TURB_IN], m_dens_last[TURB_IN], m_temp_last[TURB_OUT],
 		m_enth_last[TURB_OUT], m_entr_last[TURB_OUT], m_dens_last[TURB_OUT], w_t);
 
@@ -1993,7 +1992,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
 		{
 			int rc_error_code = 0;
 
-			isen_eta_from_poly_eta(m_temp_last[MC_OUT], m_pres_last[LTR_LP_OUT], m_pres_last[RC_OUT], std::abs(m_eta_rc),
+			isen_eta_from_poly_eta(*m_fluid, m_temp_last[MC_OUT], m_pres_last[LTR_LP_OUT], m_pres_last[RC_OUT], std::abs(m_eta_rc),
 				true, rc_error_code, eta_rc_isen);
 
 			if( rc_error_code != 0 )
@@ -2006,7 +2005,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
 			eta_rc_isen = m_eta_rc;
 
 		int rc_error_code = 0;
-		calculate_turbomachinery_outlet_1(m_temp_last[MC_OUT], m_pres_last[LTR_LP_OUT], m_pres_last[RC_OUT], eta_rc_isen,
+		calculate_turbomachinery_outlet_1(*m_fluid, m_temp_last[MC_OUT], m_pres_last[LTR_LP_OUT], m_pres_last[RC_OUT], eta_rc_isen,
 			true, rc_error_code, w_rc);
 
 		if( rc_error_code != 0 )
@@ -2076,7 +2075,7 @@ void C_RecompCycle::design_core_standard(int & error_code)
 
 	// State 5 can now be fully defined
 	m_enth_last[HTR_HP_OUT] = m_enth_last[MIXER_OUT] + Q_dot_HT / m_dot_t;						// Energy balance on cold stream of high-temp recuperator
-	int prop_error_code = CO2_PH(m_pres_last[HTR_HP_OUT], m_enth_last[HTR_HP_OUT], &co2_props);
+	int prop_error_code = m_fluid->PH(m_pres_last[HTR_HP_OUT], m_enth_last[HTR_HP_OUT], &co2_props);
 	if( prop_error_code != 0 )
 	{
 		error_code = prop_error_code;
@@ -2145,7 +2144,7 @@ int C_RecompCycle::C_mono_eq_LTR_des::operator()(double T_LTR_LP_out /*K*/, doub
 		if( mpc_rc_cycle->m_eta_rc < 0.0 )		// recalculate isen. efficiency of recompressor because inlet temp changes
 		{
 			int rc_error_code = 0;
-			isen_eta_from_poly_eta(mpc_rc_cycle->m_temp_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[LTR_LP_OUT],
+			isen_eta_from_poly_eta(*mpc_rc_cycle->m_fluid, mpc_rc_cycle->m_temp_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[LTR_LP_OUT],
 								mpc_rc_cycle->m_pres_last[RC_OUT], std::abs(mpc_rc_cycle->m_eta_rc), true,
 								rc_error_code, eta_rc_isen);
 
@@ -2162,7 +2161,7 @@ int C_RecompCycle::C_mono_eq_LTR_des::operator()(double T_LTR_LP_out /*K*/, doub
 	
 		int rc_error_code = 0;
 
-		calculate_turbomachinery_outlet_1(mpc_rc_cycle->m_temp_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[RC_OUT], eta_rc_isen, true, rc_error_code,
+		calculate_turbomachinery_outlet_1(*mpc_rc_cycle->m_fluid, mpc_rc_cycle->m_temp_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[RC_OUT], eta_rc_isen, true, rc_error_code,
 			mpc_rc_cycle->m_enth_last[LTR_LP_OUT], mpc_rc_cycle->m_entr_last[LTR_LP_OUT], mpc_rc_cycle->m_dens_last[LTR_LP_OUT], mpc_rc_cycle->m_temp_last[RC_OUT], mpc_rc_cycle->m_enth_last[RC_OUT],
 			mpc_rc_cycle->m_entr_last[RC_OUT], mpc_rc_cycle->m_dens_last[RC_OUT], m_w_rc);
 
@@ -2175,7 +2174,7 @@ int C_RecompCycle::C_mono_eq_LTR_des::operator()(double T_LTR_LP_out /*K*/, doub
 	else
 	{
 		m_w_rc = 0.0;		// no recompressor
-		int prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[LTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
+		int prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_last[LTR_LP_OUT], mpc_rc_cycle->m_pres_last[LTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
 		if( prop_error_code != 0 )
 		{
 			*diff_T_LTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -2249,7 +2248,7 @@ int C_RecompCycle::C_mono_eq_HTR_des::operator()(double T_HTR_LP_out /*K*/, doub
 
 	mpc_rc_cycle->m_temp_last[HTR_LP_OUT] = T_HTR_LP_out;		//[K]	
 
-	int prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_last[HTR_LP_OUT], mpc_rc_cycle->m_pres_last[HTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
+	int prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_last[HTR_LP_OUT], mpc_rc_cycle->m_pres_last[HTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -2296,7 +2295,7 @@ int C_RecompCycle::C_mono_eq_HTR_des::operator()(double T_HTR_LP_out /*K*/, doub
 	// Know LTR performance so we can calculate the HP outlet
 		// Energy balance on LTR HP stream
 	mpc_rc_cycle->m_enth_last[LTR_HP_OUT] = mpc_rc_cycle->m_enth_last[MC_OUT] + m_Q_dot_LT/ m_m_dot_mc;		//[kJ/kg]
-	prop_error_code = CO2_PH(mpc_rc_cycle->m_pres_last[LTR_HP_OUT], mpc_rc_cycle->m_enth_last[LTR_HP_OUT], &mpc_rc_cycle->mc_co2_props);
+	prop_error_code = mpc_rc_cycle->m_fluid->PH(mpc_rc_cycle->m_pres_last[LTR_HP_OUT], mpc_rc_cycle->m_enth_last[LTR_HP_OUT], &mpc_rc_cycle->mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -2310,7 +2309,7 @@ int C_RecompCycle::C_mono_eq_HTR_des::operator()(double T_HTR_LP_out /*K*/, doub
 	if( mpc_rc_cycle->ms_des_par.m_recomp_frac >= 1.E-12 )
 	{
 		mpc_rc_cycle->m_enth_last[MIXER_OUT] = (1.0 - mpc_rc_cycle->ms_des_par.m_recomp_frac)*mpc_rc_cycle->m_enth_last[LTR_HP_OUT] + mpc_rc_cycle->ms_des_par.m_recomp_frac*mpc_rc_cycle->m_enth_last[RC_OUT];	//[kJ/kg]
-		prop_error_code = CO2_PH(mpc_rc_cycle->m_pres_last[MIXER_OUT], mpc_rc_cycle->m_enth_last[MIXER_OUT], &mpc_rc_cycle->mc_co2_props);
+		prop_error_code = mpc_rc_cycle->m_fluid->PH(mpc_rc_cycle->m_pres_last[MIXER_OUT], mpc_rc_cycle->m_enth_last[MIXER_OUT], &mpc_rc_cycle->mc_co2_props);
 		if( prop_error_code != 0 )
 		{
 			*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -2883,6 +2882,9 @@ int C_RecompCycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_parameters 
 
 	error_msg = "";
 
+    fluid_info info;
+    m_fluid->get_info(&info);
+
     // Check that simple/recomp flag is set
     if (ms_auto_opt_des_par.m_is_recomp_ok < -1.0 || (ms_auto_opt_des_par.m_is_recomp_ok > 0 &&
         ms_auto_opt_des_par.m_is_recomp_ok != 1.0 && ms_auto_opt_des_par.m_is_recomp_ok != 2.0))
@@ -2891,11 +2893,11 @@ int C_RecompCycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_parameters 
             " is either between -1 and 0 (fixed recompression fraction) or equal to 1 (recomp allowed)\n"));
     }
 		// Can't operate compressore in 2-phase region
-	if( m_T_mc_in <= N_co2_props::T_crit )
+	if( m_T_mc_in <= info.T_critical )
 	{
 		error_msg.append( util::format("Only single phase cycle operation is allowed in this model." 
 			"The compressor inlet temperature (%lg [C]) must be great than the critical temperature: %lg [C]",
-			m_T_mc_in - 273.15, ((N_co2_props::T_crit) - 273.15)));
+			m_T_mc_in - 273.15, ((info.T_critical) - 273.15)));
 
 		return -1;
 	}
@@ -2930,10 +2932,10 @@ int C_RecompCycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_parameters 
 	}
 
 		// Turbine inlet temperature must be colder than property limits
-	if( m_T_t_in >= N_co2_props::T_upper_limit )
+	if( m_T_t_in >= info.temp_upper_limit )
 	{
 		error_msg.append( util::format("The turbine inlet temperature, %lg [C], is hotter than the maximum allow temperature in the CO2 property code %lg [C]",
-			m_T_t_in - 273.15, N_co2_props::T_upper_limit - 273.15));
+			m_T_t_in - 273.15, info.temp_upper_limit - 273.15));
 
 		return -1;
 	}
@@ -3011,12 +3013,12 @@ int C_RecompCycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_parameters 
 	}
 
 		// Limits on high pressure limit
-	if( m_P_high_limit >= N_co2_props::P_upper_limit )
+	if( m_P_high_limit >= info.pres_upper_limit )
 	{
 		error_msg.append( util::format("The upper pressure limit, %lg [MPa], was set to the internal limit in the CO2 properties code %lg [MPa]\n",
-			m_P_high_limit, N_co2_props::P_upper_limit ));
+			m_P_high_limit, info.pres_upper_limit));
 	
-		m_P_high_limit = N_co2_props::P_upper_limit;
+		m_P_high_limit = info.pres_upper_limit;
 	}
 	double P_high_limit_min = 10.0*1.E3;	//[kPa]
 	if( m_P_high_limit <= P_high_limit_min )
@@ -3254,7 +3256,7 @@ double C_RecompCycle::opt_eta_fixed_P_high(double P_high_opt /*kPa*/)
 void C_RecompCycle::check_od_solution(double & diff_m_dot, double & diff_E_cycle, 
     double & diff_Q_LTR, double & diff_Q_HTR)
 {
-    CO2_state c_co2_props;
+    fluid_state c_co2_props;
 
     double m_dot_mc = m_mc_ms.get_od_solved()->m_m_dot;  //m_m_dot_mc; // ms_od_solved.m_m_dot_mc;  //[kg/s]
     double m_dot_rc = m_rc_ms.get_od_solved()->m_m_dot; //m_m_dot_rc; // ms_od_solved.m_m_dot_rc;  //[kg/s]
@@ -3268,45 +3270,45 @@ void C_RecompCycle::check_od_solution(double & diff_m_dot, double & diff_E_cycle
 
     double P_co2_phx_in = m_pres_od[HTR_HP_OUT];    //[kPa]
     double T_co2_phx_in = m_temp_od[HTR_HP_OUT];    //[K]
-    int co2_err = CO2_TP(T_co2_phx_in, P_co2_phx_in, &c_co2_props);
+    int co2_err = m_fluid->TP(T_co2_phx_in, P_co2_phx_in, &c_co2_props);
     double h_co2_phx_in = c_co2_props.enth;         //[kJ/kg]
 
     double P_t_in = m_pres_od[TURB_IN];             //[kPa]
     double T_t_in = m_temp_od[TURB_IN];             //[K]
-    co2_err = CO2_TP(T_t_in, P_t_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_t_in, P_t_in, &c_co2_props);
     double h_co2_t_in = c_co2_props.enth;           //[kJ/kg]
 
     double Q_dot_phx = m_dot_t*(h_co2_t_in - h_co2_phx_in); //[kWt]
 
     double P_t_out = m_pres_od[TURB_OUT];           //[kPa]
     double T_t_out = m_temp_od[TURB_OUT];           //[K]
-    co2_err = CO2_TP(T_t_out, P_t_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_t_out, P_t_out, &c_co2_props);
     double h_t_out = c_co2_props.enth;      //[kJ/kg]
 
     double W_dot_t = m_dot_t*(h_co2_t_in - h_t_out);    //[kWe]
 
     double P_cool_in = m_pres_od[LTR_LP_OUT];   //[kPa]
     double T_cool_in = m_temp_od[LTR_LP_OUT];   //[K]
-    co2_err = CO2_TP(T_cool_in, P_cool_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_cool_in, P_cool_in, &c_co2_props);
     double h_cool_in = c_co2_props.enth;        //[kJ/kg]
 
     double P_mc_in = m_pres_od[MC_IN];          //[kPa]
     double T_mc_in = m_temp_od[MC_IN];          //[K]
-    co2_err = CO2_TP(T_mc_in, P_mc_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_mc_in, P_mc_in, &c_co2_props);
     double h_mc_in = c_co2_props.enth;          //[kJ/kg]
 
     double Q_dot_cool = m_dot_mc*(h_cool_in - h_mc_in); //[kWt]
 
     double P_rc_out = m_pres_od[RC_OUT];        //[kPa]
     double T_rc_out = m_temp_od[RC_OUT];        //[K]
-    co2_err = CO2_TP(T_rc_out, P_rc_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_rc_out, P_rc_out, &c_co2_props);
     double h_rc_out = c_co2_props.enth;         //[kJ/kg]
 
     double W_dot_rc = m_dot_rc*(h_rc_out - h_cool_in);  //[kWe]
 
     double P_mc_out = m_pres_od[MC_OUT];        //[kPa]
     double T_mc_out = m_temp_od[MC_OUT];        //[K]
-    co2_err = CO2_TP(T_mc_out, P_mc_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_mc_out, P_mc_out, &c_co2_props);
     double h_mc_out = c_co2_props.enth;         //[kJ/kg]
 
     double W_dot_mc = m_dot_mc*(h_mc_out - h_mc_in);    //[kWe]
@@ -3318,14 +3320,14 @@ void C_RecompCycle::check_od_solution(double & diff_m_dot, double & diff_E_cycle
 
     double P_LTR_HP_out = m_pres_od[LTR_HP_OUT];    //[kPa]
     double T_LTR_HP_out = m_temp_od[LTR_HP_OUT];    //[K]
-    co2_err = CO2_TP(T_LTR_HP_out, P_LTR_HP_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_LTR_HP_out, P_LTR_HP_out, &c_co2_props);
     double h_LTR_HP_out = c_co2_props.enth;         //[kJ/kg]
 
     double Q_dot_LTR_HP = m_dot_mc * (h_LTR_HP_out - h_mc_out); //[kWt]
 
     double P_HTR_LP_out = m_pres_od[HTR_LP_OUT];    //[kPa]
     double T_HTR_LP_out = m_temp_od[HTR_LP_OUT];    //[K]
-    co2_err = CO2_TP(T_HTR_LP_out, P_HTR_LP_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_HTR_LP_out, P_HTR_LP_out, &c_co2_props);
     double h_HTR_LP_out = c_co2_props.enth;         //[kJ/kg]
 
     double Q_dot_LTR_LP = m_dot_t*(h_HTR_LP_out - h_cool_in);   //[kWt]
@@ -3334,7 +3336,7 @@ void C_RecompCycle::check_od_solution(double & diff_m_dot, double & diff_E_cycle
 
     double P_HTR_HP_in = m_pres_od[MIXER_OUT];      //[kPa]
     double T_HTR_HP_in = m_temp_od[MIXER_OUT];      //[K]
-    co2_err = CO2_TP(T_HTR_HP_in, P_HTR_HP_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_HTR_HP_in, P_HTR_HP_in, &c_co2_props);
     double h_HTR_HP_in = c_co2_props.enth;          //[kJ/kg]
 
     double Q_dot_HTR_HP = m_dot_t*(h_co2_phx_in - h_HTR_HP_in); //[kWt]
@@ -3874,7 +3876,7 @@ int C_RecompCycle::C_mono_eq_LTR_od::operator()(double T_LTR_LP_out_guess /*K*/,
 
 	mpc_rc_cycle->m_temp_od[LTR_LP_OUT] = T_LTR_LP_out_guess;		//[K]
 
-	int prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_od[LTR_LP_OUT], mpc_rc_cycle->m_pres_od[LTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
+	int prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_od[LTR_LP_OUT], mpc_rc_cycle->m_pres_od[LTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		*diff_T_LTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -3897,7 +3899,7 @@ int C_RecompCycle::C_mono_eq_LTR_od::operator()(double T_LTR_LP_out_guess /*K*/,
 		}
 
 		// Fully define state 10
-		prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_od[RC_OUT], mpc_rc_cycle->m_pres_od[RC_OUT], &mpc_rc_cycle->mc_co2_props);
+		prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_od[RC_OUT], mpc_rc_cycle->m_pres_od[RC_OUT], &mpc_rc_cycle->mc_co2_props);
 		if( prop_error_code != 0 )
 		{
 			*diff_T_LTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -3943,7 +3945,7 @@ int C_RecompCycle::C_mono_eq_HTR_od::operator()(double T_HTR_LP_out_guess /*K*/,
 
 	mpc_rc_cycle->m_temp_od[HTR_LP_OUT] = T_HTR_LP_out_guess;	//[K]
 
-	int prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_od[HTR_LP_OUT],mpc_rc_cycle->m_pres_od[HTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
+	int prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_od[HTR_LP_OUT],mpc_rc_cycle->m_pres_od[HTR_LP_OUT], &mpc_rc_cycle->mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -3991,7 +3993,7 @@ int C_RecompCycle::C_mono_eq_HTR_od::operator()(double T_HTR_LP_out_guess /*K*/,
 
 	// Now, LTR HP outlet
 	mpc_rc_cycle->m_enth_od[LTR_HP_OUT] = mpc_rc_cycle->m_enth_od[MC_OUT] + m_Q_dot_LTR / m_m_dot_LTR_HP;		//[kJ/kg] Energy balance on HP stream of LTR
-	prop_error_code = CO2_PH(mpc_rc_cycle->m_pres_od[LTR_HP_OUT], mpc_rc_cycle->m_enth_od[LTR_HP_OUT], &mpc_rc_cycle->mc_co2_props);
+	prop_error_code = mpc_rc_cycle->m_fluid->PH(mpc_rc_cycle->m_pres_od[LTR_HP_OUT], mpc_rc_cycle->m_enth_od[LTR_HP_OUT], &mpc_rc_cycle->mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -4009,7 +4011,7 @@ int C_RecompCycle::C_mono_eq_HTR_od::operator()(double T_HTR_LP_out_guess /*K*/,
 		// Conservation of energy
 		mpc_rc_cycle->m_enth_od[MIXER_OUT] = (1.0 - f_recomp)*mpc_rc_cycle->m_enth_od[LTR_HP_OUT] +
 												f_recomp*mpc_rc_cycle->m_enth_od[RC_OUT];
-		prop_error_code = CO2_PH(mpc_rc_cycle->m_pres_od[MIXER_OUT], mpc_rc_cycle->m_enth_od[MIXER_OUT], &mpc_rc_cycle->mc_co2_props);
+		prop_error_code = mpc_rc_cycle->m_fluid->PH(mpc_rc_cycle->m_pres_od[MIXER_OUT], mpc_rc_cycle->m_enth_od[MIXER_OUT], &mpc_rc_cycle->mc_co2_props);
 		if( prop_error_code != 0 )
 		{
 			*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -4341,7 +4343,7 @@ int C_RecompCycle::C_mono_eq_x_f_recomp_y_N_rc::operator()(double f_recomp /*-*/
 	m_m_dot_rc = m_m_dot_t*f_recomp;	//[kg/s]
 
 	// Fully define known states
-	int prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_od[MC_IN], mpc_rc_cycle->m_pres_od[MC_IN], &mc_co2_props);
+	int prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_od[MC_IN], mpc_rc_cycle->m_pres_od[MC_IN], &mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		return prop_error_code;
@@ -4350,7 +4352,7 @@ int C_RecompCycle::C_mono_eq_x_f_recomp_y_N_rc::operator()(double f_recomp /*-*/
 	mpc_rc_cycle->m_entr_od[MC_IN] = mc_co2_props.entr;
 	mpc_rc_cycle->m_dens_od[MC_IN] = mc_co2_props.dens;
 
-	prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_od[MC_OUT], mpc_rc_cycle->m_pres_od[MC_OUT], &mc_co2_props);
+	prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_od[MC_OUT], mpc_rc_cycle->m_pres_od[MC_OUT], &mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		return prop_error_code;
@@ -4359,7 +4361,7 @@ int C_RecompCycle::C_mono_eq_x_f_recomp_y_N_rc::operator()(double f_recomp /*-*/
 	mpc_rc_cycle->m_entr_od[MC_OUT] = mc_co2_props.entr;
 	mpc_rc_cycle->m_dens_od[MC_OUT] = mc_co2_props.dens;
 
-	prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_od[TURB_IN], mpc_rc_cycle->m_pres_od[TURB_IN], &mc_co2_props);
+	prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_od[TURB_IN], mpc_rc_cycle->m_pres_od[TURB_IN], &mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		return prop_error_code;
@@ -4368,7 +4370,7 @@ int C_RecompCycle::C_mono_eq_x_f_recomp_y_N_rc::operator()(double f_recomp /*-*/
 	mpc_rc_cycle->m_entr_od[TURB_IN] = mc_co2_props.entr;
 	mpc_rc_cycle->m_dens_od[TURB_IN] = mc_co2_props.dens;
 
-	prop_error_code = CO2_TP(mpc_rc_cycle->m_temp_od[TURB_OUT], mpc_rc_cycle->m_pres_od[TURB_OUT], &mc_co2_props);
+	prop_error_code = mpc_rc_cycle->m_fluid->TP(mpc_rc_cycle->m_temp_od[TURB_OUT], mpc_rc_cycle->m_pres_od[TURB_OUT], &mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		return prop_error_code;
@@ -4426,7 +4428,7 @@ int C_RecompCycle::C_mono_eq_x_f_recomp_y_N_rc::operator()(double f_recomp /*-*/
 
 	// State 5 can now be fully defined
 	mpc_rc_cycle->m_enth_od[HTR_HP_OUT] = mpc_rc_cycle->m_enth_od[MIXER_OUT] + Q_dot_HTR / m_m_dot_t;		//[kJ/kg] Energy balance on cold stream of high-temp recuperator
-	prop_error_code = CO2_PH(mpc_rc_cycle->m_pres_od[HTR_HP_OUT], mpc_rc_cycle->m_enth_od[HTR_HP_OUT], &mc_co2_props);
+	prop_error_code = mpc_rc_cycle->m_fluid->PH(mpc_rc_cycle->m_pres_od[HTR_HP_OUT], mpc_rc_cycle->m_enth_od[HTR_HP_OUT], &mc_co2_props);
 	if( prop_error_code != 0 )
 	{
 		return prop_error_code;

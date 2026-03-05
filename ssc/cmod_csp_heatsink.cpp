@@ -67,12 +67,13 @@ public:
             double P_co2 = 25000.0;     //[kPa]
             double T_co2_cold = 500.0;  //[C]
 
-            CO2_state co2_props;
-            CO2_TP(T_co2_hot + 273.17, P_co2, &co2_props);
+            fluid_state co2_props;
+            auto fluid_ptr = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
+            fluid_ptr->TP(T_co2_hot + 273.17, P_co2, &co2_props);
 
             double h_co2_hot = co2_props.enth;
 
-            CO2_TP(T_co2_cold + 273.15, P_co2, &co2_props);
+            fluid_ptr->TP(T_co2_cold + 273.15, P_co2, &co2_props);
 
             double h_co2_cold = co2_props.enth;
 

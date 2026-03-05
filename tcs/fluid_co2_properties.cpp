@@ -2,11 +2,11 @@
 #include "fluid_properties.h"
 
 
-int C_co2_properties::TD(double T, double D, fluid_state* f_state)
+int C_co2_properties::TD(double T, double D, fluid_state* state)
 {
     CO2_state w_state;
     int flag = CO2_TD(T, D, &w_state);
-    this->fluid_state_from_CO2_state(&w_state, f_state);
+    this->fluid_state_from_CO2_state(&w_state, state);
 
     return flag;
 }

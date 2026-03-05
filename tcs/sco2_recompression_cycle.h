@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <string>
 #include <math.h>
-#include "CO2_properties.h"
 
 #include "heat_exchangers.h"
 
@@ -497,7 +496,8 @@ public:
         double frac_fan_power /*-*/, double eta_fan /*-*/, double deltaP_cooler_frac /*-*/,
         int N_nodes_pass /*-*/,
         double T_amb_des /*K*/, double elevation /*m*/,
-        double m_yr_inflation /*yr*/) :
+        double m_yr_inflation /*yr*/,
+        E_fluid_type fluid_type) :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -512,7 +512,9 @@ public:
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
             T_amb_des, elevation,
-            m_yr_inflation)
+            m_yr_inflation, fluid_type),
+        m_t(get_fluid()), m_mc_ms(get_fluid()),
+        m_rc_ms(get_fluid())
 	{
 		m_temp_last.resize(END_SCO2_STATES);
 		std::fill(m_temp_last.begin(), m_temp_last.end(), std::numeric_limits<double>::quiet_NaN());
@@ -550,7 +552,7 @@ public:
 		//ms_des_limits.m_T_mc_in_min = ceil(s_co2_info.T_critical);		//[K]
 	}
 
-	CO2_state mc_co2_props;
+	fluid_state mc_co2_props;
 
 	~C_RecompCycle(){}
 
@@ -667,7 +669,7 @@ public:
 
 		virtual int operator()(double f_recomp /*-*/, double *N_rc /*rpm*/);
 
-		CO2_state mc_co2_props;
+		fluid_state mc_co2_props;
 	};
 
 	class C_mono_eq_turbo_N_fixed_m_dot : public C_monotonic_equation
@@ -709,7 +711,7 @@ public:
 
 		virtual int operator()(double m_dot_t /*kg/s*/, double *diff_m_dot_t /*-*/);
 
-		CO2_state mc_co2_props;	
+		fluid_state mc_co2_props;	
 	};
 
 	//class C_mono_eq_turbo_m_dot : public C_monotonic_equation

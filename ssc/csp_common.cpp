@@ -1371,7 +1371,10 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
 
 	// Helpful to know right away whether cycle contains recompressor
 	bool is_rc = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_is_rc;
-    
+
+    // Make fluid properties ptr (this should be shared with cycle)
+    auto fluid_ptr = C_fluid_properties::create_fluid_properties(c_sco2_cycle.get_fluid_type());
+
 	// Get data for P-h cycle plot
 	std::vector<double> P_t;		//[MPa]
 	std::vector<double> h_t;		//[kJ/kg]
@@ -1383,7 +1386,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
 	std::vector<double> h_pc;		//[kJ/kg]
     std::vector<double> P_t2;       //[MPa]
     std::vector<double> h_t2;       //[kJ/kg]
-	int ph_err_code = sco2_cycle_plot_data_PH(s_sco2_des_par.m_cycle_config,
+	int ph_err_code = sco2_cycle_plot_data_PH(*fluid_ptr, s_sco2_des_par.m_cycle_config,
 		c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_temp,
 		c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres,
 		P_t,
@@ -1460,7 +1463,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
 	std::vector<double> s_main_cooler;	//[kJ/kg-K]
 	std::vector<double> T_pre_cooler;	//[C]
 	std::vector<double> s_pre_cooler;	//[kJ/kg-K]
-	int plot_data_err_code = sco2_cycle_plot_data_TS(s_sco2_des_par.m_cycle_config,
+	int plot_data_err_code = sco2_cycle_plot_data_TS(*fluid_ptr, s_sco2_des_par.m_cycle_config,
 		c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres,
 		c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_entr,
 		T_LTR_HP,
@@ -2041,7 +2044,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
 	double rho_isen_out = std::numeric_limits<double>::quiet_NaN();
 	double deltah_isen = std::numeric_limits<double>::quiet_NaN();
 
-	calculate_turbomachinery_outlet_1(T_cooler_in, P_cooler_in, P_cooler_out, 1.0, true, isen_enth_check_err,
+	calculate_turbomachinery_outlet_1(*fluid_ptr, T_cooler_in, P_cooler_in, P_cooler_out, 1.0, true, isen_enth_check_err,
 		h_cooler_in, s_cooler_in, rho_cooler_in, T_isen_out,
 		h_isen_out, s_isen_out, rho_isen_out, deltah_isen);
 

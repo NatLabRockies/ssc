@@ -76,7 +76,8 @@ public:
 
 	void exec() override
 	{
-		C_sco2_phx_air_cooler c_sco2_cycle;
+        E_fluid_type fluid_type = E_fluid_type::CO2;
+		C_sco2_phx_air_cooler c_sco2_cycle(fluid_type);
 
 		int sco2_des_err = sco2_design_cmod_common(this, c_sco2_cycle);
 		if (sco2_des_err != 0)

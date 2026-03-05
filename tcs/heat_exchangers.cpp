@@ -66,7 +66,7 @@ double NS_HX_counterflow_eqs::calc_max_q_dot_enth(int hot_fl_code /*-*/, HTFProp
 	T_h_in = std::numeric_limits<double>::quiet_NaN();
 	if (hot_fl_code == NS_HX_counterflow_eqs::CO2)
 	{
-		CO2_state ms_co2_props;
+		fluid_state ms_co2_props;
 		prop_error_code = CO2_PH(P_h_in, h_h_in, &ms_co2_props);
 		if (prop_error_code != 0)
 		{

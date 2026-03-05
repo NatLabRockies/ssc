@@ -143,7 +143,7 @@ int C_PartialCooling_Cycle::design_core()
 	{
 		int poly_error_code = 0;
 
-		isen_eta_from_poly_eta(m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], std::abs(m_eta_mc),
+		isen_eta_from_poly_eta(*m_fluid, m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], std::abs(m_eta_mc),
 			true, poly_error_code, eta_mc_isen);
 
 		if (poly_error_code != 0)
@@ -155,7 +155,7 @@ int C_PartialCooling_Cycle::design_core()
 	{
 		int poly_error_code = 0;
 
-		isen_eta_from_poly_eta(m_temp_last[PC_OUT], m_pres_last[PC_OUT], m_pres_last[RC_OUT], std::abs(m_eta_rc),
+		isen_eta_from_poly_eta(*m_fluid, m_temp_last[PC_OUT], m_pres_last[PC_OUT], m_pres_last[RC_OUT], std::abs(m_eta_rc),
 			true, poly_error_code, eta_rc_isen);
 
 		if (poly_error_code != 0)
@@ -167,7 +167,7 @@ int C_PartialCooling_Cycle::design_core()
 	{
 		int poly_error_code = 0;
 
-		isen_eta_from_poly_eta(m_temp_last[PC_IN], m_pres_last[PC_IN], m_pres_last[PC_OUT], std::abs(ms_des_par.m_eta_pc),
+		isen_eta_from_poly_eta(*m_fluid, m_temp_last[PC_IN], m_pres_last[PC_IN], m_pres_last[PC_OUT], std::abs(ms_des_par.m_eta_pc),
 			true, poly_error_code, eta_pc_isen);
 
 		if (poly_error_code != 0)
@@ -179,7 +179,7 @@ int C_PartialCooling_Cycle::design_core()
 	{
 		int poly_error_code = 0;
 
-		isen_eta_from_poly_eta(m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], std::abs(m_eta_t),
+		isen_eta_from_poly_eta(*m_fluid, m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], std::abs(m_eta_t),
 			false, poly_error_code, eta_t_isen);
 
 		if (poly_error_code != 0)
@@ -189,7 +189,7 @@ int C_PartialCooling_Cycle::design_core()
 	// Determine the outlet state and specific work for the turbomachinery
 	int comp_error_code = 0;
 	double w_mc = std::numeric_limits<double>::quiet_NaN();
-	calculate_turbomachinery_outlet_1(m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], eta_mc_isen, true,
+	calculate_turbomachinery_outlet_1(*m_fluid, m_temp_last[MC_IN], m_pres_last[MC_IN], m_pres_last[MC_OUT], eta_mc_isen, true,
 		comp_error_code, m_enth_last[MC_IN], m_entr_last[MC_IN], m_dens_last[MC_IN], m_temp_last[MC_OUT],
 		m_enth_last[MC_OUT], m_entr_last[MC_OUT], m_dens_last[MC_OUT], w_mc);
 
@@ -197,7 +197,7 @@ int C_PartialCooling_Cycle::design_core()
 		return comp_error_code;
 
 	double w_pc = std::numeric_limits<double>::quiet_NaN();
-	calculate_turbomachinery_outlet_1(m_temp_last[PC_IN], m_pres_last[PC_IN], m_pres_last[PC_OUT], eta_pc_isen, true,
+	calculate_turbomachinery_outlet_1(*m_fluid, m_temp_last[PC_IN], m_pres_last[PC_IN], m_pres_last[PC_OUT], eta_pc_isen, true,
 		comp_error_code, m_enth_last[PC_IN], m_entr_last[PC_IN], m_dens_last[PC_IN], m_temp_last[PC_OUT],
 		m_enth_last[PC_OUT], m_entr_last[PC_OUT], m_dens_last[PC_OUT], w_pc);
 
@@ -207,7 +207,7 @@ int C_PartialCooling_Cycle::design_core()
 	double w_rc = 0.0;
 	if (ms_des_par.m_recomp_frac >= 1.E-12)
 	{
-		calculate_turbomachinery_outlet_1(m_temp_last[PC_OUT], m_pres_last[PC_OUT], m_pres_last[RC_OUT], eta_rc_isen, true,
+		calculate_turbomachinery_outlet_1(*m_fluid, m_temp_last[PC_OUT], m_pres_last[PC_OUT], m_pres_last[RC_OUT], eta_rc_isen, true,
 			comp_error_code, m_enth_last[PC_OUT], m_entr_last[PC_OUT], m_dens_last[PC_OUT], m_temp_last[RC_OUT],
 			m_enth_last[RC_OUT], m_entr_last[RC_OUT], m_dens_last[RC_OUT], w_rc);
 
@@ -224,7 +224,7 @@ int C_PartialCooling_Cycle::design_core()
     }
 
 	double w_t = std::numeric_limits<double>::quiet_NaN();
-	calculate_turbomachinery_outlet_1(m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], eta_t_isen, false,
+	calculate_turbomachinery_outlet_1(*m_fluid, m_temp_last[TURB_IN], m_pres_last[TURB_IN], m_pres_last[TURB_OUT], eta_t_isen, false,
 		comp_error_code, m_enth_last[TURB_IN], m_entr_last[TURB_IN], m_dens_last[TURB_IN], m_temp_last[TURB_OUT],
 		m_enth_last[TURB_OUT], m_entr_last[TURB_OUT], m_dens_last[TURB_OUT], w_t);
 

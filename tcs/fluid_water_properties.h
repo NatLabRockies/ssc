@@ -6,7 +6,7 @@
 #include "fluid_properties.h"
 #include "water_properties.h"
 
-class C_water_properties : C_fluid_properties
+class C_water_properties : public C_fluid_properties
 {
 public:
 

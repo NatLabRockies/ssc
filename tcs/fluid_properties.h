@@ -2,6 +2,7 @@
 #define FLUID_PROPERTIES_H
 
 #include <limits>
+#include <memory>
 
 struct fluid_info
 {
@@ -33,9 +34,19 @@ struct fluid_state
     double sat_liq_dens = std::numeric_limits<double>::quiet_NaN();     // saturated liquid density (kg/m3)
 };
 
+enum class E_fluid_type
+{
+    WATER,
+    CO2,
+    COOLPROP,
+    UNKNOWN = 255
+};
+
 class C_fluid_properties
 {
 public:
+
+    static std::unique_ptr<C_fluid_properties> create_fluid_properties(const E_fluid_type type);
 
     // Thermodynamic property functions
     virtual int TD(double T, double D, fluid_state* state) = 0;

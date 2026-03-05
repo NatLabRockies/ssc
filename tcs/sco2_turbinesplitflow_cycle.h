@@ -173,7 +173,8 @@ public:
         double m_Q_dot_PHX;                                 // [kWt] Energy exchange in PHX, BPX
         double m_eta_thermal;                               // Thermal Efficiency
 
-        S_sco2_tsf_out()
+        S_sco2_tsf_out(C_fluid_properties& fluid)
+            : m_t(fluid), m_t2(fluid), m_mc_ms(fluid)
         {
             Init();
         }
@@ -202,6 +203,7 @@ public:
 
 private:
     CO2_state m_co2_props;
+    C_fluid_properties& m_fluid;
 
     class C_mono_tsf_core_HTR_des : public C_monotonic_equation
     {
@@ -232,7 +234,8 @@ public:
     S_sco2_tsf_out m_outputs;
 
     // Public Methods
-    C_sco2_tsf_core()
+    C_sco2_tsf_core(C_fluid_properties& fluid)
+        : m_fluid(fluid), m_outputs(fluid)
     {
         m_outputs.Init();
         m_co2_props = CO2_state();
@@ -340,7 +343,8 @@ public:
         double frac_fan_power, double eta_fan, double deltaP_cooler_frac,
         int N_nodes_pass,
         double T_amb_des, double elevation,
-        double m_yr_inflation) :
+        double m_yr_inflation,
+        E_fluid_type fluid_type) :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -354,8 +358,9 @@ public:
             eta_t, N_turbine,
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
-            T_amb_des, elevation, m_yr_inflation),
-            m_eta_t2(eta_t2)
+            T_amb_des, elevation, m_yr_inflation, fluid_type),
+            m_eta_t2(eta_t2),
+        m_optimal_tsf_core(get_fluid())
     {
         m_opt_iteration_count = 0;
     }

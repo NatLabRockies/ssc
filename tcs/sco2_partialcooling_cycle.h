@@ -271,7 +271,8 @@ public:
         double frac_fan_power /*-*/, double eta_fan /*-*/, double deltaP_cooler_frac /*-*/,
         int N_nodes_pass /*-*/,
         double T_amb_des /*K*/, double elevation /*m*/,
-        double yr_inflation /*yr*/) :
+        double yr_inflation /*yr*/,
+        E_fluid_type fluid_type) :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -286,7 +287,12 @@ public:
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
             T_amb_des, elevation,
-            yr_inflation)
+            yr_inflation,
+            fluid_type),
+        mc_t(get_fluid()),
+        mc_mc(get_fluid()),
+        mc_rc(get_fluid()),
+        mc_pc(get_fluid())
 	{
 		m_temp_last.resize(END_SCO2_STATES);
 		std::fill(m_temp_last.begin(), m_temp_last.end(), std::numeric_limits<double>::quiet_NaN());

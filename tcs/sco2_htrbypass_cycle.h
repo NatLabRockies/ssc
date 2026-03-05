@@ -193,7 +193,8 @@ public:
         double m_HTF_BP_cold_approach;                      // [K] BPX cold approach temperature
         double m_eta_thermal;                               // Thermal Efficiency
 
-        S_sco2_htrbp_out()
+        S_sco2_htrbp_out(C_fluid_properties& fluid)
+            : m_t(fluid), m_mc_ms(fluid), m_rc_ms(fluid)
         {
             Init();
         }
@@ -224,6 +225,7 @@ public:
 
 private:
     CO2_state m_co2_props;
+    C_fluid_properties& m_fluid;
 
     class C_mono_htrbp_core_HTR_des : public C_monotonic_equation
     {
@@ -272,7 +274,8 @@ public:
     S_sco2_htrbp_out m_outputs;
 
     // Public Methods
-    C_sco2_htrbp_core()
+    C_sco2_htrbp_core(C_fluid_properties& fluid)
+        : m_fluid(fluid), m_outputs(fluid)
     {
         m_outputs.Init();
         m_co2_props = CO2_state();
@@ -397,7 +400,7 @@ public:
         double frac_fan_power, double eta_fan, double deltaP_cooler_frac,
         int N_nodes_pass,
         double T_amb_des, double elevation,
-        double yr_inflation) :
+        double yr_inflation, E_fluid_type fluid_type) :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -412,7 +415,8 @@ public:
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
             T_amb_des, elevation,
-            yr_inflation)
+            yr_inflation, fluid_type),
+        m_optimal_htrbp_core(get_fluid())
     {
         m_T_target = m_T_HTF_PHX_inlet = m_set_HTF_mdot
             = m_HTF_PHX_cold_approach = m_dT_BP

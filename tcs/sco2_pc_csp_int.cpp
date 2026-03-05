@@ -47,7 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "fmin.h"
 
-C_sco2_phx_air_cooler::C_sco2_phx_air_cooler()
+C_sco2_phx_air_cooler::C_sco2_phx_air_cooler(const E_fluid_type fluid_type)
+    : m_fluid_type(fluid_type)
 {
 	// Get CO2 critical temperature
 	CO2_info co2_fluid_info;
@@ -123,7 +124,9 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_yr_inflation));
+            ms_des_par.m_yr_inflation,
+            this->m_fluid_type
+            ));
 
 		s_cycle_config = "partial cooling";
 
@@ -146,7 +149,9 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_yr_inflation));
+            ms_des_par.m_yr_inflation,
+            this->m_fluid_type
+            ));
 
 		s_cycle_config = "htr bypass";
 
@@ -219,7 +224,9 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_yr_inflation));
+            ms_des_par.m_yr_inflation,
+            this->m_fluid_type
+            ));
 
         s_cycle_config = "turbine split flow";
 
@@ -243,7 +250,9 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
-            ms_des_par.m_yr_inflation));
+            ms_des_par.m_yr_inflation,
+            this->m_fluid_type
+            ));
 
         s_cycle_config = "recompression";
 

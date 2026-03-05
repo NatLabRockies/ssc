@@ -181,7 +181,6 @@ public:
             m_fixed_P_mc_out = false;       //[-] If false, then should default to optimizing this parameter
             m_fixed_PR_HP_to_LP = false;    //[-] If false, then should default to optimizing this parameter
             m_fixed_f_PR_HP_to_IP = false;  //[-] If false, then should default to optimizing this parameter
-
 		}
 	};
 
@@ -407,6 +406,8 @@ private:
 	double m_T_co2_crit;		//[K]
 	double m_P_co2_crit;		//[kPa]
 
+    E_fluid_type m_fluid_type;
+
 	int design_core();
 
 	double adjust_P_mc_in_away_2phase(double T_co2 /*K*/, double P_mc_in /*kPa*/);
@@ -415,7 +416,7 @@ private:
 
 public:	
 
-	C_sco2_phx_air_cooler();
+	C_sco2_phx_air_cooler(const E_fluid_type fluid_type);
 
 	~C_sco2_phx_air_cooler(){};
 
@@ -772,6 +773,8 @@ public:
     const S_od_par* get_od_par();
 
 	double opt_P_LP_in__fixed_N_turbo__return_f_obj(double P_mc_in /*kPa*/, double od_tol /*-*/);
+
+    const E_fluid_type get_fluid_type() { return m_fluid_type; }
 
 };
 

@@ -33,8 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __HEAT_EXCHANGERS_
 #define __HEAT_EXCHANGERS_
 
-#include "CO2_properties.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 #include "htf_props.h"
 #include "lib_util.h"
 #include "numeric_solvers.h"
@@ -1205,7 +1204,7 @@ public:
     class C_MEQ_node_energy_balance__h_co2_out : public C_monotonic_equation
     {
     private:
-        CO2_state *mpc_co2_props;
+        fluid_state *mpc_co2_props;
         double m_h_co2_cold_out;	//[kJ/kg] CO2 cold side enthalpy
         double m_P_co2_cold_out;    //[kPa]
 
@@ -1219,14 +1218,17 @@ public:
         double m_C_dot_air;		    //[W/K] Air flow capacitance
 
         double m_UA_node;		//[W/K] Conductance of node - assuming air convective heat transfer is governing resistance
-    
+            
+        C_fluid_properties& m_fluid;
+
     public:
-        C_MEQ_node_energy_balance__h_co2_out(CO2_state *mc_co2_props,
+        C_MEQ_node_energy_balance__h_co2_out(C_fluid_properties& fluid, fluid_state *mc_co2_props,
             double h_co2_cold_out /*kJ/kg*/, 
             double P_co2_cold_out /*kPa*/, double P_co2_hot_in /*kPa*/,
             double m_dot_co2_tube /*kg/s*/,
             double T_air_cold_in /*K*/, double C_dot_air /*W/K*/,
             double UA_node /*W/K*/)
+            : m_fluid(fluid)
         {
             mpc_co2_props = mc_co2_props;
 
@@ -1247,7 +1249,7 @@ public:
             m_Q_dot_node = std::numeric_limits<double>::quiet_NaN();
             m_T_co2_hot_in = std::numeric_limits<double>::quiet_NaN();
 
-            CO2_PH(m_P_co2_cold_out, m_h_co2_cold_out, mpc_co2_props);
+            m_fluid.PH(m_P_co2_cold_out, m_h_co2_cold_out, mpc_co2_props);
             m_T_co2_cold_out = mpc_co2_props->temp;     //[K]
         }
 

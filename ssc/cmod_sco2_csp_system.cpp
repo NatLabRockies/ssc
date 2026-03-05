@@ -335,7 +335,8 @@ public:
         //FILE* fp = fopen("sco2_cmod_to_lk.lk", "w");
         //write_cmod_to_lk_script(fp, m_vartab);
 
-        C_sco2_phx_air_cooler c_sco2_cycle;
+        E_fluid_type fluid_type = E_fluid_type::CO2;
+        C_sco2_phx_air_cooler c_sco2_cycle(fluid_type);
 
 		int sco2_des_err = sco2_design_cmod_common(this, c_sco2_cycle);
 		if (sco2_des_err != 0)
@@ -355,7 +356,9 @@ public:
 		if(cycle_config == 2)
 			n_pc_stages = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_pc_ms_des_solved.m_n_stages;		//[-]
 
-			   		 
+        // Make fluid properties class (using co2)
+        std::unique_ptr<C_fluid_properties> fluid_ptr = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
+
 		// Check if 'od_cases' is assigned
 		bool is_od_cases_assigned = is_assigned("od_cases");
 		bool is_P_mc_in_od_sweep_assigned = is_assigned("od_P_mc_in_sweep");
@@ -1318,7 +1321,7 @@ public:
 				double rho_isen_out_od = std::numeric_limits<double>::quiet_NaN();
 				double deltah_isen_od = std::numeric_limits<double>::quiet_NaN();
 
-				calculate_turbomachinery_outlet_1(T_cooler_in_od, P_cooler_in_od, P_cooler_out_od, 1.0, true, isen_enth_check_err,
+				calculate_turbomachinery_outlet_1(*fluid_ptr, T_cooler_in_od, P_cooler_in_od, P_cooler_out_od, 1.0, true, isen_enth_check_err,
 					h_cooler_in_od, s_cooler_in_od, rho_cooler_in_od, T_isen_out_od,
 					h_isen_out_od, s_isen_out_od, rho_isen_out_od, deltah_isen_od);
 
@@ -1678,7 +1681,8 @@ int sco2_comp_curves_common(compute_module* cm)
 		throw exec_error("sco2_comp_curves", "Compressor type invalid");
 	}
 
-	std::unique_ptr<C_comp__psi_eta_vs_phi> p_c_comp = C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(comp_type);
+    auto fluid_ptr = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
+	std::unique_ptr<C_comp__psi_eta_vs_phi> p_c_comp = C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(*fluid_ptr, comp_type);
 	double phi_in = p_c_comp->calc_phi_design(T_comp_in, P_comp_in);
 	p_c_comp->set_design_solution(phi_in, T_comp_in, P_comp_in);
 

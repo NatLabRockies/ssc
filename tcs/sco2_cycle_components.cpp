@@ -1,5 +1,4 @@
 #include "sco2_cycle_components.h"
-#include "CO2_properties.h"
 #include <limits>
 #include <algorithm>
 
@@ -10,15 +9,15 @@
 
 const double C_turbine::m_nu_design = 0.7476;
 
-void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, 
+void calculate_turbomachinery_outlet_1(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, 
 	double eta_isen /*-*/, bool is_comp, int & error_code, double & spec_work /*kJ/kg*/)
 {
 	double enth_in, entr_in, dens_in, temp_out, enth_out, entr_out, dens_out;
 
-	calculate_turbomachinery_outlet_1(T_in, P_in, P_out, eta_isen, is_comp, error_code, enth_in, entr_in, dens_in, temp_out, enth_out, entr_out, dens_out, spec_work);
+	calculate_turbomachinery_outlet_1(fluid, T_in, P_in, P_out, eta_isen, is_comp, error_code, enth_in, entr_in, dens_in, temp_out, enth_out, entr_out, dens_out, spec_work);
 }
 
-void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, 
+void calculate_turbomachinery_outlet_1(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, 
 	double eta_isen /*-*/, bool is_comp, int & error_code, 
 	double & enth_in /*kJ/kg*/, double & entr_in /*kJ/kg-K*/, double & dens_in /*kg/m3*/, double & temp_out /*K*/, 
 	double & enth_out /*kJ/kg*/, double & entr_out /*kJ/kg-K*/, double & dens_out /*kg/m3*/, double & spec_work /*kJ/kg*/)
@@ -27,11 +26,11 @@ void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, d
 	is_comp = .true.means the turbomachine is a compressor(w = w_s / eta)
 	is_comp = .false.means the turbomachine is a turbine(w = w_s * eta) */
 
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	error_code = 0;
 
-	int prop_error_code = CO2_TP(T_in, P_in, &co2_props);		// properties at the inlet conditions
+	int prop_error_code = fluid.TP(T_in, P_in, &co2_props);		// properties at the inlet conditions
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -41,7 +40,7 @@ void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, d
 	double s_in = co2_props.entr;
 	dens_in = co2_props.dens;
 
-	prop_error_code = CO2_PS(P_out, s_in, &co2_props);			// outlet enthalpy if compression/expansion is isentropic
+	prop_error_code = fluid.PS(P_out, s_in, &co2_props);			// outlet enthalpy if compression/expansion is isentropic
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -59,7 +58,7 @@ void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, d
 
 	double h_out = h_in - w;
 
-	prop_error_code = CO2_PH(P_out, h_out, &co2_props);
+	prop_error_code = fluid.PH(P_out, h_out, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -77,7 +76,7 @@ void calculate_turbomachinery_outlet_1(double T_in /*K*/, double P_in /*kPa*/, d
 	return;
 };
 
-void isen_eta_from_poly_eta(double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, double poly_eta /*-*/, bool is_comp, int & error_code, double & isen_eta)
+void isen_eta_from_poly_eta(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/, double P_out /*kPa*/, double poly_eta /*-*/, bool is_comp, int & error_code, double & isen_eta)
 {
 	/* 9.3.14: code written by John Dyreby, translated to C++ by Ty Neises
 	! Calculate the isentropic efficiency that corresponds to a given polytropic efficiency
@@ -98,10 +97,10 @@ void isen_eta_from_poly_eta(double T_in /*K*/, double P_in /*kPa*/, double P_out
 	!   1) Integration of small DP is approximated numerically by using 200 stages.
 	!   2) No error checking is performed on the inlet and outlet pressures; valid pressure ratios are assumed. */
 
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	// Properties at the inlet conditions
-	int prop_error_code = CO2_TP(T_in, P_in, &co2_props);
+	int prop_error_code = fluid.TP(T_in, P_in, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -111,7 +110,7 @@ void isen_eta_from_poly_eta(double T_in /*K*/, double P_in /*kPa*/, double P_out
 	double s_in = co2_props.entr;
 
 	// Outlet enthalpy if compression/expansion is isentropic
-	prop_error_code = CO2_PS(P_out, s_in, &co2_props);
+	prop_error_code = fluid.PS(P_out, s_in, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -135,7 +134,7 @@ void isen_eta_from_poly_eta(double T_in /*K*/, double P_in /*kPa*/, double P_out
 		stage_P_out = stage_P_in + stage_DP;
 
 		// Outlet enthalpy if compression/expansion is isentropic
-		prop_error_code = CO2_PS(stage_P_out, stage_s_in, &co2_props);
+		prop_error_code = fluid.PS(stage_P_out, stage_s_in, &co2_props);
 		if (prop_error_code != 0)
 		{
 			error_code = prop_error_code;
@@ -155,7 +154,7 @@ void isen_eta_from_poly_eta(double T_in /*K*/, double P_in /*kPa*/, double P_out
 		stage_P_in = stage_P_out;
 		stage_h_in = stage_h_out;
 
-        prop_error_code = CO2_PH(stage_P_in, stage_h_in, &co2_props);
+        prop_error_code = fluid.PH(stage_P_in, stage_h_in, &co2_props);
         if (prop_error_code != 0)
         {
 	        error_code = prop_error_code;
@@ -171,12 +170,12 @@ void isen_eta_from_poly_eta(double T_in /*K*/, double P_in /*kPa*/, double P_out
 		isen_eta = (stage_h_out - h_in) / (h_s_out - h_in);
 }
 
-int calc_turbomachinery_eta_isen(double T_in /*K*/, double P_in /*kPa*/,
+int calc_turbomachinery_eta_isen(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/,
 	double T_out /*K*/, double P_out /*kPa*/, double & eta_isen)
 {
-	CO2_state co2_props;
+	fluid_state co2_props;
 
-	int prop_error_code = CO2_TP(T_in, P_in, &co2_props);		// properties at the inlet conditions
+	int prop_error_code = fluid.TP(T_in, P_in, &co2_props);		// properties at the inlet conditions
 	if (prop_error_code != 0)
 	{
 		return prop_error_code;
@@ -184,14 +183,14 @@ int calc_turbomachinery_eta_isen(double T_in /*K*/, double P_in /*kPa*/,
 	double h_in = co2_props.enth;
 	double s_in = co2_props.entr;
 
-	prop_error_code = CO2_TP(T_out, P_out, &co2_props);		// properties at the inlet conditions
+	prop_error_code = fluid.TP(T_out, P_out, &co2_props);		// properties at the inlet conditions
 	if (prop_error_code != 0)
 	{
 		return prop_error_code;
 	}
 	double h_out = co2_props.enth;
 
-	prop_error_code = CO2_PS(P_out, s_in, &co2_props);			// outlet enthalpy if compression/expansion is isentropic
+	prop_error_code = fluid.PS(P_out, s_in, &co2_props);			// outlet enthalpy if compression/expansion is isentropic
 	if (prop_error_code != 0)
 	{
 		return prop_error_code;
@@ -209,10 +208,10 @@ int calc_turbomachinery_eta_isen(double T_in /*K*/, double P_in /*kPa*/,
 	return 0;
 }
 
-int Ts_data_over_linear_dP_ds(double P_in /*kPa*/, double s_in /*kJ/kg-K*/, double P_out /*kPa*/, double s_out /*kJ/kg-K*/,
+int Ts_data_over_linear_dP_ds(C_fluid_properties& fluid, double P_in /*kPa*/, double s_in /*kJ/kg-K*/, double P_out /*kPa*/, double s_out /*kJ/kg-K*/,
 	std::vector<double> & T_data /*C*/, std::vector<double> & s_data /*kJ/kg-K*/, int N_points /*=30*/)
 {
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	int err_code = 0;
 
@@ -230,7 +229,7 @@ int Ts_data_over_linear_dP_ds(double P_in /*kPa*/, double s_in /*kJ/kg-K*/, doub
 		s_local = s_in - deltas * i;	//[kJ/kg-K]
 		P_local = P_in - deltaP * i;	//[kPa]
 
-		err_code = CO2_PS(P_local, s_local, &co2_props);
+		err_code = fluid.PS(P_local, s_local, &co2_props);
 		if (err_code != 0)
 			return err_code;
 
@@ -241,16 +240,16 @@ int Ts_data_over_linear_dP_ds(double P_in /*kPa*/, double s_in /*kJ/kg-K*/, doub
 	return 0;
 }
 
-int Ph_data_over_turbomachinery(double T_in /*K*/, double P_in /*kPa*/,
+int Ph_data_over_turbomachinery(C_fluid_properties& fluid, double T_in /*K*/, double P_in /*kPa*/,
 	double T_out /*K*/, double P_out /*kPa*/,
 	std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data /*kJ/kg*/, int N_points /*30*/)
 {
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	int err_code = 0;
 
 	double eta_isen = std::numeric_limits<double>::quiet_NaN();
-	err_code = calc_turbomachinery_eta_isen(T_in, P_in, T_out, P_out, eta_isen);
+	err_code = calc_turbomachinery_eta_isen(fluid, T_in, P_in, T_out, P_out, eta_isen);
 	if (err_code != 0)
 	{
 		return err_code;
@@ -259,7 +258,7 @@ int Ph_data_over_turbomachinery(double T_in /*K*/, double P_in /*kPa*/,
 	P_data.resize(N_points);
 	h_data.resize(N_points);
 
-	err_code = CO2_TP(T_in, P_in, &co2_props);
+	err_code = fluid.TP(T_in, P_in, &co2_props);
 	if (err_code != 0)
 	{
 		return err_code;
@@ -288,7 +287,7 @@ int Ph_data_over_turbomachinery(double T_in /*K*/, double P_in /*kPa*/,
 	{
 		P_local = P_in - deltaP * i;	//[kPa]
 
-		calculate_turbomachinery_outlet_1(T_in, P_in, P_local,
+		calculate_turbomachinery_outlet_1(fluid, T_in, P_in, P_local,
 			eta_isen, is_comp, err_code,
 			h_in_local, s_in_local, rho_in_local, T_out_local,
 			h_out_local, s_out_local, rho_out_local, spec_work_local);
@@ -305,7 +304,8 @@ int Ph_data_over_turbomachinery(double T_in /*K*/, double P_in /*kPa*/,
 	return 0;
 }
 
-int sco2_cycle_plot_data_TS(int cycle_config,
+int sco2_cycle_plot_data_TS(C_fluid_properties& fluid,
+    int cycle_config,
 	const std::vector<double> pres /*kPa*/,
 	const std::vector<double> entr /*kJ/kg-K*/,
 	std::vector<double> & T_LTR_HP /*C*/,
@@ -353,35 +353,35 @@ int sco2_cycle_plot_data_TS(int cycle_config,
     }
 
 	// Get LTR HP data
-	int err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::MC_OUT], entr[C_sco2_cycle_core::MC_OUT],
+	int err_code = Ts_data_over_linear_dP_ds(fluid, pres[C_sco2_cycle_core::MC_OUT], entr[C_sco2_cycle_core::MC_OUT],
 		pres[C_sco2_cycle_core::LTR_HP_OUT], entr[C_sco2_cycle_core::LTR_HP_OUT],
 		T_LTR_HP, s_LTR_HP, 25);
 	if (err_code != 0)
 		return err_code;
 
 	// Get HTR HP data
-	err_code = Ts_data_over_linear_dP_ds(pres[HTR_HP_IN_ENUM], entr[HTR_HP_IN_ENUM],
+	err_code = Ts_data_over_linear_dP_ds(fluid, pres[HTR_HP_IN_ENUM], entr[HTR_HP_IN_ENUM],
 		pres[C_sco2_cycle_core::HTR_HP_OUT], entr[C_sco2_cycle_core::HTR_HP_OUT],
 		T_HTR_HP, s_HTR_HP, 25);
 	if (err_code != 0)
 		return err_code;
 
 	// Get PHX data
-	err_code = Ts_data_over_linear_dP_ds(pres[PHX_IN_ENUM], entr[PHX_IN_ENUM],
+	err_code = Ts_data_over_linear_dP_ds(fluid, pres[PHX_IN_ENUM], entr[PHX_IN_ENUM],
 		pres[C_sco2_cycle_core::TURB_IN], entr[C_sco2_cycle_core::TURB_IN],
 		T_PHX, s_PHX, 25);
 	if (err_code != 0)
 		return err_code;
 
 	// Get HTR LP data
-	err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::TURB_OUT], entr[C_sco2_cycle_core::TURB_OUT],
+	err_code = Ts_data_over_linear_dP_ds(fluid, pres[C_sco2_cycle_core::TURB_OUT], entr[C_sco2_cycle_core::TURB_OUT],
 		pres[C_sco2_cycle_core::HTR_LP_OUT], entr[C_sco2_cycle_core::HTR_LP_OUT],
 		T_HTR_LP, s_HTR_LP, 25);
 	if (err_code != 0)
 		return err_code;
 
 	// Get LTR LP data
-	err_code = Ts_data_over_linear_dP_ds(pres[LTR_LP_IN_ENUM], entr[LTR_LP_IN_ENUM],
+	err_code = Ts_data_over_linear_dP_ds(fluid, pres[LTR_LP_IN_ENUM], entr[LTR_LP_IN_ENUM],
 		pres[C_sco2_cycle_core::LTR_LP_OUT], entr[C_sco2_cycle_core::LTR_LP_OUT],
 		T_LTR_LP, s_LTR_LP, 25);
 	if (err_code != 0)
@@ -393,7 +393,7 @@ int sco2_cycle_plot_data_TS(int cycle_config,
             return -1;
 
         // Get main cooler data
-        err_code = Ts_data_over_linear_dP_ds(pres[COOLER_IN_ENUM], entr[COOLER_IN_ENUM],
+        err_code = Ts_data_over_linear_dP_ds(fluid, pres[COOLER_IN_ENUM], entr[COOLER_IN_ENUM],
             pres[C_sco2_cycle_core::MC_IN], entr[C_sco2_cycle_core::MC_IN],
             T_main_cooler, s_main_cooler, 25);
         if (err_code != 0)
@@ -411,14 +411,14 @@ int sco2_cycle_plot_data_TS(int cycle_config,
             return -1;
 
         // Get pre cooler data
-        err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::LTR_LP_OUT], entr[C_sco2_cycle_core::LTR_LP_OUT],
+        err_code = Ts_data_over_linear_dP_ds(fluid, pres[C_sco2_cycle_core::LTR_LP_OUT], entr[C_sco2_cycle_core::LTR_LP_OUT],
             pres[C_sco2_cycle_core::PC_IN], entr[C_sco2_cycle_core::PC_IN],
             T_pre_cooler, s_pre_cooler, 25);
         if (err_code != 0)
             return err_code;
 
         // Get main cooler data
-        err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::PC_OUT], entr[C_sco2_cycle_core::PC_OUT],
+        err_code = Ts_data_over_linear_dP_ds(fluid, pres[C_sco2_cycle_core::PC_OUT], entr[C_sco2_cycle_core::PC_OUT],
             pres[C_sco2_cycle_core::MC_IN], entr[C_sco2_cycle_core::MC_IN],
             T_main_cooler, s_main_cooler, 25);
         if (err_code != 0)
@@ -430,7 +430,8 @@ int sco2_cycle_plot_data_TS(int cycle_config,
 	return 0;
 }
 
-int sco2_cycle_plot_data_PH(int cycle_config,
+int sco2_cycle_plot_data_PH(C_fluid_properties& fluid,
+    int cycle_config,
 	const std::vector<double> temp /*K*/,
 	const std::vector<double> pres /*kPa*/,
 	std::vector<double> & P_t /*MPa*/,
@@ -447,14 +448,14 @@ int sco2_cycle_plot_data_PH(int cycle_config,
 	int n_pres = pres.size();
 	int n_temp = temp.size();
 
-	int err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::TURB_IN], pres[C_sco2_cycle_core::TURB_IN],
+	int err_code = Ph_data_over_turbomachinery(fluid, temp[C_sco2_cycle_core::TURB_IN], pres[C_sco2_cycle_core::TURB_IN],
 		temp[C_sco2_cycle_core::TURB_OUT], pres[C_sco2_cycle_core::TURB_OUT],
 		P_t, h_t, 25);
 
 	if (err_code != 0)
 		return err_code;
 
-	err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::MC_IN], pres[C_sco2_cycle_core::MC_IN],
+	err_code = Ph_data_over_turbomachinery(fluid, temp[C_sco2_cycle_core::MC_IN], pres[C_sco2_cycle_core::MC_IN],
 		temp[C_sco2_cycle_core::MC_OUT], pres[C_sco2_cycle_core::MC_OUT],
 		P_mc, h_mc, 25);
 
@@ -467,7 +468,7 @@ int sco2_cycle_plot_data_PH(int cycle_config,
             return -1;
 
         // Secondary Turbine
-        int err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::HTR_HP_OUT], pres[C_sco2_cycle_core::HTR_HP_OUT],
+        int err_code = Ph_data_over_turbomachinery(fluid, temp[C_sco2_cycle_core::HTR_HP_OUT], pres[C_sco2_cycle_core::HTR_HP_OUT],
             temp[C_sco2_cycle_core::TURB2_OUT], pres[C_sco2_cycle_core::TURB2_OUT],
             P_t2, h_t2, 25);
 
@@ -492,7 +493,7 @@ int sco2_cycle_plot_data_PH(int cycle_config,
             return -1;
 
         // Recompressor
-        err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::LTR_LP_OUT], pres[C_sco2_cycle_core::LTR_LP_OUT],
+        err_code = Ph_data_over_turbomachinery(fluid, temp[C_sco2_cycle_core::LTR_LP_OUT], pres[C_sco2_cycle_core::LTR_LP_OUT],
             temp[C_sco2_cycle_core::RC_OUT], pres[C_sco2_cycle_core::RC_OUT],
             P_rc, h_rc, 25);
 
@@ -511,7 +512,7 @@ int sco2_cycle_plot_data_PH(int cycle_config,
             return -1;
 
         // Recompressor
-        err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::PC_OUT], pres[C_sco2_cycle_core::PC_OUT],
+        err_code = Ph_data_over_turbomachinery(fluid, temp[C_sco2_cycle_core::PC_OUT], pres[C_sco2_cycle_core::PC_OUT],
             temp[C_sco2_cycle_core::RC_OUT], pres[C_sco2_cycle_core::RC_OUT],
             P_rc, h_rc, 25);
 
@@ -519,7 +520,7 @@ int sco2_cycle_plot_data_PH(int cycle_config,
             return err_code;
 
         // Precompressor
-        err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::PC_IN], pres[C_sco2_cycle_core::PC_IN],
+        err_code = Ph_data_over_turbomachinery(fluid, temp[C_sco2_cycle_core::PC_IN], pres[C_sco2_cycle_core::PC_IN],
             temp[C_sco2_cycle_core::PC_OUT], pres[C_sco2_cycle_core::PC_OUT],
             P_pc, h_pc, 25);
 
@@ -532,10 +533,10 @@ int sco2_cycle_plot_data_PH(int cycle_config,
 	return 0;
 }
 
-int Ph_arrays_over_constT(double P_low /*MPa*/, double P_high /*MPa*/, std::vector<double> T_consts /*C*/,
+int Ph_arrays_over_constT(C_fluid_properties& fluid, double P_low /*MPa*/, double P_high /*MPa*/, std::vector<double> T_consts /*C*/,
 	std::vector<std::vector<double>> & P_data /*MPa*/, std::vector<std::vector<double>> & h_data)
 {
-	CO2_state t_co2_props;
+	fluid_state t_co2_props;
 	int n_points = 200;
 	P_low = P_low * 1.E3;		//[MPa] convert from kPa
 	P_high = P_high * 1.E3;	//[MPa] convert from kPa
@@ -564,12 +565,12 @@ int Ph_arrays_over_constT(double P_low /*MPa*/, double P_high /*MPa*/, std::vect
 		{
 			P_i = P_low + deltaP * i;
 
-			prop_err_code = CO2_TP(T_consts[j] + 273.13, P_i, &t_co2_props);
+			prop_err_code = fluid.TP(T_consts[j] + 273.13, P_i, &t_co2_props);
 			if (prop_err_code != 0)
 			{
 				if (prop_err_code == 205)
 				{
-					prop_err_code = CO2_TQ(T_consts[j] + 273.15, 0.0, &t_co2_props);
+					prop_err_code = fluid.TQ(T_consts[j] + 273.15, 0.0, &t_co2_props);
 					if (prop_err_code != 0)
 					{
 						return -1;
@@ -579,7 +580,7 @@ int Ph_arrays_over_constT(double P_low /*MPa*/, double P_high /*MPa*/, std::vect
 						P_data[j][i] = t_co2_props.pres / 1.E3;		//[MPa]
 						h_data[j][i] = t_co2_props.enth;			//[kJ/kg]
 
-						prop_err_code = CO2_TQ(T_consts[j] + 273.15, 1.0, &t_co2_props);
+						prop_err_code = fluid.TQ(T_consts[j] + 273.15, 1.0, &t_co2_props);
 
 						i++;
 
@@ -661,10 +662,10 @@ int Ph_arrays_over_constT(double P_low /*MPa*/, double P_high /*MPa*/, std::vect
 	return 0;
 }
 
-int Ts_arrays_over_constP(double T_cold /*C*/, double T_hot /*C*/, std::vector<double> P_consts /*kPa*/,
+int Ts_arrays_over_constP(C_fluid_properties& fluid, double T_cold /*C*/, double T_hot /*C*/, std::vector<double> P_consts /*kPa*/,
 	std::vector<std::vector<double>> & T_data /*C*/, std::vector<std::vector<double>> & s_data)
 {
-	CO2_state t_co2_props;
+	fluid_state t_co2_props;
 	int n_points = 200;
 	T_cold = T_cold + 273.15;	//[K] convert from C
 	T_hot = T_hot + 273.15;	//[K] convert from C
@@ -676,17 +677,17 @@ int Ts_arrays_over_constP(double T_cold /*C*/, double T_hot /*C*/, std::vector<d
 
 	for (int i = 0; i < n_P; i++)
 	{
-		int co2_err = CO2_TP(T_cold, P_consts[i], &t_co2_props);
+		int co2_err = fluid.TP(T_cold, P_consts[i], &t_co2_props);
 		if (co2_err != 0)
 			return co2_err;
 		double s_cold = t_co2_props.entr;		//[kJ/kg-K]
 
-		co2_err = CO2_TP(T_hot, P_consts[i], &t_co2_props);
+		co2_err = fluid.TP(T_hot, P_consts[i], &t_co2_props);
 		if (co2_err != 0)
 			return co2_err;
 		double s_hot = t_co2_props.entr;		//[kJ/kg-K]
 
-		Ts_data_over_linear_dP_ds(P_consts[i], s_cold, P_consts[i], s_hot, T_data[i], s_data[i], n_points);
+		Ts_data_over_linear_dP_ds(fluid, P_consts[i], s_cold, P_consts[i], s_hot, T_data[i], s_data[i], n_points);
 	}
 
 	//double T_cold = 0.0;	//[C]
@@ -738,22 +739,22 @@ int Ts_arrays_over_constP(double T_cold /*C*/, double T_hot /*C*/, std::vector<d
 	return 0;
 }
 
-int Ts_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data)
+int Ts_dome(C_fluid_properties& fluid, double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data)
 {
 	std::vector<double> P_data;
 	std::vector<double> h_data;
-	return Ts_full_dome(T_cold, T_data, s_data, P_data, h_data);
+	return Ts_full_dome(fluid, T_cold, T_data, s_data, P_data, h_data);
 }
 
-int Ts_full_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data /*kJ/kg-K*/,
+int Ts_full_dome(C_fluid_properties& fluid, double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::vector<double> & s_data /*kJ/kg-K*/,
 	std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data /*kJ/kg*/)
 {
-	CO2_state t_co2_props;
+	fluid_state t_co2_props;
 	int n_x0 = 50;
 	int n_x1 = 50;
 
-	CO2_info t_co2_info;
-	get_CO2_info(&t_co2_info);
+	fluid_info t_co2_info;
+    fluid.get_info(&t_co2_info);
 	double T_crit = 0.999*t_co2_info.T_critical;		//[K]
 
 	T_data.resize(n_x0 + n_x1);
@@ -770,7 +771,7 @@ int Ts_full_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::v
 	for (int i = 0; i < n_x0; i++)
 	{
 		T_i = T_cold + deltaT_x0 * i;			//[K]
-		prop_err = CO2_TQ(T_i, 0.0, &t_co2_props);
+		prop_err = fluid.TQ(T_i, 0.0, &t_co2_props);
 		if (prop_err != 0)
 			return -1;
 
@@ -785,7 +786,7 @@ int Ts_full_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::v
 	for (int i = 0; i < n_x1; i++)
 	{
 		T_i = T_crit + deltaT_x1 * i;			//[K]
-		prop_err = CO2_TQ(T_i, 1.0, &t_co2_props);
+		prop_err = fluid.TQ(T_i, 1.0, &t_co2_props);
 		if (prop_err != 0)
 			return -1;
 
@@ -796,15 +797,15 @@ int Ts_full_dome(double T_cold /*C*/, std::vector<double> & T_data /*C*/, std::v
 	}
 }
 
-int Ph_dome(double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data)
+int Ph_dome(C_fluid_properties& fluid, double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vector<double> & h_data)
 {
-	CO2_info t_co2_info;
-	get_CO2_info(&t_co2_info);
+	fluid_info t_co2_info;
+	fluid.get_info(&t_co2_info);
 	double P_crit = 0.999*t_co2_info.P_critical;	//[kPa]
 	double T_crit = 0.999*t_co2_info.T_critical;	//[K]
 	double T_low_limit = 1.001*t_co2_info.temp_lower_limit;	//[K]
 
-	C_MEQ_CO2_props_at_2phase_P P_x0_eq;
+	C_MEQ_CO2_props_at_2phase_P P_x0_eq(E_fluid_type::CO2);
 	C_monotonic_eq_solver P_x0_solver(P_x0_eq);
 
 	P_x0_solver.settings(1.E-3, 100, T_low_limit, T_crit, true);
@@ -825,7 +826,7 @@ int Ph_dome(double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vec
 	std::vector<double> T_data;
 	std::vector<double> s_data;
 
-	return Ts_full_dome(T_P_target_solved - 273.15, T_data, s_data, P_data, h_data);
+	return Ts_full_dome(fluid, T_P_target_solved - 273.15, T_data, s_data, P_data, h_data);
 }
 
 double calculate_inflation_factor(double yr_base, double yr_target)
@@ -844,14 +845,14 @@ double calculate_inflation_factor(double yr_base, double yr_target)
 
 int C_MEQ_CO2_props_at_2phase_P::operator()(double T_co2 /*K*/, double *P_calc /*kPa*/)
 {
-	int prop_err_code = CO2_TQ(T_co2, 0.0, &mc_co2_props);
+	int prop_err_code = m_fluid->TQ(T_co2, 0.0, &mc_props);
 	if (prop_err_code != 0)
 	{
 		return prop_err_code;
 		*P_calc = std::numeric_limits<double>::quiet_NaN();
 	}
 	
-	*P_calc = mc_co2_props.pres;		//[kPa]
+	*P_calc = mc_props.pres;		//[kPa]
 
 	return 0;
 }
@@ -930,7 +931,7 @@ void C_turbine::turbine_sizing(const S_design_parameters & des_par_in, int & err
 	!      shafts).  For this reason, turbine_sizing must be called after compressor_sizing if
 	!      the shafts are to be linked. */
 
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	ms_des_par = des_par_in;
 
@@ -948,7 +949,7 @@ void C_turbine::turbine_sizing(const S_design_parameters & des_par_in, int & err
 		ms_des_solved.m_N_design = ms_des_par.m_N_design;
 
 	// Get speed of sound at inlet
-	int prop_error_code = CO2_TD(ms_des_par.m_T_in, ms_des_par.m_D_in, &co2_props);
+	int prop_error_code = m_fluid.TD(ms_des_par.m_T_in, ms_des_par.m_D_in, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -957,7 +958,7 @@ void C_turbine::turbine_sizing(const S_design_parameters & des_par_in, int & err
 	double ssnd_in = co2_props.ssnd;
 
 	// Outlet specific enthalpy after isentropic expansion
-	prop_error_code = CO2_PS(ms_des_par.m_P_out, ms_des_par.m_s_in, &co2_props);
+	prop_error_code = m_fluid.PS(ms_des_par.m_P_out, ms_des_par.m_s_in, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -1008,10 +1009,10 @@ void C_turbine::off_design_turbine(double T_in, double P_in, double P_out, doubl
 	! Notes:
 	!   1) This subroutine also sets the following values in 'turb': nu, eta, m_dot, w, w_tip_ratio */
 
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	// Get properties at turbine inlet
-	int prop_error_code = CO2_TP(T_in, P_in, &co2_props);
+	int prop_error_code = m_fluid.TP(T_in, P_in, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -1022,7 +1023,7 @@ void C_turbine::off_design_turbine(double T_in, double P_in, double P_out, doubl
 	double s_in = co2_props.entr;
 	double ssnd_in = co2_props.ssnd;
 
-	prop_error_code = CO2_PS(P_out, s_in, &co2_props);
+	prop_error_code = m_fluid.PS(P_out, s_in, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -1042,7 +1043,7 @@ void C_turbine::off_design_turbine(double T_in, double P_in, double P_out, doubl
 
 	// Calculate the outlet state and allowable mass flow rate
 	double h_out = h_in - ms_od_solved.m_eta*(h_in - h_s_out);		//[kJ/kg] Enthalpy at turbine outlet
-	prop_error_code = CO2_PH(P_out, h_out, &co2_props);
+	prop_error_code = m_fluid.PH(P_out, h_out, &co2_props);
 	if (prop_error_code != 0)
 	{
 		error_code = prop_error_code;
@@ -1073,10 +1074,10 @@ void C_turbine::od_turbine_at_N_des(double T_in, double P_in, double P_out, int 
 int C_comp__psi_eta_vs_phi::design_given_shaft_speed(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
     double N_rpm /*rpm*/, double eta_isen /*-*/, double & P_out /*kPa*/, double & T_out /*K*/, double & tip_ratio /*-*/)
 {
-    CO2_state co2_props;
+    fluid_state co2_props;
 
     // Get inlet state
-    int prop_error_code = CO2_TP(T_in, P_in, &co2_props);
+    int prop_error_code = m_fluid.TP(T_in, P_in, &co2_props);
     if (prop_error_code != 0)
     {
         return prop_error_code;
@@ -1103,7 +1104,7 @@ int C_comp__psi_eta_vs_phi::design_given_shaft_speed(double T_in /*K*/, double P
     double h_out_isen = h_in + w_i;		//[kJ/kg]
 
     // Get isentropic outlet state
-    prop_error_code = CO2_HS(h_out_isen, s_in, &co2_props);
+    prop_error_code = m_fluid.HS(h_out_isen, s_in, &co2_props);
     if (prop_error_code != 0)
     {
         return prop_error_code;
@@ -1112,7 +1113,7 @@ int C_comp__psi_eta_vs_phi::design_given_shaft_speed(double T_in /*K*/, double P
 
     // Get actual outlet state
     double h_out = h_in + w_i / eta_isen;	//[kJ/kg]
-    prop_error_code = CO2_PH(P_out, h_out, &co2_props);
+    prop_error_code = m_fluid.PH(P_out, h_out, &co2_props);
     if (prop_error_code != 0)
     {
         return prop_error_code;
@@ -1155,8 +1156,8 @@ int C_comp__psi_eta_vs_phi::design_given_shaft_speed(double T_in /*K*/, double P
 int C_comp__psi_eta_vs_phi::design_given_performance(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
     double T_out /*K*/, double P_out /*K*/)
 {
-    CO2_state in_props;
-    int prop_err_code = CO2_TP(T_in, P_in, &in_props);
+    fluid_state in_props;
+    int prop_err_code = m_fluid.TP(T_in, P_in, &in_props);
     if (prop_err_code != 0)
     {
         return -1;
@@ -1165,16 +1166,16 @@ int C_comp__psi_eta_vs_phi::design_given_performance(double T_in /*K*/, double P
     double h_in = in_props.enth;	//[kJ/kg]
     double rho_in = in_props.dens;	//[kg/m^3]
 
-    CO2_state isen_out_props;
-    prop_err_code = CO2_PS(P_out, s_in, &isen_out_props);
+    fluid_state isen_out_props;
+    prop_err_code = m_fluid.PS(P_out, s_in, &isen_out_props);
     if (prop_err_code != 0)
     {
         return -1;
     }
     double h_isen_out = isen_out_props.enth;	//[kJ/kg]
 
-    CO2_state out_props;
-    prop_err_code = CO2_TP(T_out, P_out, &out_props);
+    fluid_state out_props;
+    prop_err_code = m_fluid.TP(T_out, P_out, &out_props);
     if (prop_err_code != 0)
     {
         return -1;
@@ -1228,12 +1229,12 @@ int C_comp__psi_eta_vs_phi::design_given_performance(double T_in /*K*/, double P
 int C_comp__psi_eta_vs_phi::off_design_given_N(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/, double N_rpm /*rpm*/,
     double & T_out /*K*/, double & P_out /*kPa*/)
 {
-    CO2_state co2_props;
+    fluid_state co2_props;
 
     ms_od_solved.m_N = N_rpm;		//[rpm]
 
     // Fully define the inlet state of the compressor
-    int prop_error_code = CO2_TP(T_in, P_in, &co2_props);
+    int prop_error_code = m_fluid.TP(T_in, P_in, &co2_props);
     if (prop_error_code != 0)
     {
         return prop_error_code;
@@ -1276,7 +1277,7 @@ int C_comp__psi_eta_vs_phi::off_design_given_N(double T_in /*K*/, double P_in /*
     double h_out = h_in + dh;								//[kJ/kg] Actual enthalpy at compressor outlet
 
     // Get the compressor outlet pressure
-    prop_error_code = CO2_HS(h_s_out, s_in, &co2_props);
+    prop_error_code = m_fluid.HS(h_s_out, s_in, &co2_props);
     if (prop_error_code != 0)
     {
         return 2;
@@ -1284,7 +1285,7 @@ int C_comp__psi_eta_vs_phi::off_design_given_N(double T_in /*K*/, double P_in /*
     P_out = co2_props.pres;
 
     // Determine compressor outlet temperature and speed of sound
-    prop_error_code = CO2_PH(P_out, h_out, &co2_props);
+    prop_error_code = m_fluid.PH(P_out, h_out, &co2_props);
     if (prop_error_code != 0)
     {
         return 2;
@@ -1314,10 +1315,10 @@ int C_comp__psi_eta_vs_phi::off_design_given_N(double T_in /*K*/, double P_in /*
 
 int C_comp__psi_eta_vs_phi::calc_N_from_phi(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/, double phi_in /*-*/, double & N_rpm /*rpm*/)
 {
-    CO2_state co2_props;
+    fluid_state co2_props;
 
     // Fully define the inlet state of the compressor
-    int prop_error_code = CO2_TP(T_in, P_in, &co2_props);
+    int prop_error_code = m_fluid.TP(T_in, P_in, &co2_props);
     if (prop_error_code != 0)
     {
         return prop_error_code;
@@ -1331,10 +1332,10 @@ int C_comp__psi_eta_vs_phi::calc_N_from_phi(double T_in /*K*/, double P_in /*kPa
 
 int C_comp__psi_eta_vs_phi::calc_m_dot__phi_des(double T_in /*K*/, double P_in /*kPa*/, double N_rpm /*rpm*/, double & m_dot /*kg/s*/)
 {
-    CO2_state co2_props;
+    fluid_state co2_props;
 
     // Fully define the inlet state of the compressor
-    int prop_error_code = CO2_TP(T_in, P_in, &co2_props);
+    int prop_error_code = m_fluid.TP(T_in, P_in, &co2_props);
     if (prop_error_code != 0)
     {
         return prop_error_code;
@@ -1350,11 +1351,11 @@ int C_comp__psi_eta_vs_phi::calc_m_dot__phi_des(double T_in /*K*/, double P_in /
     return 0;
 }
 
-std::unique_ptr<C_comp__psi_eta_vs_phi> C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(int comp_model_code)
+std::unique_ptr<C_comp__psi_eta_vs_phi> C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(C_fluid_properties& fluid, int comp_model_code)
 {
     if (comp_model_code == E_snl_radial_via_Dyreby)
     {
-        return std::unique_ptr<C_comp__snl_radial_via_Dyreby>(new C_comp__snl_radial_via_Dyreby());
+        return std::unique_ptr<C_comp__snl_radial_via_Dyreby>(new C_comp__snl_radial_via_Dyreby(fluid));
     }
     else
     {
@@ -1499,7 +1500,7 @@ double C_comp__compA__PT_map_template::calc_eta_OD_normalized(double phi /*-*/, 
 
 int C_comp_multi_stage::C_MEQ_eta_isen__h_out::operator()(double eta_isen /*-*/, double *h_comp_out /*kJ/kg*/)
 {
-	C_MEQ_N_rpm__P_out c_stages(mpc_multi_stage, m_T_in, m_P_in, m_m_dot_basis, eta_isen);
+	C_MEQ_N_rpm__P_out c_stages(m_fluid, mpc_multi_stage, m_T_in, m_P_in, m_m_dot_basis, eta_isen);
 	C_monotonic_eq_solver c_solver(c_stages);
 
 	// Set lowr bound
@@ -1564,7 +1565,7 @@ int C_comp_multi_stage::C_MEQ_N_rpm__P_out::operator()(double N_rpm /*rpm*/, dou
 			P_in = P_out;	//[kPa]
 		}
 
-        mpc_multi_stage->mv_c_stages[i] = C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(mpc_multi_stage->m_compressor_model);
+        mpc_multi_stage->mv_c_stages[i] = C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(m_fluid, mpc_multi_stage->m_compressor_model);
         comp_err_code = mpc_multi_stage->mv_c_stages[i]->design_given_shaft_speed(T_in, P_in, m_m_dot_basis, N_rpm, m_eta_isen, P_out, T_out, tip_ratio);
 
 		if (comp_err_code != 0)
@@ -1618,19 +1619,19 @@ int C_comp_multi_stage::design_given_outlet_state(int comp_model_code, double T_
     double m_dot_basis = m_dot_cycle / m_r_W_dot_scale;		//[kg/s]
 
     mv_c_stages.resize(1);
-    mv_c_stages[0] = C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(m_compressor_model);    
+    mv_c_stages[0] = C_comp__psi_eta_vs_phi::construct_derived_C_comp__psi_eta_vs_phi(m_fluid, m_compressor_model);    
     mv_c_stages[0]->design_given_performance(T_in, P_in, m_dot_basis, T_out, P_out);
 
     double max_calc_tip_speed = mv_c_stages[0]->ms_des_solved.m_tip_ratio;      //[-]
 
     double tip_speed_limit = 0.85;
 
-	CO2_state co2_props;
+	fluid_state co2_props;
 
 	double h_in = mv_c_stages[0]->ms_des_solved.m_h_in; //[kJ/kg] 
 	double s_in = mv_c_stages[0]->ms_des_solved.m_s_in; //[kJ/kg-K] 
 
-	int prop_err_code = CO2_PS(P_out, s_in, &co2_props);
+	int prop_err_code = m_fluid.PS(P_out, s_in, &co2_props);
 	if (prop_err_code != 0)
 	{
 		return -1;
@@ -1657,7 +1658,7 @@ int C_comp_multi_stage::design_given_outlet_state(int comp_model_code, double T_
 
 			//mv_stages.resize(n_stages);
 
-			C_MEQ_eta_isen__h_out c_stages(this, T_in, P_in, P_out, m_dot_basis, tol);
+			C_MEQ_eta_isen__h_out c_stages(m_fluid, this, T_in, P_in, P_out, m_dot_basis, tol);
 			C_monotonic_eq_solver c_solver(c_stages);
 
 			// Set bounds on isentropic efficiency
@@ -1839,8 +1840,8 @@ void C_comp_multi_stage::off_design_given_N(double T_in /*K*/, double P_in /*kPa
 	double h_in = mv_c_stages[0]->ms_od_solved.m_h_in;					//[kJ/kg]
 	double s_in = mv_c_stages[0]->ms_od_solved.m_s_in;					//[kJ/kg-K]
 
-	CO2_state co2_props;
-	int prop_err_code = CO2_PS(P_out, s_in, &co2_props);
+	fluid_state co2_props;
+	int prop_err_code = m_fluid.PS(P_out, s_in, &co2_props);
 	if (prop_err_code != 0)
 	{
 		error_code = prop_err_code;

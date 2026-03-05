@@ -125,8 +125,9 @@ void C_pc_heat_sink_physical::init(C_csp_power_cycle::S_solved_params &solved_pa
     this->m_hx.initialize(ms_params.m_pc_fl, ms_params.m_pc_fl_props, ms_params.m_N_sub_hx, target_type);
 
     // Get Steam Inlet Enthalpy (inputs are required to be subcooled)
-    water_state water_props;
-    int prop_error_code = water_TP(ms_params.m_T_ext_cold_des + 273.15, ms_params.m_P_ext_cold_des, &water_props);
+    fluid_state water_props;
+    auto water_ptr = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+    int prop_error_code = water_ptr->TP(ms_params.m_T_ext_cold_des + 273.15, ms_params.m_P_ext_cold_des, &water_props);
     if (prop_error_code != 0)
     {
         throw(C_csp_exception("Inlet water properties failed",
@@ -135,7 +136,7 @@ void C_pc_heat_sink_physical::init(C_csp_power_cycle::S_solved_params &solved_pa
     m_h_ext_cold_des = water_props.enth;   //[kJ/kg] Inlet steam enthalpy
 
     // Get Steam Target Enthalpy (inputs are required to be in two phase)
-    prop_error_code = water_PQ(ms_params.m_P_ext_cold_des, ms_params.m_Q_ext_hot_des, &water_props);
+    prop_error_code = water_ptr->PQ(ms_params.m_P_ext_cold_des, ms_params.m_Q_ext_hot_des, &water_props);
     if (prop_error_code != 0)
     {
         throw(C_csp_exception("Water properties in two phase region failed",

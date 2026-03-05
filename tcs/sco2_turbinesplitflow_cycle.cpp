@@ -148,7 +148,7 @@ int C_sco2_tsf_core::solve()
         {
             int poly_error_code = 0;
 
-            isen_eta_from_poly_eta(m_outputs.m_temp[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_OUT], std::abs(m_inputs.m_eta_mc),
+            isen_eta_from_poly_eta(m_fluid, m_outputs.m_temp[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_OUT], std::abs(m_inputs.m_eta_mc),
                 true, poly_error_code, eta_mc_isen);
 
             if (poly_error_code != 0)
@@ -164,7 +164,7 @@ int C_sco2_tsf_core::solve()
         {
             int poly_error_code = 0;
 
-            isen_eta_from_poly_eta(m_outputs.m_temp[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_OUT], std::abs(m_inputs.m_eta_t),
+            isen_eta_from_poly_eta(m_fluid, m_outputs.m_temp[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_OUT], std::abs(m_inputs.m_eta_t),
                 false, poly_error_code, eta_t_isen);
 
             if (poly_error_code != 0)
@@ -184,7 +184,7 @@ int C_sco2_tsf_core::solve()
     {
         int comp_error_code = 0;
 
-        calculate_turbomachinery_outlet_1(m_outputs.m_temp[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_OUT], eta_mc_isen, true,
+        calculate_turbomachinery_outlet_1(m_fluid, m_outputs.m_temp[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_IN], m_outputs.m_pres[C_sco2_cycle_core::MC_OUT], eta_mc_isen, true,
             comp_error_code, m_outputs.m_enth[C_sco2_cycle_core::MC_IN], m_outputs.m_entr[C_sco2_cycle_core::MC_IN], m_outputs.m_dens[C_sco2_cycle_core::MC_IN], m_outputs.m_temp[C_sco2_cycle_core::MC_OUT],
             m_outputs.m_enth[C_sco2_cycle_core::MC_OUT], m_outputs.m_entr[C_sco2_cycle_core::MC_OUT], m_outputs.m_dens[C_sco2_cycle_core::MC_OUT], m_outputs.m_w_mc);
 
@@ -200,7 +200,7 @@ int C_sco2_tsf_core::solve()
     {
         int turbine_error_code = 0;
 
-        calculate_turbomachinery_outlet_1(m_outputs.m_temp[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_OUT], eta_t_isen, false,
+        calculate_turbomachinery_outlet_1(m_fluid, m_outputs.m_temp[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_IN], m_outputs.m_pres[C_sco2_cycle_core::TURB_OUT], eta_t_isen, false,
             turbine_error_code, m_outputs.m_enth[C_sco2_cycle_core::TURB_IN], m_outputs.m_entr[C_sco2_cycle_core::TURB_IN], m_outputs.m_dens[C_sco2_cycle_core::TURB_IN], m_outputs.m_temp[C_sco2_cycle_core::TURB_OUT],
             m_outputs.m_enth[C_sco2_cycle_core::TURB_OUT], m_outputs.m_entr[C_sco2_cycle_core::TURB_OUT], m_outputs.m_dens[C_sco2_cycle_core::TURB_OUT], m_outputs.m_w_t);
 
@@ -551,7 +551,7 @@ int C_sco2_tsf_core::solve_HTR(double T_HTR_HP_OUT_guess, double* diff_T_HTR_HP_
             {
                 int poly_error_code = 0;
 
-                isen_eta_from_poly_eta(m_outputs.m_temp[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::TURB2_OUT], std::abs(m_inputs.m_eta_t2),
+                isen_eta_from_poly_eta(m_fluid, m_outputs.m_temp[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::TURB2_OUT], std::abs(m_inputs.m_eta_t2),
                     false, poly_error_code, eta_t2_isen);
 
                 if (poly_error_code != 0)
@@ -568,7 +568,7 @@ int C_sco2_tsf_core::solve_HTR(double T_HTR_HP_OUT_guess, double* diff_T_HTR_HP_
         {
             int turbine2_error_code = 0;
 
-            calculate_turbomachinery_outlet_1(m_outputs.m_temp[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::TURB2_OUT], eta_t2_isen, false,
+            calculate_turbomachinery_outlet_1(m_fluid, m_outputs.m_temp[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::TURB2_OUT], eta_t2_isen, false,
                 turbine2_error_code, m_outputs.m_enth[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_entr[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_dens[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_temp[C_sco2_cycle_core::TURB2_OUT],
                 m_outputs.m_enth[C_sco2_cycle_core::TURB2_OUT], m_outputs.m_entr[C_sco2_cycle_core::TURB2_OUT], m_outputs.m_dens[C_sco2_cycle_core::TURB2_OUT], m_outputs.m_w_t2);
 
@@ -875,7 +875,7 @@ int C_TurbineSplitFlow_Cycle::optimize_par(const S_auto_opt_design_parameters& a
         //opt_des_cycle.set_maxeval(50);
 
         // Set up core model that will be passed to objective function
-        C_sco2_tsf_core tsf_core;
+        C_sco2_tsf_core tsf_core(*m_fluid);
         tsf_core.set_inputs(core_inputs);
 
         // Make Tuple to pass in parameters
@@ -908,7 +908,7 @@ int C_TurbineSplitFlow_Cycle::optimize_par(const S_auto_opt_design_parameters& a
         core_inputs.m_P_mc_in = core_inputs.m_P_mc_out / opt_par.m_PR_HP_to_LP_guess;
 
         // Simulate Case (don't actually need to run...)
-        C_sco2_tsf_core core_model;
+        C_sco2_tsf_core core_model(*m_fluid);
         core_model.set_inputs(core_inputs);
         error_code = core_model.solve();
     }

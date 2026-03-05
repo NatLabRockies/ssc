@@ -5,6 +5,7 @@
 #include "heat_exchangers.h"
 #include <string>
 #include "math.h"
+#include "fluid_properties.h"
 
 class C_sco2_cycle_core
 {
@@ -480,6 +481,9 @@ protected:
     int m_N_nodes_pass;         //[-] Number of nodes per pass
     double m_yr_inflation;      //[yr] Inflation target year
 
+    std::unique_ptr<C_fluid_properties> m_fluid; // Fluid properties pointer
+    C_fluid_properties& get_fluid() { return *m_fluid; }
+
 public:
 
 	C_sco2_cycle_core(C_sco2_cycle_core::E_turbo_gen_motor_config turbo_gen_motor_config,
@@ -496,7 +500,8 @@ public:
         double frac_fan_power /*-*/, double eta_fan /*-*/, double deltaP_cooler_frac /*-*/,
         int N_nodes_pass /*-*/,
         double T_amb_des /*K*/, double elevation /*m*/,
-        double yr_inflation /*yr*/)
+        double yr_inflation /*yr*/,
+        E_fluid_type fluid_type)
 	{
         m_turbo_gen_motor_config = turbo_gen_motor_config;
         m_eta_generator = eta_generator;    //[-]
@@ -531,16 +536,17 @@ public:
 
         m_yr_inflation = yr_inflation;                //[]
 
+        m_fluid = C_fluid_properties::create_fluid_properties(fluid_type);
+
         // Set design limits!!!!
 		ms_des_limits.m_UA_net_power_ratio_max = 2.0;		//[-/K]
 		ms_des_limits.m_UA_net_power_ratio_min = 1.E-5;		//[-/K]
 
 		// Set minimum main compressor inlet temperature
-		CO2_info s_co2_info;
+        fluid_info info;
+        m_fluid->get_info(&info);
 
-		get_CO2_info(&s_co2_info);
-
-		ms_des_limits.m_T_mc_in_min = ceil(s_co2_info.T_critical);		//[K]
+		ms_des_limits.m_T_mc_in_min = ceil(info.T_critical);		//[K]
 	}
 
     S_od_deltaP ms_od_deltaP;

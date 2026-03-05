@@ -2,11 +2,11 @@
 #include "fluid_properties.h"
 #include "water_properties.h"
 
-int C_water_properties::TD(double T, double D, fluid_state* f_state)
+int C_water_properties::TD(double T, double D, fluid_state* state)
 {
     water_state w_state;
     int flag = water_TD(T, D, &w_state);
-    this->fluid_state_from_water_state(&w_state, f_state);
+    this->fluid_state_from_water_state(&w_state, state);
 
     return flag;
 }

@@ -45,6 +45,7 @@ set(TCS_SRC
 		dispatch_builder.cpp
 		etes_dispatch.cpp
         fluid_co2_properties.cpp
+        fluid_properties.cpp
         fluid_water_properties.cpp
 		fmin.cpp
 		fmin_callbacks.cpp

@@ -69,10 +69,14 @@ namespace NS_HX_counterflow_eqs
         double mu;  //[uPa-s] Dynamic viscosity (units from co2 props)
         double cp;  //[kJ/kg-K] Specific heat
         double m_dot;   //[kg/s] Mass flow rate
+        double h;       //[kJ/kg] Enthalpy
+        double T;       // [K] Temperature
+        double Q;   // Quality
 
         S_hx_fluid_props()
         {
-            k = rho = mu = cp = m_dot = std::numeric_limits<double>::quiet_NaN();
+            k = rho = mu = cp = m_dot = h
+                = T = Q = std::numeric_limits<double>::quiet_NaN();
         }
     };
 
@@ -83,7 +87,71 @@ namespace NS_HX_counterflow_eqs
         double UA;      //[kW/K]
     };
 
-    double hx_fl__calc_h__TP(int fl_code, HTFProperties& fl_htf_class,
+    // Handles both HTFProperties and C_fluid_properties
+    struct S_hx_fluid_handle
+    {
+        enum class E_backend
+        {
+            E_htf_properties,
+            E_fluid_properties,
+            E_unknown
+        };
+
+        E_backend m_backend;
+
+        HTFProperties* m_htf;
+        C_fluid_properties* m_fluid;
+
+        S_hx_fluid_handle()
+        {
+            m_backend = E_backend::E_unknown;
+            m_htf = nullptr;
+            m_fluid = nullptr;
+        }
+
+        static S_hx_fluid_handle from_htf(HTFProperties* htf)
+        {
+            S_hx_fluid_handle h;
+            h.m_backend = E_backend::E_htf_properties;
+            h.m_htf = htf;
+            return h;
+        }
+
+        static S_hx_fluid_handle from_fluid(C_fluid_properties* fluid)
+        {
+            S_hx_fluid_handle h;
+            h.m_backend = E_backend::E_fluid_properties;
+            h.m_fluid = fluid;
+            return h;
+        }
+
+        bool is_valid() const
+        {
+            if (m_backend == E_backend::E_htf_properties)
+            {
+                return m_htf != nullptr;
+            }
+
+            if (m_backend == E_backend::E_fluid_properties)
+            {
+                return m_fluid != nullptr;
+            }
+
+            return false;
+        }
+
+        int try_get_T__PH(double P /*kPa*/, double h /*kJ/kg*/, double& T_out /*K*/) const;
+
+        int try_get_h__TP(double T /*K*/, double P /*kPa*/, double& h_out /*kJ/kg*/) const;
+
+        int try_get_h__TQ(double T /*K*/, double Q, double& h_out /*kJ/kg*/) const;
+
+        int try_get_props__TP(double T /*K*/, double P /*kPa*/, S_hx_fluid_props& props) const;
+
+        int try_get_props__PH(double P /*kPa*/, double h /*kJ/kg*/, S_hx_fluid_props& props) const;
+    };
+
+    double hx_fl__calc_h__TP(S_hx_fluid_handle& fl_handle,
         double T_K /*K*/, double P_kpa /*kPa*/);
 
     class C_hx_fl__TP__core
@@ -97,11 +165,11 @@ namespace NS_HX_counterflow_eqs
         double m_k;     //[W/m-K]
         double m_mu;    //[uPa-s]
 
-        C_hx_fl__TP__core(int fl_code, HTFProperties* fl_htf_class,
+        C_hx_fl__TP__core(S_hx_fluid_handle& fl_handle,
             double T_K /*K*/, double P_kpa /*kPa*/, bool is_calc_cond_visc);
     };
 
-    double hx_fl__calc_T__Ph(int fl_code, HTFProperties& fl_htf_class,
+    double hx_fl__calc_T__Ph(S_hx_fluid_handle& fl_handle,
         double P_kpa /*kPa*/, double h_kjkg /*kJ/kg*/);
 
     class C_hx_fl__Ph__core
@@ -115,40 +183,40 @@ namespace NS_HX_counterflow_eqs
         double m_k;     //[W/m-K]
         double m_mu;    //[uPa-s]
 
-        C_hx_fl__Ph__core(int fl_code, HTFProperties* fl_htf_class,
+        C_hx_fl__Ph__core(S_hx_fluid_handle& fl_handle,
             double P_kpa /*kPa*/, double h_kjkg /*kJ/kg*/, bool is_calc_cond_visc);
     };
 
-    double calc_max_q_dot_enth(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    double calc_max_q_dot_enth(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         double h_h_in /*kJ/kg*/, double P_h_in /*kPa*/, double P_h_out /*kPa*/, double m_dot_h /*kg/s*/,
         double h_c_in /*kJ/kg*/, double P_c_in /*kPa*/, double P_c_out /*kPa*/, double m_dot_c /*kg/s*/);
 
-    double calc_max_q_dot_enth(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    double calc_max_q_dot_enth(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         double h_h_in /*kJ/kg*/, double P_h_in /*kPa*/, double P_h_out /*kPa*/, double m_dot_h /*kg/s*/,
         double h_c_in /*kJ/kg*/, double P_c_in /*kPa*/, double P_c_out /*kPa*/, double m_dot_c /*kg/s*/,
         double& h_h_out /*kJ/kg*/, double& T_h_out /*K*/,
         double& h_c_out /*kJ/kg*/, double& T_c_out /*K*/,
         double& T_h_in /*K*/, double& T_c_in /*K*/);
 
-    double calc_max_q_dot(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    double calc_max_q_dot(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         double T_h_in, double P_h_in, double P_h_out, double m_dot_h,
         double T_c_in, double P_c_in, double P_c_out, double m_dot_c,
         double& h_h_out /*kJ/kg*/, double& T_h_out /*K*/,
         double& h_c_out /*kJ/kg*/, double& T_c_out /*K*/);
 
-    void calc_req_UA(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    void calc_req_UA(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         int N_sub_hx /*-*/,
         double q_dot /*kWt*/, double m_dot_c /*kg/s*/, double m_dot_h /*kg/s*/,
         double T_c_in /*K*/, double T_h_in /*K*/, double P_c_in /*kPa*/, double P_c_out /*kPa*/, double P_h_in /*kPa*/, double P_h_out /*kPa*/,
         double& UA /*kW/K*/, double& min_DT /*C*/, double& eff /*-*/, double& NTU /*-*/, double& T_h_out /*K*/, double& T_c_out /*K*/, double& q_dot_calc /*kWt*/,
         std::vector<S_hx_node_info>& v_s_node_info);
 
-    void calc_req_UA_enth(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    void calc_req_UA_enth(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         int N_sub_hx /*-*/,
         double q_dot /*kWt*/, double m_dot_c /*kg/s*/, double m_dot_h /*kg/s*/,
         double h_c_in /*kJ/kg*/, double h_h_in /*kJ/kg*/, double P_c_in /*kPa*/, double P_c_out /*kPa*/, double P_h_in /*kPa*/, double P_h_out /*kPa*/,
@@ -157,8 +225,8 @@ namespace NS_HX_counterflow_eqs
         std::vector<S_hx_node_info>& v_s_node_info);
 
     void solve_q_dot_for_fixed_UA(int hx_target_code /*-*/,
-        int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+        S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         S_hx_node_info& s_node_info_des,
         int N_sub_hx /*-*/, NS_HX_counterflow_eqs::E_UA_target_type UA_target_type,
         double T_c_in /*K*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/, double P_c_out /*kPa*/,
@@ -172,8 +240,8 @@ namespace NS_HX_counterflow_eqs
         double& eff_calc /*-*/, double& min_DT /*K*/, double& NTU /*-*/, double& UA_calc,
         std::vector<S_hx_node_info>& v_s_node_info);
 
-    void solve_q_dot_for_fixed_UA_enth(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    void solve_q_dot_for_fixed_UA_enth(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         S_hx_node_info& s_node_info_des,
         int N_sub_hx /*-*/, NS_HX_counterflow_eqs::E_UA_target_type UA_target_type,
         double h_c_in /*K*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/, double P_c_out /*kPa*/,
@@ -185,8 +253,8 @@ namespace NS_HX_counterflow_eqs
         double& q_dot /*kWt*/, double& eff_calc /*-*/, double& min_DT /*K*/, double& NTU /*-*/, double& UA_calc,
         std::vector<S_hx_node_info>& v_s_node_info);
 
-    void solve_q_dot__fixed_min_dT__enth(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    void solve_q_dot__fixed_min_dT__enth(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         int N_sub_hx /*-*/,
         double h_c_in /*K*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/, double P_c_out /*kPa*/,
         double h_h_in /*K*/, double P_h_in /*kPa*/, double m_dot_h /*kg/s*/, double P_h_out /*kPa*/,
@@ -196,8 +264,8 @@ namespace NS_HX_counterflow_eqs
         double& q_dot /*kWt*/, double& eff_calc /*-*/, double& min_DT /*K*/, double& NTU /*-*/, double& UA_calc,
         std::vector<S_hx_node_info>& v_s_node_info);
 
-    void solve_q_dot__fixed_eff__enth(int hot_fl_code /*-*/, HTFProperties& hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties& cold_htf_class,
+    void solve_q_dot__fixed_eff__enth(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         int N_sub_hx /*-*/,
         double h_c_in /*K*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/, double P_c_out /*kPa*/,
         double h_h_in /*K*/, double P_h_in /*kPa*/, double m_dot_h /*kg/s*/, double P_h_out /*kPa*/,
@@ -209,8 +277,8 @@ namespace NS_HX_counterflow_eqs
 
     double UA_scale_vs_m_dot(double m_dot_cold_over_des /*-*/, double m_dot_hot_over_des /*-*/);
 
-    double UA_CRM(int hot_fl_code /*-*/, HTFProperties* hot_htf_class,
-        int cold_fl_code /*-*/, HTFProperties* cold_htf_class,
+    double UA_CRM(S_hx_fluid_handle& hot_fl_handle,
+        S_hx_fluid_handle& cold_fl_handle,
         const S_hx_node_info& s_node_info_des,
         double P_hot_in /*kPa*/, double P_hot_out /*kPa*/,
         double h_hot_in /*kPa*/, double h_hot_out /*kPa*/,
@@ -223,11 +291,8 @@ namespace NS_HX_counterflow_eqs
     {
     private:
 
-        int m_hot_fl_code;		//[-]
-        HTFProperties mc_hot_htf_class;
-
-        int m_cold_fl_code;		//[-]
-        HTFProperties mc_cold_htf_class;
+        S_hx_fluid_handle& m_hot_fl_handle;
+        S_hx_fluid_handle& m_cold_fl_handle;
 
         S_hx_node_info ms_node_info_des;
 
@@ -250,19 +315,14 @@ namespace NS_HX_counterflow_eqs
         double m_m_dot_hot;     //[kg/s]
 
     public:
-        C_MEQ__q_dot__target_UA__c_in_h_out__enth(int hot_fl_code /*-*/, HTFProperties hot_htf_class,
-            int cold_fl_code /*-*/, HTFProperties cold_htf_class,
+        C_MEQ__q_dot__target_UA__c_in_h_out__enth(S_hx_fluid_handle& hot_fl_handle,
+            S_hx_fluid_handle& cold_fl_handle,
             const S_hx_node_info s_node_info_des,
             double P_cold_out /*kPa*/, double P_hot_out /*kPa*/,
             double h_cold_in /*kJ/kg*/, double P_cold_in /*kPa*/, double m_dot_cold /*kg/s*/,
             double h_hot_out /*kJ/kg*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/)
+            : m_hot_fl_handle(hot_fl_handle), m_cold_fl_handle(cold_fl_handle)
         {
-            m_hot_fl_code = hot_fl_code;
-            mc_hot_htf_class = hot_htf_class;
-
-            m_cold_fl_code = cold_fl_code;
-            mc_cold_htf_class = cold_htf_class;
-
             m_N_sub_hx = 1;
             ms_node_info_des = s_node_info_des;
 
@@ -305,11 +365,8 @@ namespace NS_HX_counterflow_eqs
 
     private:
 
-        int m_hot_fl_code;		//[-]
-        HTFProperties mc_hot_htf_class;
-
-        int m_cold_fl_code;		//[-]
-        HTFProperties mc_cold_htf_class;
+        S_hx_fluid_handle& m_hot_fl_handle;
+        S_hx_fluid_handle& m_cold_fl_handle;
 
         S_hx_node_info* mps_node_info_des;
 
@@ -329,21 +386,16 @@ namespace NS_HX_counterflow_eqs
         double m_m_dot_h;		//[kg/s]
 
     public:
-        C_MEQ__q_dot__UA_target__enth(int hot_fl_code /*-*/, HTFProperties hot_htf_class,
-            int cold_fl_code /*-*/, HTFProperties cold_htf_class,
+        C_MEQ__q_dot__UA_target__enth(S_hx_fluid_handle& hot_fl_handle,
+            S_hx_fluid_handle& cold_fl_handle,
             S_hx_node_info* ps_node_info_des,
             int N_sub_hx /*-*/,
             E_UA_target_type UA_target_type, double UA_target /*kW/K*/,
             double P_c_out /*kPa*/, double P_h_out /*kPa*/,
             double h_c_in /*kJ/kg*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/,
             double h_h_in /*kJ/kg*/, double P_h_in /*kPa*/, double m_dot_h /*kg/s*/)
+            : m_hot_fl_handle(hot_fl_handle), m_cold_fl_handle(cold_fl_handle)
         {
-            m_hot_fl_code = hot_fl_code;
-            mc_hot_htf_class = hot_htf_class;
-
-            m_cold_fl_code = cold_fl_code;
-            mc_cold_htf_class = cold_htf_class;
-
             mps_node_info_des = ps_node_info_des;
 
             m_N_sub_hx = N_sub_hx;
@@ -384,11 +436,8 @@ namespace NS_HX_counterflow_eqs
     {
     private:
 
-        int m_hot_fl_code;		//[-]
-        HTFProperties mc_hot_htf_class;
-
-        int m_cold_fl_code;		//[-]
-        HTFProperties mc_cold_htf_class;
+        S_hx_fluid_handle& m_hot_fl_handle;
+        S_hx_fluid_handle& m_cold_fl_handle;
 
         int m_N_sub_hx;			//[-]
 
@@ -403,19 +452,14 @@ namespace NS_HX_counterflow_eqs
         double m_m_dot_h;		//[kg/s]
 
     public:
-        C_MEQ__min_dT__q_dot(int hot_fl_code /*-*/, HTFProperties hot_htf_class,
-            int cold_fl_code /*-*/, HTFProperties cold_htf_class,
+        C_MEQ__min_dT__q_dot(S_hx_fluid_handle& hot_fl_handle,
+            S_hx_fluid_handle& cold_fl_handle,
             int N_sub_hx /*-*/,
             double P_c_out /*kPa*/, double P_h_out /*kPa*/,
             double h_c_in /*kJ/kg*/, double P_c_in /*kPa*/, double m_dot_c /*kg/s*/,
             double h_h_in /*kJ/kg*/, double P_h_in /*kPa*/, double m_dot_h /*kg/s*/)
+            : m_hot_fl_handle(hot_fl_handle), m_cold_fl_handle(cold_fl_handle)
         {
-            m_hot_fl_code = hot_fl_code;
-            mc_hot_htf_class = hot_htf_class;
-
-            m_cold_fl_code = cold_fl_code;
-            mc_cold_htf_class = cold_htf_class;
-
             m_N_sub_hx = N_sub_hx;
 
             m_P_c_out = P_c_out;	//[kPa]
@@ -463,7 +507,14 @@ public:
         };
     };
     
-    
+private:
+    // Materials objects
+    // Not to be used
+    // Access via handlers only
+    HTFProperties mc_hot_fl_private;
+    HTFProperties mc_cold_fl_private;
+    std::unique_ptr<C_fluid_properties> m_hot_fluid_private;
+    std::unique_ptr<C_fluid_properties> m_cold_fluid_private;
 
 protected:
     bool m_is_HX_initialized;		//[-] True = yes!
@@ -502,9 +553,12 @@ public:
         int m_cold_fl;				//[-] Integer code for cold fluid - assumed be HTF in library or w/ lookup unless = CO2 enumeration
         util::matrix_t<double> mc_cold_fl_props;	//[-] If applicable, user-defined properties
 
+        double m_yr_inflation;
+
         S_init_par()
         {
             m_N_sub_hx = m_hot_fl = m_cold_fl = -1;
+            m_yr_inflation = 0;
         }
     };
 
@@ -613,10 +667,11 @@ public:
     S_od_par ms_od_par;
     S_od_solved ms_od_solved;
 
-    HTFProperties mc_hot_fl;
-    HTFProperties mc_cold_fl;
-    CO2_state mc_co2_props;
-    water_state ms_water_props;
+    // Fluid properties handlers
+    // Manage HTFProperties and C_fluid_properties
+    NS_HX_counterflow_eqs::S_hx_fluid_handle m_hot_fl_handle;
+    NS_HX_counterflow_eqs::S_hx_fluid_handle m_cold_fl_handle;
+
 
     C_HX_counterflow_CRM();
 

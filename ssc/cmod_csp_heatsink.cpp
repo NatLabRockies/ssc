@@ -144,7 +144,12 @@ public:
         double T_htf_hot_od = 295.9725; //[C]
         double od_tol = 1e-5;
         double mdot_htf_od = 22.90448;  //[kg/s]
-        double h_htf_hot_od = m_hx.mc_hot_fl.enth(T_htf_hot_od + 273.15) * 1e-3;   //[kJ/kg]
+        double h_htf_hot_od;
+        int err = m_hx.m_hot_fl_handle.try_get_h__TP(T_htf_hot_od + 27.15, 0, h_htf_hot_od) * 1e-3; // [kJ/kg]
+        if (err != 0)
+        {
+            throw(C_csp_exception("Error hot htf enthalpy", "cmod_csp_heatsink"));
+        }
 
         double q_dot_calc, h_ext_out_calc, h_htf_out_calc;
 

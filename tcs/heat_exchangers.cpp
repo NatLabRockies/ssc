@@ -3328,7 +3328,7 @@ void C_HX_co2_to_htf::design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc
         throw(C_csp_exception("Hot inlet enthalpy properties failed",
             "C_HX_counterflow::design_and_calc_m_dot_htf", 12));
     }
-    prop_error_code = m_cold_fl_handle.try_get_h__TP(T_htf_cold, 0, h_c_in);
+    prop_error_code = m_hot_fl_handle.try_get_h__TP(T_htf_cold, 0, h_c_in);
     if (prop_error_code != 0)
     {
         throw(C_csp_exception("Cold inlet enthalpy properties failed",
@@ -3417,6 +3417,7 @@ C_CO2_to_air_cooler::C_CO2_to_air_cooler()
 	m_T_co2_hot_max = 700.0 + 273.15;	//[K]
 
 	mc_air.SetFluid(mc_air.Air);
+    m_fluid = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
 
     //m_cost_model = C_CO2_to_air_cooler::E_CARLSON_17;		//[-]
     m_cost_model = C_CO2_to_air_cooler::E_WEILAND_19;       //[-]
@@ -3481,13 +3482,13 @@ bool C_CO2_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_d
 		mu_air, v_air, cp_air, k_air, Pr_air);
 
 	// Calculate the required heat rejection
-	int co2_prop_err = CO2_TP(ms_des_par_cycle_dep.m_T_hot_in_des, ms_des_par_cycle_dep.m_P_hot_in_des, &mc_co2_props);
+	int co2_prop_err = m_fluid->TP(ms_des_par_cycle_dep.m_T_hot_in_des, ms_des_par_cycle_dep.m_P_hot_in_des, &mc_co2_props);
     if (co2_prop_err != 0)
     {
         throw(C_csp_exception("Air cooler design routine failed to calculate CO2 props at inlet"));
     }
 	double h_in_des = mc_co2_props.enth*1000.0;					//[J/kg]
-    co2_prop_err = CO2_TP(ms_des_par_cycle_dep.m_T_hot_out_des, m_P_hot_out_des, &mc_co2_props);
+    co2_prop_err = m_fluid->TP(ms_des_par_cycle_dep.m_T_hot_out_des, m_P_hot_out_des, &mc_co2_props);
     if (co2_prop_err != 0)
     {
         throw(C_csp_exception("Air cooler design routine failed to calculate CO2 props at outlet"));
@@ -3520,12 +3521,12 @@ bool C_CO2_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_d
 	// ** Try to get better guess by estimating length required to hit pressure drop **
 	// ********************************************************************************
 	double T_co2_deltaP_eval = 0.75*ms_des_par_cycle_dep.m_T_hot_in_des + 0.25*ms_des_par_cycle_dep.m_T_hot_out_des;
-	co2_prop_err = CO2_TP(T_co2_deltaP_eval, ms_des_par_cycle_dep.m_P_hot_in_des, &mc_co2_props);
+	co2_prop_err = m_fluid->TP(T_co2_deltaP_eval, ms_des_par_cycle_dep.m_P_hot_in_des, &mc_co2_props);
     if (co2_prop_err != 0)
     {
         throw(C_csp_exception("Air cooler design routine failed to calculate CO2 props at weighted temp and hot pressure"));
     }
-	double visc_dyn_co2_g = CO2_visc(mc_co2_props.dens, mc_co2_props.temp)*1.E-6;
+	double visc_dyn_co2_g = m_fluid->visc(mc_co2_props.dens, mc_co2_props.temp)*1.E-6;
 
 	// Just try hitting a "reasonable" Reynolds number?
 	// This sets the mass flow rate in the tube, which then sets the number of required tubes
@@ -3708,7 +3709,7 @@ int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out::operator()(double
     }
 
     // CO2 properties at hot side
-    int co2_prop_error = CO2_PH(m_P_co2_hot_in, h_co2_hot_in, mpc_co2_props);
+    int co2_prop_error = m_fluid.PH(m_P_co2_hot_in, h_co2_hot_in, mpc_co2_props);
     if (co2_prop_error != 0)
     {
         return -3;
@@ -3717,7 +3718,7 @@ int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out::operator()(double
 
     // CO2 properties at node average
     double h_co2_ave = 0.5*(h_co2_hot_in + m_h_co2_cold_out);   //[kJ/kg]
-    co2_prop_error = CO2_PH(m_P_co2_node_ave, h_co2_ave, mpc_co2_props);
+    co2_prop_error = m_fluid.PH(m_P_co2_node_ave, h_co2_ave, mpc_co2_props);
     if (co2_prop_error != 0)
     {
         return -2;
@@ -3778,7 +3779,7 @@ int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__T_co2_out::operator()(double
 
 	double T_co2_ave = 0.5*(T_co2_hot_in + m_T_co2_cold_out);		//[K]
 
-	int co2_prop_error = CO2_TP(T_co2_ave, m_P_co2_ave, mpc_co2_props);
+	int co2_prop_error = m_fluid.TP(T_co2_ave, m_P_co2_ave, mpc_co2_props);
 	if (co2_prop_error != 0)
 	{
 		return -2;
@@ -4138,7 +4139,9 @@ int C_CO2_to_air_cooler::C_MEQ_target_CO2_dP__L_tube_pass::operator()(double L_t
 		P_co2_out, mpc_ac->ms_des_par_cycle_dep.m_P_hot_in_des,
 		mpc_ac->ms_des_par_ind.m_T_amb_des,
 		tol_T_in, m_tol_pressure,
-		&mpc_ac->mc_messages, &mpc_ac->mc_co2_props,
+		&mpc_ac->mc_messages,
+        *mpc_ac->m_fluid.get(),
+        &mpc_ac->mc_co2_props,
 		mpc_ac->ms_hx_des_sol.m_d_in, mpc_ac->m_A_cs, mpc_ac->m_relRough,
 		L_node, V_node, mpc_ac->m_N_nodes, 
 		m_N_par, mpc_ac->ms_hx_des_sol.m_N_passes,
@@ -4170,18 +4173,18 @@ int C_CO2_to_air_cooler::C_MEQ_target_T_hot__width_parallel::operator()(double W
 	// ********************************************************************************
 	// ** Try to estimate length required to hit pressure drop **
 	// ********************************************************************************
-    int co2_prop_err = CO2_TP(m_T_co2_deltaP_eval, m_P_hot_ave, &mpc_ac->mc_co2_props);
+    int co2_prop_err = mpc_ac->m_fluid->TP(m_T_co2_deltaP_eval, m_P_hot_ave, &mpc_ac->mc_co2_props);
     if (co2_prop_err != 0)
     {
         *T_co2_hot = std::numeric_limits<double>::quiet_NaN();
         return -2;
     }
-	double visc_dyn_co2_g = CO2_visc(mpc_ac->mc_co2_props.dens, mpc_ac->mc_co2_props.temp)*1.E-6;
+	double visc_dyn_co2_g = mpc_ac->m_fluid->visc(mpc_ac->mc_co2_props.dens, mpc_ac->mc_co2_props.temp)*1.E-6;
 	double Re_co2_g = m_dot_tube*mpc_ac->ms_hx_des_sol.m_d_in / (mpc_ac->m_A_cs*visc_dyn_co2_g);
 
 	double rho_co2_g = mpc_ac->mc_co2_props.dens;
 	double visc_kin_co2_g = visc_dyn_co2_g / rho_co2_g;
-	double cond_co2_g = CO2_cond(mpc_ac->mc_co2_props.dens, mpc_ac->mc_co2_props.temp);
+	double cond_co2_g = mpc_ac->m_fluid->cond(mpc_ac->mc_co2_props.dens, mpc_ac->mc_co2_props.temp);
 	double specheat_co2_g = mpc_ac->mc_co2_props.cp*1000.0;
 	double alpha_co2_g = cond_co2_g / (specheat_co2_g*rho_co2_g);
 	double Pr_co2_g = visc_kin_co2_g / alpha_co2_g;
@@ -4300,7 +4303,8 @@ int co2_outlet_given_geom_and_air_m_dot(double T_co2_cold_out /*K*/, double m_do
     double P_cold_out /*kPa*/, double P_hot_in /*kPa*/,
     double T_amb /*K*/,
     double tol_h_in /*-*/, double tol_pressure /*-*/,
-    C_csp_messages *mc_messages, CO2_state *co2_props,
+    C_csp_messages *mc_messages,
+    C_fluid_properties& fluid, fluid_state* co2_props,
     double d_in_tube /*m*/, double A_cs_tube /*m2*/, double relrough /*-*/,
     double L_node /*m*/, double V_node /*m3*/, int N_nodes /*-*/,
     double N_par /*-*/, int N_passes /*-*/,
@@ -4312,14 +4316,14 @@ int co2_outlet_given_geom_and_air_m_dot(double T_co2_cold_out /*K*/, double m_do
     double T_co2_hot_max = 700.0 + 273.15;      //[K]
     double P_co2_ave = 0.5*(P_cold_out + P_hot_in); //[kPa]
 
-    int prop_err_code = CO2_TP(T_co2_hot_max, P_co2_ave, co2_props);
+    int prop_err_code = fluid.TP(T_co2_hot_max, P_co2_ave, co2_props);
     if (prop_err_code != 0)
     {
         return -1;
     }
     double h_co2_hot_max = co2_props->enth;     //[kJ/kg]
 
-    prop_err_code = CO2_TP(T_co2_cold_out, P_cold_out, co2_props);
+    prop_err_code = fluid.TP(T_co2_cold_out, P_cold_out, co2_props);
     if (prop_err_code != 0)
     {
         return -2;
@@ -4393,7 +4397,8 @@ int co2_outlet_given_geom_and_air_m_dot(double T_co2_cold_out /*K*/, double m_do
                     is_iter_deltaP = false;
                 }
 
-                C_CO2_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out c_node_e_bal_eq(co2_props,
+                C_CO2_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out c_node_e_bal_eq(fluid,
+                    co2_props,
                     i_h_co2_cold, 
                     mt_P_co2((size_t)in, j), P_co2_out_guess,
                     m_dot_co2_tube,
@@ -4463,12 +4468,12 @@ int co2_outlet_given_geom_and_air_m_dot(double T_co2_cold_out /*K*/, double m_do
 
                 // Add pressure drop calcs (co2_props is up-to-date for h_ave, P_ave)
                 // ** Could also move this to a function if also called to guess length
-                double visc_dyn_co2 = CO2_visc(co2_props->dens, co2_props->temp)*1.E-6;	//[Pa-s] convert from (uPa-s)
+                double visc_dyn_co2 = fluid.visc(co2_props->dens, co2_props->temp)*1.E-6;	//[Pa-s] convert from (uPa-s)
                 double Re_co2 = m_dot_co2_tube * d_in_tube / (A_cs_tube*visc_dyn_co2);		//[-]
 
                 double rho_co2 = co2_props->dens;				//[kg/s]
                 double visc_kin_co2 = visc_dyn_co2 / rho_co2;	//[m2/s]
-                double cond_co2 = CO2_cond(co2_props->dens, co2_props->temp);	//[W/m-K]
+                double cond_co2 = fluid.cond(co2_props->dens, co2_props->temp);	//[W/m-K]
                 double specheat_co2 = co2_props->cp*1000.0;		//[J/kg-K] convert from kJ/kg-K
                 double alpha_co2 = cond_co2 / (specheat_co2*rho_co2);	//[m2/s]
                 double Pr_co2 = visc_kin_co2 / alpha_co2;		//[-]
@@ -4772,11 +4777,13 @@ int C_CO2_to_air_cooler::C_MEQ_od_air_mdot__T_co2_out::operator()(double m_dot_a
 
 	    // Solve air cooler performance with known geometry and inputs
         m_q_dot_tube = std::numeric_limits<double>::quiet_NaN();
-	    air_cooler_code = co2_outlet_given_geom_and_air_m_dot(m_T_hot_out, m_m_dot_hot_tube,
-		    P_hot_out_guess, m_P_hot_in,
-		    m_T_amb,
-		    m_tol_op/2.0, m_tol_pressure,
-		    &mpc_ac->mc_messages, &mpc_ac->mc_co2_props,
+        air_cooler_code = co2_outlet_given_geom_and_air_m_dot(m_T_hot_out, m_m_dot_hot_tube,
+            P_hot_out_guess, m_P_hot_in,
+            m_T_amb,
+            m_tol_op / 2.0, m_tol_pressure,
+            &mpc_ac->mc_messages,
+            *mpc_ac->m_fluid.get(),
+            &mpc_ac->mc_co2_props,
 		    mpc_ac->ms_hx_des_sol.m_d_in, mpc_ac->m_A_cs, mpc_ac->m_relRough,
 		    mpc_ac->ms_hx_des_sol.m_L_node, mpc_ac->ms_hx_des_sol.m_V_node, mpc_ac->m_N_nodes,
 		    mpc_ac->ms_hx_des_sol.m_N_par, mpc_ac->ms_hx_des_sol.m_N_passes,

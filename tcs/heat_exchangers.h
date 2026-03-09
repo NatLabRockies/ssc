@@ -1069,6 +1069,7 @@ private:
 
 	// Classes
 	HTFProperties mc_air;				// Instance of HTFProperties class for ambient air
+    std::unique_ptr<C_fluid_properties> m_fluid;         // Instance of C_fluid_properties for co2
 
 	// Remaining Air-Cooler Specs
 	// Inputs
@@ -1122,7 +1123,7 @@ private:
 
 public:
 
-	CO2_state mc_co2_props;
+	fluid_state mc_co2_props;
 
 	C_CO2_to_air_cooler();
 
@@ -1259,6 +1260,7 @@ public:
     class C_MEQ_node_energy_balance__h_co2_out : public C_monotonic_equation
     {
     private:
+        C_fluid_properties& m_fluid;
         fluid_state *mpc_co2_props;
         double m_h_co2_cold_out;	//[kJ/kg] CO2 cold side enthalpy
         double m_P_co2_cold_out;    //[kPa]
@@ -1273,8 +1275,6 @@ public:
         double m_C_dot_air;		    //[W/K] Air flow capacitance
 
         double m_UA_node;		//[W/K] Conductance of node - assuming air convective heat transfer is governing resistance
-            
-        C_fluid_properties& m_fluid;
 
     public:
         C_MEQ_node_energy_balance__h_co2_out(C_fluid_properties& fluid, fluid_state *mc_co2_props,
@@ -1318,7 +1318,8 @@ public:
     class C_MEQ_node_energy_balance__T_co2_out : public C_monotonic_equation
 	{
 	private:
-		CO2_state *mpc_co2_props;
+        C_fluid_properties& m_fluid;
+		fluid_state *mpc_co2_props;
 		double m_T_co2_cold_out;	//[K] CO2 inlet temperature
 		double m_P_co2_ave;			//[kPa] Average CO2 pressure
 
@@ -1330,11 +1331,12 @@ public:
 		double m_UA_node;		//[W/K] Conductance of node - assuming air convective heat transfer is governing resistance
 
 	public:
-		C_MEQ_node_energy_balance__T_co2_out(CO2_state *mc_co2_props,
+		C_MEQ_node_energy_balance__T_co2_out(C_fluid_properties& fluid, fluid_state* mc_co2_props,
 					double T_co2_cold_out /*K*/, double P_co2_ave /*kPa*/, 
 					double m_dot_co2_tube /*kg/s*/, 
 					double T_air_cold_in /*K*/, double C_dot_air /*W/K*/,
 					double UA_node /*W/K*/)
+            : m_fluid(fluid)
 		{
 			mpc_co2_props = mc_co2_props;
 
@@ -1487,7 +1489,8 @@ int co2_outlet_given_geom_and_air_m_dot(double T_co2_out /*K*/, double m_dot_co2
     double P_cold_out /*kPa*/, double P_hot_in /*kPa*/,
     double T_amb /*K*/,
     double tol_h_in /*-*/, double tol_pressure /*-*/,
-    C_csp_messages *mc_messages, CO2_state *co2_props,
+    C_csp_messages *mc_messages,
+    C_fluid_properties& fluid, fluid_state *co2_props,
     double d_in_tube /*m*/, double A_cs_tube /*m2*/, double relrough /*-*/,
     double L_node /*m*/, double V_node /*m3*/, int N_nodes /*-*/,
     double N_par /*-*/, int N_passes /*-*/,

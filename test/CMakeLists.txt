@@ -77,9 +77,8 @@ endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR "Debug" IN_LIST CMAKE_CONFIGURATION_TYPES)
     find_library( GTESTD_LIB
-            NAMES libgtest.a gtest.lib libgtest.so
-# ortools release libraries for MSVC           PATHS $ENV{GTEST_DIR} ${GTDIR}/build/lib ${GTDIR}/build/lib/Debug)
-            PATHS $ENV{GTEST_DIR} ${GTDIR}/build/lib ${GTDIR}/build/lib/Release)
+        NAMES libgtest.a gtest.lib libgtest.so
+        PATHS $ENV{GTEST_DIR} ${GTDIR}/build/lib ${GTDIR}/build/lib/Debug)
     if(UNIX AND ENABLE_COVERAGE)
         target_link_options(Test PRIVATE --coverage)
         target_link_libraries(Test debug gcov ${GTESTD_LIB})

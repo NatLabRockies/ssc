@@ -106,8 +106,8 @@ TEST_F(CmodSaleLeasebackTest, IrrTarget) {
     file_inputs += "/test/input_json/FinancialModels/irr_target/sl_irr_dscr_targets_PVWatts_Sale_Leaseback_cmod_saleleaseback.json";
     std::string file_outputs = SSCDIR;
     file_outputs += "/test/input_json/FinancialModels/irr_target/sl_irr_dscr_targets_PVWatts_Sale_Leaseback_cmod_saleleaseback_outputs.json";
-    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "project_return_aftertax_irr" };
-    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs" };
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "tax_investor_aftertax_irr"};
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs" };
 
     Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }

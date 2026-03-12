@@ -48,6 +48,7 @@ static var_info _cm_vtab_host_developer[] = {
 
 
     { SSC_INPUT,        SSC_ARRAY,      "utility_bill_w_sys",          "Electricity bill for system", "$", "", "Charges by Month", "*", "", "" },
+    { SSC_INPUT,        SSC_ARRAY,      "utility_bill_wo_sys",          "Electricity bill without system", "$", "", "Charges by Month", "*", "", "" },
     { SSC_INPUT, SSC_MATRIX, "charge_w_sys_dc_tou_ym", "Demand charge with system (TOU)", "$", "", "Charges by Month", "*", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
  //   { SSC_INPUT,        SSC_ARRAY,       "annual_energy_value",      "Energy value",                       "$",            "",                      "System Output",      "*",                       "",                                         "" },
     { SSC_INPUT,        SSC_ARRAY,       "annual_thermal_value",      "Host thermal value",                       "$",            "",                      "System Output",      "",                       "",                                         "" },

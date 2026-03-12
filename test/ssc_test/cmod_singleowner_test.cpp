@@ -144,3 +144,102 @@ TEST_F(CmodSingleOwnerTest, IrrTarget) {
 
     Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
+
+TEST_F(CmodSingleOwnerTest, FixedDebtPPAInput) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so-fixed-debt-fixed-price_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so-fixed-debt-fixed-price_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, FixedDebtIrrTarget) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so-fixed-debt-irr-target_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so-fixed-debt-irr-target_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, BonusDepreciation) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so_bonus_depr_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so_bonus_depr_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr", "pre_depr_alloc_basis", "depr_stabas_first_year_bonus_macrs_5", "depr_fedbas_first_year_bonus_macrs_5"};
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, PBIforDebtService) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so_pbi_dscr_targets_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so_pbi_dscr_targets_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, CustomDepr) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so-custom_dep_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so-custom_dep_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, Moratorium) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so-moratorium_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so-moratorium_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, RecievablesReserve) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so-receivables_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so-receivables_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, EquipReserves) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so-major-equip-depr_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so-major-equip-depr_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSingleOwnerTest, IBICBI) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/so-cbi-ibi_PVWatts_Single_Owner_cmod_singleowner.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/singleowner/so-cbi-ibi_PVWatts_Single_Owner_cmod_singleowner_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("singleowner", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}

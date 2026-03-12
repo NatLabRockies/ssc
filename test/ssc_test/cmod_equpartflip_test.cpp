@@ -111,3 +111,24 @@ TEST_F(CmodAllEquityPartnershipFlipTest, IrrTarget) {
     Test("equpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
+TEST_F(CmodAllEquityPartnershipFlipTest, BonusDepr) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/irr_target/flip_bonus_depr_PVWatts_All_Equity_Partnership_Flip_cmod_equpartflip.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/irr_target/flip_bonus_depr_PVWatts_All_Equity_Partnership_Flip_cmod_equpartflip_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "project_return_aftertax_irr", "pre_depr_alloc_basis", "depr_stabas_first_year_bonus_macrs_5", "depr_fedbas_first_year_bonus_macrs_5" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs" };
+
+    Test("equpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodAllEquityPartnershipFlipTest, PBIforIRRTarget) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/irr_target/flip_pbi_irr_targets_PVWatts_All_Equity_Partnership_Flip_cmod_equpartflip.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/irr_target/flip_pbi_irr_targets_PVWatts_All_Equity_Partnership_Flip_cmod_equpartflip_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "project_return_aftertax_npv", "lcoe_real", "lppa_nom", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_annual_costs" };
+
+    Test("equpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}

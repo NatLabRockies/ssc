@@ -16,6 +16,18 @@ option(SAM_SKIP_TESTS "Skips building tests" OFF)
 
 option(SAMAPI_EXPORT "Export of ssc binaries to the SAM_api directory; for Unix, compile ssc libraries for SAM_api" ON)
 
+include(CMakeDependentOption)
+
+CMAKE_DEPENDENT_OPTION(BUILD_DEPS "Build OR-Tools dependencies" ON "NOT SKIP_ORTOOLS" OFF)
+CMAKE_DEPENDENT_OPTION(USE_COINOR "Use the COIN-OR solver" OFF "NOT SKIP_ORTOOLS" OFF)
+CMAKE_DEPENDENT_OPTION(USE_HIGHS "Use the HiGHS solver" OFF "NOT SKIP_ORTOOLS" OFF)
+CMAKE_DEPENDENT_OPTION(BUILD_EXAMPLES "Build examples" OFF "NOT SKIP_ORTOOLS" OFF)
+CMAKE_DEPENDENT_OPTION(BUILD_SAMPLES "Build samples" OFF "NOT SKIP_ORTOOLS" OFF)
+CMAKE_DEPENDENT_OPTION(INSTALL_DOC "Install doc" OFF "NOT SKIP_ORTOOLS" OFF)
+CMAKE_DEPENDENT_OPTION(USE_COINOR "Use COINOR solvers" OFF "NOT SKIP_ORTOOLS" OFF)
+CMAKE_DEPENDENT_OPTION(USE_XPRESS "Adds support for the XPRESS Solver" OFF "NOT SKIP_ORTOOLS" OFF)
+
+
 #
 # If project isn't system_advisor_model and SAM_SKIP_TOOLS=1,
 #   environment vars LK_LIB and LKD_LIB can be used to specify where to find those libraries
@@ -24,6 +36,13 @@ option(SAMAPI_EXPORT "Export of ssc binaries to the SAM_api directory; for Unix,
 if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "12" CACHE STRING "Minimum OS X deployment version")
 endif()
+
+if (UNIX AND NOT CMAKE_C_COMPILER)
+    set(CMAKE_C_COMPILER gcc)
+    set(CMAKE_CXX_COMPILER g++)
+endif()
+
+set(CMAKE_CXX_STANDARD 20)
 
 if ( NOT APPLE)
     set(CURL_DIR build_resources/libcurl_ssl_x64)
@@ -39,7 +58,6 @@ Project(sam_simulation_core VERSION 1.0.0 LANGUAGES CXX C)
 #####################################################################################################################
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_STANDARD 11)
 
 function(set_no_warnings target)
     get_target_property(MAIN_CFLAGS ${target} COMPILE_FLAGS)
@@ -76,7 +94,11 @@ function(set_default_compile_options target)
         set(MAIN_CFLAGS "")
     endif()
     set(MAIN_CFLAGS "${MAIN_CFLAGS} -D__64BIT__")
-    set_property(TARGET ${target} PROPERTY CXX_STANDARD 11)
+    if (MSVC)
+        set_property(TARGET ${target} PROPERTY CXX_STANDARD 20)
+    else()
+        set_property(TARGET ${target} PROPERTY CXX_STANDARD 17)
+    endif()
     set_property(TARGET ${target} PROPERTY CXX_STANDARD_REQUIRED ON)
     if(MSVC)
         set(MAIN_CFLAGS "${MAIN_CFLAGS} /bigobj /MP")
@@ -120,7 +142,7 @@ function(set_tools_compile_options target)
         if (APPLE)
             set(MAIN_CFLAGS "${MAIN_CFLAGS} -D__WXOSX__")
         endif()
-        set(MAIN_CFLAGS "${MAIN_CFLAGS} -Wall -Wno-deprecated -Wno-unknown-pragmas -Wno-overloaded-virtual -fno-common -std=c++11")
+        set(MAIN_CFLAGS "${MAIN_CFLAGS} -Wall -Wno-deprecated -Wno-unknown-pragmas -Wno-overloaded-virtual -fno-common")
         set(MAIN_CFLAGS "${MAIN_CFLAGS} -DLK_USE_WXWIDGETS")
     endif(MSVC)
     set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${MAIN_CFLAGS})
@@ -151,11 +173,11 @@ add_subdirectory(tcs)
 add_subdirectory(ssc)
 
 if (NOT SAM_SKIP_TOOLS)
-	add_subdirectory(sdktool)
+    add_subdirectory(sdktool)
 endif()
 
 if (NOT SAM_SKIP_TESTS)
-	add_subdirectory(test)
+    add_subdirectory(test)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug"

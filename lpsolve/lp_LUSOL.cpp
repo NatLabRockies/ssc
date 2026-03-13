@@ -51,7 +51,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 
 
 /* MUST MODIFY */
-char * BFP_CALLMODEL bfp_name(void)
+const char * BFP_CALLMODEL bfp_name(void)
 {
   return( "LUSOL v2.2.1.0" );
 }

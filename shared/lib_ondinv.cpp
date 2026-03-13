@@ -43,8 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 
 #include "lib_ondinv.h"
-#include "bsplinebuilder.h"
-#include "datatable.h"
+#include <bspline_builders.h>
+#include <data_table.h>
 
 
 const int TEMP_DERATE_ARRAY_LENGTH = 6;
@@ -203,8 +203,7 @@ void ond_inverter::initializeManual()
 		Pdc_threshold = 2;
 		std::vector<double> ondspl_X;
 		std::vector<double> ondspl_Y;
-		DenseVector xSamples(1);
-		DataTable samples;
+		std::vector<double> xSamples(1);
 //		int splineIndex;
 //		bool switchoverDone;
 
@@ -271,14 +270,14 @@ void ond_inverter::initializeManual()
 			}
 			*/
 			// SPLINTER
-			samples.clear();
+			DataTable samples;
 			x_max[j] = ondspl_X.back();
 			for (size_t k = 0; k < ondspl_X.size() && k < ondspl_Y.size(); k++)
 			{
-				xSamples(0) = ondspl_X[k];
-				samples.addSample(xSamples, ondspl_Y[k]);
+				xSamples[0] = ondspl_X[k];
+				samples.add_sample(xSamples, ondspl_Y[k]);
 			}
-			m_bspline3[j] = BSpline::Builder(samples).degree(3).build();
+			m_bspline3.push_back(std::make_unique<BSpline>(bspline_interpolator(samples, 3)));
 
 		}
 		ondIsInitialized = true;
@@ -310,7 +309,7 @@ double ond_inverter::calcEfficiency(double Pdc, int index_eta) {
 	{
 //		eta = effSpline[splineIndex][index_eta](Pdc);
 		x(0) = Pdc;
-		eta = (m_bspline3[index_eta]).eval(x);
+		eta = (*m_bspline3[index_eta]).eval(x)[0];
 	}
 	else 
 	{

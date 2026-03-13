@@ -34,8 +34,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_windfile.h"
 #include "lib_windwatts.h"
 
+#include <lib_ortools.h>
+#include "ortools/linear_solver/linear_solver.h"
+#include <lib_ptes_chp_dispatch.h>
+
 // for adjustment factors
 #include "common.h"
+
+// for finding paths relative to the application
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#elif __APPLE__
+	#include <CoreFoundation/CFURL.h>
+	#include <CoreFoundation/CFBundle.h>
+#elif __linux__
+    // linux
+#endif
 
 static var_info _cm_vtab_generic_system[] = {
 //	  VARTYPE           DATATYPE         NAME                           LABEL                                 UNITS           META     GROUP                REQUIRED_IF        CONSTRAINTS           UI_HINTS
@@ -66,6 +79,8 @@ static var_info _cm_vtab_generic_system[] = {
 	{ SSC_OUTPUT, SSC_NUMBER, "capacity_factor", "Capacity factor", "%", "", "Annual", "*", "", "" },
 	{ SSC_OUTPUT, SSC_NUMBER, "kwh_per_kw", "First year kWh/kW", "kWh/kW", "", "Annual", "*", "", "" },
 
+    { SSC_OUTPUT,    SSC_NUMBER, "sim_cpu_run_time",                   "Simulation duration clock time",                                                                                                         "s",             "",                                  "",                                         "*",                                                       "",              ""},
+    { SSC_OUTPUT,    SSC_STRING, "output_file",                        "Output filepath",                                                                                                                        "s",             "",                                  "",                                         "*",                                                       "",              ""},
 
 var_info_invalid };
 
@@ -253,6 +268,127 @@ public:
 		}
 		assign("capacity_factor", var_data((ssc_number_t)(kWhperkW / 87.6)));
 		assign("kwh_per_kw", var_data((ssc_number_t)kWhperkW));
+
+		printf("Here\n");
+        
+        std::clock_t clock_start = std::clock();
+
+        char input_data_path[512];
+        sprintf(input_data_path, "%s/test/input_cases/ortools/", std::getenv("SSCDIR"));
+		std::string input_dir = input_data_path;
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+		if (!std::getenv("SSCDIR")) {
+			const char* input_data_path_win = "C:\\SAM\\2023.12.17.ortools\\ortools\\";
+			input_dir = input_data_path_win;
+		}
+#elif __APPLE__
+		CFURLRef appUrlRef;
+		appUrlRef = CFBundleCopyResourceURL(CFBundleGetMainBundle(), CFSTR("ortools"), NULL, NULL);
+
+		if (appUrlRef) {
+			CFStringRef filePathRef = CFURLCopyPath(appUrlRef);
+			const char* filePath = CFStringGetCStringPtr(filePathRef, kCFStringEncodingUTF8);
+			input_dir = std::string(filePath);
+
+			CFRelease(filePathRef);
+			CFRelease(appUrlRef);
+
+			printf("directory %s\n", input_dir.c_str());
+		}
+
+#endif
+
+        bool run_rolling_horizon_cases = false;
+
+        std::string results_file = "heat_valued_results_no_off_design_heat.csv";
+        std::string res_dir = "heat_valued_no_offdes_results_1p_gap/";
+
+        // Problem set-up
+        ptes_chp_dispatch ptes_chp;
+        ptes_chp.design.init(100. /*cycle capacity*/, 0.47 /*cycle efficiency*/, 1.33 /*heat pump COP*/, 10. /*hour of tes*/); 
+        PTES_CHP_Dispatch_Data* data = &ptes_chp.params;
+        data->n_periods = 100;
+        data->delta = 1.0;
+
+        // PTES and heat off-taker configuration
+        ptes_chp.config.is_charge_heat_reject = false;
+        ptes_chp.config.is_discharge_heat_reject = true;
+        ptes_chp.config.is_heat_demand_required = false;
+        ptes_chp.config.is_heat_from_tes_allowed = false;
+        ptes_chp.config.is_offtaker_tes = false;
+        ptes_chp.config.is_heat_valued = true;
+
+        // Setting model parameters
+        data->setPrices(input_dir + "generic_low_carbon_duck_curve.csv", 60.0, 20.0);
+        data->setHeatLoad(input_dir + "heat_load.csv");
+        data->setDefaultAssumptions(ptes_chp.design);
+
+        struct run_time{
+            int opt_horizon;
+            int roll_horizon;
+            double time;
+        };
+
+        std::vector<run_time> times;
+        run_time run;
+        run.opt_horizon = data->n_periods;
+        run.roll_horizon = 0;
+        run.time = ptes_chp.optimize(input_dir + res_dir + results_file);
+        times.push_back(run);
+
+        ptes_chp.solver->SuppressOutput(); // Turning off solver output for roll solves
+
+        if (run_rolling_horizon_cases) {
+            int opt_horizon = 0;
+            int roll_horizon = 0;
+            for (int roll_d = 1; roll_d <= 7; roll_d++) {
+                roll_horizon = roll_d * 24;
+                for (int opt_d = 1; opt_d <= 7; opt_d++) {
+                    opt_horizon = opt_d * 24;
+                    if (opt_horizon >= roll_horizon) {
+                        LOG(INFO) << "Now solving an optimization horizon of " << opt_horizon
+                            << " with a rolling horizon of " << roll_horizon
+                            << std::endl;
+                        std::string res_file_name = input_dir + res_dir
+                            + std::to_string(opt_horizon) + "w_" + std::to_string(roll_horizon) + "r_" + results_file;
+                        run.time = ptes_chp.rollingHorizonoptimize(opt_horizon, roll_horizon, res_file_name);
+                        run.opt_horizon = opt_horizon;
+                        run.roll_horizon = roll_horizon;
+                        times.push_back(run);
+                    }
+                }
+            }
+        }
+
+        LOG(INFO) << std::setfill(' ') << std::left << std::setw(15) << "Opt. Horizon"
+            << std::left << std::setw(15) << "Roll Horizon"
+            << std::left << std::setw(15) << "Time (sec)"
+            << std::endl;
+        for (int i = 0; i < times.size(); i++) {
+            LOG(INFO) << std::setfill(' ') << std::left << std::setw(15) << times[i].opt_horizon
+                << std::left << std::setw(15) << times[i].roll_horizon
+                << std::left << std::setw(15) << times[i].time
+                << std::endl;
+        }
+
+        std::ofstream outputfile;
+        outputfile.open(input_dir + res_dir + "times.txt", std::ios_base::app);
+        std::string var_header = "Opt. Horizon, Roll Horizon, Time (sec)";
+        outputfile << var_header << std::endl;
+        for (int i = 0; i < times.size(); i++) {
+            outputfile << times[i].opt_horizon
+                << ", " << times[i].roll_horizon
+                << ", " << times[i].time
+                << std::endl;
+        }
+        outputfile.close();
+
+        std::clock_t clock_end = std::clock();
+        double sim_cpu_run_time = (clock_end - clock_start) / (double)CLOCKS_PER_SEC;		//[s]
+        assign("sim_cpu_run_time", sim_cpu_run_time);   //[s]
+        assign("output_file", input_dir + res_dir + "times.txt");
+
 	} // exec
 };
 

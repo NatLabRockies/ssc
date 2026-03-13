@@ -114,7 +114,7 @@ struct structcoldata {
   struct  column   *col;
 };
 
-static void error(parse_parm *pp, int verbose, char *string)
+static void error(parse_parm *pp, int verbose, const char *string)
 {
   if(pp == NULL)
     report(NULL, CRITICAL, string);
@@ -125,13 +125,13 @@ static void error(parse_parm *pp, int verbose, char *string)
 /*
  * error handling routine for yyparse()
  */
-void read_error(parse_parm *pp, void *scanner, char *string)
+void read_error(parse_parm *pp, void *scanner, const char *string)
 {
   error(pp, CRITICAL, string);
 }
 
 /* called when lex gets a fatal error */
-void lex_fatal_error(parse_parm *pp, void *scanner, char *msg)
+void lex_fatal_error(parse_parm *pp, void *scanner, const char *msg)
 {
   read_error(pp, scanner, msg);
   longjmp(pp->jump_buf, 1);

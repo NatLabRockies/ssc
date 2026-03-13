@@ -22,10 +22,10 @@ set(SDKTOOL_SRC
 
 if (UNIX)
 	set(wxWidgets_CONFIG_EXECUTABLE /usr/local/bin/wx-config-3)
-	find_package(wxWidgets COMPONENTS qa aui richtext html propgrid adv net stc core xml base REQUIRED)
+	find_package(wxWidgets QUIET  COMPONENTS qa aui richtext html propgrid adv net stc core xml base REQUIRED)
 else()
 	set(wxWidgets_ROOT_DIR $ENV{WXMSW3})
-	find_package(wxWidgets COMPONENTS qa webview aui richtext html propgrid adv net stc core xml base scintilla REQUIRED)
+	find_package(wxWidgets  QUIET COMPONENTS qa webview aui richtext html propgrid adv net stc core xml base scintilla REQUIRED)
 endif()
 
 include(${wxWidgets_USE_FILE})

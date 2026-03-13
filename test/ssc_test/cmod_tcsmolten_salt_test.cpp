@@ -125,6 +125,56 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, FlowPattern_NoFinancial)
     }
 }
 
+NAMESPACE_TEST(csp_tower, PowerTowerCmod, Dispatch_optimization)
+{
+    ssc_data_t defaults = tcsmolten_salt_defaults();
+    CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
+    power_tower.SetInput("is_dispatch", 1);
+    // Generic Low Carbon Duck Curve
+    power_tower.SetInput("dispatch_tod_factors", {0.19, 0.47, 0.75, 1.073, 1.31, 1.6, 1.91, 0, 0});
+    ssc_number_t schedule[288] = {
+          4, 4, 4, 4, 4, 4, 5, 5, 2, 2, 1, 1, 1, 1, 2, 2, 5, 5, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 5, 5, 2, 2, 1, 1, 1, 1, 2, 2, 5, 5, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 5, 5, 2, 2, 1, 1, 1, 1, 2, 2, 5, 5, 6, 6, 6, 6, 4, 4,
+
+          4, 4, 4, 4, 4, 4, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 4, 4,
+
+          4, 4, 4, 4, 5, 5, 4, 4, 3, 3, 3, 3, 3, 3, 4, 4, 7, 7, 7, 7, 7, 7, 5, 5,
+          4, 4, 4, 4, 5, 5, 4, 4, 3, 3, 3, 3, 3, 3, 4, 4, 7, 7, 7, 7, 7, 7, 5, 5,
+          4, 4, 4, 4, 5, 5, 4, 4, 3, 3, 3, 3, 3, 3, 4, 4, 7, 7, 7, 7, 7, 7, 5, 5,
+
+          4, 4, 4, 4, 5, 5, 5, 5, 2, 2, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 6, 6, 5, 5,
+          4, 4, 4, 4, 5, 5, 5, 5, 2, 2, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 6, 6, 5, 5,
+          4, 4, 4, 4, 5, 5, 5, 5, 2, 2, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 6, 6, 5, 5};
+
+    //power_tower.SetInput("dispatch_sched_weekday", &schedule[0], schedule.size());
+    power_tower.SetInput("dispatch_sched_weekday", schedule, 12, 24);
+    power_tower.SetInput("dispatch_sched_weekend", schedule, 12, 24);
+    power_tower.SetInput("ppa_price_input", { 0.095 });
+    power_tower.SetInput("ppa_soln_mode", 1);
+
+    int errors = power_tower.RunModule();
+    EXPECT_FALSE(errors);
+    if (!errors)
+    {
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_energy"), 586824483, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("land_area_base_calc"), 1847, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("capacity_factor"), 65.72, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_W_cycle_gross"), 656930098, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("kwh_per_kw"), 5757, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("conversion_factor"), 89.3283, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("N_hel_calc"), 8790, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("rec_height"), 21.60, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("A_sf"), 1269054, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("D_rec"), 17.65, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_total_water_use"), 98840.3, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("total_land_area"), 1892, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("h_tower"), 193.5, kErrorToleranceHi);
+    }
+}
+
 void CopyVarTableAndGetValue(var_table* vartab, std::string var_name, double* var_value) {
     var_table vartab_copy;
     vartab_copy = *vartab;  // uses copy assignment operator, which is fine

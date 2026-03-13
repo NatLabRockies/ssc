@@ -46,7 +46,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 
 /* Routines with UNIQUE implementations for each inversion engine                     */
 /* ---------------------------------------------------------------------------------- */
-char   __BFP_EXPORT_TYPE *(BFP_CALLMODEL bfp_name)(void);
+const char   __BFP_EXPORT_TYPE *(BFP_CALLMODEL bfp_name)(void);
 void   __BFP_EXPORT_TYPE (BFP_CALLMODEL bfp_free)(lprec *lp);
 MYBOOL __BFP_EXPORT_TYPE (BFP_CALLMODEL bfp_resize)(lprec *lp, int newsize);
 int    __BFP_EXPORT_TYPE (BFP_CALLMODEL bfp_nonzeros)(lprec *lp, MYBOOL maximum);

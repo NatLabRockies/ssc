@@ -101,7 +101,7 @@ bool mod6par_gamma_approx( Real *result,
 	float nfail = 0;
 	float ntotal = 0;
 	
-	for (Real Tc = -10; Tc <= 50.0; Tc += 3.0 )
+	for (Real Tc = 10; Tc <= 50.0; Tc += 5.0 )
 	{
 		__PTnonlinear<Real> power_t( Tc,
 			Io, Il, a, aIsc, Adj, Vmp, Imp, Rs, Rsh, Egref, Tref );

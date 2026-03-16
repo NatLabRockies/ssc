@@ -51,7 +51,7 @@ TEST_F(CmodMerchantPlantTest, PV) {
     file_inputs += "/test/input_json/FinancialModels/merchantplant/2022.08.08_develop_branch_Flat_Plate_PV_Merchant_Plant_cmod_merchantplant.json";
     std::string file_outputs = SSCDIR;
     file_outputs += "/test/input_json/FinancialModels/merchantplant/2022.08.08_develop_branch_Flat_Plate_PV_Merchant_Plant_cmod_merchantplant_outputs.json";
-    std::vector<std::string> compare_number_variables = { "npv_curtailment_revenue", "npv_capacity_revenue", "npv_energy_market_revenue", "npv_ancillary_services_1_revenue", "npv_ancillary_services_2_revenue", "npv_ancillary_services_3_revenue", "npv_ancillary_services_4_revenue"};
+    std::vector<std::string> compare_number_variables = { "npv_curtailment_revenue", "npv_capacity_revenue", "npv_energy_market_revenue", "npv_ancillary_services_1_revenue", "npv_ancillary_services_2_revenue", "npv_ancillary_services_3_revenue", "npv_ancillary_services_4_revenue", "size_of_debt" };
     std::vector<std::string> compare_array_variables = {"mp_energy_market_generated_revenue", "mp_ancillary_services1_generated_revenue", "mp_ancillary_services2_generated_revenue", "mp_ancillary_services3_generated_revenue", "mp_ancillary_services4_generated_revenue"};
 
     Test("merchantplant", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
@@ -106,9 +106,41 @@ TEST_F(CmodMerchantPlantTest, PVBattery) {
     file_inputs += "/test/input_json/FinancialModels/merchantplant/2022.08.08_develop_branch_PV_Battery_Merchant_Plant_cmod_merchantplant.json";
     std::string file_outputs = SSCDIR;
     file_outputs += "/test/input_json/FinancialModels/merchantplant/2022.08.08_develop_branch_PV_Battery_Merchant_Plant_cmod_merchantplant_outputs.json";
-    std::vector<std::string> compare_number_variables = { "npv_curtailment_revenue", "npv_capacity_revenue", "npv_energy_market_revenue", "npv_ancillary_services_1_revenue", "npv_ancillary_services_2_revenue", "npv_ancillary_services_3_revenue", "npv_ancillary_services_4_revenue"};
+    std::vector<std::string> compare_number_variables = { "npv_curtailment_revenue", "npv_capacity_revenue", "npv_energy_market_revenue", "npv_ancillary_services_1_revenue", "npv_ancillary_services_2_revenue", "npv_ancillary_services_3_revenue", "npv_ancillary_services_4_revenue", "size_of_debt" };
     std::vector<std::string> compare_array_variables = {"mp_energy_market_generated_revenue", "mp_ancillary_services1_generated_revenue", "mp_ancillary_services2_generated_revenue", "mp_ancillary_services3_generated_revenue", "mp_ancillary_services4_generated_revenue"};
 
     Test("merchantplant", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
+TEST_F(CmodMerchantPlantTest, FixedDebt) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/merchantplant/mp-fixed-debt_PVWatts_Merchant_Plant_cmod_merchantplant.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/merchantplant/mp-fixed-debt_PVWatts_Merchant_Plant_cmod_merchantplant_outputs.json";
+    std::vector<std::string> compare_number_variables = { "npv_curtailment_revenue", "npv_capacity_revenue", "npv_energy_market_revenue", "npv_ancillary_services_1_revenue", "npv_ancillary_services_2_revenue", "npv_ancillary_services_3_revenue", "npv_ancillary_services_4_revenue", "size_of_debt" };
+    std::vector<std::string> compare_array_variables = { "mp_energy_market_generated_revenue", "mp_ancillary_services1_generated_revenue", "mp_ancillary_services2_generated_revenue", "mp_ancillary_services3_generated_revenue", "mp_ancillary_services4_generated_revenue" };
+
+    Test("merchantplant", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodMerchantPlantTest, PBIForDSCR) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/merchantplant/mp_pbi_dscr_targets_Flat_Plate_PV_Merchant_Plant_cmod_merchantplant.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/merchantplant/mp_pbi_dscr_targets_Flat_Plate_PV_Merchant_Plant_cmod_merchantplant_outputs.json";
+    std::vector<std::string> compare_number_variables = { "npv_curtailment_revenue", "npv_capacity_revenue", "npv_energy_market_revenue", "npv_ancillary_services_1_revenue", "npv_ancillary_services_2_revenue", "npv_ancillary_services_3_revenue", "npv_ancillary_services_4_revenue", "size_of_debt" };
+    std::vector<std::string> compare_array_variables = { "mp_energy_market_generated_revenue", "mp_ancillary_services1_generated_revenue", "mp_ancillary_services2_generated_revenue", "mp_ancillary_services3_generated_revenue", "mp_ancillary_services4_generated_revenue" };
+
+    Test("merchantplant", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodMerchantPlantTest, BonusDepr) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/merchantplant/mp_bonus_depr_Flat_Plate_PV_Merchant_Plant_cmod_merchantplant.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/merchantplant/mp_bonus_depr_Flat_Plate_PV_Merchant_Plant_cmod_merchantplant_outputs.json";
+    std::vector<std::string> compare_number_variables = { "npv_curtailment_revenue", "npv_capacity_revenue", "npv_energy_market_revenue", "npv_ancillary_services_1_revenue", "npv_ancillary_services_2_revenue", "npv_ancillary_services_3_revenue", "npv_ancillary_services_4_revenue", "size_of_debt", "pre_depr_alloc_basis", "depr_stabas_first_year_bonus_macrs_5", "depr_fedbas_first_year_bonus_macrs_5" };
+    std::vector<std::string> compare_array_variables = { "mp_energy_market_generated_revenue", "mp_ancillary_services1_generated_revenue", "mp_ancillary_services2_generated_revenue", "mp_ancillary_services3_generated_revenue", "mp_ancillary_services4_generated_revenue" };
+
+    Test("merchantplant", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}

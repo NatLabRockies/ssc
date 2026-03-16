@@ -2975,8 +2975,7 @@ public:
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
         for( size_t i = 0; i < count; i++ )
         {
-            size_t hour = (size_t)ceil(p_time_final_hr[i]);
-            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(i));           //[kWe]
             p_gensales_after_avail[i] = max(0.0, p_gen[i]);                         //[kWe]
         }
 

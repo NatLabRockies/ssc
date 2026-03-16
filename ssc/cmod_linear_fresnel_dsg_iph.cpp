@@ -632,12 +632,11 @@ public:
 
 		for( size_t i = 0; i < n_steps_fixed; i++ )
 		{
-			size_t hour = (size_t)ceil(p_time_final_hr[i]);
-			p_gen_heat[i] = p_q_dot_heat_sink[i] * (ssc_number_t)(haf(hour) * 1.E3);		//[kWt]
+			p_gen_heat[i] = p_q_dot_heat_sink[i] * (ssc_number_t)(haf(i) * 1.E3);		//[kWt]
             p_gen[i] = (ssc_number_t)0.0;   //[kWt] (no electrical generation for direct steam linear fresnel IPH)
             p_gen_heat_btu[i] = p_gen_heat[i] / MMBTU_TO_KWh;   //[MMBtu/hr]
 			p_W_dot_parasitic_tot[i] *= -1.0;			//[kWe] Label is total parasitics, so change to a positive value
-			p_W_dot_par_tot_haf[i] = (ssc_number_t)(p_W_dot_parasitic_tot[i] * haf(hour) * 1.E3);		//[kWe]
+			p_W_dot_par_tot_haf[i] = (ssc_number_t)(p_W_dot_parasitic_tot[i] * haf(i) * 1.E3);		//[kWe]
             p_load[i] = p_W_dot_par_tot_haf[i];
 		}
 

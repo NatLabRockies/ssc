@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -257,6 +257,8 @@ battwatts_create(size_t n_recs, size_t n_years, int chem, int meter_pos, double 
     batt_vars->batt_dispatch_auto_can_clipcharge = false; // Clip charging is not relevant to the battwatts algorithm set (peak shaving and custom)
     batt_vars->batt_dispatch_charge_only_system_exceeds_load = false;
     batt_vars->batt_dispatch_discharge_only_load_exceeds_system = false;
+
+    batt_vars->start_day_of_year = 0; // None of the inputs for this cmod use a weekday/weekend schedule, so hardcode this
 
     // Battery bank replacement
     batt_vars->batt_replacement_capacity = 0.;

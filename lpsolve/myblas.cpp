@@ -26,9 +26,9 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 /* ************************************************************************ */
 MYBOOL mustinitBLAS = TRUE;
 #if (defined LPWINAPP) || (defined WIN64)
-  HINSTANCE hBLAS = NULL;
+  HINSTANCE hBLAS = nullptr;
 #else
-  void     *hBLAS = NULL;
+  void     *hBLAS = nullptr;
 #endif
 
 
@@ -53,7 +53,7 @@ BLAS_dnormi_func *BLAS_dnormi;
 void init_BLAS(void)
 {
   if(mustinitBLAS) {
-    load_BLAS(NULL);
+    load_BLAS(nullptr);
     mustinitBLAS = FALSE;
   }
 }
@@ -61,23 +61,23 @@ void init_BLAS(void)
 MYBOOL is_nativeBLAS(void)
 {
 #ifdef LoadableBlasLib
-  return( (MYBOOL) (hBLAS == NULL) );
+  return( (MYBOOL) (hBLAS == nullptr) );
 #else
   return( TRUE );
 #endif
 }
 
-MYBOOL load_BLAS(char *libname)
+MYBOOL load_BLAS(const char *libname)
 {
   MYBOOL result = TRUE;
 
 #ifdef LoadableBlasLib
-  if(hBLAS != NULL) {
+  if(hBLAS != nullptr) {
     my_FreeLibrary(hBLAS);
   }
 #endif
 
-  if(libname == NULL) {
+  if(libname == nullptr) {
     if(!mustinitBLAS && is_nativeBLAS())
       return( FALSE );
     BLAS_dscal = my_dscal;
@@ -94,19 +94,19 @@ MYBOOL load_BLAS(char *libname)
   }
   else {
 #ifdef LoadableBlasLib
-  #if (defined LPWINAPP) || (defined WIN64)
-    char *blasname = libname;
-  #else
+//  #if (defined LPWINAPP) || (defined WIN64)
+    const char *blasname = libname;
+//  #else
    /* First standardize UNIX .SO library name format. */
-    char blasname[260];
-    if(!so_stdname(blasname, libname, 260))
-      return( FALSE );
-  #endif
+//    char blasname[260];
+//    if(!so_stdname(blasname, libname, 260))
+//      return( FALSE );
+//  #endif
    /* Get a handle to the Windows DLL module. */
     hBLAS = my_LoadLibrary(blasname);
 
    /* If the handle is valid, try to get the function addresses. */
-    result = (MYBOOL) (hBLAS != NULL);
+    result = (MYBOOL) (hBLAS != nullptr);
     if(result) {
       BLAS_dscal  = (BLAS_dscal_func *)  my_GetProcAddress(hBLAS, BLAS_prec "scal");
       BLAS_dcopy  = (BLAS_dcopy_func *)  my_GetProcAddress(hBLAS, BLAS_prec "copy");
@@ -123,17 +123,17 @@ MYBOOL load_BLAS(char *libname)
 #endif
     /* Do validation */
     if(!result ||
-       ((BLAS_dscal  == NULL) ||
-        (BLAS_dcopy  == NULL) ||
-        (BLAS_daxpy  == NULL) ||
-        (BLAS_dswap  == NULL) ||
-        (BLAS_ddot   == NULL) ||
-        (BLAS_idamax == NULL) ||
-        (BLAS_idamin == NULL) ||
-        (BLAS_dload  == NULL) ||
-        (BLAS_dnormi == NULL))
+       ((BLAS_dscal  == nullptr) ||
+        (BLAS_dcopy  == nullptr) ||
+        (BLAS_daxpy  == nullptr) ||
+        (BLAS_dswap  == nullptr) ||
+        (BLAS_ddot   == nullptr) ||
+        (BLAS_idamax == nullptr) ||
+        (BLAS_idamin == nullptr) ||
+        (BLAS_dload  == nullptr) ||
+        (BLAS_dnormi == nullptr))
       ) {
-      load_BLAS(NULL);
+      load_BLAS(nullptr);
       result = FALSE;
     }
   }
@@ -141,7 +141,7 @@ MYBOOL load_BLAS(char *libname)
 }
 MYBOOL unload_BLAS(void)
 {
-  return( load_BLAS(NULL) );
+  return( load_BLAS(nullptr) );
 }
 
 
@@ -166,7 +166,7 @@ void BLAS_CALLMODEL my_daxpy( int *_n, REAL *_da, REAL *dx, int *_incx, REAL *dy
 #ifndef DOFASTMATH
   int      m, mp1;
 #endif
-  register REAL rda;
+  REAL rda;
   REAL     da = *_da;
   int      n = *_n, incx = *_incx, incy = *_incy;
 
@@ -336,7 +336,7 @@ void BLAS_CALLMODEL my_dscal (int *_n, REAL *_da, REAL *dx, int *_incx)
 #ifndef DOFASTMATH
   int      m, mp1, ix;
 #endif
-  register REAL rda;
+  REAL rda;
   REAL      da = *_da;
   int      n = *_n, incx = *_incx;
 
@@ -405,7 +405,7 @@ REAL BLAS_CALLMODEL my_ddot(int *_n, REAL *dx, int *_incx, REAL *dy, int *_incy)
    jack dongarra, linpack, 3/11/78.
    modified 12/3/93, array[1] declarations changed to array[*] */
 
-  register REAL dtemp;
+  REAL dtemp;
   int      i, ix, iy;
 #ifndef DOFASTMATH
   int      m, mp1;
@@ -486,7 +486,7 @@ void BLAS_CALLMODEL my_dswap( int *_n, REAL *dx, int *_incx, REAL *dy, int *_inc
   int   m, mp1, ns;
   REAL  dtemp2, dtemp3;
 #endif
-  register REAL  dtemp1;
+  REAL  dtemp1;
   int   n = *_n, incx = *_incx, incy = *_incy;
 
   if (n <= 0) return;
@@ -654,7 +654,7 @@ int idamin( int n, REAL *x, int is )
 
 int BLAS_CALLMODEL my_idamax( int *_n, REAL *x, int *_is )
 {
-  register REAL xmax, xtest;
+  REAL xmax, xtest;
   int    i, imax = 0;
 #if !defined DOFASTMATH
   int    ii;
@@ -693,7 +693,7 @@ int BLAS_CALLMODEL my_idamax( int *_n, REAL *x, int *_is )
 
 int BLAS_CALLMODEL my_idamin( int *_n, REAL *x, int *_is )
 {
-  register REAL xmin, xtest;
+  REAL xmin, xtest;
   int    i, imin = 0;
 #if !defined DOFASTMATH
   int    ii;
@@ -743,7 +743,7 @@ REAL BLAS_CALLMODEL my_dnormi( int *_n, REAL *x )
    dnormi  returns the infinity-norm of the vector x.
    =============================================================== */
    int      j;
-   register REAL hold, absval;
+   REAL hold, absval;
    int      n = *_n;
 
    x--;

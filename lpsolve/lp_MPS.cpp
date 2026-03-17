@@ -1297,7 +1297,7 @@ STATIC char *MPSnameFREE(char *name0, char *name)
     return(name);
 }
 
-static void write_data(void *userhandle, write_modeldata_func write_modeldata, char *format, ...)
+static void write_data(void *userhandle, write_modeldata_func write_modeldata, const char *format, ...)
 {
   char buff[DEF_STRBUFSIZE+1];
   va_list ap;

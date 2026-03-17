@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,11 +45,13 @@ dispatch_manual_t::dispatch_manual_t(battery_t * Battery, double dt, double SOC_
 	util::matrix_t<size_t> dm_dynamic_sched, util::matrix_t<size_t> dm_dynamic_sched_weekend,
 	std::vector<bool> dm_charge, std::vector<bool> dm_discharge, std::vector<bool> dm_gridcharge, std::vector<bool> dm_fuelcellcharge, std::vector<bool> dm_btm_to_grid,
 	std::map<size_t, double>  dm_percent_discharge, std::map<size_t, double>  dm_percent_gridcharge, bool can_clip_charge, bool can_curtail_charge, double interconnection_limit,
+    size_t start_day_of_year,
     bool chargeOnlySystemExceedLoad, bool dischargeOnlyLoadExceedSystem, double SOC_min_outage, bool priorityChargeBattery)
 	: dispatch_t(Battery, dt, SOC_min, SOC_max, current_choice, Ic_max, Id_max, Pc_max_kwdc, Pd_max_kwdc, Pc_max_kwac, Pd_max_kwac,
 	t_min, mode, battMeterPosition, interconnection_limit, chargeOnlySystemExceedLoad, dischargeOnlyLoadExceedSystem, SOC_min_outage)
 {
-	init_with_vects(dm_dynamic_sched, dm_dynamic_sched_weekend, dm_charge, dm_discharge, dm_gridcharge, dm_fuelcellcharge, dm_btm_to_grid, dm_percent_discharge, dm_percent_gridcharge, can_clip_charge, can_curtail_charge, priorityChargeBattery);
+	init_with_vects(dm_dynamic_sched, dm_dynamic_sched_weekend, dm_charge, dm_discharge, dm_gridcharge, dm_fuelcellcharge, dm_btm_to_grid, dm_percent_discharge, dm_percent_gridcharge,
+        can_clip_charge, can_curtail_charge, priorityChargeBattery, start_day_of_year);
 }
 
 void dispatch_manual_t::init_with_vects(
@@ -64,7 +66,8 @@ void dispatch_manual_t::init_with_vects(
 	std::map<size_t, double> dm_percent_gridcharge,
     bool can_clip_charge,
     bool can_curtail_charge,
-    bool priorityChargeBattery)
+    bool priorityChargeBattery,
+    size_t start_day_of_year)
 {
 	_sched = dm_dynamic_sched;
 	_sched_weekend = dm_dynamic_sched_weekend;
@@ -79,6 +82,7 @@ void dispatch_manual_t::init_with_vects(
     _can_curtail_charge = can_curtail_charge;
     _priority_charge_battery = priorityChargeBattery;
     _iprofile = 0;
+    _start_day_of_year = start_day_of_year;
 }
 
 // deep copy from dispatch to this
@@ -88,7 +92,7 @@ dispatch_t(dispatch)
 	const dispatch_manual_t * tmp = dynamic_cast<const dispatch_manual_t *>(&dispatch);
 	init_with_vects(tmp->_sched, tmp->_sched_weekend,
 		tmp->_charge_array, tmp->_discharge_array, tmp->_gridcharge_array, tmp->_fuelcellcharge_array, tmp->_discharge_grid_array,
-		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_can_curtail_charge, tmp->_priority_charge_battery);
+		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_can_curtail_charge, tmp->_priority_charge_battery, tmp->_start_day_of_year);
 }
 
 // shallow copy from dispatch to this
@@ -98,7 +102,7 @@ void dispatch_manual_t::copy(const dispatch_t * dispatch)
 	const dispatch_manual_t * tmp = dynamic_cast<const dispatch_manual_t *>(dispatch);
 	init_with_vects(tmp->_sched, tmp->_sched_weekend,
 		tmp->_charge_array, tmp->_discharge_array, tmp->_gridcharge_array, tmp->_fuelcellcharge_array, tmp->_discharge_grid_array,
-		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_can_curtail_charge, tmp->_priority_charge_battery);
+		tmp->_percent_discharge_array, tmp->_percent_charge_array, tmp->_can_clip_charge, tmp->_can_curtail_charge, tmp->_priority_charge_battery, tmp->_start_day_of_year);
 }
 
 void dispatch_manual_t::prepareDispatch(size_t hour_of_year, size_t )
@@ -108,7 +112,7 @@ void dispatch_manual_t::prepareDispatch(size_t hour_of_year, size_t )
 	size_t column = h - 1;
 	_iprofile = 0;
 
-	bool is_weekday = util::weekday(hour_of_year);
+	bool is_weekday = util::weekday(hour_of_year, _start_day_of_year);
 	if (!is_weekday && _mode == MANUAL)
         _iprofile = _sched_weekend(m - 1, column);
 	else

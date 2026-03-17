@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -67,6 +67,7 @@ protected:
 	int dispatchOption;
 	double dt_hour;
 	double fixed_percent;
+    size_t start_day_of_year;
 
 	std::vector<double> dispatchInput_kW;
 	std::vector<bool> canCharge;
@@ -100,6 +101,7 @@ protected:
 		dispatchOption = FuelCellDispatch::FC_DISPATCH_OPTION::FIXED;
 		dt_hour = 1.0;
 		fixed_percent = 40;
+        start_day_of_year = 0;
 
 		const double tmpValues[33] = { 0,0,50,16,21,50,25,25,50,34,32,50,44,37,50,53,42,50,62,47,49,72,50,48,82,52,47,90,52,46,100,51,45 };
 		efficiencyTable.assign(tmpValues, 11, 3);
@@ -172,14 +174,14 @@ public:
 /*		fuelCellDispatchStarted = new FuelCellDispatch(fuelCellStarted, numberOfUnits, dispatchOption, shutdownOption, dt_hour, fixed_percent,
 			dispatchInput_kW, canCharge, canDischarge, discharge_percent, discharge_units, scheduleWeekday, scheduleWeekend);
 */
-		fuelCellDispatch = new FuelCellDispatch(fuelCell, numberOfUnits, dispatchOption, shutdownOption, dt_hour, fixed_percent,
+		fuelCellDispatch = new FuelCellDispatch(fuelCell, numberOfUnits, dispatchOption, shutdownOption, dt_hour, fixed_percent, start_day_of_year,
 			dispatchInput_kW, canCharge, canDischarge, discharge_percent, discharge_units, scheduleWeekday, scheduleWeekend);
 
-		fuelCellDispatchSubhourly = new FuelCellDispatch(fuelCellSubHourly, numberOfUnits, dispatchOption, shutdownOption, dt_subHourly, fixed_percent,
+		fuelCellDispatchSubhourly = new FuelCellDispatch(fuelCellSubHourly, numberOfUnits, dispatchOption, shutdownOption, dt_subHourly, fixed_percent, start_day_of_year,
 			dispatchInput_kW, canCharge, canDischarge, discharge_percent, discharge_units, scheduleWeekday, scheduleWeekend);
 
 		discharge_units[0] = n_multipleFuelCells;
-		fuelCellDispatchMultiple = new FuelCellDispatch(fuelCell, n_multipleFuelCells, dispatchOption, shutdownOption, dt_hour, fixed_percent,
+		fuelCellDispatchMultiple = new FuelCellDispatch(fuelCell, n_multipleFuelCells, dispatchOption, shutdownOption, dt_hour, fixed_percent, start_day_of_year,
 			dispatchInput_kW, canCharge, canDischarge, discharge_percent, discharge_units, scheduleWeekday, scheduleWeekend);
 
 /*		fuelCellDispatchMultipleStarted = new FuelCellDispatch(fuelCellStarted, n_multipleFuelCells, dispatchOption, shutdownOption, dt_hour, fixed_percent,

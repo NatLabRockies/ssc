@@ -23,8 +23,6 @@ class NAMESPACE_GTEST_TEST_CLASS_NAME_(namespace_name, test_case_name, test_name
  private:\
   virtual void TestBody();\
   static ::testing::TestInfo* const test_info_ GTEST_ATTRIBUTE_UNUSED_;\
-  GTEST_DISALLOW_COPY_AND_ASSIGN_(\
-      NAMESPACE_GTEST_TEST_CLASS_NAME_(namespace_name, test_case_name, test_name));\
 };\
 \
 ::testing::TestInfo* const NAMESPACE_GTEST_TEST_CLASS_NAME_(namespace_name, test_case_name, test_name)\

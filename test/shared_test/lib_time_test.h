@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,7 @@ protected:
 	double multiplier = 2.0;
     double interpolation_factor = 1.0;
 
+    size_t start_day_of_year = 0;
 
 	void SetUp()
 	{

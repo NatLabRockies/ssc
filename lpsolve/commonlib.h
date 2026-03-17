@@ -292,7 +292,7 @@ void strtolo(char *s);
 void strcpyup(char *t, char *s);
 void strcpylo(char *t, char *s);
 
-MYBOOL so_stdname(char *stdname, char *descname, int buflen);
+//MYBOOL so_stdname(  char *stdname,  char *descname, int buflen);
 int gcd(LLONG a, LLONG b, int *c, int *d);
 
 int findIndex(int target, int *attributes, int count, int offset);
@@ -323,9 +323,9 @@ REAL sortREALByINT(REAL *item, int *weight, int size, int offset, MYBOOL unique)
 
 double timeNow(void);
 
-void blockWriteBOOL(FILE *output, char *label, MYBOOL *myvector, int first, int last, MYBOOL asRaw);
-void blockWriteINT(FILE *output, char *label, int *myvector, int first, int last);
-void blockWriteREAL(FILE *output, char *label, REAL *myvector, int first, int last);
+void blockWriteBOOL(FILE *output, const char *label, MYBOOL *myvector, int first, int last, MYBOOL asRaw);
+void blockWriteINT(FILE *output, const char *label, int *myvector, int first, int last);
+void blockWriteREAL(FILE *output, const char *label, REAL *myvector, int first, int last);
 
 void printvec( int n, REAL *x, int modulo );
 void printmatSQ( int size, int n, REAL *X, int modulo );

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -257,7 +257,7 @@ public:
     std::vector<S_timeseries_schedule_data> mv_timeseries_schedule_data;
 
     C_timeseries_schedule_inputs(const util::matrix_t<double>& weekdays, const util::matrix_t<double>& weekends,
-        std::vector<double> tod_factors, double base_value /*dimensional*/);
+        std::vector<double> tod_factors, double base_value /*dimensional*/, size_t start_day_of_year /*0 = Mon, 6 = Sun*/);
 
     C_timeseries_schedule_inputs(std::vector<double>& timeseries_values_in, double base_value /*dimensional*/);
 

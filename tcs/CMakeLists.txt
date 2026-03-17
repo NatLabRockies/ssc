@@ -4,13 +4,16 @@
 #
 #####################################################################################################################
 
-include_directories(. ../nlopt ../shared ../splinter ../lpsolve ../solarpilot)
+include_directories(. ../nlopt ../shared ../lpsolve ../solarpilot $ENV{ORTOOLSDIR}/include/eigen3 $ENV{ORTOOLSDIR}/include )
 
 set(TCS_SRC
 		base_dispatch.cpp
+        base_dispatch_lpsolve.cpp
+        base_dispatch_ortools.cpp
 		co2_compressor_library.cpp
 		CO2_properties.cpp
 		csp_dispatch.cpp
+        csp_dispatch_ortools.cpp
 		csp_radiator.cpp
 		csp_solver_cavity_receiver.cpp
 		csp_solver_core.cpp
@@ -52,10 +55,12 @@ set(TCS_SRC
 		numeric_solvers.cpp
         ptes_solver_design_point.cpp
 		sco2_cycle_components.cpp
+        sco2_htrbypass_cycle.cpp
 		sco2_partialcooling_cycle.cpp
 		sco2_pc_csp_int.cpp
 		sco2_power_cycle.cpp
 		sco2_recompression_cycle.cpp
+        sco2_turbinesplitflow_cycle.cpp
 		tcskernel.cpp
 		trnsys_weatherreader.cpp
 		typelib.cpp
@@ -83,11 +88,14 @@ set(TCS_SRC
 		tou_translator.cpp
 		flat_plate_solar_collector.cpp
 		base_dispatch.h
+        base_dispatch_lpsolve.h
+        base_dispatch_ortools.h
 		cavity_calcs.h
 		co2_compressor_library.h
 		CO2_properties.h
 		co2_testing.h
 		csp_dispatch.h
+        csp_dispatch_ortools.h
 		csp_radiator.h
 		csp_solver_cavity_receiver.h
 		csp_solver_core.h
@@ -131,10 +139,12 @@ set(TCS_SRC
 		sam_csp_util.h
 		sco2_cycle_components.h
 		sco2_cycle_templates.h
+        sco2_htrbypass_cycle.h
 		sco2_partialcooling_cycle.h
 		sco2_pc_csp_int.h
 		sco2_power_cycle.h
 		sco2_recompression_cycle.h
+        sco2_turbinesplitflow_cycle.h
 		storage_hx.h
 		tcskernel.h
 		tcstype.h

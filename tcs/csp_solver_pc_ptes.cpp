@@ -436,6 +436,7 @@ void C_pc_ptes::call(const C_csp_weatherreader::S_outputs& weather,
         break;
 
     case ON:
+    case ESTIMATE_ON:
 
         {
             double m_dot_HT_htf_ND = m_dot_HT_htf / m_m_dot_HT_des;     //[-]

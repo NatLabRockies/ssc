@@ -544,10 +544,14 @@ public:
 		double m_m_dot_avail;		//[kg/hr] Estimated output mass flow rate if cr is ON and producing useful thermal power
 		double m_T_htf_hot;			//[C] Estimated timestep-average outlet temperature
 
+        double m_W_dot_elec_in_tot; //[MWe] Electricity power consumption
+        double m_q_dot_heater;      //[MWt] Freeze protection - may be assigned as "electricity" downstream
+
 		S_csp_cr_est_out()
 		{
 			m_q_startup_avail = m_q_dot_avail =
-				m_m_dot_avail = m_T_htf_hot = std::numeric_limits<double>::quiet_NaN();
+				m_m_dot_avail = m_T_htf_hot =
+                m_W_dot_elec_in_tot = m_q_dot_heater = std::numeric_limits<double>::quiet_NaN();
 		}
 	};
 
@@ -586,7 +590,8 @@ public:
         STANDBY,
         OFF,
         OFF_NO_SU_REQ,
-        STARTUP_CONTROLLED
+        STARTUP_CONTROLLED,
+        ESTIMATE_ON
     };
 
 protected:
@@ -664,7 +669,7 @@ public:
 		double m_m_dot_htf;			//[kg/hr] Actual HTF flow rate passing through the power cycle
 
 			// Parasitics, plant net power equation
-        double m_W_dot_elec_parasitics_tot; //[MWe] Total TES electricity consumption that doesn't contribute to cycle working fluid
+        double m_W_dot_elec_parasitics_tot; //[MWe] Total cycle electricity consumption that doesn't contribute to cycle working fluid
 
             // Want to only report total aggregate parasitics in m_W_dot_elec_parasitics total
             //    but need to keep m_W_cool_par because sam_mw_pt_type224_csp_solver needs it
@@ -1159,6 +1164,7 @@ private:
     double m_W_dot_bop_design;      //[MWe]
     double m_W_dot_fixed_design;    //[MWe]
     double m_W_dot_system_net_design;   //[MWe]
+    double m_ratio_cycle_dep_par_design;//[-]
 
         // Field-side HTF
     double m_T_field_cold_limit;    //[C]
@@ -1180,6 +1186,26 @@ private:
 	
     double m_q_dot_pc_max;  //[MWt]
 
+    // Convergence parameters
+    double m_tol_m_dot_iter_target;     //[-]
+    double m_tol_m_dot_iter_max;        //[-]
+
+    double m_tol_T_field_cold_iter_target;  //[-]
+    double m_tol_T_field_cold_iter_max;     //[-]
+
+    double m_tol_timestep_qdot_iter_target; //[-]
+    double m_tol_timestep_qdot_iter_max;    //[-]
+
+    double m_tol_defocus_mdot_iter_target;  //[-]
+    double m_tol_defocus_mdot_iter_max;     //[-]
+                                            
+    double m_tol_defocus_qdot_iter_target;  //[-]
+    double m_tol_defocus_qdot_iter_max;     //[-]
+
+    // Tolerance comparing q_dot and m_dot targets
+    //    and accepting or rejecting operating mode
+    double m_limit_and_target_success_tolerance;    //[-]
+
 	std::vector<double> mv_time_local;
 
 	bool(*mpf_callback)(std::string &log_msg, std::string &progress_msg, void *data, double progress, int log_type);
@@ -1188,6 +1214,7 @@ private:
 	void send_callback(double percent);
 
     void calc_timestep_plant_control_and_targets(
+        double W_dot_rec_par_est /*MWe*/, double pc_eta_est /*-*/,
         double f_turbine_tou /*-*/, double q_dot_pc_min /*MWt*/, double q_dot_tes_ch /*MWt*/, double pc_heat_prev /*MWt*/, double pc_state_persist /*hours*/,
         C_csp_power_cycle::E_csp_power_cycle_modes pc_operating_state, double purchase_mult /*-*/, double sale_mult /*-*/,
         double calc_frac_current /*-*/, double baseline_step /*s*/,
@@ -1385,6 +1412,7 @@ public:
 
 	public:
 		double m_t_ts_calc; //[s]
+        std::string m_m_dot_tes_return_message;
 
         C_MEQ__T_field_cold(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_csp_solver* pc_csp_solver,
             double q_dot_pc_target /*MWt*/,
@@ -1457,6 +1485,9 @@ public:
         double m_defocus_PAR_HTR;   //[-]
 
 	public:
+        std::string m_m_dot_tes_return_message;
+        std::string m_T_field_cold_return_msg;
+
 		C_MEQ__timestep(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_MEQ__timestep::E_timestep_target_modes step_target_mode,
 			C_csp_solver* pc_csp_solver,
 			double q_dot_pc_target /*MWt*/,
@@ -1487,6 +1518,8 @@ public:
 		}
 
 		virtual int operator()(double t_ts_guess /*s*/, double* diff_t_ts_guess /*s*/);
+
+        void init_calc_member_vars();
 	};
 
     class C_MEQ__defocus : public C_monotonic_equation
@@ -1521,6 +1554,10 @@ public:
     
     public:
 
+        std::string m_m_dot_tes_return_message;
+        std::string m_T_field_cold_return_msg;
+        std::string m_timestep_return_msg;
+
         C_MEQ__defocus(C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, 
 			E_defocus_target_modes df_target_mode, C_MEQ__timestep::E_timestep_target_modes ts_target_mode,
             C_csp_solver *pc_csp_solver, 
@@ -1554,17 +1591,22 @@ public:
         virtual int operator()(double defocus /*-*/, double *target /*-*/);
 
         double calc_meq_target();
+
+        void init_calc_member_vars();
     };
 
-	int solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes cr_mode,
+    int solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes cr_mode,
         C_csp_power_cycle::E_csp_power_cycle_modes pc_mode, C_csp_collector_receiver::E_csp_cr_modes htr_mode,    //[-]
         C_csp_power_cycle::E_csp_power_cycles_types pc_target_type_at_operating_mode,
         C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_MEQ__timestep::E_timestep_target_modes step_target_mode,
-		double q_dot_pc_target /*MWt*/, double offtaker_power_max /*MWe*/,
+        double q_dot_pc_target /*MWt*/, double offtaker_power_max /*MWe*/,
         bool is_defocus, bool is_rec_outlet_to_hottank,
         double q_dot_elec_to_CR_heat /*MWt*/, double q_dot_elec_to_PAR_HTR /*MWt*/,
-        std::string op_mode_str, double& defocus_solved);
-
+        std::string op_mode_str, double& defocus_solved,
+        std::string& m_dot_tes_return_message,
+        std::string& T_field_cold_msg,
+        std::string& timestep_return_message,
+        std::string& defocus_return_message);
 
     class C_operating_mode_core
     {
@@ -1606,6 +1648,9 @@ public:
         bool m_is_mode_available;
         bool m_is_HI_SIDE_mode_available;
         bool m_is_LO_SIDE_mode_available;
+
+        std::string s_dep_desc;
+        std::string s_dep_units;
 
     public:
 
@@ -1651,11 +1696,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
 
         bool solve(C_csp_solver* pc_csp_solver, bool is_rec_outlet_to_hottank,
@@ -1699,11 +1744,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1724,11 +1769,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1741,11 +1786,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1758,11 +1803,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1777,11 +1822,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1828,11 +1873,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1845,11 +1890,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1862,11 +1907,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1879,11 +1924,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1896,11 +1941,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1913,11 +1958,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1930,11 +1975,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1947,11 +1992,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -1986,11 +2031,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2003,11 +2048,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2071,11 +2116,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2088,11 +2133,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2105,11 +2150,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2122,11 +2167,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2139,11 +2184,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2193,11 +2238,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2210,11 +2255,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2227,11 +2272,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 
@@ -2244,11 +2289,11 @@ public:
 
         virtual void check_system_limits(C_csp_solver* pc_csp_solver,
             double q_dot_pc_su_max /*MWt*/, double m_dot_pc_max_startup /*kg/hr*/,
-            double q_dot_pc_on_dispatch_target, double q_dot_pc_max /*MWt*/,
+            double q_pc_or_w_sys_target /*MWt_MWe*/, double q_pc_or_w_sys_max /*MWt_MWe*/,
             double q_dot_pc_min /*MWt*/, double q_dot_pc_sb /*MWt*/,
             double m_dot_pc_max /*kg/hr*/, double m_dot_pc_min /*kg/hr*/,
             double limit_comp_tol /*-*/,
-            double power_calc /*MW*/, // heat or electricity depending on mode
+            double q_pc_or_w_sys_calc /*MWt_MWe*/, double q_dot_pc_in_calc /*MWt*/,
             bool& is_model_converged, bool& is_turn_off_plant);
     };
 

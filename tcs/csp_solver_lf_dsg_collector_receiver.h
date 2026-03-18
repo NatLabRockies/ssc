@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_weatherfile.h"
 #include <cmath>
 #include "sam_csp_util.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 #include "numeric_solvers.h"
 
@@ -281,7 +281,8 @@ public:
 	TwoOptTables optical_tables;
 	P_max_check check_pressure;
 	enth_lim check_h;
-	water_state wp;
+    std::unique_ptr<C_fluid_properties> mpc_water_props;
+	fluid_state wp;
 	Evacuated_Receiver evac_tube_model;
 	HTFProperties htfProps;
 	
@@ -489,7 +490,8 @@ public:
 	class C_mono_eq_transient_energy_bal : public C_monotonic_equation
 	{
 	private:
-		water_state mc_wp;
+		fluid_state mc_wp;
+        C_fluid_properties& m_water_props;
 
 		double m_h_in;		//[kJ/kg]
 		double m_P_in;		//[kPa]
@@ -503,7 +505,9 @@ public:
 	public:
 		C_mono_eq_transient_energy_bal(double h_in /*kJ/kg*/, double P_in /*kPa*/,
 			double q_dot_abs /*kWt*/, double m_dot /*kg/s*/, double T_out_t_end_prev /*K*/, 
-			double h_out_t_end_prev /*kJ/kg*/, double C_thermal /*kJ/K*/, double step /*s*/)
+			double h_out_t_end_prev /*kJ/kg*/, double C_thermal /*kJ/K*/, double step /*s*/,
+            C_fluid_properties& water_props)
+            : m_water_props(water_props)
 		{
 			m_h_in = h_in; m_P_in = P_in; m_q_dot_abs = q_dot_abs; m_m_dot = m_dot;
 				m_T_out_t_end_prev = T_out_t_end_prev; 

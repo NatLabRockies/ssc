@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "csp_solver_lf_dsg_collector_receiver.h"
 
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 using namespace std;
 
@@ -249,6 +249,8 @@ C_csp_lf_dsg_collector_receiver::C_csp_lf_dsg_collector_receiver()
 	// ****************************************************************************
 	// ****************************************************************************
 
+    mpc_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+
 }
 
 void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp_cr_init_inputs init_inputs,
@@ -263,8 +265,9 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 
 
 	// Get limits from water properties code
-	water_info wp_info;
-	get_water_info( &wp_info );
+	fluid_info wp_info;
+
+	mpc_water_props->get_info( &wp_info );
 	m_wp_max_temp = wp_info.temp_upper_limit;	//[K]
 	m_wp_min_temp = wp_info.temp_lower_limit;	//[K]
 	m_wp_T_crit = wp_info.T_critical;			//[K]
@@ -272,7 +275,7 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	m_wp_min_pres = wp_info.pres_lower_limit;	//[kPa]
 
     // Compare the startup to final temperature
-    int wp_code = water_PQ(m_P_turb_des * 100.0, 0.0, &wp);
+    int wp_code = mpc_water_props->PQ(m_P_turb_des * 100.0, 0.0, &wp);
     if (wp_code != 0)
     {
         throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init", "Design point water_PQ failed", wp_code));
@@ -645,11 +648,11 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	if (!m_is_oncethru)		// Analyze the conventional boiler only/boiler+superheat options
 	{
 		// Calculate boiler inlet/outlet enthalpies
-		water_PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh + m_fP_boil_to_sh))*100.0, m_x_b_des, &wp);
+        mpc_water_props->PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh + m_fP_boil_to_sh))*100.0, m_x_b_des, &wp);
 		double h_b_out_des = wp.enth;		//[kJ/kg]
 
 		// Power block outlet/field inlet enthalpy
-		int wp_code = water_TP(m_T_field_in_des, check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_sf_tot - m_fP_hdr_c))*100.0, &wp);
+		int wp_code = mpc_water_props->TP(m_T_field_in_des, check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_sf_tot - m_fP_hdr_c))*100.0, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point state point calcs failed", "water_TP error", wp_code));
@@ -668,7 +671,7 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 			// Calculate the local pressure in the boiler. Assume a linear pressure drop across each section
 			double P_loc = m_P_turb_des*(1.0 + m_fP_sf_tot - m_fP_sf_boil*(1.0 - (double)(i) / (double)m_nModBoil));
 			// Get the temperature and quality at each state in the boiler
-			water_PH(check_pressure.P_check(P_loc)*100.0, (h_b_in_des + dh_b_des*(double)(i + 1) - dh_b_des / 2.0), &wp);
+            mpc_water_props->PH(check_pressure.P_check(P_loc)*100.0, (h_b_in_des + dh_b_des*(double)(i + 1) - dh_b_des / 2.0), &wp);
 			m_T_ave.at(i, 0) = wp.temp;		//[K]
 
 			// Calculate the heat loss at each temperature
@@ -696,10 +699,10 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 			if (m_is_multgeom) gset = 1;
 
 			// Calculate superheater inlet/outlet enthalpies
-			water_PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh))*100.0, 1.0, &wp);
+            mpc_water_props->PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh))*100.0, 1.0, &wp);
 			double h_sh_in_des = wp.enth;
 
-			water_TP((m_T_field_out_des), check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h))*100.0, &wp);
+            mpc_water_props->TP((m_T_field_out_des), check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h))*100.0, &wp);
 			h_field_out = wp.enth;
 
 			double dh_sh_des = (h_field_out - h_sh_in_des) / (double)m_nModSH;
@@ -708,7 +711,7 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 				int i = ii + m_nModBoil;
 				// Calculate the local pressure in the superheater. Assume a linear pressure drop
 				double P_loc = m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh*(1.0 - (double)(ii) / (double)m_nModSH));
-				water_PH(check_pressure.P_check(P_loc)*100.0, (h_sh_in_des + dh_sh_des*(double)(ii + 1) - dh_sh_des / 2.0), &wp);
+                mpc_water_props->PH(check_pressure.P_check(P_loc)*100.0, (h_sh_in_des + dh_sh_des*(double)(ii + 1) - dh_sh_des / 2.0), &wp);
 				m_T_ave(i, 0) = wp.temp;		// Convert to K
 
 				// Calculate the heat loss at each temperature
@@ -733,7 +736,7 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	else	// Analyze the once-through boiler+superheater options
 	{
 		// Calculate the total enthalpy rise across the loop
-		int wp_code = water_TP((m_T_field_in_des), check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_sf_tot))*100.0, &wp);
+		int wp_code = mpc_water_props->TP((m_T_field_in_des), check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_sf_tot))*100.0, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point inlet state point calcs failed", "water_TP error", wp_code));
@@ -746,7 +749,7 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 
 		if( m_is_sh_target )
 		{
-			wp_code = water_TP(m_T_field_out_des, check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h))*100.0, &wp);
+			wp_code = mpc_water_props->TP(m_T_field_out_des, check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h))*100.0, &wp);
 			if( wp_code != 0 )
 			{
 				throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_TP error", wp_code));
@@ -755,7 +758,7 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 		}
 		else
 		{
-			wp_code = water_PQ(m_P_turb_des*(1.0+m_fP_hdr_h)*100.0, m_x_b_des, &wp);
+			wp_code = mpc_water_props->PQ(m_P_turb_des*(1.0+m_fP_hdr_h)*100.0, m_x_b_des, &wp);
 			if( wp_code != 0 )
 			{
 				throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_PQ error", wp_code));
@@ -774,7 +777,7 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 			// Calculate the local pressure in the loop, assume a linear pressure drop
 			double P_loc = m_P_turb_des*(1.0 + (m_fP_sf_boil + m_fP_sf_sh)*(1.0 - (double)(i) / (double)m_nModTot) + m_fP_hdr_h);
 			// Get the temperature/quality at each state in the loop
-			water_PH(check_pressure.P_check(P_loc)*100.0, (h_field_in + dh_ot_des*(double)(i + 1) - dh_ot_des / 2.0), &wp);
+            mpc_water_props->PH(check_pressure.P_check(P_loc)*100.0, (h_field_in + dh_ot_des*(double)(i + 1) - dh_ot_des / 2.0), &wp);
 			m_T_ave.at(i, 0) = wp.temp;
 
 			// Calculate the heat loss at each temperature
@@ -887,11 +890,11 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	double T_burn = 0.0;
 	if (!m_is_oncethru)
 	{
-		water_TP(m_T_field_in_des, check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_sf_tot))*100.0, &wp);	// solar field inlet
+        mpc_water_props->TP(m_T_field_in_des, check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_sf_tot))*100.0, &wp);	// solar field inlet
 		double dvar1 = wp.enth;
-		water_PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh + m_fP_boil_to_sh))*100.0, m_x_b_des, &wp);	// boiler outlet
+        mpc_water_props->PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh + m_fP_boil_to_sh))*100.0, m_x_b_des, &wp);	// boiler outlet
 		double dvar2 = wp.enth;
-		water_PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh))*100.0, 1.0, &wp);		// superheater inlet
+        mpc_water_props->PQ(check_pressure.P_check(m_P_turb_des*(1.0 + m_fP_hdr_h + m_fP_sf_sh))*100.0, 1.0, &wp);		// superheater inlet
 		double dvar7 = wp.enth;
 		double dvar3 = (dvar2 - dvar1) / (double)m_nModBoil;		// The enthalpy rise per boiler module
 
@@ -918,11 +921,11 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 		// Project this to the superheater modules
 		double dvar4 = dvar7 + dvar3*m_nModSH*dvar10;		// Estimated superheater outlet enthalpy
 		// Check the temperature
-		water_PH(m_P_turb_des*(1.0 - m_fP_boil_to_sh)*100.0, dvar4, &wp);
+        mpc_water_props->PH(m_P_turb_des*(1.0 - m_fP_boil_to_sh)*100.0, dvar4, &wp);
 		double dvar5 = wp.temp;						// convert to K
 		double dvar6 = dvar5 - m_T_field_out_des;			// Difference in temperature between estimated outlet temperature and user-spec
 		// What are the superheater design conditions?
-		water_TP(m_T_field_out_des, check_pressure.P_check(m_P_turb_des*(1.0*m_fP_hdr_h))*100.0, &wp);	// Superheater outlet
+        mpc_water_props->TP(m_T_field_out_des, check_pressure.P_check(m_P_turb_des*(1.0*m_fP_hdr_h))*100.0, &wp);	// Superheater outlet
 		double dvar8 = wp.enth;
 		double dvar9 = (dvar8 - dvar7) / (dvar2 - dvar1)*m_nModBoil;
 
@@ -956,10 +959,10 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	if( m_fossil_mode != 4 )
 		pres_test_frac = m_cycle_cutoff_frac;
 
-	water_TP(5.0 + 273.15, m_P_turb_des*pres_test_frac*100.0, &wp);
+    mpc_water_props->TP(5.0 + 273.15, m_P_turb_des*pres_test_frac*100.0, &wp);
 	double h_freeze = wp.enth;
 	// Calculate the maximum allowable enthalpy before convergence error
-	water_TP(min(T_burn + 150.0 + 273.15, 1000.0), m_P_max*100.0, &wp);
+    mpc_water_props->TP(min(T_burn + 150.0 + 273.15, 1000.0), m_P_max*100.0, &wp);
 	double h_burn = wp.enth;
 	// Set up the enthalpy limit function
 	check_h.set_enth_limits(h_freeze, h_burn);
@@ -1106,7 +1109,7 @@ int C_csp_lf_dsg_collector_receiver::C_mono_eq_h_loop_out_target::operator()(dou
 	m_h_sca_out_target = std::numeric_limits<double>::quiet_NaN();
 	if( mpc_dsg_lf->m_is_sh_target )
 	{
-		wp_code = water_TP(mpc_dsg_lf->m_T_field_out_des, m_P_field_out*100.0, &mpc_dsg_lf->wp);
+		wp_code = mpc_dsg_lf->mpc_water_props->TP(mpc_dsg_lf->m_T_field_out_des, m_P_field_out*100.0, &mpc_dsg_lf->wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_TP error", wp_code));
@@ -1115,7 +1118,7 @@ int C_csp_lf_dsg_collector_receiver::C_mono_eq_h_loop_out_target::operator()(dou
 	}
 	else
 	{
-		wp_code = water_PQ(m_P_field_out*100.0, mpc_dsg_lf->m_x_b_des, &mpc_dsg_lf->wp);
+		wp_code = mpc_dsg_lf->mpc_water_props->PQ(m_P_field_out*100.0, mpc_dsg_lf->m_x_b_des, &mpc_dsg_lf->wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_PQ error", wp_code));
@@ -1147,7 +1150,7 @@ int C_csp_lf_dsg_collector_receiver::freeze_protection(const C_csp_weatherreader
 
 	// Set upper and lower bounds on independent variable: T_cold_in
 	double T_cold_in_lower = T_cold_in;		//[K]
-	int wp_code = water_PQ(P_field_out*100.0, 0.5, &wp);
+	int wp_code = mpc_water_props->PQ(P_field_out*100.0, 0.5, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::freeze protection find Boiling Temperature", "water_PQ error", wp_code));
@@ -1157,7 +1160,7 @@ int C_csp_lf_dsg_collector_receiver::freeze_protection(const C_csp_weatherreader
 	// Set two initial guess values
 	double q_dot_field_losses_tot = m_Q_field_losses_total / sim_info_temp.ms_ts.m_step*1.E3;			//[kWt]
 	double h_guess_lower = h_sca_out_target + q_dot_field_losses_tot / ((double)m_nLoops*m_dot_loop);	//[kJ/kg]
-	wp_code = water_PH(P_field_out*100.0, h_guess_lower, &wp);
+	wp_code = mpc_water_props->PH(P_field_out*100.0, h_guess_lower, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::freeze protection initial guess", "water_PH error", wp_code));
@@ -1254,7 +1257,7 @@ void C_csp_lf_dsg_collector_receiver::off(const C_csp_weatherreader::S_outputs &
 			// Recirculating, so the target enthalpy is roughly the outlet enthalpy
             int wp_code = 0;
             do {
-                water_TP(T_cold_in, P_field_out * 100.0, &wp);
+                mpc_water_props->TP(T_cold_in, P_field_out * 100.0, &wp);
                 if (wp_code != 0)
                 {
                     throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::off", "water_TP error", wp_code));
@@ -1344,7 +1347,7 @@ void C_csp_lf_dsg_collector_receiver::off(const C_csp_weatherreader::S_outputs &
 	m_q_dot_freeze_protection = Q_fp_sum / sim_info.ms_ts.m_step;	//[MWt]
 
 	// Find average enthalpy over recirculation timesteps
-	int wp_code = water_PH(P_field_out*100.0, m_h_sys_h_out_t_int_fullts, &wp);
+	int wp_code = mpc_water_props->PH(P_field_out*100.0, m_h_sys_h_out_t_int_fullts, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::off::recirculation", "water_PH error", wp_code));
@@ -1452,7 +1455,7 @@ void C_csp_lf_dsg_collector_receiver::startup(const C_csp_weatherreader::S_outpu
             // Recirculating, so the target enthalpy is roughly the outlet enthalpy
             int wp_code = 0;
             do {
-                water_TP(T_cold_in, P_field_out * 100.0, &wp);
+                mpc_water_props->TP(T_cold_in, P_field_out * 100.0, &wp);
                 if (wp_code != 0)
                 {
                     throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::off", "water_TP error", wp_code));
@@ -1553,7 +1556,7 @@ void C_csp_lf_dsg_collector_receiver::startup(const C_csp_weatherreader::S_outpu
 
 	m_q_dot_freeze_protection = Q_fp_sum / time_required_su;	//[MWt]
 
-	int wp_code = water_PH(P_field_out*100.0, m_h_sys_h_out_t_int_fullts, &wp);
+	int wp_code = mpc_water_props->PH(P_field_out*100.0, m_h_sys_h_out_t_int_fullts, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::startup::recirculation", "water_PH error", wp_code));
@@ -1679,7 +1682,7 @@ void C_csp_lf_dsg_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 	double h_sca_out_target = std::numeric_limits<double>::quiet_NaN();
 	if( m_is_sh_target )
 	{
-		wp_code = water_TP(m_T_field_out_des, P_field_out*100.0, &wp);
+		wp_code = mpc_water_props->TP(m_T_field_out_des, P_field_out*100.0, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_TP error", wp_code));
@@ -1688,7 +1691,7 @@ void C_csp_lf_dsg_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 	}
 	else
 	{
-		wp_code = water_PQ(P_field_out*100.0, m_x_b_des, &wp);
+		wp_code = mpc_water_props->PQ(P_field_out*100.0, m_x_b_des, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_PQ error", wp_code));
@@ -1724,7 +1727,7 @@ void C_csp_lf_dsg_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 		h_sca_out_target = std::numeric_limits<double>::quiet_NaN();
 		if( m_is_sh_target )
 		{
-			wp_code = water_TP(m_T_field_out_des, P_field_out*100.0, &wp);
+			wp_code = mpc_water_props->TP(m_T_field_out_des, P_field_out*100.0, &wp);
 			if( wp_code != 0 )
 			{
 				throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_TP error", wp_code));
@@ -1733,7 +1736,7 @@ void C_csp_lf_dsg_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 		}
 		else
 		{
-			wp_code = water_PQ(P_field_out*100.0, m_x_b_des, &wp);
+			wp_code = mpc_water_props->PQ(P_field_out*100.0, m_x_b_des, &wp);
 			if( wp_code != 0 )
 			{
 				throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point outlet state point calcs failed", "water_PQ error", wp_code));
@@ -2356,7 +2359,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 
 	// Need to provide pumping power to get from Field Outlet to Field Inlet
 		// Calculate pump inlet enthalpy
-	int wp_code = water_TP(T_cold_in, P_field_out*100.0, &wp);
+	int wp_code = mpc_water_props->TP(T_cold_in, P_field_out*100.0, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int pump inlet", "water_TP error", wp_code));
@@ -2369,7 +2372,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 	double h_pump_in = wp.enth;		//[kJ/kg]
 
 		// Calculate isentropic pump outlet enthalpy
-	wp_code = water_PS(P_system_in*100.0, s_pump_in, &wp);
+	wp_code = mpc_water_props->PS(P_system_in*100.0, s_pump_in, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int pump isentropic outlet", "water_PS error", wp_code));
@@ -2381,7 +2384,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 	double h_pump_out = (h_pump_out_isen - h_pump_in)/eta_isen + h_pump_in;	//[kJ/kg]
 
 		// Calculate pump outlet state
-	wp_code = water_PH(P_system_in*100.0, h_pump_out, &wp);
+	wp_code = mpc_water_props->PH(P_system_in*100.0, h_pump_out, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int pump outlet", "water_PH error", wp_code));
@@ -2409,7 +2412,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 		mc_sys_cold_out_t_int.m_pres = mc_sys_cold_out_t_end.m_pres = P_field_out + dP_basis*(m_fP_sf_tot - m_fP_hdr_c);	//[bar]
 		mc_sys_cold_out_t_int.m_enth = mc_sys_cold_out_t_end.m_enth = mc_sys_cold_in_t_int.m_enth;		//[kJ/kg]
 
-		wp_code = water_PH(mc_sys_cold_out_t_int.m_pres*100.0, mc_sys_cold_out_t_int.m_enth, &wp);
+		wp_code = mpc_water_props->PH(mc_sys_cold_out_t_int.m_pres*100.0, mc_sys_cold_out_t_int.m_enth, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int cold system/header/field outlet",
@@ -2428,7 +2431,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 		mc_sca_in_t_int[0].m_pres = mc_sys_cold_out_t_int.m_pres;		//[bar]
 		mc_sca_in_t_int[0].m_enth = mc_sys_cold_out_t_int.m_enth - q_dot_loss_HR_cold/(m_m_dot_loop*double(m_nLoops));		//[kJ/kg]
 
-		wp_code = water_PH(mc_sca_in_t_int[0].m_pres*100.0, mc_sca_in_t_int[0].m_enth, &wp);
+		wp_code = mpc_water_props->PH(mc_sca_in_t_int[0].m_pres*100.0, mc_sca_in_t_int[0].m_enth, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int 1st sca inlet",
@@ -2475,7 +2478,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 		double h_ave_i = mc_sca_in_t_int[i].m_enth + dh_per_sca*0.5;	//[kJ/kg]
 
 		// Get the temperature at each state point in the loop
-		wp_code = water_PH(mc_sca_in_t_int[i].m_pres*100.0, h_ave_i, &wp);
+		wp_code = mpc_water_props->PH(mc_sca_in_t_int[i].m_pres*100.0, h_ave_i, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int ith sca inlet",
@@ -2546,7 +2549,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 			mc_sca_out_t_end_last[i].m_temp, mc_sca_out_t_end_last[i].m_enth,
             m_C_thermal, sim_info.ms_ts.m_step, mc_sca_out_t_end[i].m_enth, mc_sca_out_t_int[i].m_enth);
 
-		wp_code = water_PH(mc_sca_out_t_end[i].m_pres*100.0, mc_sca_out_t_end[i].m_enth, &wp);
+		wp_code = mpc_water_props->PH(mc_sca_out_t_end[i].m_pres*100.0, mc_sca_out_t_end[i].m_enth, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int ith sca t_end",
@@ -2555,7 +2558,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 		mc_sca_out_t_end[i].m_temp = wp.temp;		//[K]
 		mc_sca_out_t_end[i].m_x = wp.qual;			//[-]
 
-		wp_code = water_PH(mc_sca_out_t_int[i].m_pres*100.0, mc_sca_out_t_int[i].m_enth, &wp);
+		wp_code = mpc_water_props->PH(mc_sca_out_t_int[i].m_pres*100.0, mc_sca_out_t_int[i].m_enth, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int ith sca t_end",
@@ -2596,7 +2599,7 @@ int C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int(const
 		mc_sys_hot_out_t_int.m_pres = mc_sys_hot_out_t_end.m_pres = P_field_out;	//[bar]
 		mc_sys_hot_out_t_int.m_enth = mc_sys_hot_out_t_end.m_enth = mc_sys_hot_in_t_int.m_enth - q_dot_loss_HR_hot/(m_m_dot_loop*double(m_nLoops));
 
-		wp_code = water_PH(mc_sys_hot_out_t_int.m_pres*100.0, mc_sys_hot_out_t_int.m_enth, &wp);
+		wp_code = mpc_water_props->PH(mc_sys_hot_out_t_int.m_pres*100.0, mc_sys_hot_out_t_int.m_enth, &wp);
 		if( wp_code != 0 )
 		{
 			throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::once_thru_loop_energy_balance_T_t_int hot header",
@@ -2668,7 +2671,7 @@ void C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int_ave(doubl
 	double step_subts = step / (double)n_steps;	//[s]
 
     // Check whether 'T_out_t_end_prev' corresponds to boiling temperature of 'P_in'
-    int water_prop_error = water_PQ(P_in, 0.0, &wp);
+    int water_prop_error = mpc_water_props->PQ(P_in, 0.0, &wp);
     if (water_prop_error != 0)
     {
         throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int",
@@ -2682,7 +2685,7 @@ void C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int_ave(doubl
     double h_out_t_start_local = std::numeric_limits<double>::quiet_NaN();
     if (std::abs(deltaT) >= deltaT_tol)
     {   // If inlet pressure and initial temperature are not 2-phase, then use properties at water_TP to calculate enthalpy
-        water_prop_error = water_TP(T_out_t_end_prev, P_in, &wp);
+        water_prop_error = mpc_water_props->TP(T_out_t_end_prev, P_in, &wp);
         if (water_prop_error != 0)
         {
             throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int",
@@ -2692,7 +2695,7 @@ void C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int_ave(doubl
     }
     else
     {   // Inlet pressure and inlet temperature are at or very near 2-phase, so need different method to calculate enthalpy
-        water_prop_error = water_TQ(T_out_t_end_prev + deltaT, 1.0, &wp);
+        water_prop_error = mpc_water_props->TQ(T_out_t_end_prev + deltaT, 1.0, &wp);
         if (water_prop_error != 0)
         {
             throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int",
@@ -2700,7 +2703,7 @@ void C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int_ave(doubl
         }
         double h_x1 = wp.enth;	//[kJ/kg]
 
-        water_prop_error = water_TQ(T_out_t_end_prev + deltaT, 0.0, &wp);
+        water_prop_error = mpc_water_props->TQ(T_out_t_end_prev + deltaT, 0.0, &wp);
         if (water_prop_error != 0)
         {
             throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int",
@@ -2795,11 +2798,12 @@ void C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int(double h_
 	}
 
 	// Apply 1 var solver to find the mass flow rate that achieves the target outlet temperature
-	C_mono_eq_transient_energy_bal c_transient_energy_bal(h_in, P_in, q_dot_abs, m_dot, T_out_t_end_prev, h_out_t_end_prev, C_thermal, step);
+	C_mono_eq_transient_energy_bal c_transient_energy_bal(h_in, P_in, q_dot_abs, m_dot, T_out_t_end_prev, h_out_t_end_prev, C_thermal, step,
+        *mpc_water_props);
 	C_monotonic_eq_solver c_h_out_t_end_solver(c_transient_energy_bal);
 
 	// Get minimum enthalpy at this pressure
-	int water_prop_error = water_TP(m_wp_min_temp*1.01, P_in, &wp);
+	int water_prop_error = mpc_water_props->TP(m_wp_min_temp*1.01, P_in, &wp);
 	if(water_prop_error != 0)
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int",
@@ -2808,7 +2812,7 @@ void C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int(double h_
 	double h_out_t_end_lower = wp.enth;		//[kJ/kg]
 
 	// Get maximum enthalpy at this pressure
-	water_prop_error = water_TP(m_wp_max_temp*0.99, P_in, &wp);
+	water_prop_error = mpc_water_props->TP(m_wp_max_temp*0.99, P_in, &wp);
 	if(water_prop_error != 0)
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int",
@@ -2849,7 +2853,7 @@ void C_csp_lf_dsg_collector_receiver::transient_energy_bal_numeric_int(double h_
 
 int C_csp_lf_dsg_collector_receiver::C_mono_eq_transient_energy_bal::operator()(double h_out_t_end /*K*/, double *diff_T_out_t_end /*-*/)
 {
-	int water_prop_error = water_PH(m_P_in, h_out_t_end, &mc_wp);
+	int water_prop_error = m_water_props.PH(m_P_in, h_out_t_end, &mc_wp);
 	if( water_prop_error != 0 )
 	{
 		*diff_T_out_t_end = std::numeric_limits<double>::quiet_NaN();
@@ -2892,21 +2896,21 @@ void C_csp_lf_dsg_collector_receiver::set_output_values()
 	mc_reported_outputs.value(E_M_DOT_FIELD, m_m_dot_loop*m_nLoops);	//[kg/s]
 
 	// Calculate output statepoints
-	int wp_code = water_PH(m_P_sys_c_in_t_int_fullts*100.0, m_h_sys_c_in_t_int_fullts, &wp);
+	int wp_code = mpc_water_props->PH(m_P_sys_c_in_t_int_fullts*100.0, m_h_sys_c_in_t_int_fullts, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::set_output_values Field Cold In state point calcs failed", "water_PH error", wp_code));
 	}
 	mc_reported_outputs.value(E_T_FIELD_COLD_IN, wp.temp-273.15);		//[C]
 
-	wp_code = water_PH(m_P_c_rec_in_t_int_fullts*100.0, m_h_c_rec_in_t_int_fullts, &wp);
+	wp_code = mpc_water_props->PH(m_P_c_rec_in_t_int_fullts*100.0, m_h_c_rec_in_t_int_fullts, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::set_output_values Rec Cold In state point calcs failed", "water_PH error", wp_code));
 	}
 	mc_reported_outputs.value(E_T_REC_COLD_IN, wp.temp-273.15);			//[C]
 
-	wp_code = water_PH(m_P_h_rec_out_t_int_fullts*100.0, m_h_h_rec_out_t_int_fullts, &wp);
+	wp_code = mpc_water_props->PH(m_P_h_rec_out_t_int_fullts*100.0, m_h_h_rec_out_t_int_fullts, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::set_output_values Rec Hot Out state point calcs failed", "water_PH error", wp_code));
@@ -2919,7 +2923,7 @@ void C_csp_lf_dsg_collector_receiver::set_output_values()
 		x_out = 10.0;
 	mc_reported_outputs.value(E_X_REC_HOT_OUT, x_out);		//[-]
 
-	wp_code = water_PH(m_P_sys_h_out_t_int_fullts*100.0, m_h_sys_h_out_t_int_fullts, &wp);
+	wp_code = mpc_water_props->PH(m_P_sys_h_out_t_int_fullts*100.0, m_h_sys_h_out_t_int_fullts, &wp);
 	if( wp_code != 0 )
 	{
 		throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::set_output_values Field Hot Out state point calcs failed", "water_PH error", wp_code));

@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include "../shared/lib_util.h"
 #include "htf_props.h"
+#include "fluid_properties.h"
 
 #include <memory>
 
@@ -625,6 +626,8 @@ private:
     double m_P_cond_des;        //[Pa]
     double m_T_cond_des;        //[K]
 
+    std::unique_ptr<C_fluid_properties> mpc_water_props;
+
 public:
 
     C_evap_tower(int tech_type /*-*/, double P_cond_min /*Pa*/, int n_pl_inc /*-*/,
@@ -670,6 +673,8 @@ private:
     double m_W_dot_fan_des;     //[MWe]
 
     double PvsQT(double Q /*[-]*/, double T /*[-]*/);
+
+    std::unique_ptr<C_fluid_properties> mpc_water_props;
 
 public:
 

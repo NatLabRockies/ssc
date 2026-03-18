@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_util.h"
 
 #include "lib_physics.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 #include "lib_util.h"
 #include "sam_csp_util.h"
 #include <algorithm>
@@ -112,6 +112,8 @@ C_pc_Rankine_indirect_224::C_pc_Rankine_indirect_224()
 	m_ncall = -1;
 
 	mc_reported_outputs.construct(S_output_info, S_dependent_output_info);
+
+    mpc_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
 }
 
 void C_pc_Rankine_indirect_224::init(C_csp_power_cycle::S_solved_params &solved_params)
@@ -514,12 +516,12 @@ void C_pc_Rankine_indirect_224::init(C_csp_power_cycle::S_solved_params &solved_
 			ms_params.m_P_boil_des = 220.0; // Set to 220 bar, 22 MPa
 		}
 
-        water_state wp;
+        fluid_state wp;
         if (ms_params.m_tech_type == 4)
             m_T_boil_des = T_sat4(ms_params.m_P_boil_des); // Sat temp for isopentane
         else
         {
-            water_PQ(ms_params.m_P_boil_des * 100, 1.0, &wp);
+            mpc_water_props->PQ(ms_params.m_P_boil_des * 100, 1.0, &wp);
             m_T_boil_des = wp.temp;	//[K]
         }
 
@@ -538,9 +540,9 @@ void C_pc_Rankine_indirect_224::init(C_csp_power_cycle::S_solved_params &solved_
 		double h_st_hot, h_st_cold;
 
 		// 1.3.13 twn: Use FIT water props to calculate enthalpy rise over economizer/boiler/superheater
-		water_TP(ms_params.m_T_htf_hot_ref - GetFieldToTurbineTemperatureDropC() + 273.15, ms_params.m_P_boil_des*100.0, &wp);	// Get hot side enthalpy [kJ/kg] using Steam Props
+        mpc_water_props->TP(ms_params.m_T_htf_hot_ref - GetFieldToTurbineTemperatureDropC() + 273.15, ms_params.m_P_boil_des*100.0, &wp);	// Get hot side enthalpy [kJ/kg] using Steam Props
 		h_st_hot = wp.enth;
-		water_PQ(ms_params.m_P_boil_des*100.0, 0.0, &wp);
+        mpc_water_props->PQ(ms_params.m_P_boil_des*100.0, 0.0, &wp);
 		h_st_cold = wp.enth;
 		m_delta_h_steam = h_st_hot - h_st_cold + 4.91*100.0;
 
@@ -592,7 +594,7 @@ void C_pc_Rankine_indirect_224::init(C_csp_power_cycle::S_solved_params &solved_
 			if (ms_params.m_tech_type != 4)
 			{
 
-				water_TQ(ms_params.m_dT_cw_ref + m_evap_dt_out + ms_params.m_T_approach + ms_params.m_T_amb_des + 273.15, 1.0, &wp);
+                mpc_water_props->TQ(ms_params.m_dT_cw_ref + m_evap_dt_out + ms_params.m_T_approach + ms_params.m_T_amb_des + 273.15, 1.0, &wp);
                 m_Psat_ref = wp.pres*1000.0;
 			}
 			else
@@ -2043,7 +2045,7 @@ void C_pc_Rankine_indirect_224::RankineCycle_V2(double T_db /*K*/, double T_wb /
     double P_cond_ratio = ms_params.m_P_cond_ratio;
     double P_cond_min = ms_params.m_P_cond_min;
 
-    water_state wp;
+    fluid_state wp;
     // Convert units
     // **Temperatures from Celcius to Kelvin
     T_htf_hot = physics::CelciusToKelvin(T_htf_hot);			//[K]

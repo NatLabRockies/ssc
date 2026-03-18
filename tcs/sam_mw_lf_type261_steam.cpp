@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tcstype.h"
 #include "sam_csp_util.h"
 //#include "waterprop.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 using namespace std;
 
@@ -366,7 +366,8 @@ private:
 	TwoOptTables optical_tables;
 	P_max_check check_pressure;
 	enth_lim check_h;
-	water_state wp;
+	fluid_state wp;
+    std::unique_ptr<C_fluid_properties> mpc_water_props;
 	Evacuated_Receiver evac_tube_model;
 	HTFProperties htfProps;
 
@@ -602,6 +603,8 @@ public:
 		phi_t = std::numeric_limits<double>::quiet_NaN();
 		theta_L = std::numeric_limits<double>::quiet_NaN();
 		m_ftrack = std::numeric_limits<double>::quiet_NaN();
+
+        mpc_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
 
 	}
 
@@ -1557,10 +1560,10 @@ public:
 		if( !m_is_oncethru )		// Analyze the conventional boiler only/boiler+superheat options
 		{
 			// Calculate boiler inlet/outlet enthalpies
-			water_PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );
+			mpc_water_props->PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );
 			double h_b_out_des = wp.enth;		//[kJ/kg]
 			// Power block outlet/field inlet enthalpy
-			water_TP( m_T_field_in_des, check_pressure.P_check( m_P_turb_des*(1.0 + m_fP_sf_tot - m_fP_hdr_c) )*100.0, &wp );
+            mpc_water_props->TP( m_T_field_in_des, check_pressure.P_check( m_P_turb_des*(1.0 + m_fP_sf_tot - m_fP_hdr_c) )*100.0, &wp );
 			h_pb_out_des = wp.enth;		//[kJ/kg]
 			// Determine the mixed boiler inlet enthalpy
 			double h_b_in_des = h_pb_out_des*m_x_b_des + h_b_out_des*(1.0 - m_x_b_des);
@@ -1570,7 +1573,7 @@ public:
 				// Calculate the local pressure in the boiler. Assume a linear pressure drop across each section
 				double P_loc = m_P_turb_des*(1.0 + m_fP_sf_tot-m_fP_sf_boil*(1.0 - (double)(i)/(double)m_nModBoil));
 				// Get the temperature and quality at each state in the boiler
-				water_PH( check_pressure.P_check( P_loc )*100.0, (h_b_in_des + dh_b_des*(double)(i+1) - dh_b_des/2.0), &wp );
+                mpc_water_props->PH( check_pressure.P_check( P_loc )*100.0, (h_b_in_des + dh_b_des*(double)(i+1) - dh_b_des/2.0), &wp );
 				m_T_ave.at(i,0) = wp.temp;		//[K]
 				m_x.at(i,0) = wp.qual;
 
@@ -1599,9 +1602,9 @@ public:
 				if( m_is_multgeom ) gset = 1;
 
 				// Calculate superheater inlet/outlet enthalpies
-				water_PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh))*100.0, 1.0, &wp);
+                mpc_water_props->PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh))*100.0, 1.0, &wp);
 				double h_sh_in_des = wp.enth;
-				water_TP( (m_T_field_out_des), check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h))*100.0, &wp );
+                mpc_water_props->TP( (m_T_field_out_des), check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h))*100.0, &wp );
 				h_sh_out_des = wp.enth;
 				double dh_sh_des = (h_sh_out_des - h_sh_in_des)/(double)m_nModSH;
 				for( int ii = 0; ii < m_nModSH; ii++ )
@@ -1609,7 +1612,7 @@ public:
 					int i = ii + m_nModBoil;
 					// Calculate the local pressure in the superheater. Assume a linear pressure drop
 					double P_loc = m_P_turb_des*(1.0 + m_fP_hdr_h+m_fP_sf_sh*(1.0 - (double)(ii)/(double)m_nModSH));
-					water_PH( check_pressure.P_check( P_loc )*100.0, (h_sh_in_des + dh_sh_des*(double)(ii+1) - dh_sh_des/2.0), &wp );
+                    mpc_water_props->PH( check_pressure.P_check( P_loc )*100.0, (h_sh_in_des + dh_sh_des*(double)(ii+1) - dh_sh_des/2.0), &wp );
 					m_T_ave(i,0) = wp.temp;		// Convert to K
 
 					// Calculate the heat loss at each temperature
@@ -1634,9 +1637,9 @@ public:
 		else	// Analyze the once-through boiler+superheater options
 		{
 			// Calculate the total enthalpy rise across the loop
-			water_TP( (m_T_field_in_des), check_pressure.P_check( m_P_turb_des*(1.0+m_fP_sf_tot))*100.0, &wp );
+            mpc_water_props->TP( (m_T_field_in_des), check_pressure.P_check( m_P_turb_des*(1.0+m_fP_sf_tot))*100.0, &wp );
 			h_pb_out_des = wp.enth;
-			water_TP( (m_T_field_out_des), check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h))*100.0, &wp );
+            mpc_water_props->TP( (m_T_field_out_des), check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h))*100.0, &wp );
 			h_sh_out_des = wp.enth;
 			// Enthalpy rise across each collector module
 			double dh_ot_des = (h_sh_out_des - h_pb_out_des)/(double)m_nModTot;		//[kJ/kg]
@@ -1649,7 +1652,7 @@ public:
 				// Calculate the local pressure in the loop, assume a linear pressure drop
 				double P_loc = m_P_turb_des*(1.0 + (m_fP_sf_boil + m_fP_sf_sh)*(1.0 - (double)(i)/(double)m_nModTot) + m_fP_hdr_h);
 				// Get the temperature/quality at each state in the loop
-				water_PH( check_pressure.P_check( P_loc )*100.0, (h_pb_out_des + dh_ot_des*(double)(i+1) - dh_ot_des/2.0), &wp );
+                mpc_water_props->PH( check_pressure.P_check( P_loc )*100.0, (h_pb_out_des + dh_ot_des*(double)(i+1) - dh_ot_des/2.0), &wp );
 				m_T_ave.at(i,0) = wp.temp;
 				m_x.at(i,0) = wp.qual;
 
@@ -1732,11 +1735,11 @@ public:
 		double T_burn = 0.0;
 		if( !m_is_oncethru )
 		{
-			water_TP( m_T_field_in_des, check_pressure.P_check( m_P_turb_des*(1.0+m_fP_sf_tot))*100.0, &wp );	// solar field inlet
+            mpc_water_props->TP( m_T_field_in_des, check_pressure.P_check( m_P_turb_des*(1.0+m_fP_sf_tot))*100.0, &wp );	// solar field inlet
 			double dvar1 = wp.enth;
-			water_PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );	// boiler outlet
+            mpc_water_props->PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );	// boiler outlet
 			double dvar2 = wp.enth;
-			water_PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh))*100.0, 1.0, &wp );		// superheater inlet
+            mpc_water_props->PQ( check_pressure.P_check( m_P_turb_des*(1.0+m_fP_hdr_h+m_fP_sf_sh))*100.0, 1.0, &wp );		// superheater inlet
 			double dvar7 = wp.enth;
 			double dvar3 = (dvar2 - dvar1)/(double)m_nModBoil;		// The enthalpy rise per boiler module
 
@@ -1763,11 +1766,11 @@ public:
 			// Project this to the superheater modules
 			double dvar4 = dvar7 + dvar3*m_nModSH*dvar10;		// Estimated superheater outlet enthalpy
 			// Check the temperature
-			water_PH( m_P_turb_des*(1.0 - m_fP_boil_to_sh)*100.0, dvar4, &wp );
+            mpc_water_props->PH( m_P_turb_des*(1.0 - m_fP_boil_to_sh)*100.0, dvar4, &wp );
 			double dvar5 = wp.temp;						// convert to K
 			double dvar6 = dvar5 - m_T_field_out_des;			// Difference in temperature between estimated outlet temperature and user-spec
 			// What are the superheater design conditions?
-			water_TP( m_T_field_out_des, check_pressure.P_check( m_P_turb_des*(1.0*m_fP_hdr_h) )*100.0, &wp );	// Superheater outlet
+            mpc_water_props->TP( m_T_field_out_des, check_pressure.P_check( m_P_turb_des*(1.0*m_fP_hdr_h) )*100.0, &wp );	// Superheater outlet
 			double dvar8 = wp.enth;
 			double dvar9 = (dvar8 - dvar7)/(dvar2 - dvar1)*m_nModBoil;
 
@@ -1795,10 +1798,10 @@ public:
 		}
 
 		// Calculate the minimum allowable enthalpy before freezing
-		water_TP( 5.0 + 273.15, m_P_turb_des*m_cycle_cutoff_frac*100.0, &wp );
+        mpc_water_props->TP( 5.0 + 273.15, m_P_turb_des*m_cycle_cutoff_frac*100.0, &wp );
 		double h_freeze = wp.enth;
 		// Calculate the maximum allowable enthalpy before convergence error
-		water_TP( min( T_burn + 150.0 + 273.15, 1000.0 ), m_P_max*100.0, &wp );
+        mpc_water_props->TP( min( T_burn + 150.0 + 273.15, 1000.0 ), m_P_max*100.0, &wp );
 		double h_burn = wp.enth;
 		// Set up the enthalpy limit function
 		check_h.set_enth_limits( h_freeze, h_burn );
@@ -2079,10 +2082,10 @@ public:
 			if( m_is_oncethru || m_ftrack <= 0.0 )		// Run in once-through mode at night since distinct boiler/superheater models are not useful
 			{
 				// Guess the loop inlet/outlet enthalpies
-				water_TP( T_pb_out, check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_sf_tot-m_fP_hdr_c))*100.0, &wp );
+                mpc_water_props->TP( T_pb_out, check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_sf_tot-m_fP_hdr_c))*100.0, &wp );
 				double h_b_in_guess = wp.enth;		//[kJ/kg]
 				//double h_pb_out_guess = h_b_in_guess;	//[kJ/kg]
-				water_TP( m_T_field_out_des, check_pressure.P_check( P_turb_in_guess+dP_basis_guess*m_fP_hdr_h)*100.0, &wp );
+                mpc_water_props->TP( m_T_field_out_des, check_pressure.P_check( P_turb_in_guess+dP_basis_guess*m_fP_hdr_h)*100.0, &wp );
 				double h_sh_out_guess = wp.enth;		//[kJ/kg]
 				
 				// Set the loop inlet enthalpy
@@ -2120,10 +2123,10 @@ public:
 					dP_basis = m_dot*(double)m_nLoops/m_m_dot_des*m_P_turb_des;
 
 					// Guess the loop inlet/outlet enthalpies
-					water_TP(T_pb_out, check_pressure.P_check(P_turb_in+dP_basis*(m_fP_sf_tot - m_fP_hdr_c))*100.0, &wp);
+                    mpc_water_props->TP(T_pb_out, check_pressure.P_check(P_turb_in+dP_basis*(m_fP_sf_tot - m_fP_hdr_c))*100.0, &wp);
 					h_b_in = wp.enth;
 					h_pb_out = h_b_in;
-					water_TP(m_T_field_out_des, check_pressure.P_check(P_turb_in+dP_basis*m_fP_hdr_h)*100.0, &wp);
+                    mpc_water_props->TP(m_T_field_out_des, check_pressure.P_check(P_turb_in+dP_basis*m_fP_hdr_h)*100.0, &wp);
 					double h_sh_out = wp.enth;
 
 					// Set the loop inlet enthalpy
@@ -2145,7 +2148,7 @@ public:
 						double P_loc = check_pressure.P_check( P_turb_in + dP_basis * (m_fP_hdr_h + (m_fP_sf_sh + m_fP_boil_to_sh + m_fP_sf_boil)*(1.0 - (double)i/(double)m_nModTot)));
 
 						// Get the temperature at each state point in the loop
-						water_PH( P_loc*100.0, m_h_ave.at(i,0), &wp );
+                        mpc_water_props->PH( P_loc*100.0, m_h_ave.at(i,0), &wp );
 						m_T_ave.at(i,0) = wp.temp;
 
 						// Calculate the heat loss at each temperature
@@ -2213,7 +2216,7 @@ public:
 							// Update guesses for h_ave and T_ave
 							double h_aveg = (m_h_out.at(i,0) + m_h_in.at(i,0))/2.0;
 							// Update the average temperature for the heat loss calculation
-							water_PH( P_loc*100.0, h_aveg, &wp );
+                            mpc_water_props->PH( P_loc*100.0, h_aveg, &wp );
 							m_T_ave.at(i,0) = wp.temp;
 							err_t = std::abs( (m_h_ave.at(i,0) - h_aveg)/m_h_ave.at(i,0) );
 							m_h_ave.at(i,0) = h_aveg;
@@ -2318,13 +2321,13 @@ public:
 			{
 				// Boiler
 				// Guess the field inlet enthalpy
-				water_TP( T_pb_out, check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_sf_tot-m_fP_hdr_c) )*100.0, &wp );
+                mpc_water_props->TP( T_pb_out, check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_sf_tot-m_fP_hdr_c) )*100.0, &wp );
 				double h_pb_out_guess = wp.enth;		//[kJ/kg]
 
 				// Boiler outlet conditions
-				water_PQ( check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );
+                mpc_water_props->PQ( check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );
 				double h_b_out_guess = wp.enth;		//[kJ/kg]
-				water_PQ( check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, 0.0, &wp );
+                mpc_water_props->PQ( check_pressure.P_check( P_turb_in_guess+dP_basis_guess*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, 0.0, &wp );
 				double h_b_recirc_guess = wp.enth;	//[kJ/kg]
 
 				// Determine the mixed inlet enthalpy
@@ -2370,13 +2373,13 @@ public:
 					dP_basis = m_dot_b*(double)m_nLoops/m_m_dot_b_des*m_P_turb_des;
 					
 					// Field inlet enthalpy
-					water_TP( T_pb_out, check_pressure.P_check( P_turb_in+dP_basis*(m_fP_sf_tot - m_fP_hdr_c))*100.0, &wp );
+                    mpc_water_props->TP( T_pb_out, check_pressure.P_check( P_turb_in+dP_basis*(m_fP_sf_tot - m_fP_hdr_c))*100.0, &wp );
 					h_pb_out = wp.enth;
 
 					// Update the boiler outlet conditions
-					water_PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );	// 2-phase outlet enthalpy
+                    mpc_water_props->PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, m_x_b_des, &wp );	// 2-phase outlet enthalpy
 					double h_b_out = wp.enth;
-					water_PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, 0.0, &wp );		// Recirculation enthalpy
+                    mpc_water_props->PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_h+m_fP_sf_sh+m_fP_boil_to_sh))*100.0, 0.0, &wp );		// Recirculation enthalpy
 					double h_b_recirc = wp.enth;
 
 					// Determin the mixed inlet enthalpy
@@ -2392,7 +2395,7 @@ public:
 						double P_loc = check_pressure.P_check( P_turb_in + dP_basis*(m_fP_sf_tot - m_fP_sf_boil*(1.0 - (double)i/(double)m_nModBoil) ) );
 
 						// Get the temperature at each state in the boiler
-						water_PH( P_loc*100.0, m_h_ave.at(i,0), &wp );
+                        mpc_water_props->PH( P_loc*100.0, m_h_ave.at(i,0), &wp );
 						m_T_ave.at(i,0) = wp.temp;
 
 						gset = 0;
@@ -2462,7 +2465,7 @@ public:
 							// Update guesses for h_ave and T_ave
 							double h_aveg = (m_h_out.at(i,0) + m_h_in.at(i,0))/2.0;
 							// Update the average temperature for the heat loss calculation
-							water_PH( P_loc*100.0, h_aveg, &wp );
+                            mpc_water_props->PH( P_loc*100.0, h_aveg, &wp );
 							m_T_ave.at(i,0) = wp.temp;
 							err_t = std::abs( (m_h_ave.at(i,0) - h_aveg)/m_h_ave.at(i,0) );
 							m_h_ave.at(i,0) = h_aveg;
@@ -2571,10 +2574,10 @@ public:
 						gset = 1;
 
 					// Calculate superheater inlet enthalpy
-					water_PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_h+m_fP_sf_sh) )*100.0, 1.0, &wp );
+                    mpc_water_props->PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_h+m_fP_sf_sh) )*100.0, 1.0, &wp );
 					double h_sh_in = wp.enth;		//[kJ/kg]
 					// The superheater outlet enthalpy is constrained according to the steam mass flow produced in the boiler
-					water_TP( m_T_field_out_des, check_pressure.P_check( P_turb_in+dP_basis*m_fP_hdr_h )*100.0, &wp );
+                    mpc_water_props->TP( m_T_field_out_des, check_pressure.P_check( P_turb_in+dP_basis*m_fP_hdr_h )*100.0, &wp );
 					double h_sh_out = wp.enth;		//[kJ/kg]
 
 					// Set the loop inlet enthalpy
@@ -2616,7 +2619,7 @@ public:
 							double P_loc = check_pressure.P_check( P_turb_in + dP_basis*(m_fP_hdr_h+m_fP_sf_sh*(1.0 - (double)ii/(double)m_nModSH)) );
 
 							// Get the temperature at each state in the boiler
-							water_PH( P_loc*100.0, m_h_ave.at(i,0), &wp );
+                            mpc_water_props->PH( P_loc*100.0, m_h_ave.at(i,0), &wp );
 							m_T_ave.at(i,0) = wp.temp;
 
 							// Calculate the heat loss at each temperature
@@ -2684,7 +2687,7 @@ public:
 								// Update guesses for h_ave and T_ave
 								double h_aveg = (m_h_out.at(i,0) + m_h_in.at(i,0))/2.0;
 								// Update the average temperature for the heat loss calculation
-								water_PH( P_loc*100.0, h_aveg, &wp );
+                                mpc_water_props->PH( P_loc*100.0, h_aveg, &wp );
 								m_T_ave.at(i,0) = wp.temp;
 								err_t = std::abs( (m_h_ave.at(i,0) - h_aveg)/m_h_ave.at(i,0) );
 								m_h_ave.at(i,0) = h_aveg;
@@ -2714,9 +2717,9 @@ public:
 		double m_dot_field = m_dot*(double)m_nLoops;		//[kg/s]
 
 		// Look up temperatures
-		water_PH( check_pressure.P_check( P_turb_in + dP_basis*(m_fP_sf_tot-m_fP_hdr_c))*100.0, m_h_in.at(0,0), &wp );
+        mpc_water_props->PH( check_pressure.P_check( P_turb_in + dP_basis*(m_fP_sf_tot-m_fP_hdr_c))*100.0, m_h_in.at(0,0), &wp );
 		m_T_field_in = wp.temp - 273.15;		// [C]
-		water_PH( check_pressure.P_check( P_turb_in + dP_basis*m_fP_hdr_h)*100.0, m_h_out.at(m_nModTot-1,0), &wp );
+        mpc_water_props->PH( check_pressure.P_check( P_turb_in + dP_basis*m_fP_hdr_h)*100.0, m_h_out.at(m_nModTot-1,0), &wp );
 		double T_loop_out = wp.temp - 273.15;		// [C]
 
 		// Piping thermal loss
@@ -2729,7 +2732,7 @@ public:
 		else
 			h_to_pb = m_h_out.at( m_nModTot-1, 0 );
 
-		water_PH( P_turb_in*100.0, h_to_pb, &wp );
+        mpc_water_props->PH( P_turb_in*100.0, h_to_pb, &wp );
 		m_T_field_out = wp.temp - 273.15;		// [C]
 
 		// Energies
@@ -2798,12 +2801,12 @@ public:
 				double h_target = 0.0;
 				if( m_is_sh)
 				{
-					water_TP( m_T_field_out_des, P_turb_in*100.0, &wp );
+                    mpc_water_props->TP( m_T_field_out_des, P_turb_in*100.0, &wp );
 					h_target = wp.enth;
 				}
 				else
 				{
-					water_PQ( P_turb_in*100.0, m_x_b_des, &wp );
+                    mpc_water_props->PQ( P_turb_in*100.0, m_x_b_des, &wp );
 					h_target = wp.enth;
 				}
 				// Thermal requirement for the aux heater
@@ -2834,12 +2837,12 @@ public:
 				case 1:			// backup minimum level - parallel				
 					if(m_is_sh)
 					{
-						water_TP( m_T_field_out_des, P_turb_in*100.0, &wp );
+                        mpc_water_props->TP( m_T_field_out_des, P_turb_in*100.0, &wp );
 						h_target = wp.enth;
 					}
 					else
 					{
-						water_PQ( P_turb_in*100.0, m_x_b_des, &wp );
+                        mpc_water_props->PQ( P_turb_in*100.0, m_x_b_des, &wp );
 						h_target = wp.enth;
 					}
 					q_aux = max( 0.0, q_aux_avail - q_field_delivered );
@@ -2855,19 +2858,19 @@ public:
 						m_dot_to_pb = m_dot_aux;
 						h_to_pb = h_target;
 					}
-					water_PH( P_turb_in*100.0, h_to_pb, &wp );
+                    mpc_water_props->PH( P_turb_in*100.0, h_to_pb, &wp );
 					q_to_pb = m_dot_to_pb * (h_to_pb - h_pb_out);
 					T_pb_in = wp.temp - 273.15;
 					break;
 				case 2:			// supplemental parallel
 					if( m_is_sh )
 					{
-						water_TP( m_T_field_out_des, P_turb_in*100.0, &wp );
+                        mpc_water_props->TP( m_T_field_out_des, P_turb_in*100.0, &wp );
 						h_target = wp.enth;
 					}
 					else
 					{
-						water_PQ( P_turb_in*100.0, m_x_b_des, &wp );
+                        mpc_water_props->PQ( P_turb_in*100.0, m_x_b_des, &wp );
 						h_target = wp.enth;
 					}
 					q_aux = min( m_q_pb_des - q_field_delivered, q_aux_avail );
@@ -2884,7 +2887,7 @@ public:
 						m_dot_to_pb = m_dot_aux;
 						h_to_pb = h_target;
 					}
-					water_PH( P_turb_in*100.0, h_to_pb, &wp );
+                    mpc_water_props->PH( P_turb_in*100.0, h_to_pb, &wp );
 					q_to_pb = m_dot_to_pb * (h_to_pb - h_b_in);
 					T_pb_in = wp.temp - 273.15;
 					break;
@@ -2893,12 +2896,12 @@ public:
 					// for the power block. The fossil use corresponds to the operation level of the solar field
 					 if( m_is_sh )
 					 {
-						 water_TP( m_T_field_out_des, P_turb_in*100.0, &wp );
+                         mpc_water_props->TP( m_T_field_out_des, P_turb_in*100.0, &wp );
 						 h_target = wp.enth;
 					 }
 					 else
 					 {
-						 water_PQ( P_turb_in*100.0, m_x_b_des, &wp );
+                         mpc_water_props->PQ( P_turb_in*100.0, m_x_b_des, &wp );
 						 h_target = wp.enth;
 					 }
 					 // The flow rate through the aux heater is the same as through the field
@@ -2909,7 +2912,7 @@ public:
 					 h_to_pb = h_field_out + q_aux/m_dot_aux;
 					 m_dot_to_pb = m_dot_field;
 					 q_to_pb = m_dot_to_pb * (h_to_pb - h_pb_out);
-					 water_PH( P_turb_in*100.0, h_to_pb, &wp );
+                     mpc_water_props->PH( P_turb_in*100.0, h_to_pb, &wp );
 					 T_pb_in = wp.temp - 273.15;
 					break;
 				}  // end switch
@@ -2990,9 +2993,9 @@ public:
 		}
 
 		// Feedwater pump parasitic
-		water_PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_c+m_fP_sf_boil+m_fP_boil_to_sh+m_fP_sf_sh+m_fP_hdr_h))*100.0, 0.0, &wp );
+        mpc_water_props->PQ( check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_c+m_fP_sf_boil+m_fP_boil_to_sh+m_fP_sf_sh+m_fP_hdr_h))*100.0, 0.0, &wp );
 		double T_low_limit = wp.temp;
-		water_TP( min(T_pb_out, T_low_limit), check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_c+m_fP_sf_boil+m_fP_boil_to_sh+m_fP_sf_sh+m_fP_hdr_h))*100.0, &wp );
+        mpc_water_props->TP( min(T_pb_out, T_low_limit), check_pressure.P_check( P_turb_in+dP_basis*(m_fP_hdr_c+m_fP_sf_boil+m_fP_boil_to_sh+m_fP_sf_sh+m_fP_hdr_h))*100.0, &wp );
 		double rho_fw = wp.dens;
 
 		double W_dot_pump = 0.0;

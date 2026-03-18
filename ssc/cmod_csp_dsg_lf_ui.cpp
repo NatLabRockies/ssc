@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core.h"
 
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 
 static var_info _cm_vtab_csp_dsg_lf_ui[] = {
@@ -59,13 +59,15 @@ public:
 
     void exec() override
     {
-        water_state wp;
+        fluid_state wp;
+        auto water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+
 
         double P_boil = as_double("P_boil") * 100.0;    //[kPa]
         bool is_subcooled = as_boolean("use_quality_or_subcooled");
         double deltaT_subcooled = as_double("deltaT_subcooled");
 
-        int wp_code = water_PQ(P_boil, 0.0, &wp);
+        int wp_code = water_props->PQ(P_boil, 0.0, &wp);
 
         double T_sat = std::numeric_limits<double>::quiet_NaN();
         if (wp_code != 0) {

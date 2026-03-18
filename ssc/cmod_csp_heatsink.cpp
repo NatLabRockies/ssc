@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 #include "heat_exchangers.h"
 
 static var_info _cm_vtab_csp_heatsink[] = {
@@ -109,8 +109,9 @@ public:
         double P_ext_cold = 4.762 * 100.0;  //[kPa] Inlet steam pressure
 
             // Get inlet steam properties
-        water_state ms_water_props;
-        int prop_error_code = water_TP(T_ext_cold + 273.15, P_ext_cold, &ms_water_props);
+        fluid_state ms_water_props;
+        auto water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+        int prop_error_code = water_props->TP(T_ext_cold + 273.15, P_ext_cold, &ms_water_props);
         double h_ext_cold = ms_water_props.enth;    // [kJ/kg] Inlet water enthalpy
         double Q_ext_cold = ms_water_props.qual;    // [] Inlet water quality (should be 0, n/a)
         double dens_ext_cold = ms_water_props.dens; // [kg/m3] Inlet water density
@@ -120,7 +121,7 @@ public:
         double P_ext_hot = P_ext_cold;      //[kPa] Outlet Steam Pressure
 
             // Outlet steam properties
-        prop_error_code = water_PQ(P_ext_hot, Q_ext_hot, &ms_water_props);
+        prop_error_code = water_props->PQ(P_ext_hot, Q_ext_hot, &ms_water_props);
         double h_ext_hot = ms_water_props.enth;             // [kJ/kg] Outlet Steam Enthalpy
         double dens_ext_hot = ms_water_props.dens;          //[kg/m3] Outlet steam density
         double T_ext_hot = ms_water_props.temp - 273.15;    // [C] Outlet Steam Temp
@@ -190,7 +191,7 @@ public:
             q_dot_calc, h_ext_out_calc, h_htf_out_calc, mdot_ext_calc, tol_solved, T_c_out, x_c_out, hx_min_dT);
 
         // Off design Outlet steam properties
-        prop_error_code = water_PH(P_ext_hot, h_ext_out_calc, &ms_water_props);
+        prop_error_code = water_props->PH(P_ext_hot, h_ext_out_calc, &ms_water_props);
         double Q_ext_hot_od = ms_water_props.qual;             // [] Outlet Steam Quality
         double T_ext_hot_od = ms_water_props.temp - 273.15;    // [C] Outlet Steam Temp
 

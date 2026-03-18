@@ -102,6 +102,7 @@ private:
     double m_m_dot_water_ND_des;
 
 	HTFProperties mc_pc_htfProps;
+    std::unique_ptr<C_fluid_properties> mpc_water_props;
 
     std::shared_ptr<C_air_cooled_condenser> m_ACC;
     std::shared_ptr<C_evap_tower> m_evap_tower;

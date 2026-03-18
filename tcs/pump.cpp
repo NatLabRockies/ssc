@@ -59,7 +59,7 @@ tcsvarinfo pump_variables[] = {
 };
 
 //#include "waterprop.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 class pump : public tcstypeinterface
 {
@@ -92,8 +92,9 @@ public:
 			value( O_MDOT, 0.0 );
 		}
 		
-		water_state wp;
-		water_PS( 600, 5.5, &wp );
+		fluid_state wp;
+        auto water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+		water_props->PS( 600, 5.5, &wp );
 
 		value( O_ENTHALPY, wp.enth );
 

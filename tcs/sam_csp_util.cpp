@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "sam_csp_util.h"
 //#include "waterprop.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 #include "csp_solver_util.h"
 
@@ -602,8 +602,9 @@ C_evap_tower::C_evap_tower(int tech_type /*-*/, double P_cond_min /*Pa*/, int n_
     m_P_amb_des = P_amb_des;        //[Pa]
 
     // Cooling water specific heat
-    water_state wp;
-    water_TP(max(m_T_wb_des, 283.15), m_P_amb_des / 1000.0, &wp);
+    mpc_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+    fluid_state wp;
+    mpc_water_props->TP(max(m_T_wb_des, 283.15), m_P_amb_des / 1000.0, &wp);
     double c_cw = wp.cp * 1000.0;		// Convert to J/kg-K
 
     m_m_dot_cw_des = q_dot_reject_des / (c_cw * DeltaT_cw_des);	//[kg/s] Mass flow rate of cooling water required to absorb the rejected heat
@@ -626,8 +627,8 @@ void C_evap_tower::off_design(double T_db_K /*K*/, double T_wb_K /*K*/,
     double T_wb = T_wb_K - 273.15;    //[C] Converted wet bulb temp
 
     // Cooling water specific heat
-    water_state wp;
-    water_TP(max(T_wb, 10.0) + 273.15, P_amb / 1000.0, &wp);
+    fluid_state wp;
+    mpc_water_props->TP(max(T_wb, 10.0) + 273.15, P_amb / 1000.0, &wp);
     double c_cw = wp.cp * 1000.0;		// Convert to J/kg-K
 
     // **** Calculations for performance
@@ -641,7 +642,7 @@ void C_evap_tower::off_design(double T_db_K /*K*/, double T_wb_K /*K*/,
     // Condenser back pressure
     if (m_tech_type != 4)
     {
-        water_TQ(T_cond + 273.15, 1.0, &wp);
+        mpc_water_props->TQ(T_cond + 273.15, 1.0, &wp);
         P_cond = wp.pres * 1000.0;
     }
     else
@@ -660,7 +661,7 @@ void C_evap_tower::off_design(double T_db_K /*K*/, double T_wb_K /*K*/,
             deltat_cw = q_dot_reject / (m_dot_cw * c_cw);
             T_cond = T_wb + deltat_cw + m_dt_out + m_T_approach_des;
 
-            water_TQ(T_cond + 273.15, 1.0, &wp);
+            mpc_water_props->TQ(T_cond + 273.15, 1.0, &wp);
             P_cond = wp.pres * 1000.0;
 
             if (P_cond > m_P_cond_min) break;
@@ -671,14 +672,14 @@ void C_evap_tower::off_design(double T_db_K /*K*/, double T_wb_K /*K*/,
 
             P_cond = m_P_cond_min;
 
-            water_PQ(P_cond / 1000.0, 1.0, &wp);
+            mpc_water_props->PQ(P_cond / 1000.0, 1.0, &wp);
             T_cond = wp.temp - 273.15;
 
             deltat_cw = T_cond - (T_wb + m_dt_out + m_T_approach_des);
             m_dot_cw = q_dot_reject / (deltat_cw * c_cw);
         }
     }
-    water_TP(T_cond - 3.0 + 273.15, P_amb / 1000.0, &wp);
+    mpc_water_props->TP(T_cond - 3.0 + 273.15, P_amb / 1000.0, &wp);
     double h_pcw_in = wp.enth * 1000.0;
     //double s_pcw_in = wp.entr*1000.0;
     double rho_cw = wp.dens;
@@ -707,9 +708,9 @@ void C_evap_tower::off_design(double T_db_K /*K*/, double T_wb_K /*K*/,
     W_dot_tot = w_dot_cw_pump + w_dot_fan;   // [MW]
 
     // Enthalpy of evaporation
-    water_PQ(P_amb / 1000.0, 0.0, &wp);
+    mpc_water_props->PQ(P_amb / 1000.0, 0.0, &wp);
     double dh_low = wp.enth;
-    water_PQ(P_amb / 1000.0, 1.0, &wp);
+    mpc_water_props->PQ(P_amb / 1000.0, 1.0, &wp);
     double dh_high = wp.enth;
     double deltah_evap = (dh_high - dh_low) * 1000.0;	// [J/kg]
 
@@ -758,11 +759,12 @@ C_air_cooled_condenser::C_air_cooled_condenser(int tech_type /*-*/, double P_con
     m_T_cond_des = m_T_ITD_des + m_T_amb_des;    //[K]
 
     // Water properties structure
-    water_state wp;
+    fluid_state wp;
+    mpc_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
 
     if (m_tech_type != 4)
     {
-        water_TQ(m_T_cond_des, 1.0, &wp);
+        mpc_water_props->TQ(m_T_cond_des, 1.0, &wp);
         m_P_cond_des = wp.pres * 1000.0;      //[Pa]
     }
     else
@@ -808,7 +810,7 @@ void C_air_cooled_condenser::off_design(double T_amb /*K*/, double q_dot_reject 
         P_cond_bar = m_P_cond_min_bar;      //[bar]
     }
 
-    water_state wp;
+    fluid_state wp;
 
     if ((P_cond_bar < m_P_cond_min_bar) && (m_tech_type != 4)) // No lower limit on Isopentane
     {
@@ -832,7 +834,7 @@ void C_air_cooled_condenser::off_design(double T_amb /*K*/, double q_dot_reject 
     }
 
     m_dot_air = m_dot_air_des * f_hrsys;        // [kg/s]
-    water_PQ(P_cond_bar * 100., 1.0, &wp);      // [bar] -> [kPa]
+    mpc_water_props->PQ(P_cond_bar * 100., 1.0, &wp);      // [bar] -> [kPa]
     P_cond = P_cond_bar * 1.e5;                 // [bar] -> [Pa]
     T_cond = wp.temp;                           // [K]
 
@@ -997,8 +999,9 @@ void CSP::surface_cond(int tech_type, double P_cond_min, int n_pl_inc, double De
 	double mass_ratio_fan = 1.01;      // Ratio of air flow to water flow in the cooling tower
 
 	// Cooling water specific heat
-	water_state wp;
-	water_TP(max(T_cold, 10.0) + 273.15, P_amb / 1000.0, &wp);
+	fluid_state wp;
+    auto water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+    water_props->TP(max(T_cold, 10.0) + 273.15, P_amb / 1000.0, &wp);
 	double c_cw = wp.cp * 1000.0;		// Convert to J/kg-K
 
 	// **** Calculations for design conditions
@@ -1017,7 +1020,7 @@ void CSP::surface_cond(int tech_type, double P_cond_min, int n_pl_inc, double De
 	// Condenser back pressure
 	if (tech_type != 4)
 	{
-		water_TQ(T_cond + 273.15, 1.0, &wp);
+        water_props->TQ(T_cond + 273.15, 1.0, &wp);
 		P_cond = wp.pres * 1000.0;
 	}
 	else
@@ -1037,7 +1040,7 @@ void CSP::surface_cond(int tech_type, double P_cond_min, int n_pl_inc, double De
 			deltat_cw = q_reject / (m_dot_cw*c_cw);
 			T_cond = T_cold + deltat_cw + dt_out;
 
-			water_TQ(T_cond + 273.15, 1.0, &wp);
+            water_props->TQ(T_cond + 273.15, 1.0, &wp);
 			P_cond = wp.pres * 1000.0;
 
 			if (P_cond > P_cond_min) break;
@@ -1048,14 +1051,14 @@ void CSP::surface_cond(int tech_type, double P_cond_min, int n_pl_inc, double De
 
 			P_cond = P_cond_min;
 
-			water_PQ(P_cond / 1000.0, 1.0, &wp);
+            water_props->PQ(P_cond / 1000.0, 1.0, &wp);
 			T_cond = wp.temp - 273.15;
 
 			deltat_cw = T_cond - (T_cold + dt_out);
 			m_dot_cw = q_reject / (deltat_cw * c_cw);
 		}
 	}
-	water_TP(T_cond - 3.0 + 273.15, P_amb / 1000.0, &wp);
+    water_props->TP(T_cond - 3.0 + 273.15, P_amb / 1000.0, &wp);
 	double h_pcw_in = wp.enth*1000.0;
 	//double s_pcw_in = wp.entr*1000.0;
 	double rho_cw = wp.dens;

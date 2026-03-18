@@ -290,12 +290,14 @@ public:
         bool is_subcooled = as_boolean("use_quality_or_subcooled");
         double deltaT_subcooled = as_double("deltaT_subcooled");
 
+        std::unique_ptr<C_fluid_properties> water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+
         if (is_subcooled) {
 
             is_target_single_phase = true;
-            water_state wp;
+            fluid_state wp;
 
-            int wp_code = water_PQ(P_turb_des * 100.0, 0.0, &wp);
+            int wp_code = water_props->PQ(P_turb_des * 100.0, 0.0, &wp);
             if (wp_code != 0)
             {
                 throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init", "Design point water_PQ failed", wp_code));

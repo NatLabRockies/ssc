@@ -15,7 +15,7 @@ void C_csp_radiator::init()
 {
 	//mc_coldhtf.SetFluid(ms_params.m_field_fl);  //initialize class for fluid circulating - not needed if using water /steam props
 	mc_air.SetFluid(1);							//initialize class for air
-
+    mpc_water = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
 	
 	//Load measured sky temperature data
 	int ii = 0;
@@ -197,17 +197,17 @@ void C_csp_radiator::analytical_panel_calc(double T_db /*K*/, double Tin /*K*/, 
 
 
 					//Water properties
-					water_TP(Tin, 101.3, &mc_coldhtf);					//Get water state at inlet temperature of fluid
+                    mpc_water->TP(Tin, 101.3, &mc_coldhtf);					//Get water state at inlet temperature of fluid
 					double cp =mc_coldhtf.cp*1000 ;						//mc_coldhtf.Cp(273)*1000.;               //[J / kg - K] Specific heat capacity of water
 					double rho_water = mc_coldhtf.dens;					//mc_coldhtf.dens(273,101300.);	//[kg/m^3]
-					double mu_water = water_visc(rho_water, Tin)*1e-6;	//Function result  is uPa-s, convert to kg/m-s. nu_water * rho_water;				//mc_coldhtf.visc(273);				//[kg / m - s]
+					double mu_water = mpc_water->visc(rho_water, Tin)*1e-6;	//Function result  is uPa-s, convert to kg/m-s. nu_water * rho_water;				//mc_coldhtf.visc(273);				//[kg / m - s]
 					double nu_water = mu_water / rho_water; 			//1.66034557e-6 - 3.53322361e-8*(Tin - 273.15) + 2.50116564e-10*pow((Tin - 273.15), 2); //mc_coldhtf.kin_visc(273,101300.);	//Kinematic viscosity [m^2/s]
 					double alpha_water = 1.478e-7;						//mc_coldhtf.therm_diff(273,101300.);  //[m^2/s] Assuming constant thermal diffusivity under temperatures 0 to 80 C.
 
 					//Forced convection inside tube
 					double Pr_water = nu_water / alpha_water;			//mc_coldhtf.Pr(273,101300.);			//[-] Prandtl number of water
 					double Re_tube = 4 * m_dot_tube / (3.1415*mu_water*D);	//[-] Reynolds number inside tube
-					double k_water = water_cond(rho_water, Tin);									//0.612;//[W / m - K]
+					double k_water = mpc_water->cond(rho_water, Tin);									//0.612;//[W / m - K]
 					if (Re_tube < 2300)
 					{
 						hfi = 3.66*k_water / D;								//[W / m ^ 2 - K] For laminar flow assuming uniform wall temperature(conservative)
@@ -373,7 +373,7 @@ void C_csp_radiator::analytical_panel_calc_HX(double T_db /*K*/, double Tin /*K*
 	}
 	else
 	{
-		water_TP(Tin, 101.3, &mc_coldhtf);					//Get water state at inlet temperature of fluid - this only approximates water temp
+        mpc_water->TP(Tin, 101.3, &mc_coldhtf);					//Get water state at inlet temperature of fluid - this only approximates water temp
 		cp_water = mc_coldhtf.cp * 1000;					//[J / kg - K] Specific heat capacity of water
 	}
 

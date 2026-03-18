@@ -7,15 +7,15 @@
 #include "csp_solver_util.h"
 
 #include "sam_csp_util.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 class C_csp_radiator
 {
 private:
 
-	water_state mc_coldhtf;
+	fluid_state mc_coldhtf;
 	HTFProperties mc_air;
-
+    std::unique_ptr<C_fluid_properties> mpc_water;
 
 public:
 

@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_core.h"
 #include "csp_solver_util.h"
 
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 class C_pc_steam_heat_sink : public C_csp_power_cycle
 {
@@ -59,7 +59,8 @@ private:
 
 public:
 
-	water_state mc_water_props;
+	fluid_state mc_water_state;
+    std::unique_ptr<C_fluid_properties> mpc_water_props;
 
 	struct S_params
 	{

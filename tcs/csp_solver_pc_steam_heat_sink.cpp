@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lib_util.h"
 
-#include "water_properties.h"
+#include "fluid_properties.h"
 
 static C_csp_reported_outputs::S_output_info S_output_info[] =
 {
@@ -52,6 +52,8 @@ C_pc_steam_heat_sink::C_pc_steam_heat_sink()
 	m_max_frac = 100.0;
 
 	m_is_sensible_htf = false;	//[-] STEAM
+
+    mpc_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
 }
 
 void C_pc_steam_heat_sink::check_double_params_are_set()
@@ -99,7 +101,7 @@ void C_pc_steam_heat_sink::init(C_csp_power_cycle::S_solved_params &solved_param
 	int prop_error_code = -1;
 	if( ms_params.m_x_hot_des < 0.0 || ms_params.m_x_hot_des > 1.0 )
 	{
-		prop_error_code = water_TP(ms_params.m_T_hot_des + 273.15, ms_params.m_P_hot_des, &mc_water_props);
+		prop_error_code = mpc_water_props->TP(ms_params.m_T_hot_des + 273.15, ms_params.m_P_hot_des, &mc_water_state);
 		if( prop_error_code != 0 )
 		{
 			throw(C_csp_exception("C_pc_steam_heat_sink::init(...) Design hot state point property calcs failed"));
@@ -107,21 +109,21 @@ void C_pc_steam_heat_sink::init(C_csp_power_cycle::S_solved_params &solved_param
 	}
 	else
 	{
-		prop_error_code = water_PQ(ms_params.m_P_hot_des, ms_params.m_x_hot_des, &mc_water_props);
+		prop_error_code = mpc_water_props->PQ(ms_params.m_P_hot_des, ms_params.m_x_hot_des, &mc_water_state);
 		if( prop_error_code != 0 )
 		{
 			throw(C_csp_exception("C_pc_steam_heat_sink::init(...) Design hot state point property calcs failed"));
 		}
 	}
-	double h_hot = mc_water_props.enth;		//[kJ/kg]
+	double h_hot = mc_water_state.enth;		//[kJ/kg]
 		// Cold outlet
 	double P_cold_des = (1.0 - ms_params.m_dP_frac_des)*ms_params.m_P_hot_des;	//[kPa]
-	prop_error_code = water_TP(ms_params.m_T_cold_des+273.15, P_cold_des, &mc_water_props);
+	prop_error_code = mpc_water_props->TP(ms_params.m_T_cold_des+273.15, P_cold_des, &mc_water_state);
 	if( prop_error_code != 0 )
 	{
 		throw(C_csp_exception("C_pc_steam_heat_sink::init(...) Design cold state point property calcs failed"));
 	}
-	double h_cold = mc_water_props.enth;	//[kJ/kg]
+	double h_cold = mc_water_state.enth;	//[kJ/kg]
 
 	double m_dot_steam_des = ms_params.m_q_dot_des*1.E3 / (h_hot - h_cold);		//[kg/s]
 
@@ -246,7 +248,7 @@ void C_pc_steam_heat_sink::call(const C_csp_weatherreader::S_outputs &weather,
 	int prop_error_code = -1;
 	if( x_steam_hot < 0.0 || x_steam_hot > 1.0 )
 	{
-		prop_error_code = water_TP(T_steam_hot, P_steam_hot, &mc_water_props);
+		prop_error_code = mpc_water_props->TP(T_steam_hot, P_steam_hot, &mc_water_state);
 		if( prop_error_code != 0 )
 		{
 			std::string msg = util::format("Hot inlet water/steam properties failed at T = %lg [K] and P = %lg [kPa]", T_steam_hot, P_steam_hot);
@@ -255,36 +257,36 @@ void C_pc_steam_heat_sink::call(const C_csp_weatherreader::S_outputs &weather,
 	}
 	else
 	{
-		prop_error_code = water_PQ(P_steam_hot, x_steam_hot, &mc_water_props);
+		prop_error_code = mpc_water_props->PQ(P_steam_hot, x_steam_hot, &mc_water_state);
 		if( prop_error_code != 0 )
 		{
 			std::string msg = util::format("Hot inlet water/steam properties failed at P = %lg [K] and x = %lg [-]", P_steam_hot, x_steam_hot);
 			throw(C_csp_exception("C_pc_steam_heat_sink::call(...)", msg));
 		}
 	}
-	double h_steam_hot = mc_water_props.enth;	//[kJ/kg]
+	double h_steam_hot = mc_water_state.enth;	//[kJ/kg]
 
 	// For now, let's assume the Heat Sink can always return the HTF at the design cold temperature
 		// Cold outlet state point
 	double P_steam_cold = (1.0 - ms_params.m_dP_frac_des)*ms_params.m_P_hot_des;	//[kPa]
 	double T_steam_cold = ms_params.m_T_cold_des + 273.15;							//[K]
-	prop_error_code = water_TP(T_steam_cold, P_steam_cold, &mc_water_props);
+	prop_error_code = mpc_water_props->TP(T_steam_cold, P_steam_cold, &mc_water_state);
 	if( prop_error_code != 0 )
 	{
 		throw(C_csp_exception("C_pc_steam_heat_sink::call(...) Cold outlet water/steam property calcs failed"));
 	}
-	double h_steam_cold = mc_water_props.enth;	//[kJ/kg]
-	double s_steam_cold = mc_water_props.entr;	//[kJ/kg-K]
+	double h_steam_cold = mc_water_state.enth;	//[kJ/kg]
+	double s_steam_cold = mc_water_state.entr;	//[kJ/kg-K]
 
 	double q_dot_steam = m_dot_steam*(h_steam_hot - h_steam_cold)/1.E3;		//[MWt]
 
 	// Calculate isentropic compression back to Hot Inlet Pressure
-	prop_error_code = water_PS(P_steam_hot, s_steam_cold, &mc_water_props);
+	prop_error_code = mpc_water_props->PS(P_steam_hot, s_steam_cold, &mc_water_state);
 	if( prop_error_code != 0 )
 	{
 		throw(C_csp_exception("C_pc_steam_heat_sink::call(...) Isentropic compression calcs failed"));
 	}
-	double h_steam_cold_comp_isen = mc_water_props.enth;
+	double h_steam_cold_comp_isen = mc_water_state.enth;
 
 	// eta_isen = (h_out_isen - h_in) / (h_out - h_in)
 	double h_steam_cold_comp = (h_steam_cold_comp_isen - h_steam_cold)/ms_params.m_pump_eta_isen + h_steam_cold;	//[kJ/kg]

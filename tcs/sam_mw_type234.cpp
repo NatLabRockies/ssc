@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _TCSTYPEINTERFACE_
 #include "tcstype.h"
 //#include "waterprop.h"
-#include "water_properties.h"
+#include "fluid_properties.h"
 #include "sam_csp_util.h"
 #include "lib_weatherfile.h"
 
@@ -169,7 +169,8 @@ class sam_mw_type234 : public tcstypeinterface
 {
 private:
 	
-	water_state wp;
+	fluid_state wp;
+    std::unique_ptr<C_fluid_properties> mpc_water_props;
 	P_max_check check_pressure;
 
 	double m_P_ref;			
@@ -286,6 +287,7 @@ public:
         m_P_amb_des = 101325.0; //[Pa]
         m_P_ND_ref = m_Q_ND_ref = m_R_ND_ref = std::numeric_limits<double>::quiet_NaN();
 
+        mpc_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
 	}
 
 	virtual ~sam_mw_type234(){
@@ -635,32 +637,32 @@ public:
 			!constraints and design point values provided by the user. This results in an adjusted T_cold_ref
 			!value, and it could be different than the value provided by the user... Will remove T_cold_ref from GUI */
 				
-			water_TP(m_T_hot_ref + 273.15, m_P_boil_des*100.0, &wp);
+		    mpc_water_props->TP(m_T_hot_ref + 273.15, m_P_boil_des*100.0, &wp);
 			double h_hot_ref = wp.enth;	//[kJ/kg] HP turbine inlet conditions
 			double s_t = wp.entr;			//[kJ/kg-K]
 
-			water_PQ( m_P_boil_des*100.0, 1.0, &wp );
+            mpc_water_props->PQ( m_P_boil_des*100.0, 1.0, &wp );
 			double h_sh_in = wp.enth;			//[kJ/kg]
 
 			double h_t_out, h_rh_out, h_LP_out;
 			if( m_is_rh )
 			{
-				water_PS( m_P_rh_ref*100.0, s_t, &wp );
+                mpc_water_props->PS( m_P_rh_ref*100.0, s_t, &wp );
 				double h_t_outs = wp.enth;	//[kJ/kg] Isentropic HP outlet enthlapy
 				h_t_out = h_hot_ref - (h_hot_ref - h_t_outs)*0.88;		//[kJ/kg] HP outlet enthalpy
-				water_PH( m_P_rh_ref*100.0, h_t_out, &wp );
+                mpc_water_props->PH( m_P_rh_ref*100.0, h_t_out, &wp );
 				//double T_rh_in = wp.temp - 273.15;	//[C] Reheat inlet temperature
-				water_TP(m_T_rh_hot_ref + 273.15, m_P_rh_ref*100.0, &wp);
+                mpc_water_props->TP(m_T_rh_hot_ref + 273.15, m_P_rh_ref*100.0, &wp);
 				h_rh_out = wp.enth;	//[kJ/kg] LP turbine inlet conditions
 				double s_rh_out = wp.entr;	//[kJ/kg-K]
-				water_PS( m_Psat_ref_Pa/1000.0, s_rh_out, &wp );
+                mpc_water_props->PS( m_Psat_ref_Pa/1000.0, s_rh_out, &wp );
 				double h_LP_out_isen = wp.enth;	//[kJ/kg] LP outlet enthalpy
 				h_LP_out = h_rh_out - (h_rh_out - h_LP_out_isen)*0.88;		//[kJ/kg] Turbine outlet enthalpy										
 			}
 			else
 			{
 				m_rh_frac_ref = 0.0;
-				water_PS( m_Psat_ref_Pa/1000.0, s_t, &wp );
+                mpc_water_props->PS( m_Psat_ref_Pa/1000.0, s_t, &wp );
 				double h_t_outs = wp.enth;		//[kJ/kg]
 				h_t_out = h_hot_ref - (h_hot_ref - h_t_outs)*0.88;	//[kJ/kg] Turbine outlet enthlapy
 				h_rh_out = 0.0;
@@ -674,30 +676,30 @@ public:
 			double q_b_des = m_q_dot_ref - m_q_dot_rh_ref - q_dot_sh_ref;			//[kW] Reference heat input to boiler
 
 			double h_cold_ref = h_sh_in - q_b_des/m_m_dot_ref;						//[kJ/kg] Design feedwater outlet temperature
-			water_PH( m_P_boil_des*100.0, h_cold_ref, &wp );
+            mpc_water_props->PH( m_P_boil_des*100.0, h_cold_ref, &wp );
 			m_T_cold_ref = wp.temp - 273.15;													//[C] Design feedwater outlet temperature
 
 			m_q_dot_st_ref = m_m_dot_ref*(h_hot_ref - h_cold_ref);					//[kW] Reference heat input between feedwater and HP turbine
 		}
 		else
 		{
-			water_TP(m_T_hot_ref + 273.15, m_P_boil_des*100.0, &wp);
+            mpc_water_props->TP(m_T_hot_ref + 273.15, m_P_boil_des*100.0, &wp);
 			double h_hot_ref = wp.enth;	//[kJ/kg] HP turbine inlet enthalpy and entropy
 			double s_t = wp.entr;			//[kJ/kg-K]
-			water_TP(m_T_cold_ref + 273.15, m_P_boil_des*100.0, &wp);
+            mpc_water_props->TP(m_T_cold_ref + 273.15, m_P_boil_des*100.0, &wp);
 			double h_cold_ref = wp.enth;	//[kJ/kg]
 
 			double h_rh_out, h_t_out;
 			if( m_is_rh )
 			{
 				//Calculate the reheater inlet temperature assuming an isentropic efficiency model
-				water_PS( m_P_rh_ref*100.0, s_t, &wp );
+                mpc_water_props->PS( m_P_rh_ref*100.0, s_t, &wp );
 				double h_t_outs = wp.enth;
 				double h_t_in = h_hot_ref;
 				h_t_out = h_t_in - (h_t_in - h_t_outs)*0.88;		//[kJ/kg]
-				water_PH( m_P_rh_ref*100, h_t_out, &wp );		
+                mpc_water_props->PH( m_P_rh_ref*100, h_t_out, &wp );
 				//double T_rh_in = wp.temp - 273.15;		//[C]
-				water_TP(m_T_rh_hot_ref + 273.15, m_P_rh_ref*100.0, &wp);
+                mpc_water_props->TP(m_T_rh_hot_ref + 273.15, m_P_rh_ref*100.0, &wp);
 				h_rh_out = wp.enth;
 			}
 			else
@@ -888,19 +890,19 @@ public:
 		if( m_is_rh )
 		{
 			// Calculate the reheater inlet temperature assuming an isentropic efficiency model
-			water_TP(T_hot + 273.15, check_pressure.P_check(P_turb_in)*100.0, &wp);	//Turbine inlet conditions
+            mpc_water_props->TP(T_hot + 273.15, check_pressure.P_check(P_turb_in)*100.0, &wp);	//Turbine inlet conditions
 			double h_t_in = wp.enth;
 			double s_t = wp.entr;
-			water_PS( check_pressure.P_check( P_rh_in )*100.0, s_t, &wp );		//Reheat extraction enthalpy assuming isentropic expansion
+            mpc_water_props->PS( check_pressure.P_check( P_rh_in )*100.0, s_t, &wp );		//Reheat extraction enthalpy assuming isentropic expansion
 			double h_t_outs = wp.enth;
 			double eta_t = 0.88*CSP::eta_pl(m_dot_ND);
 			h_t_out = h_t_in - (h_t_in - h_t_outs)*eta_t;	// The actual reheat inlet enthalpy
-			water_PH( check_pressure.P_check( P_rh_in )*100.0, h_t_out, &wp );	// Reheat inlet temp
+            mpc_water_props->PH( check_pressure.P_check( P_rh_in )*100.0, h_t_out, &wp );	// Reheat inlet temp
 			T_rh_in = wp.temp - 273.15;
 		}
 
 		// The saturation temperature at the boiler. Using the floating pressure value is consistent with the regression model formulation in this case.
-		water_PQ( check_pressure.P_check( P_turb_in )*100.0, 0.5, &wp );
+        mpc_water_props->PQ( check_pressure.P_check( P_turb_in )*100.0, 0.5, &wp );
 		double T_ref = wp.temp - 273.15;
 
 		// Calculate the hot inlet steam temperature, in non-dimensional form
@@ -910,11 +912,11 @@ public:
 		if( m_is_rh )
 		{
 			// Calculate the reheat outlet temperature, assuming reheat ND is equal to hot ND
-			water_PQ( check_pressure.P_check( P_rh_in )*100.0, 0.0, &wp );
+            mpc_water_props->PQ( check_pressure.P_check( P_rh_in )*100.0, 0.0, &wp );
 			double T_s_rh = wp.temp - 273.15;
 			T_rh_out = T_s_rh + (m_T_rh_hot_ref - T_s_rh)*T_hot_ND;
 			// Using temperature and pressure, calculate reheat outlet enthalpy
-			water_TP(T_rh_out + 273.15, check_pressure.P_check(P_rh_in - dp_rh)*100.0, &wp);
+            mpc_water_props->TP(T_rh_out + 273.15, check_pressure.P_check(P_rh_in - dp_rh)*100.0, &wp);
 			h_rh_out = wp.enth;
 		}
 
@@ -994,14 +996,14 @@ public:
 
 			// Calculate the output values:
 			P_cycle = P_ND_tot * m_P_ref;
-			water_TP(T_hot + 273.15, check_pressure.P_check(P_turb_in)*100.0, &wp);
+            mpc_water_props->TP(T_hot + 273.15, check_pressure.P_check(P_turb_in)*100.0, &wp);
 			double h_hot = wp.enth;
 			double h_cold = h_hot - Q_ND_tot*m_q_dot_st_ref/m_dot_st;
 			do
 			{
-				water_PH( check_pressure.P_check( P_turb_in )*100.0, h_cold, &wp );
+                mpc_water_props->PH( check_pressure.P_check( P_turb_in )*100.0, h_cold, &wp );
 				T_cold = wp.temp - 273.15;
-				water_TP(T_cold + 273.15, P_turb_in*100.0, &wp);
+                mpc_water_props->TP(T_cold + 273.15, P_turb_in*100.0, &wp);
 				if(std::abs(wp.enth - h_cold)/h_cold < 0.01 )
 				{					
 					break;
@@ -1173,9 +1175,9 @@ public:
 			double q_sby_needed = q_tot * m_q_sby_frac;
 
 			// Now calculate the mass flow rate knowing the inlet temp of the steam and holding the outlet temperature at the reference outlet temp
-			water_TP(T_hot + 273.15, m_P_boil_des*100.0, &wp);
+            mpc_water_props->TP(T_hot + 273.15, m_P_boil_des*100.0, &wp);
 			double h_st_hot = wp.enth;		//[kJ/kg]
-			water_TP(m_T_cold_ref + 273.15, m_P_boil_des*100.0, &wp);
+            mpc_water_props->TP(m_T_cold_ref + 273.15, m_P_boil_des*100.0, &wp);
 			double h_st_cold = wp.enth;			//[kJ/kg]
 			double m_dot_sby = q_sby_needed/(h_st_hot - h_st_cold);
 

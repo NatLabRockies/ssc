@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sco2_cycle_templates.h"
 
 #include "heat_exchangers.h"
-#include "CO2_properties.h"
 
 #include "numeric_solvers.h"
 
@@ -153,13 +152,13 @@ public:
     struct S_sco2_tsf_out
     {
         int m_error_code;
-        C_turbine m_t;                          // Turbine model
-        C_turbine m_t2;                         // Secondary Turbine model
-        C_comp_multi_stage m_mc_ms;             // Main Compressor Model
-        C_HeatExchanger m_PHX, m_PC;            // Primary and Cooler Heat Exchanger Models
-        C_HX_co2_to_co2_CRM mc_LT_recup;        // LTR
-        C_HX_co2_to_co2_CRM mc_HT_recup;        // HTR
-        C_CO2_to_air_cooler mc_air_cooler;      // Air Cooler
+        C_turbine m_t;                              // Turbine model
+        C_turbine m_t2;                             // Secondary Turbine model
+        C_comp_multi_stage m_mc_ms;                 // Main Compressor Model
+        C_HeatExchanger m_PHX, m_PC;                // Primary and Cooler Heat Exchanger Models
+        C_HX_fluid_to_fluid_CRM mc_LT_recup;        // LTR
+        C_HX_fluid_to_fluid_CRM mc_HT_recup;        // HTR
+        C_fluid_to_air_cooler mc_air_cooler;          // Air Cooler
         std::vector<double> m_temp, m_pres, m_enth, m_entr, m_dens;		// thermodynamic states (K, kPa, kJ/kg, kJ/kg-K, kg/m3)
         double m_w_t, m_w_t2, m_w_mc;                       // [kJ/kg] specific work of turbine, main compressor, recompressor
         double m_m_dot_t, m_m_dot_t2, m_m_dot_mc;           // [kg/s] sco2 Mass flow in turbine, secondary turbine, and main compressor (total)
@@ -174,7 +173,8 @@ public:
         double m_eta_thermal;                               // Thermal Efficiency
 
         S_sco2_tsf_out(C_fluid_properties& fluid)
-            : m_t(fluid), m_t2(fluid), m_mc_ms(fluid)
+            : m_t(fluid), m_t2(fluid), m_mc_ms(fluid),
+            mc_air_cooler(&fluid)
         {
             Init();
         }
@@ -202,7 +202,7 @@ public:
 
 
 private:
-    CO2_state m_co2_props;
+    fluid_state m_co2_props;
     C_fluid_properties& m_fluid;
 
     class C_mono_tsf_core_HTR_des : public C_monotonic_equation
@@ -238,7 +238,6 @@ public:
         : m_fluid(fluid), m_outputs(fluid)
     {
         m_outputs.Init();
-        m_co2_props = CO2_state();
     }
 
     void set_inputs(S_sco2_tsf_in inputs) { m_inputs = inputs; };
@@ -344,7 +343,8 @@ public:
         int N_nodes_pass,
         double T_amb_des, double elevation,
         double m_yr_inflation,
-        E_fluid_type fluid_type) :
+        E_fluid_type fluid_type, const std::string& coolprop_fluid = "",
+        const std::string& coolprop_backend = "") :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -358,7 +358,8 @@ public:
             eta_t, N_turbine,
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
-            T_amb_des, elevation, m_yr_inflation, fluid_type),
+            T_amb_des, elevation, m_yr_inflation, fluid_type,
+            coolprop_fluid, coolprop_backend),
             m_eta_t2(eta_t2),
         m_optimal_tsf_core(get_fluid())
     {

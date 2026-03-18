@@ -1,10 +1,7 @@
 #ifndef FLUID_WATER_PROPERTIES_H
 #define FLUID_WATER_PROPERTIES_H
 
-#include <limits>
-
 #include "fluid_properties.h"
-#include "water_properties.h"
 
 class C_water_properties : public C_fluid_properties
 {
@@ -25,24 +22,6 @@ public:
 
     // Fluid info
     void get_info(fluid_info* info) override;
-
-private:
-
-    static void fluid_state_from_water_state(const water_state* ws, fluid_state* fs)
-    {
-        fs->temp = ws->temp;
-        fs->pres = ws->pres;
-        fs->dens = ws->dens;
-        fs->qual = ws->qual;
-        fs->inte = ws->inte;
-        fs->enth = ws->enth;
-        fs->entr = ws->entr;
-        fs->cv = ws->cv;
-        fs->cp = ws->cp;
-        fs->ssnd = ws->ssnd;
-        fs->sat_vap_dens = ws->sat_vap_dens;
-        fs->sat_liq_dens = ws->sat_liq_dens;
-    }
 
 };
 

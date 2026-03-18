@@ -63,8 +63,8 @@ int C_PartialCooling_Cycle::design_core()
 	}
 
 	// Initialize Recuperators
-    mc_LTR.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_yr_inflation);
-	mc_HTR.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_yr_inflation);
+    mc_LTR.initialize(m_fluid.get(), m_fluid.get(), m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_yr_inflation);
+	mc_HTR.initialize(m_fluid.get(), m_fluid.get(), m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_yr_inflation);
 
 	// Initialize known temps and pressures from design parameters
 	m_temp_last[MC_IN] = m_T_mc_in;	                //[K]
@@ -269,7 +269,7 @@ int C_PartialCooling_Cycle::design_core()
 
 	// Can now define HTR HP outlet state
 	m_enth_last[HTR_HP_OUT] = m_enth_last[MIXER_OUT] + Q_dot_HTR / m_m_dot_t;		//[kJ/kg]
-	int prop_error_code = CO2_PH(m_pres_last[HTR_HP_OUT], m_enth_last[HTR_HP_OUT], &mc_co2_props);
+	int prop_error_code = m_fluid->PH(m_pres_last[HTR_HP_OUT], m_enth_last[HTR_HP_OUT], &mc_co2_props);
 	if (prop_error_code != 0)
 	{
 		return prop_error_code;
@@ -336,7 +336,7 @@ int C_PartialCooling_Cycle::C_MEQ_HTR_des::operator()(double T_HTR_LP_out /*K*/,
 
 	mpc_pc_cycle->m_temp_last[HTR_LP_OUT] = T_HTR_LP_out;	//[K]
 
-	int prop_error_code = CO2_TP(mpc_pc_cycle->m_temp_last[HTR_LP_OUT], mpc_pc_cycle->m_pres_last[HTR_LP_OUT], &mpc_pc_cycle->mc_co2_props);
+	int prop_error_code = mpc_pc_cycle->m_fluid->TP(mpc_pc_cycle->m_temp_last[HTR_LP_OUT], mpc_pc_cycle->m_pres_last[HTR_LP_OUT], &mpc_pc_cycle->mc_co2_props);
 	if (prop_error_code != 0)
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -362,7 +362,7 @@ int C_PartialCooling_Cycle::C_MEQ_HTR_des::operator()(double T_HTR_LP_out /*K*/,
 		return -2;
 	}
 
-	prop_error_code = CO2_TP(mpc_pc_cycle->m_temp_last[LTR_LP_OUT], mpc_pc_cycle->m_pres_last[LTR_LP_OUT], &mpc_pc_cycle->mc_co2_props);
+	prop_error_code = mpc_pc_cycle->m_fluid->TP(mpc_pc_cycle->m_temp_last[LTR_LP_OUT], mpc_pc_cycle->m_pres_last[LTR_LP_OUT], &mpc_pc_cycle->mc_co2_props);
 	if (prop_error_code)
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -375,7 +375,7 @@ int C_PartialCooling_Cycle::C_MEQ_HTR_des::operator()(double T_HTR_LP_out /*K*/,
 	// *****************************************************************************
 		// Energy balance on the LTR HP stream
 	mpc_pc_cycle->m_enth_last[LTR_HP_OUT] = mpc_pc_cycle->m_enth_last[MC_OUT] + m_Q_dot_LTR / mpc_pc_cycle->m_m_dot_mc;	//[kJ/kg]
-	prop_error_code = CO2_PH(mpc_pc_cycle->m_pres_last[LTR_HP_OUT], mpc_pc_cycle->m_enth_last[LTR_HP_OUT], &mpc_pc_cycle->mc_co2_props);
+	prop_error_code = mpc_pc_cycle->m_fluid->PH(mpc_pc_cycle->m_pres_last[LTR_HP_OUT], mpc_pc_cycle->m_enth_last[LTR_HP_OUT], &mpc_pc_cycle->mc_co2_props);
 	if (prop_error_code != 0)
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -389,7 +389,7 @@ int C_PartialCooling_Cycle::C_MEQ_HTR_des::operator()(double T_HTR_LP_out /*K*/,
 	if (mpc_pc_cycle->ms_des_par.m_recomp_frac >= 1.E-12)
 	{
 		mpc_pc_cycle->m_enth_last[MIXER_OUT] = (1.0 - mpc_pc_cycle->ms_des_par.m_recomp_frac)*mpc_pc_cycle->m_enth_last[LTR_HP_OUT] + mpc_pc_cycle->ms_des_par.m_recomp_frac*mpc_pc_cycle->m_enth_last[RC_OUT];	//[kJ/kg]
-		prop_error_code = CO2_PH(mpc_pc_cycle->m_pres_last[MIXER_OUT], mpc_pc_cycle->m_enth_last[MIXER_OUT], &mpc_pc_cycle->mc_co2_props);
+		prop_error_code = mpc_pc_cycle->m_fluid->PH(mpc_pc_cycle->m_pres_last[MIXER_OUT], mpc_pc_cycle->m_enth_last[MIXER_OUT], &mpc_pc_cycle->mc_co2_props);
 		if (prop_error_code != 0)
 		{
 			*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -438,7 +438,7 @@ int C_PartialCooling_Cycle::C_MEQ_LTR_des::operator()(double T_LTR_LP_out /*K*/,
 	
 	mpc_pc_cycle->m_temp_last[LTR_LP_OUT] = T_LTR_LP_out;		//[K]
 
-	int prop_error_code = CO2_TP(mpc_pc_cycle->m_temp_last[LTR_LP_OUT], mpc_pc_cycle->m_pres_last[LTR_LP_OUT], &mpc_pc_cycle->mc_co2_props);
+	int prop_error_code = mpc_pc_cycle->m_fluid->TP(mpc_pc_cycle->m_temp_last[LTR_LP_OUT], mpc_pc_cycle->m_pres_last[LTR_LP_OUT], &mpc_pc_cycle->mc_co2_props);
 	if (prop_error_code)
 	{
 		*diff_T_LTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -604,7 +604,7 @@ int C_PartialCooling_Cycle::finalize_design()
 	
         // Low Pressure
 		// Structure for design parameters that are dependent on cycle design solution
-	C_CO2_to_air_cooler::S_des_par_cycle_dep s_LP_air_cooler_des_par_dep;
+    C_fluid_to_air_cooler::S_des_par_cycle_dep s_LP_air_cooler_des_par_dep;
 		// Set air cooler design parameters that are dependent on the cycle design solution
 	s_LP_air_cooler_des_par_dep.m_T_hot_in_des = m_temp_last[C_sco2_cycle_core::LTR_LP_OUT];		//[K]
 	s_LP_air_cooler_des_par_dep.m_P_hot_in_des = m_pres_last[C_sco2_cycle_core::LTR_LP_OUT];		//[kPa]
@@ -620,7 +620,7 @@ int C_PartialCooling_Cycle::finalize_design()
 		// Use half the rated fan power on each cooler fan
 	s_LP_air_cooler_des_par_dep.m_W_dot_fan_des = m_frac_fan_power*(1.0 - f_W_dot_fan_to_IP)*m_W_dot_net / 1000.0;		//[MWe]
 		// Structure for design parameters that are independent of cycle design solution
-	C_CO2_to_air_cooler::S_des_par_ind s_LP_air_cooler_des_par_ind;
+    C_fluid_to_air_cooler::S_des_par_ind s_LP_air_cooler_des_par_ind;
 	s_LP_air_cooler_des_par_ind.m_T_amb_des = m_T_amb_des;		//[K]
 	s_LP_air_cooler_des_par_ind.m_elev = m_elevation;			//[m]
     s_LP_air_cooler_des_par_ind.m_eta_fan = m_eta_fan;           //[-]
@@ -643,7 +643,7 @@ int C_PartialCooling_Cycle::finalize_design()
 
 	// High Pressure
 		// Structure for design parameters that are dependent on cycle design solution
-	C_CO2_to_air_cooler::S_des_par_cycle_dep s_IP_air_cooler_des_par_dep;
+    C_fluid_to_air_cooler::S_des_par_cycle_dep s_IP_air_cooler_des_par_dep;
 		// Set air cooler design parameters that are dependent on the cycle design solution
 	s_IP_air_cooler_des_par_dep.m_T_hot_in_des = m_temp_last[C_sco2_cycle_core::PC_OUT];		//[K]
 	s_IP_air_cooler_des_par_dep.m_P_hot_in_des = m_pres_last[C_sco2_cycle_core::PC_OUT];		//[kPa]
@@ -659,7 +659,7 @@ int C_PartialCooling_Cycle::finalize_design()
 		// Use half the rated fan power on each cooler fan
 	s_IP_air_cooler_des_par_dep.m_W_dot_fan_des = m_frac_fan_power*f_W_dot_fan_to_IP*m_W_dot_net / 1000.0;		//[MWe]
 		// Structure for design parameters that are independent of cycle design solution
-	C_CO2_to_air_cooler::S_des_par_ind s_IP_air_cooler_des_par_ind;
+    C_fluid_to_air_cooler::S_des_par_ind s_IP_air_cooler_des_par_ind;
 	s_IP_air_cooler_des_par_ind.m_T_amb_des = m_T_amb_des;		//[K]
 	s_IP_air_cooler_des_par_ind.m_elev = m_elevation;			//[m]
     s_IP_air_cooler_des_par_ind.m_eta_fan = m_eta_fan;           //[-]
@@ -1185,11 +1185,13 @@ int C_PartialCooling_Cycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_pa
             "is either between -1 and 0 (fixed recompression fraction) or equal to 1 (recomp allowed)\n"));
 	}
 	// Can't operate compressore in 2-phase region
-	if (m_T_mc_in <= N_co2_props::T_crit)
+    fluid_info info;
+    m_fluid->get_info(&info);
+	if (m_T_mc_in <= info.T_critical)
 	{
 		error_msg.append(util::format("Only single phase cycle operation is allowed in this model."
 			"The compressor inlet temperature (%lg [C]) must be great than the critical temperature: %lg [C]",
-			m_T_mc_in - 273.15, ((N_co2_props::T_crit) - 273.15)));
+			m_T_mc_in - 273.15, ((info.T_critical) - 273.15)));
 
 		return -1;
 	}
@@ -1243,10 +1245,10 @@ int C_PartialCooling_Cycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_pa
 	}
 
 	// Turbine inlet temperature must be colder than property limits
-	if (m_T_t_in >= N_co2_props::T_upper_limit)
+	if (m_T_t_in >= info.temp_upper_limit)
 	{
 		error_msg.append(util::format("The turbine inlet temperature, %lg [C], is hotter than the maximum allow temperature in the CO2 property code %lg [C]",
-			m_T_t_in - 273.15, N_co2_props::T_upper_limit - 273.15));
+			m_T_t_in - 273.15, info.temp_upper_limit - 273.15));
 
 		return -1;
 	}
@@ -1337,12 +1339,12 @@ int C_PartialCooling_Cycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_pa
 		ms_auto_opt_des_par.m_HTR_eff_max = 0.7;
 	}
 	// Limits on high pressure limit
-	if (m_P_high_limit >= N_co2_props::P_upper_limit)
+	if (m_P_high_limit >= info.pres_upper_limit)
 	{
 		error_msg.append(util::format("The upper pressure limit, %lg [MPa], was set to the internal limit in the CO2 properties code %lg [MPa]\n",
-			m_P_high_limit, N_co2_props::P_upper_limit));
+			m_P_high_limit, info.pres_upper_limit));
 
-		m_P_high_limit = N_co2_props::P_upper_limit;
+		m_P_high_limit = info.pres_upper_limit;
 	}
 	double P_high_limit_min = 10.0*1.E3;	//[kPa]
 	if (m_P_high_limit <= P_high_limit_min)
@@ -1635,7 +1637,7 @@ int C_PartialCooling_Cycle::off_design_fix_shaft_speeds_core(double od_tol /*-*/
 	for (int i = 0; i < n_states; i++)
 	{
 		int j = known_states[i];
-		prop_error_code = CO2_TP(mv_temp_od[j], mv_pres_od[j], &mc_co2_props);
+		prop_error_code = m_fluid->TP(mv_temp_od[j], mv_pres_od[j], &mc_co2_props);
 		if (prop_error_code != 0)
 		{
 			return prop_error_code;
@@ -1688,7 +1690,7 @@ int C_PartialCooling_Cycle::off_design_fix_shaft_speeds_core(double od_tol /*-*/
 	for (int i = 0; i < n_states; i++)
 	{
 		int j = remaining_states[i];
-		prop_error_code = CO2_TP(mv_temp_od[j], mv_pres_od[j], &mc_co2_props);
+		prop_error_code = m_fluid->TP(mv_temp_od[j], mv_pres_od[j], &mc_co2_props);
 		if (prop_error_code != 0)
 		{
 			return prop_error_code;
@@ -1817,7 +1819,7 @@ int C_PartialCooling_Cycle::C_MEQ_recup_od::operator()(double T_HTR_LP_out_guess
 
 		// Mixer
 			// Get LTR HP outlet state
-	int prop_error_code = CO2_TP(mpc_pc_cycle->mv_temp_od[LTR_HP_OUT], mpc_pc_cycle->mv_pres_od[LTR_HP_OUT], &mpc_pc_cycle->mc_co2_props);
+	int prop_error_code = mpc_pc_cycle->m_fluid->TP(mpc_pc_cycle->mv_temp_od[LTR_HP_OUT], mpc_pc_cycle->mv_pres_od[LTR_HP_OUT], &mpc_pc_cycle->mc_co2_props);
 	if (prop_error_code != 0)
 	{
 		*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -1834,7 +1836,7 @@ int C_PartialCooling_Cycle::C_MEQ_recup_od::operator()(double T_HTR_LP_out_guess
 			// Conservation of energy
 		mpc_pc_cycle->mv_enth_od[MIXER_OUT] = (1.0 - f_recomp)*mpc_pc_cycle->mv_enth_od[LTR_HP_OUT] +
 												f_recomp*mpc_pc_cycle->mv_enth_od[RC_OUT];
-		prop_error_code = CO2_PH(mpc_pc_cycle->mv_pres_od[MIXER_OUT], mpc_pc_cycle->mv_enth_od[MIXER_OUT], &mpc_pc_cycle->mc_co2_props);
+		prop_error_code = mpc_pc_cycle->m_fluid->PH(mpc_pc_cycle->mv_pres_od[MIXER_OUT], mpc_pc_cycle->mv_enth_od[MIXER_OUT], &mpc_pc_cycle->mc_co2_props);
 		if (prop_error_code != 0)
 		{
 			*diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -2121,7 +2123,7 @@ int C_PartialCooling_Cycle::off_design_fix_shaft_speeds(S_od_par & od_phi_par_in
 void C_PartialCooling_Cycle::check_od_solution(double & diff_m_dot, double & diff_E_cycle,
     double & diff_Q_LTR, double & diff_Q_HTR)
 {
-    CO2_state c_co2_props;
+    fluid_state c_co2_props;
 
     double m_dot_pc = mc_pc.get_od_solved()->m_m_dot; //[kg/s]   
     double m_dot_mc = mc_mc.get_od_solved()->m_m_dot;  //m_m_dot_mc; // ms_od_solved.m_m_dot_mc;  //[kg/s]
@@ -2146,59 +2148,59 @@ void C_PartialCooling_Cycle::check_od_solution(double & diff_m_dot, double & dif
      
     double P_co2_phx_in = mv_pres_od[HTR_HP_OUT];    //[kPa]
     double T_co2_phx_in = mv_temp_od[HTR_HP_OUT];    //[K]
-    int co2_err = CO2_TP(T_co2_phx_in, P_co2_phx_in, &c_co2_props);
+    int co2_err = m_fluid->TP(T_co2_phx_in, P_co2_phx_in, &c_co2_props);
     double h_co2_phx_in = c_co2_props.enth;         //[kJ/kg]
 
     double P_t_in = mv_pres_od[TURB_IN];             //[kPa]
     double T_t_in = mv_temp_od[TURB_IN];             //[K]
-    co2_err = CO2_TP(T_t_in, P_t_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_t_in, P_t_in, &c_co2_props);
     double h_co2_t_in = c_co2_props.enth;           //[kJ/kg]
 
     double Q_dot_phx = m_dot_t * (h_co2_t_in - h_co2_phx_in); //[kWt]
 
     double P_t_out = mv_pres_od[TURB_OUT];           //[kPa]
     double T_t_out = mv_temp_od[TURB_OUT];           //[K]
-    co2_err = CO2_TP(T_t_out, P_t_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_t_out, P_t_out, &c_co2_props);
     double h_t_out = c_co2_props.enth;      //[kJ/kg]
 
     double W_dot_t = m_dot_t * (h_co2_t_in - h_t_out);    //[kWe]
 
     double P_pc_cool_in = mv_pres_od[LTR_LP_OUT];   //[kPa]
     double T_pc_cool_in = mv_temp_od[LTR_LP_OUT];   //[K]
-    co2_err = CO2_TP(T_pc_cool_in, P_pc_cool_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_pc_cool_in, P_pc_cool_in, &c_co2_props);
     double h_pc_cool_in = c_co2_props.enth;        //[kJ/kg]
 
     double P_pc_in = mv_pres_od[PC_IN];         //[kPa]
     double T_pc_in = mv_temp_od[PC_IN];         //[K]
-    co2_err = CO2_TP(T_pc_in, P_pc_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_pc_in, P_pc_in, &c_co2_props);
     double h_pc_in = c_co2_props.enth;          //[kJ/kg]
 
     double Q_dot_pc_cool = m_dot_pc*(h_pc_cool_in - h_pc_in);   //[kWt]
 
     double P_mc_cool_in = mv_pres_od[PC_OUT];   //[kPa]
     double T_mc_cool_in = mv_temp_od[PC_OUT];   //[K]
-    co2_err = CO2_TP(T_mc_cool_in, P_mc_cool_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_mc_cool_in, P_mc_cool_in, &c_co2_props);
     double h_mc_cool_in = c_co2_props.enth;     //[kJ/kg]
 
     double W_dot_pc = m_dot_pc * (h_mc_cool_in - h_pc_in);      //[kWe]
 
     double P_mc_in = mv_pres_od[MC_IN];          //[kPa]
     double T_mc_in = mv_temp_od[MC_IN];          //[K]
-    co2_err = CO2_TP(T_mc_in, P_mc_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_mc_in, P_mc_in, &c_co2_props);
     double h_mc_in = c_co2_props.enth;          //[kJ/kg]
 
     double Q_dot_mc_cool = m_dot_mc * (h_mc_cool_in - h_mc_in); //[kWt]
 
     double P_rc_out = mv_pres_od[RC_OUT];        //[kPa]
     double T_rc_out = mv_temp_od[RC_OUT];        //[K]
-    co2_err = CO2_TP(T_rc_out, P_rc_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_rc_out, P_rc_out, &c_co2_props);
     double h_rc_out = c_co2_props.enth;         //[kJ/kg]
 
     double W_dot_rc = m_dot_rc * (h_rc_out - h_mc_cool_in);  //[kWe]
 
     double P_mc_out = mv_pres_od[MC_OUT];        //[kPa]
     double T_mc_out = mv_temp_od[MC_OUT];        //[K]
-    co2_err = CO2_TP(T_mc_out, P_mc_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_mc_out, P_mc_out, &c_co2_props);
     double h_mc_out = c_co2_props.enth;         //[kJ/kg]
 
     double W_dot_mc = m_dot_mc * (h_mc_out - h_mc_in);    //[kWe]
@@ -2210,14 +2212,14 @@ void C_PartialCooling_Cycle::check_od_solution(double & diff_m_dot, double & dif
 
     double P_LTR_HP_out = mv_pres_od[LTR_HP_OUT];    //[kPa]
     double T_LTR_HP_out = mv_temp_od[LTR_HP_OUT];    //[K]
-    co2_err = CO2_TP(T_LTR_HP_out, P_LTR_HP_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_LTR_HP_out, P_LTR_HP_out, &c_co2_props);
     double h_LTR_HP_out = c_co2_props.enth;         //[kJ/kg]
 
     double Q_dot_LTR_HP = m_dot_mc * (h_LTR_HP_out - h_mc_out); //[kWt]
 
     double P_HTR_LP_out = mv_pres_od[HTR_LP_OUT];    //[kPa]
     double T_HTR_LP_out = mv_temp_od[HTR_LP_OUT];    //[K]
-    co2_err = CO2_TP(T_HTR_LP_out, P_HTR_LP_out, &c_co2_props);
+    co2_err = m_fluid->TP(T_HTR_LP_out, P_HTR_LP_out, &c_co2_props);
     double h_HTR_LP_out = c_co2_props.enth;         //[kJ/kg]
 
     double Q_dot_LTR_LP = m_dot_t * (h_HTR_LP_out - h_pc_cool_in);   //[kWt]
@@ -2226,7 +2228,7 @@ void C_PartialCooling_Cycle::check_od_solution(double & diff_m_dot, double & dif
 
     double P_HTR_HP_in = mv_pres_od[MIXER_OUT];      //[kPa]
     double T_HTR_HP_in = mv_temp_od[MIXER_OUT];      //[K]
-    co2_err = CO2_TP(T_HTR_HP_in, P_HTR_HP_in, &c_co2_props);
+    co2_err = m_fluid->TP(T_HTR_HP_in, P_HTR_HP_in, &c_co2_props);
     double h_HTR_HP_in = c_co2_props.enth;          //[kJ/kg]
 
     double Q_dot_HTR_HP = m_dot_t * (h_co2_phx_in - h_HTR_HP_in); //[kWt]

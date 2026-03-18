@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sco2_turbinesplitflow_cycle.h"
 
 #include "csp_solver_util.h"
-#include "CO2_properties.h"
 #include <cmath>
 #include <string>
 
@@ -47,14 +46,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "fmin.h"
 
-C_sco2_phx_air_cooler::C_sco2_phx_air_cooler(const E_fluid_type fluid_type)
-    : m_fluid_type(fluid_type)
+C_sco2_phx_air_cooler::C_sco2_phx_air_cooler(const E_fluid_type fluid_type,
+    const std::string& coolprop_fluid, const std::string& coolprop_backend)
+    : m_fluid_type(fluid_type), m_coolprop_fluid(coolprop_fluid),
+    m_coolprop_backend(coolprop_backend)
 {
 	// Get CO2 critical temperature
-	CO2_info co2_fluid_info;
-	get_CO2_info(&co2_fluid_info);
-	m_T_co2_crit = co2_fluid_info.T_critical;		//[K]
-	m_P_co2_crit = co2_fluid_info.P_critical;		//[kPa]
+	fluid_info fluid_info;
+    auto fluid_props = C_fluid_properties::create_fluid_properties(fluid_type, coolprop_fluid, coolprop_backend);
+    fluid_props->get_info(&fluid_info);
+
+	m_T_co2_crit = fluid_info.T_critical;		//[K]
+	m_P_co2_crit = fluid_info.P_critical;		//[kPa]
 
     // Defaul critical temperature limit
     m_is_T_crit_limit = true;
@@ -125,7 +128,8 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
             ms_des_par.m_yr_inflation,
-            this->m_fluid_type
+            this->m_fluid_type, this->m_coolprop_fluid,
+            this->m_coolprop_backend
             ));
 
 		s_cycle_config = "partial cooling";
@@ -150,7 +154,8 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
             ms_des_par.m_yr_inflation,
-            this->m_fluid_type
+            this->m_fluid_type, this->m_coolprop_fluid,
+            this->m_coolprop_backend
             ));
 
 		s_cycle_config = "htr bypass";
@@ -225,7 +230,8 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
             ms_des_par.m_yr_inflation,
-            this->m_fluid_type
+            this->m_fluid_type, this->m_coolprop_fluid,
+            this->m_coolprop_backend
             ));
 
         s_cycle_config = "turbine split flow";
@@ -251,7 +257,8 @@ int C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_N_nodes_pass,
             ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
             ms_des_par.m_yr_inflation,
-            this->m_fluid_type
+            this->m_fluid_type, this->m_coolprop_fluid,
+            this->m_coolprop_backend
             ));
 
         s_cycle_config = "recompression";
@@ -418,7 +425,8 @@ int C_sco2_phx_air_cooler::design_core()
 	ms_des_solved.ms_rc_cycle_solved = *mpc_sco2_cycle->get_design_solved();
 
 	// Initialize the PHX
-    mc_phx.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, ms_des_par.m_phx_N_sub_hx,
+    mc_phx.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, &mpc_sco2_cycle->get_fluid(),
+        ms_des_par.m_phx_N_sub_hx,
         ms_des_par.m_phx_od_UA_target_type, ms_des_par.m_yr_inflation);
 
     // Define state enumerable for sco2 into PHX
@@ -466,7 +474,8 @@ int C_sco2_phx_air_cooler::design_core()
         int bp_N_subs_hx = ms_des_par.m_phx_N_sub_hx;
         auto bp_od_UA_target_type = ms_des_par.m_phx_od_UA_target_type;
 
-        mc_bp.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, bp_N_subs_hx, bp_od_UA_target_type,
+        mc_bp.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, &mpc_sco2_cycle->get_fluid(),
+            bp_N_subs_hx, bp_od_UA_target_type,
             ms_des_par.m_yr_inflation);
 
         // Calculate BP heat transfer
@@ -536,15 +545,18 @@ int C_sco2_phx_air_cooler::off_design_fix_P_mc_in(S_od_par od_par,
 	// Now, call off-design with the input compressor inlet pressure		
 	ms_cycle_od_par.m_P_LP_comp_in = P_mc_in*1.E3;	//[kPa] convert from MPa
 
+    fluid_info info;
+    mpc_sco2_cycle->get_fluid().get_info(&info);
+
     if (get_design_par()->m_cycle_config == 1)
     {
-        if (ms_cycle_od_par.m_T_mc_in < N_co2_props::T_crit)
+        if (ms_cycle_od_par.m_T_mc_in < info.T_critical)
         {
-            if (ms_cycle_od_par.m_P_LP_comp_in < N_co2_props::P_crit)
+            if (ms_cycle_od_par.m_P_LP_comp_in < info.P_critical)
             {
-                CO2_state co2_props;
+                fluid_state co2_props;
                 // Then calculate the compressor inlet pressure that achieves this density at the off-design ambient temperature
-                CO2_TQ(ms_cycle_od_par.m_T_mc_in, 0.0, &co2_props);
+                mpc_sco2_cycle->get_fluid().TQ(ms_cycle_od_par.m_T_mc_in, 0.0, &co2_props);
                 double Psat = co2_props.pres;       //[kPa]
 
                 if (ms_cycle_od_par.m_P_LP_comp_in < Psat)
@@ -558,7 +570,7 @@ int C_sco2_phx_air_cooler::off_design_fix_P_mc_in(S_od_par od_par,
             }
             else
             {
-                ms_cycle_od_par.m_P_LP_comp_in = std::max(ms_cycle_od_par.m_P_LP_comp_in, 1.01*N_co2_props::P_crit);
+                ms_cycle_od_par.m_P_LP_comp_in = std::max(ms_cycle_od_par.m_P_LP_comp_in, 1.01*info.P_critical);
             }
         }
     }
@@ -3800,9 +3812,9 @@ int C_sco2_phx_air_cooler::solve_P_LP_in__target_T_htf_cold(double od_tol /*-*/)
     else
         mc_dens_in_des = ms_des_solved.ms_rc_cycle_solved.m_dens[C_sco2_cycle_core::PC_IN];		//[kg/m^3]
 
-    CO2_state co2_props;
+    fluid_state co2_props;
     // Then calculate the compressor inlet pressure that achieves this density at the off-design ambient temperature
-    CO2_TD(ms_cycle_od_par.m_T_mc_in, mc_dens_in_des, &co2_props);
+    mpc_sco2_cycle->get_fluid().TD(ms_cycle_od_par.m_T_mc_in, mc_dens_in_des, &co2_props);
     double mc_pres_dens_des_od = co2_props.pres;	//[kPa]
     double P_LP_in_guess = mc_pres_dens_des_od;	    //[kPa]
 
@@ -4157,9 +4169,9 @@ int C_sco2_phx_air_cooler::solve_P_LP_in__target_W_dot(double od_tol /*-*/)
     else
         mc_dens_in_des = ms_des_solved.ms_rc_cycle_solved.m_dens[C_sco2_cycle_core::PC_IN];		//[kg/m^3]
 
-    CO2_state co2_props;
+    fluid_state co2_props;
     // Then calculate the compressor inlet pressure that achieves this density at the off-design ambient temperature
-    CO2_TD(ms_cycle_od_par.m_T_mc_in, mc_dens_in_des, &co2_props);
+    mpc_sco2_cycle->get_fluid().TD(ms_cycle_od_par.m_T_mc_in, mc_dens_in_des, &co2_props);
     double mc_pres_dens_des_od = co2_props.pres;	//[kPa]
     double P_LP_in_guess = mc_pres_dens_des_od;	    //[kPa]
 
@@ -4454,11 +4466,11 @@ void C_sco2_phx_air_cooler::check_od_solution(double & diff_m_dot, double & diff
 double C_sco2_phx_air_cooler::adjust_P_mc_in_away_2phase(double T_co2 /*K*/, double P_mc_in /*kPa*/)
 {	
 	double P_mc_in_restricted = std::numeric_limits<double>::quiet_NaN();	//[kPa]
-	CO2_state co2_props;
+	fluid_state co2_props;
 	// Is T_co2 < the critical temperature
 	if (T_co2 < m_T_co2_crit)
 	{
-		CO2_TQ(T_co2, 0.0, &co2_props);
+		mpc_sco2_cycle->get_fluid().TQ(T_co2, 0.0, &co2_props);
 		P_mc_in_restricted = co2_props.pres;	//[kPa]
 	}
 	else if (T_co2 < 1.001*m_T_co2_crit)

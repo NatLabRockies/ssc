@@ -140,8 +140,8 @@ public:
 		C_HX_counterflow_CRM::S_des_solved ms_LTR_des_solved;
 		C_HX_counterflow_CRM::S_des_solved ms_HTR_des_solved;
 
-		C_CO2_to_air_cooler::S_des_solved ms_mc_air_cooler; 
-		C_CO2_to_air_cooler::S_des_solved ms_pc_air_cooler; 
+		C_fluid_to_air_cooler::S_des_solved ms_mc_air_cooler; 
+        C_fluid_to_air_cooler::S_des_solved ms_pc_air_cooler;
 
 		S_design_solved()
 		{
@@ -345,8 +345,8 @@ public:
 		C_HX_counterflow_CRM::S_od_solved ms_LT_recup_od_solved;
 		C_HX_counterflow_CRM::S_od_solved ms_HT_recup_od_solved;
 
-		C_CO2_to_air_cooler::S_od_solved ms_mc_air_cooler_od_solved;  
-		C_CO2_to_air_cooler::S_od_solved ms_pc_air_cooler_od_solved;  
+		C_fluid_to_air_cooler::S_od_solved ms_mc_air_cooler_od_solved;  
+        C_fluid_to_air_cooler::S_od_solved ms_pc_air_cooler_od_solved;
 
 		S_od_solved()
 		{
@@ -482,7 +482,7 @@ protected:
     double m_yr_inflation;      //[yr] Inflation target year
 
     std::unique_ptr<C_fluid_properties> m_fluid; // Fluid properties pointer
-    C_fluid_properties& get_fluid() { return *m_fluid; }
+    
 
 public:
 
@@ -501,7 +501,8 @@ public:
         int N_nodes_pass /*-*/,
         double T_amb_des /*K*/, double elevation /*m*/,
         double yr_inflation /*yr*/,
-        E_fluid_type fluid_type)
+        E_fluid_type fluid_type, const std::string& coolprop_fluid,
+        const std::string& coolprop_backend)
 	{
         m_turbo_gen_motor_config = turbo_gen_motor_config;
         m_eta_generator = eta_generator;    //[-]
@@ -536,7 +537,13 @@ public:
 
         m_yr_inflation = yr_inflation;                //[]
 
-        m_fluid = C_fluid_properties::create_fluid_properties(fluid_type);
+        m_fluid = C_fluid_properties::create_fluid_properties(fluid_type, coolprop_fluid,
+            coolprop_backend);
+
+        if (m_fluid == nullptr)
+        {
+            throw(C_csp_exception("C_sco2_cycle_core::C_sco2_cycle_core(...) failure to construct fluid\n"));
+        }
 
         // Set design limits!!!!
 		ms_des_limits.m_UA_net_power_ratio_max = 2.0;		//[-/K]
@@ -582,6 +589,8 @@ public:
 	{
 		return ms_des_limits;
 	}
+
+    C_fluid_properties& get_fluid() { return *m_fluid; }
 };
 
 

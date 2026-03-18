@@ -44,12 +44,6 @@ namespace NS_HX_counterflow_eqs
 {
     enum
     {
-        CO2 = 200,
-        WATER = 201
-    };
-
-    enum
-    {
         OPTIMIZE_UA = 0,
         TARGET_UA,
         TARGET_MIN_DT,
@@ -513,8 +507,8 @@ private:
     // Access via handlers only
     HTFProperties mc_hot_fl_private;
     HTFProperties mc_cold_fl_private;
-    std::unique_ptr<C_fluid_properties> m_hot_fluid_private;
-    std::unique_ptr<C_fluid_properties> m_cold_fluid_private;
+    //std::unique_ptr<C_fluid_properties> m_hot_fluid_private;
+    //std::unique_ptr<C_fluid_properties> m_cold_fluid_private;
 
 protected:
     bool m_is_HX_initialized;		//[-] True = yes!
@@ -555,10 +549,19 @@ public:
 
         double m_yr_inflation;
 
+        bool m_hot_use_htf;
+        bool m_cold_use_htf;
+
+        C_fluid_properties* m_hot_fluid_props = nullptr;
+        C_fluid_properties* m_cold_fluid_props = nullptr;
+
         S_init_par()
         {
             m_N_sub_hx = m_hot_fl = m_cold_fl = -1;
             m_yr_inflation = 0;
+
+            m_hot_use_htf = true;
+            m_cold_use_htf = true;
         }
     };
 
@@ -797,6 +800,10 @@ public:
 
 class C_HX_htf_to_steam : public C_HX_counterflow_CRM
 {
+private:
+
+    std::unique_ptr<C_fluid_properties> mp_water_props;
+
 public:
 
     C_HX_htf_to_steam()
@@ -873,7 +880,7 @@ class C_HX_co2_to_htf : public C_HX_counterflow_CRM
 {
 private:
 
-
+    std::unique_ptr<C_fluid_properties> mp_co2_props;
 
 public:
 
@@ -901,8 +908,41 @@ public:
 	
 };
 
+class C_HX_fluid_to_htf : public C_HX_counterflow_CRM
+{
+
+public:
+
+    C_HX_fluid_to_htf()
+    {
+        m_cost_model = C_HX_counterflow_CRM::E_CARLSON_17_PHX;
+        m_od_solution_type = C_HX_counterflow_CRM::C_od_thermal_solution_type::E_CRM_UA_PER_NODE;
+
+        m_od_solution_type = C_HX_counterflow_CRM::C_od_thermal_solution_type::E_DEFAULT;
+    }
+
+    //// This method calculates the HTF mass flow rate (m_m_dot_hot_des) that results in CR = 1
+    //void design_with_m_dot(C_HX_counterflow::S_des_par &des_par, double T_htf_cold, C_HX_counterflow::S_des_solved &des_solved);
+
+    // This method calculates the required HTF mass flow rate (m_m_dot_hot_des) given a cold side approach temperature (assuming hot HTF temp is a design parameter)
+    void design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc_UA_par& des_par,
+        double q_dot_design /*kWt*/, double dt_cold_approach /*C/K*/, C_HX_counterflow_CRM::S_des_solved& des_solved);
+
+    virtual void initialize(int hot_fl, util::matrix_t<double> hot_fl_props, C_fluid_properties* cold_fluid_props,
+        int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+        double yr_inflation);
+
+    virtual void initialize(int hot_fl, C_fluid_properties* cold_fluid_props, int N_sub_hx,
+        NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type, double yr_inflation);
+
+};
+
 class C_HX_co2_to_co2_CRM : public C_HX_counterflow_CRM
 {
+private:
+
+    std::unique_ptr<C_fluid_properties> mp_cold_co2_props;
+    std::unique_ptr<C_fluid_properties> mp_hot_co2_props;
 
 public:
 
@@ -922,6 +962,28 @@ public:
                             double yr_inflation);
 };
 
+class C_HX_fluid_to_fluid_CRM : public C_HX_counterflow_CRM
+{
+
+public:
+
+    C_HX_fluid_to_fluid_CRM()
+    {
+        //m_cost_model = C_HX_counterflow_CRM::E_CARLSON_17_RECUP;
+        m_cost_model = C_HX_counterflow_CRM::E_WEILAND_19_RECUP;
+
+
+        m_od_solution_type = C_HX_counterflow_CRM::C_od_thermal_solution_type::E_CRM_UA_PER_NODE;
+
+        m_od_solution_type = C_HX_counterflow_CRM::C_od_thermal_solution_type::E_DEFAULT;
+
+    }
+
+    virtual void initialize(C_fluid_properties* hot_fluid_props, C_fluid_properties* cold_fluid_props,
+        int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+        double yr_inflation);
+};
+
 namespace N_compact_hx
 {
 	enum
@@ -938,7 +1000,7 @@ namespace N_compact_hx
 
 };
 
-class C_CO2_to_air_cooler
+class C_fluid_to_air_cooler
 {
 
 public:
@@ -1068,8 +1130,8 @@ public:
 private:
 
 	// Classes
-	HTFProperties mc_air;				// Instance of HTFProperties class for ambient air
-    std::unique_ptr<C_fluid_properties> m_fluid;         // Instance of C_fluid_properties for co2
+	HTFProperties mc_air;				    // Instance of HTFProperties class for ambient air
+    C_fluid_properties* m_fluid;            // Instance of C_fluid_properties for co2
 
 	// Remaining Air-Cooler Specs
 	// Inputs
@@ -1125,9 +1187,9 @@ public:
 
 	fluid_state mc_co2_props;
 
-	C_CO2_to_air_cooler();
+    C_fluid_to_air_cooler(C_fluid_properties* fluid_props);
 
-	~C_CO2_to_air_cooler(){};
+	~C_fluid_to_air_cooler(){};
 
 	bool design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_dep des_par_cycle_dep, double tol /*-*/);
 
@@ -1144,22 +1206,22 @@ public:
 		return ms_hx_des_sol.m_V_material_total;
 	}
 
-	const C_CO2_to_air_cooler::S_des_solved * get_design_solved()
+	const C_fluid_to_air_cooler::S_des_solved * get_design_solved()
 	{
 		return &ms_hx_des_sol;
 	}
 
-	C_CO2_to_air_cooler::S_od_solved get_od_solved()
+    C_fluid_to_air_cooler::S_od_solved get_od_solved()
 	{
 		return ms_od_solved;
 	}
 
-	const C_CO2_to_air_cooler::S_des_par_ind * get_des_par_ind()
+	const C_fluid_to_air_cooler::S_des_par_ind * get_des_par_ind()
 	{
 		return &ms_des_par_ind;
 	}
 
-	const C_CO2_to_air_cooler::S_des_par_cycle_dep * get_des_par_cycle_dep()
+	const C_fluid_to_air_cooler::S_des_par_cycle_dep * get_des_par_cycle_dep()
 	{
 		return &ms_des_par_cycle_dep;
 	}
@@ -1167,7 +1229,7 @@ public:
     class C_MEQ_od__T_co2_out__fan_power : public C_monotonic_equation
     {
     private:
-        C_CO2_to_air_cooler *mpc_ac;
+        C_fluid_to_air_cooler* mpc_ac;
 
         double m_m_dot_co2_total;		//[kg/s] Hot fluid mass flow rate
         double m_T_hot_in;		//[K] Hot fluid outlet temperature
@@ -1179,7 +1241,7 @@ public:
         double m_tol_pressure;  //[-] Tolerance for pressure convergence
 
     public:
-        C_MEQ_od__T_co2_out__fan_power(C_CO2_to_air_cooler *pc_ac,
+        C_MEQ_od__T_co2_out__fan_power(C_fluid_to_air_cooler* pc_ac,
             double m_dot_co2_total /*kg/s*/, double T_hot_in /*K*/,
             double P_hot_in /*kPa*/,
             double T_amb /*K*/,
@@ -1205,7 +1267,7 @@ public:
 	class C_MEQ_od_air_mdot__T_co2_out : public C_monotonic_equation
 	{
 	private:
-		C_CO2_to_air_cooler *mpc_ac;
+        C_fluid_to_air_cooler *mpc_ac;
 		double m_m_dot_hot_tube;		//[kg/s] Hot fluid mass flow rate
 		double m_T_hot_out;		//[K] Hot fluid outlet temperature
 		double m_P_hot_in;		//[kPa] Hot fluid inlet pressure
@@ -1222,7 +1284,7 @@ public:
 		double m_Pr_air;	//[-] Prandtl number
 
 	public:
-		C_MEQ_od_air_mdot__T_co2_out(C_CO2_to_air_cooler *pc_ac,
+		C_MEQ_od_air_mdot__T_co2_out(C_fluid_to_air_cooler *pc_ac,
 			double m_dot_hot_tube /*kg/s*/, double T_hot_out /*K*/, 
             double P_hot_in /*kPa*/,
 			double T_amb /*K*/,
@@ -1361,7 +1423,7 @@ public:
 	class C_MEQ_target_CO2_dP__L_tube_pass : public C_monotonic_equation
 	{
 	private:
-		C_CO2_to_air_cooler *mpc_ac;
+		C_fluid_to_air_cooler *mpc_ac;
 		double m_W_par;		//[m] Dimension of parallel paths
 		double m_N_par;		//[-] Number of tubes in parallel
 
@@ -1376,7 +1438,7 @@ public:
         double m_tol_pressure;  //[-] Tolerance for pressure convergence
 		
 	public:
-		C_MEQ_target_CO2_dP__L_tube_pass(C_CO2_to_air_cooler *pc_ac,
+		C_MEQ_target_CO2_dP__L_tube_pass(C_fluid_to_air_cooler *pc_ac,
 			double W_par /*m*/, double N_par /*-*/,
             double m_dot_tube /*kg/s*/,
 			double mu_air /*kg/m-s*/, double v_air /*1/m3*/,
@@ -1418,7 +1480,7 @@ public:
 	class C_MEQ_target_T_hot__width_parallel : public C_monotonic_equation
 	{
 	private:
-		C_CO2_to_air_cooler *mpc_ac;
+        C_fluid_to_air_cooler *mpc_ac;
 
 		double m_mu_air;	//[kg/m-s] dynamic viscosity
 		double m_v_air;		//[1/m3] specific volume
@@ -1433,7 +1495,7 @@ public:
         double m_tol_pressure;  //[-] Tolerance for pressure convergence
 
 	public:
-		C_MEQ_target_T_hot__width_parallel(C_CO2_to_air_cooler *pc_ac,
+		C_MEQ_target_T_hot__width_parallel(C_fluid_to_air_cooler *pc_ac,
 			double mu_air /*kg/m-s*/, double v_air /*1/m3*/,
 			double cp_air /*J/kg-K*/, double Pr_air /*-*/,
 			double T_co2_deltaP_eval /*K*/, double P_hot_ave /*kPa*/,

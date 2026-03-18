@@ -394,10 +394,10 @@ private:
 	C_comp_multi_stage m_rc_ms;
 	C_HeatExchanger m_PHX, m_PC;
 	
-    C_HX_co2_to_co2_CRM mc_LT_recup;
-    C_HX_co2_to_co2_CRM mc_HT_recup;
+    C_HX_fluid_to_fluid_CRM mc_LT_recup;
+    C_HX_fluid_to_fluid_CRM mc_HT_recup;
 
-	C_CO2_to_air_cooler mc_air_cooler;
+    C_fluid_to_air_cooler mc_air_cooler;
 	
 		// Input/Ouput structures for class methods
 	//S_design_limits ms_des_limits;
@@ -497,7 +497,8 @@ public:
         int N_nodes_pass /*-*/,
         double T_amb_des /*K*/, double elevation /*m*/,
         double m_yr_inflation /*yr*/,
-        E_fluid_type fluid_type) :
+        E_fluid_type fluid_type, const std::string& coolprop_fluid = "",
+        const std::string& coolprop_backend = "") :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -512,9 +513,10 @@ public:
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
             T_amb_des, elevation,
-            m_yr_inflation, fluid_type),
+            m_yr_inflation, fluid_type, coolprop_fluid,
+            coolprop_backend),
         m_t(get_fluid()), m_mc_ms(get_fluid()),
-        m_rc_ms(get_fluid())
+        m_rc_ms(get_fluid()), mc_air_cooler(&get_fluid())
 	{
 		m_temp_last.resize(END_SCO2_STATES);
 		std::fill(m_temp_last.begin(), m_temp_last.end(), std::numeric_limits<double>::quiet_NaN());

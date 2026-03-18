@@ -3,6 +3,7 @@
 
 #include <limits>
 #include <memory>
+#include <string>
 
 struct fluid_info
 {
@@ -46,7 +47,8 @@ class C_fluid_properties
 {
 public:
 
-    static std::unique_ptr<C_fluid_properties> create_fluid_properties(const E_fluid_type type);
+    static std::unique_ptr<C_fluid_properties> create_fluid_properties(const E_fluid_type type,
+        const std::string& fluid = "", const std::string& backend = "");
 
     // Thermodynamic property functions
     virtual int TD(double T, double D, fluid_state* state) = 0;

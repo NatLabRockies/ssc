@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sco2_turbinesplitflow_cycle.h"
 #include "sco2_cycle_components.h"
 
-#include "CO2_properties.h"
-
-
 #include "fmin.h"
 
 
@@ -61,9 +58,9 @@ int C_sco2_tsf_core::solve()
     // Initialize Recuperators
     {
         // LTR
-        m_outputs.mc_LT_recup.initialize(m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type, m_inputs.m_yr_inflation);
+        m_outputs.mc_LT_recup.initialize(&m_fluid, &m_fluid, m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type, m_inputs.m_yr_inflation);
         // HTR
-        m_outputs.mc_HT_recup.initialize(m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type, m_inputs.m_yr_inflation);
+        m_outputs.mc_HT_recup.initialize(&m_fluid, &m_fluid, m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type, m_inputs.m_yr_inflation);
     }
 
     // Initialize a few variables
@@ -251,7 +248,7 @@ int C_sco2_tsf_core::solve()
 
     // Complete HTR_HP_OUT and HTR_LP_OUT co2 properties
     {
-        int prop_error_code = CO2_TP(m_outputs.m_temp[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.TP(m_outputs.m_temp[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             m_outputs.m_error_code = prop_error_code;
@@ -261,7 +258,7 @@ int C_sco2_tsf_core::solve()
         m_outputs.m_entr[C_sco2_cycle_core::HTR_HP_OUT] = m_co2_props.entr;
         m_outputs.m_dens[C_sco2_cycle_core::HTR_HP_OUT] = m_co2_props.dens;
 
-        prop_error_code = CO2_TP(m_outputs.m_temp[C_sco2_cycle_core::HTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_LP_OUT], &m_co2_props);
+        prop_error_code = m_fluid.TP(m_outputs.m_temp[C_sco2_cycle_core::HTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_LP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             m_outputs.m_error_code = prop_error_code;
@@ -285,7 +282,7 @@ int C_sco2_tsf_core::solve()
 
     // Complete LTR_HP_OUT and LTR_LP_OUT co2 properties
     {
-        int prop_error_code = CO2_TP(m_outputs.m_temp[C_sco2_cycle_core::LTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::LTR_HP_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.TP(m_outputs.m_temp[C_sco2_cycle_core::LTR_HP_OUT], m_outputs.m_pres[C_sco2_cycle_core::LTR_HP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             m_outputs.m_error_code = prop_error_code;
@@ -295,7 +292,7 @@ int C_sco2_tsf_core::solve()
         m_outputs.m_entr[C_sco2_cycle_core::LTR_HP_OUT] = m_co2_props.entr;
         m_outputs.m_dens[C_sco2_cycle_core::LTR_HP_OUT] = m_co2_props.dens;
 
-        prop_error_code = CO2_TP(m_outputs.m_temp[C_sco2_cycle_core::LTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::LTR_LP_OUT], &m_co2_props);
+        prop_error_code = m_fluid.TP(m_outputs.m_temp[C_sco2_cycle_core::LTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::LTR_LP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             m_outputs.m_error_code = prop_error_code;
@@ -311,7 +308,7 @@ int C_sco2_tsf_core::solve()
         m_outputs.m_enth[C_sco2_cycle_core::MIXER_OUT] = ((1.0 - m_inputs.m_split_frac) * m_outputs.m_enth[C_sco2_cycle_core::HTR_LP_OUT])
             + (m_inputs.m_split_frac * m_outputs.m_enth[C_sco2_cycle_core::LTR_LP_OUT]);
 
-        int prop_error_code = CO2_PH(m_outputs.m_pres[C_sco2_cycle_core::MIXER_OUT], m_outputs.m_enth[C_sco2_cycle_core::MIXER_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.PH(m_outputs.m_pres[C_sco2_cycle_core::MIXER_OUT], m_outputs.m_enth[C_sco2_cycle_core::MIXER_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             m_outputs.m_error_code = prop_error_code;
@@ -461,7 +458,7 @@ int C_sco2_tsf_core::finalize_design(C_sco2_cycle_core::S_design_solved& design_
     // Design air cooler
     {
         // Structure for design parameters that are dependent on cycle design solution
-        C_CO2_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_dep;
+        C_fluid_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_dep;
         // Set air cooler design parameters that are dependent on the cycle design solution
         s_air_cooler_des_par_dep.m_T_hot_in_des = m_outputs.m_temp[C_sco2_cycle_core::MIXER_OUT];  // [K]
         s_air_cooler_des_par_dep.m_P_hot_in_des = m_outputs.m_pres[C_sco2_cycle_core::MIXER_OUT];  // [kPa]
@@ -477,7 +474,7 @@ int C_sco2_tsf_core::finalize_design(C_sco2_cycle_core::S_design_solved& design_
         s_air_cooler_des_par_dep.m_T_hot_out_des = m_outputs.m_temp[C_sco2_cycle_core::MC_IN];                          // [K]
         s_air_cooler_des_par_dep.m_W_dot_fan_des = m_inputs.m_frac_fan_power * m_outputs.m_W_dot_net / 1000.0;     // [MWe]
         // Structure for design parameters that are independent of cycle design solution
-        C_CO2_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ind;
+        C_fluid_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ind;
         s_air_cooler_des_par_ind.m_T_amb_des = m_inputs.m_T_amb_des;         // [K]
         s_air_cooler_des_par_ind.m_elev = m_inputs.m_elevation;              // [m]
         s_air_cooler_des_par_ind.m_eta_fan = m_inputs.m_eta_fan;             // [-]

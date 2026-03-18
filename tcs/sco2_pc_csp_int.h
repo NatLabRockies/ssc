@@ -376,8 +376,8 @@ private:
 
     std::shared_ptr<C_sco2_cycle_core> mpc_sco2_cycle;
 
-	C_HX_co2_to_htf mc_phx;
-    C_HX_co2_to_htf mc_bp;  // Bypass Heat Exchanger
+	C_HX_fluid_to_htf mc_phx;
+    C_HX_fluid_to_htf mc_bp;  // Bypass Heat Exchanger
 
 	S_des_par ms_des_par;
 	C_sco2_cycle_core::S_auto_opt_design_hit_eta_parameters ms_cycle_des_par;
@@ -407,6 +407,8 @@ private:
 	double m_P_co2_crit;		//[kPa]
 
     E_fluid_type m_fluid_type;
+    const std::string m_coolprop_fluid;
+    const std::string m_coolprop_backend;
 
 	int design_core();
 
@@ -416,7 +418,8 @@ private:
 
 public:	
 
-	C_sco2_phx_air_cooler(const E_fluid_type fluid_type);
+	C_sco2_phx_air_cooler(const E_fluid_type fluid_type,
+        const std::string& coolprop_fluid = "", const std::string& coolprop_backend = "");
 
 	~C_sco2_phx_air_cooler(){};
 

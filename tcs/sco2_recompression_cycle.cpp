@@ -1850,9 +1850,9 @@ void C_RecompCycle::design_core_standard(int & error_code)
 
 	// Initialize Recuperators
 		// LTR
-    mc_LT_recup.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_yr_inflation);
+    mc_LT_recup.initialize(m_fluid.get(), m_fluid.get(), m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_yr_inflation);
 		// HTR
-	mc_HT_recup.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_yr_inflation);
+	mc_HT_recup.initialize(m_fluid.get(), m_fluid.get(), m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_yr_inflation);
 
 	// Initialize a few variables
 	double m_dot_t, m_dot_mc, m_dot_rc, Q_dot_LT, Q_dot_HT, UA_LT_calc, UA_HT_calc;
@@ -3410,7 +3410,7 @@ void C_RecompCycle::finalize_design(int & error_code)
 
 	// Design air cooler
 		// Structure for design parameters that are dependent on cycle design solution
-	C_CO2_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_dep;
+    C_fluid_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_dep;
 		// Set air cooler design parameters that are dependent on the cycle design solution
 	s_air_cooler_des_par_dep.m_T_hot_in_des = m_temp_last[C_sco2_cycle_core::LTR_LP_OUT];		//[K]
 	s_air_cooler_des_par_dep.m_P_hot_in_des = m_pres_last[C_sco2_cycle_core::LTR_LP_OUT];		//[kPa]
@@ -3427,7 +3427,7 @@ void C_RecompCycle::finalize_design(int & error_code)
 	s_air_cooler_des_par_dep.m_T_hot_out_des = m_temp_last[C_sco2_cycle_core::MC_IN];			//[K]
 	s_air_cooler_des_par_dep.m_W_dot_fan_des = m_frac_fan_power*m_W_dot_net / 1000.0;		//[MWe]
 		// Structure for design parameters that are independent of cycle design solution
-	C_CO2_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ind;
+    C_fluid_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ind;
 	s_air_cooler_des_par_ind.m_T_amb_des = m_T_amb_des;		//[K]
 	s_air_cooler_des_par_ind.m_elev = m_elevation;			//[m]
     s_air_cooler_des_par_ind.m_eta_fan = m_eta_fan;          //[-]

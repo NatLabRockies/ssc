@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sco2_cycle_templates.h"
 
 #include "heat_exchangers.h"
-#include "CO2_properties.h"
 
 #include <string>
 #include <vector>
@@ -208,17 +207,17 @@ private:
 	// Cycle component classes
 	C_turbine mc_t;
 	C_comp_multi_stage mc_mc, mc_rc, mc_pc;
-    C_HX_co2_to_co2_CRM mc_LTR;
-    C_HX_co2_to_co2_CRM mc_HTR;
+    C_HX_fluid_to_fluid_CRM mc_LTR;
+    C_HX_fluid_to_fluid_CRM mc_HTR;
 	C_HeatExchanger mc_PHX, mc_cooler_pc, mc_cooler_mc;	
 
-	C_CO2_to_air_cooler mc_pc_air_cooler;   // formerly LP
-	C_CO2_to_air_cooler mc_mc_air_cooler;   // formerly IP
+	C_fluid_to_air_cooler mc_pc_air_cooler;   // formerly LP
+    C_fluid_to_air_cooler mc_mc_air_cooler;   // formerly IP
 
 	S_des_params ms_des_par;
 	S_opt_des_params ms_opt_des_par;
 
-	CO2_state mc_co2_props;
+	fluid_state mc_co2_props;
 
 	// Results from last 'design' solution
 	std::vector<double> m_temp_last, m_pres_last, m_enth_last, m_entr_last, m_dens_last;		// thermodynamic states (K, kPa, kJ/kg, kJ/kg-K, kg/m3)
@@ -272,7 +271,8 @@ public:
         int N_nodes_pass /*-*/,
         double T_amb_des /*K*/, double elevation /*m*/,
         double yr_inflation /*yr*/,
-        E_fluid_type fluid_type) :
+        E_fluid_type fluid_type, const std::string& coolprop_fluid = "",
+        const std::string& coolprop_backend = "") :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -288,11 +288,14 @@ public:
             N_nodes_pass,
             T_amb_des, elevation,
             yr_inflation,
-            fluid_type),
+            fluid_type, coolprop_fluid,
+            coolprop_backend),
         mc_t(get_fluid()),
         mc_mc(get_fluid()),
         mc_rc(get_fluid()),
-        mc_pc(get_fluid())
+        mc_pc(get_fluid()),
+        mc_mc_air_cooler(&get_fluid()),
+        mc_pc_air_cooler(&get_fluid())
 	{
 		m_temp_last.resize(END_SCO2_STATES);
 		std::fill(m_temp_last.begin(), m_temp_last.end(), std::numeric_limits<double>::quiet_NaN());

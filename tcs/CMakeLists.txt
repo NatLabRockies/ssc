@@ -45,6 +45,7 @@ set(TCS_SRC
 		dispatch_builder.cpp
 		etes_dispatch.cpp
         fluid_co2_properties.cpp
+        fluid_coolprop_properties.cpp
         fluid_properties.cpp
         fluid_water_properties.cpp
 		fmin.cpp
@@ -125,6 +126,7 @@ set(TCS_SRC
 		etes_dispatch.h
 		flat_plate_solar_collector.h
         fluid_co2_properties.h
+        fluid_coolprop_properties.h
         fluid_properties.h
         fluid_water_properties.h
 		fmin.h
@@ -188,4 +190,13 @@ set( DEPENDENCIES
 
 if (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
+
+    # Add CoolProp as IMPORTED library for MSVC (matches ssc/ssc/CMakeLists.txt pattern)
+    add_library(CoolPropLib SHARED IMPORTED)
+    set_target_properties(CoolPropLib PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.dll"
+        IMPORTED_IMPLIB "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/include"
+    )
+    target_link_libraries(tcs PUBLIC CoolPropLib)
 endif()

@@ -81,10 +81,10 @@ var_info vtab_sco2_air_cooler_design[] = {
 
     var_info_invalid };
 
-int sco2_air_cooler_design_common(compute_module *cm, C_CO2_to_air_cooler & c_air_cooler)
+int sco2_air_cooler_design_common(compute_module *cm, C_fluid_to_air_cooler& c_air_cooler)
 {
-    C_CO2_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_cycle;
-    C_CO2_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ambient;
+    C_fluid_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_cycle;
+    C_fluid_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ambient;
 
     s_air_cooler_des_par_ambient.m_T_amb_des = cm->as_double("T_amb_des") + 273.15;		//[K]
     s_air_cooler_des_par_ambient.m_elev = cm->as_double("site_elevation");			//[m]
@@ -127,7 +127,7 @@ int sco2_air_cooler_design_common(compute_module *cm, C_CO2_to_air_cooler & c_ai
     }
 
     // Write outputs
-    const C_CO2_to_air_cooler::S_des_solved *p_hx_des_sol;
+    const C_fluid_to_air_cooler::S_des_solved *p_hx_des_sol;
     p_hx_des_sol = c_air_cooler.get_design_solved();
 
     cm->assign("d_tube_out", (ssc_number_t)(p_hx_des_sol->m_d_out*1.E2));		//[cm] convert from m
@@ -170,7 +170,8 @@ public:
 	
 	void exec() override
 	{
-		C_CO2_to_air_cooler c_air_cooler;
+        auto co2_props_ptr = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
+        C_fluid_to_air_cooler c_air_cooler(co2_props_ptr.get());
 
         sco2_air_cooler_design_common(this, c_air_cooler);
 

@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sco2_htrbypass_cycle.h"
 #include "sco2_cycle_components.h"
 
-#include "CO2_properties.h"
-
-
 #include "fmin.h"
 
 
@@ -61,9 +58,9 @@ int C_sco2_htrbp_core::solve()
     // Initialize Recuperators
     {
         // LTR
-        m_outputs.mc_LT_recup.initialize(m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type, m_inputs.m_yr_inflation);
+        m_outputs.mc_LT_recup.initialize(&m_fluid, &m_fluid, m_inputs.m_LTR_N_sub_hxrs, m_inputs.m_LTR_od_UA_target_type, m_inputs.m_yr_inflation);
         // HTR
-        m_outputs.mc_HT_recup.initialize(m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type, m_inputs.m_yr_inflation);
+        m_outputs.mc_HT_recup.initialize(&m_fluid, &m_fluid, m_inputs.m_HTR_N_sub_hxrs, m_inputs.m_HTR_od_UA_target_type, m_inputs.m_yr_inflation);
     }
 
     // Initialize a few variables
@@ -298,7 +295,7 @@ int C_sco2_htrbp_core::solve()
         else
             m_outputs.m_enth[C_sco2_cycle_core::HTR_HP_OUT] = m_outputs.m_enth[C_sco2_cycle_core::MIXER_OUT] + m_outputs.m_Q_dot_HT / m_outputs.m_m_dot_htr_hp;						// Energy balance on cold stream of high-temp recuperator
 
-        int prop_error_code = CO2_PH(m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_enth[C_sco2_cycle_core::HTR_HP_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.PH(m_outputs.m_pres[C_sco2_cycle_core::HTR_HP_OUT], m_outputs.m_enth[C_sco2_cycle_core::HTR_HP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             m_outputs.m_error_code = prop_error_code;
@@ -339,7 +336,7 @@ int C_sco2_htrbp_core::solve()
         m_outputs.m_temp[C_sco2_cycle_core::BYPASS_OUT] = m_outputs.m_temp[C_sco2_cycle_core::HTR_HP_OUT] + m_inputs.m_dT_BP;
 
         // Calculate BYPASS_OUT properties
-        int prop_error_code = CO2_TP(m_outputs.m_temp[C_sco2_cycle_core::BYPASS_OUT], m_outputs.m_pres[C_sco2_cycle_core::BYPASS_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.TP(m_outputs.m_temp[C_sco2_cycle_core::BYPASS_OUT], m_outputs.m_pres[C_sco2_cycle_core::BYPASS_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             m_outputs.m_error_code = -1;
@@ -361,7 +358,7 @@ int C_sco2_htrbp_core::solve()
             m_outputs.m_enth[C_sco2_cycle_core::MIXER2_OUT] = (1.0 - m_inputs.m_bypass_frac) * m_outputs.m_enth[C_sco2_cycle_core::HTR_HP_OUT] +
                 m_inputs.m_bypass_frac * m_outputs.m_enth[C_sco2_cycle_core::BYPASS_OUT];	//[C_sco2_cycle_core::kJ/kg]
 
-            int prop_error_code = CO2_PH(m_outputs.m_pres[C_sco2_cycle_core::MIXER2_OUT], m_outputs.m_enth[C_sco2_cycle_core::MIXER2_OUT], &m_co2_props);
+            int prop_error_code = m_fluid.PH(m_outputs.m_pres[C_sco2_cycle_core::MIXER2_OUT], m_outputs.m_enth[C_sco2_cycle_core::MIXER2_OUT], &m_co2_props);
             if (prop_error_code != 0)
             {
                 m_outputs.m_error_code = -1;
@@ -557,7 +554,7 @@ int C_sco2_htrbp_core::finalize_design(C_sco2_cycle_core::S_design_solved& desig
     // Design air cooler
     {
         // Structure for design parameters that are dependent on cycle design solution
-        C_CO2_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_dep;
+        C_fluid_to_air_cooler::S_des_par_cycle_dep s_air_cooler_des_par_dep;
         // Set air cooler design parameters that are dependent on the cycle design solution
         s_air_cooler_des_par_dep.m_T_hot_in_des = m_outputs.m_temp[C_sco2_cycle_core::LTR_LP_OUT];  // [K]
         s_air_cooler_des_par_dep.m_P_hot_in_des = m_outputs.m_pres[C_sco2_cycle_core::LTR_LP_OUT];  // [kPa]
@@ -573,7 +570,7 @@ int C_sco2_htrbp_core::finalize_design(C_sco2_cycle_core::S_design_solved& desig
         s_air_cooler_des_par_dep.m_T_hot_out_des = m_outputs.m_temp[C_sco2_cycle_core::MC_IN];                          // [K]
         s_air_cooler_des_par_dep.m_W_dot_fan_des = m_inputs.m_frac_fan_power * m_outputs.m_W_dot_net / 1000.0;     // [MWe]
         // Structure for design parameters that are independent of cycle design solution
-        C_CO2_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ind;
+        C_fluid_to_air_cooler::S_des_par_ind s_air_cooler_des_par_ind;
         s_air_cooler_des_par_ind.m_T_amb_des = m_inputs.m_T_amb_des;         // [K]
         s_air_cooler_des_par_ind.m_elev = m_inputs.m_elevation;              // [m]
         s_air_cooler_des_par_ind.m_eta_fan = m_inputs.m_eta_fan;             // [-]
@@ -640,7 +637,7 @@ int C_sco2_htrbp_core::solve_HTR(double T_HTR_LP_OUT_guess, double* diff_T_HTR_L
 
     // Solve HTR_LP_OUT properties
     {
-        int prop_error_code = CO2_TP(m_outputs.m_temp[C_sco2_cycle_core::HTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_LP_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.TP(m_outputs.m_temp[C_sco2_cycle_core::HTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::HTR_LP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             *diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -681,7 +678,7 @@ int C_sco2_htrbp_core::solve_HTR(double T_HTR_LP_OUT_guess, double* diff_T_HTR_L
     // Know LTR performance so we can calculate the HP outlet (Energy balance on LTR HP stream)
     {
         m_outputs.m_enth[C_sco2_cycle_core::LTR_HP_OUT] = m_outputs.m_enth[C_sco2_cycle_core::MC_OUT] + m_outputs.m_Q_dot_LT / m_outputs.m_m_dot_mc;		//[kJ/kg]
-        int prop_error_code = CO2_PH(m_outputs.m_pres[C_sco2_cycle_core::LTR_HP_OUT], m_outputs.m_enth[C_sco2_cycle_core::LTR_HP_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.PH(m_outputs.m_pres[C_sco2_cycle_core::LTR_HP_OUT], m_outputs.m_enth[C_sco2_cycle_core::LTR_HP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             *diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -697,7 +694,7 @@ int C_sco2_htrbp_core::solve_HTR(double T_HTR_LP_OUT_guess, double* diff_T_HTR_L
     {
         m_outputs.m_enth[C_sco2_cycle_core::MIXER_OUT] = (1.0 - m_inputs.m_recomp_frac) * m_outputs.m_enth[C_sco2_cycle_core::LTR_HP_OUT]
             + m_inputs.m_recomp_frac * m_outputs.m_enth[C_sco2_cycle_core::RC_OUT];	//[kJ/kg]
-        int prop_error_code = CO2_PH(m_outputs.m_pres[C_sco2_cycle_core::MIXER_OUT], m_outputs.m_enth[C_sco2_cycle_core::MIXER_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.PH(m_outputs.m_pres[C_sco2_cycle_core::MIXER_OUT], m_outputs.m_enth[C_sco2_cycle_core::MIXER_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             *diff_T_HTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -795,7 +792,7 @@ int C_sco2_htrbp_core::solve_LTR(double T_LTR_LP_OUT_guess, double* diff_T_LTR_L
     else
     {
         m_outputs.m_w_rc = 0.0;		// no recompressor
-        int prop_error_code = CO2_TP(m_outputs.m_temp[C_sco2_cycle_core::LTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::LTR_LP_OUT], &m_co2_props);
+        int prop_error_code = m_fluid.TP(m_outputs.m_temp[C_sco2_cycle_core::LTR_LP_OUT], m_outputs.m_pres[C_sco2_cycle_core::LTR_LP_OUT], &m_co2_props);
         if (prop_error_code != 0)
         {
             *diff_T_LTR_LP_out = std::numeric_limits<double>::quiet_NaN();
@@ -1732,11 +1729,13 @@ int C_HTRBypass_Cycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_paramet
                 " is either between -1 and 0 (fixed recompression fraction) or equal to 1 (recomp allowed)\n"));
         }
         // Can't operate compressore in 2-phase region
-        if (m_T_mc_in <= N_co2_props::T_crit)
+        fluid_info info;
+        m_fluid->get_info(&info);
+        if (m_T_mc_in <= info.T_critical)
         {
             error_msg.append(util::format("Only single phase cycle operation is allowed in this model."
                 "The compressor inlet temperature (%lg [C]) must be great than the critical temperature: %lg [C]",
-                m_T_mc_in - 273.15, ((N_co2_props::T_crit)-273.15)));
+                m_T_mc_in - 273.15, ((info.T_critical)-273.15)));
 
             return -1;
         }
@@ -1771,10 +1770,10 @@ int C_HTRBypass_Cycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_paramet
         }
 
         // Turbine inlet temperature must be colder than property limits
-        if (m_T_t_in >= N_co2_props::T_upper_limit)
+        if (m_T_t_in >= info.temp_upper_limit)
         {
             error_msg.append(util::format("The turbine inlet temperature, %lg [C], is hotter than the maximum allow temperature in the CO2 property code %lg [C]",
-                m_T_t_in - 273.15, N_co2_props::T_upper_limit - 273.15));
+                m_T_t_in - 273.15, info.temp_upper_limit - 273.15));
 
             return -1;
         }
@@ -1853,12 +1852,12 @@ int C_HTRBypass_Cycle::auto_opt_design_hit_eta(S_auto_opt_design_hit_eta_paramet
         }
 
         // Limits on high pressure limit
-        if (m_P_high_limit >= N_co2_props::P_upper_limit)
+        if (m_P_high_limit >= info.pres_upper_limit)
         {
             error_msg.append(util::format("The upper pressure limit, %lg [MPa], was set to the internal limit in the CO2 properties code %lg [MPa]\n",
-                m_P_high_limit, N_co2_props::P_upper_limit));
+                m_P_high_limit, info.pres_upper_limit));
 
-            m_P_high_limit = N_co2_props::P_upper_limit;
+            m_P_high_limit = info.pres_upper_limit;
         }
         double P_high_limit_min = 10.0 * 1.E3;	//[kPa]
         if (m_P_high_limit <= P_high_limit_min)

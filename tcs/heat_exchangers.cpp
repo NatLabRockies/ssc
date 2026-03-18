@@ -1538,7 +1538,7 @@ void C_HX_counterflow_CRM::initialize(const S_init_par & init_par_in)
     ms_init_par = init_par_in;
 
     // Set up HTFProperties for the hot fluid
-    if (ms_init_par.m_hot_fl != NS_HX_counterflow_eqs::CO2 && ms_init_par.m_hot_fl != NS_HX_counterflow_eqs::WATER)
+    if (ms_init_par.m_hot_use_htf)
     {
         if (ms_init_par.m_hot_fl != HTFProperties::User_defined && ms_init_par.m_hot_fl < HTFProperties::End_Library_Fluids)
         {
@@ -1573,18 +1573,17 @@ void C_HX_counterflow_CRM::initialize(const S_init_par & init_par_in)
     }
     else
     {
-        if (ms_init_par.m_hot_fl == NS_HX_counterflow_eqs::CO2)
-            m_hot_fluid_private = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
-        else if (ms_init_par.m_hot_fl == NS_HX_counterflow_eqs::WATER)
-            m_hot_fluid_private = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
-        else
-            throw(C_csp_exception("Hot fluid code is not recognized", "Counter flow heat exchanger initialization"));
-        m_hot_fl_handle = NS_HX_counterflow_eqs::S_hx_fluid_handle::from_fluid(m_hot_fluid_private.get());
+        if (ms_init_par.m_hot_fluid_props == nullptr)
+        {
+            throw(C_csp_exception("Hot fluid properties not defined", "Counter flow heat exchanger initialization"));
+        }
+
+        m_hot_fl_handle = NS_HX_counterflow_eqs::S_hx_fluid_handle::from_fluid(ms_init_par.m_hot_fluid_props);        
     }
 
 
     // Set up HTFProperties for the cold fluid
-    if (ms_init_par.m_cold_fl != NS_HX_counterflow_eqs::CO2 && ms_init_par.m_cold_fl != NS_HX_counterflow_eqs::WATER)
+    if (ms_init_par.m_cold_use_htf)
     {
         if (ms_init_par.m_cold_fl != HTFProperties::User_defined && ms_init_par.m_cold_fl < HTFProperties::End_Library_Fluids)
         {
@@ -1619,13 +1618,11 @@ void C_HX_counterflow_CRM::initialize(const S_init_par & init_par_in)
     }
     else
     {
-        if (ms_init_par.m_cold_fl == NS_HX_counterflow_eqs::CO2)
-            m_cold_fluid_private = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
-        else if (ms_init_par.m_cold_fl == NS_HX_counterflow_eqs::WATER)
-            m_cold_fluid_private = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
-        else
-            throw(C_csp_exception("Cold fluid code is not recognized", "Counter flow heat exchanger initialization"));
-        m_cold_fl_handle = NS_HX_counterflow_eqs::S_hx_fluid_handle::from_fluid(m_cold_fluid_private.get());
+        if (ms_init_par.m_cold_fluid_props == nullptr)
+        {
+            throw(C_csp_exception("Hot fluid properties not defined", "Counter flow heat exchanger initialization"));
+        }
+        m_cold_fl_handle = NS_HX_counterflow_eqs::S_hx_fluid_handle::from_fluid(ms_init_par.m_cold_fluid_props);
     }
 
     // Set inflation
@@ -2989,9 +2986,13 @@ void C_HX_htf_to_steam::initialize(int hot_fl, util::matrix_t<double> hot_fl_pro
 {
     // Hard-code some of the design parameters
     ms_init_par.m_N_sub_hx = N_sub_hx;  //[-]
-    ms_init_par.m_cold_fl = NS_HX_counterflow_eqs::WATER;
+
+    ms_init_par.m_cold_use_htf = false;
+    mp_water_props = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
+    ms_init_par.m_cold_fluid_props = mp_water_props.get();
 
     // Read-in hot side HTF props
+    ms_init_par.m_hot_use_htf = true;
     ms_init_par.m_hot_fl = hot_fl;
     ms_init_par.mc_hot_fl_props = hot_fl_props;
 
@@ -3275,27 +3276,18 @@ double NS_HX_counterflow_eqs::UA_scale_vs_m_dot(double m_dot_cold_over_des /*-*/
     return pow(m_dot_ratio, 0.8);
 }
 
-void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
-                                     double yr_inflation)
-{
-    // Set design parameters member structure
-    ms_init_par.m_N_sub_hx = N_sub_hx;
-    ms_init_par.m_cold_fl = NS_HX_counterflow_eqs::CO2;
-    ms_init_par.m_hot_fl = NS_HX_counterflow_eqs::CO2;
-    ms_init_par.m_yr_inflation = yr_inflation;
-    m_od_UA_target_type = od_UA_target_type;
-
-    C_HX_counterflow_CRM::initialize(ms_init_par);
-}
-
 void C_HX_co2_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props, int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
                                  double yr_inflation)
 {
 	// Hard-code some of the design parameters
     ms_init_par.m_N_sub_hx = N_sub_hx;  //[-]
-	ms_init_par.m_cold_fl = NS_HX_counterflow_eqs::CO2;
+
+    ms_init_par.m_cold_use_htf = false;
+    mp_co2_props = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
+    ms_init_par.m_cold_fluid_props = mp_co2_props.get();
 
 	// Read-in hot side HTF props
+    ms_init_par.m_hot_use_htf = true;
 	ms_init_par.m_hot_fl = hot_fl;
 	ms_init_par.mc_hot_fl_props = hot_fl_props;
 
@@ -3338,6 +3330,97 @@ void C_HX_co2_to_htf::design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc
     des_par.m_m_dot_hot_des = q_dot_design / (h_h_in - h_c_in);
 
     design_calc_UA(des_par, q_dot_design, des_solved);
+}
+
+void C_HX_fluid_to_htf::initialize(int hot_fl, util::matrix_t<double> hot_fl_props, C_fluid_properties* cold_fluid_props,
+    int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+    double yr_inflation)
+{
+    // Hard-code some of the design parameters
+    ms_init_par.m_N_sub_hx = N_sub_hx;  //[-]
+
+    ms_init_par.m_cold_use_htf = false;
+    ms_init_par.m_cold_fluid_props = cold_fluid_props;
+
+    // Read-in hot side HTF props
+    ms_init_par.m_hot_use_htf = true;
+    ms_init_par.m_hot_fl = hot_fl;
+    ms_init_par.mc_hot_fl_props = hot_fl_props;
+
+    ms_init_par.m_yr_inflation = yr_inflation;
+
+    m_od_UA_target_type = od_UA_target_type;
+
+    C_HX_counterflow_CRM::initialize(ms_init_par);
+}
+
+void C_HX_fluid_to_htf::initialize(int hot_fl, C_fluid_properties* cold_fluid_props, int N_sub_hx,
+    NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type, double yr_inflation)
+{
+    util::matrix_t<double> null_fluid_props;
+
+    initialize(hot_fl, null_fluid_props, cold_fluid_props, N_sub_hx, od_UA_target_type, yr_inflation);
+}
+
+void C_HX_fluid_to_htf::design_and_calc_m_dot_htf(C_HX_counterflow_CRM::S_des_calc_UA_par& des_par,
+    double q_dot_design /*kWt*/, double dt_cold_approach /*C/K*/, C_HX_counterflow_CRM::S_des_solved& des_solved)
+{
+    double T_htf_cold = des_par.m_T_c_in + dt_cold_approach;	//[C]
+
+    double h_h_in, h_c_in;  // [kJ/kg]
+
+    int prop_error_code = m_hot_fl_handle.try_get_h__TP(des_par.m_T_h_in, 0, h_h_in);
+    if (prop_error_code != 0)
+    {
+        throw(C_csp_exception("Hot inlet enthalpy properties failed",
+            "C_HX_counterflow::design_and_calc_m_dot_htf", 12));
+    }
+    prop_error_code = m_hot_fl_handle.try_get_h__TP(T_htf_cold, 0, h_c_in);
+    if (prop_error_code != 0)
+    {
+        throw(C_csp_exception("Cold inlet enthalpy properties failed",
+            "C_HX_counterflow::design_and_calc_m_dot_htf", 12));
+    }
+
+    des_par.m_m_dot_hot_des = q_dot_design / (h_h_in - h_c_in);
+
+    design_calc_UA(des_par, q_dot_design, des_solved);
+}
+
+void C_HX_co2_to_co2_CRM::initialize(int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type,
+    double yr_inflation)
+{
+    // Set design parameters member structure
+    ms_init_par.m_N_sub_hx = N_sub_hx;
+
+    ms_init_par.m_hot_use_htf = false;
+    ms_init_par.m_cold_use_htf = false;
+    mp_hot_co2_props = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
+    mp_cold_co2_props = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
+    ms_init_par.m_hot_fluid_props = mp_hot_co2_props.get();
+    ms_init_par.m_cold_fluid_props = mp_cold_co2_props.get();
+
+    ms_init_par.m_yr_inflation = yr_inflation;
+    m_od_UA_target_type = od_UA_target_type;
+
+    C_HX_counterflow_CRM::initialize(ms_init_par);
+}
+
+void C_HX_fluid_to_fluid_CRM::initialize(C_fluid_properties* hot_fluid_props, C_fluid_properties* cold_fluid_props,
+    int N_sub_hx, NS_HX_counterflow_eqs::E_UA_target_type od_UA_target_type, double yr_inflation)
+{
+    // Set design parameters member structure
+    ms_init_par.m_N_sub_hx = N_sub_hx;
+
+    ms_init_par.m_hot_use_htf = false;
+    ms_init_par.m_cold_use_htf = false;
+    ms_init_par.m_hot_fluid_props = hot_fluid_props;
+    ms_init_par.m_cold_fluid_props = cold_fluid_props;
+
+    ms_init_par.m_yr_inflation = yr_inflation;
+    m_od_UA_target_type = od_UA_target_type;
+
+    C_HX_counterflow_CRM::initialize(ms_init_par);
 }
 
 bool N_compact_hx::get_compact_hx_geom(int enum_compact_hx_config, double & d_out, double & fin_pitch, double & D_h,
@@ -3403,7 +3486,8 @@ bool N_compact_hx::get_compact_hx_f_j(int enum_compact_hx_config, double Re, dou
 
 };
 
-C_CO2_to_air_cooler::C_CO2_to_air_cooler()
+C_fluid_to_air_cooler::C_fluid_to_air_cooler(C_fluid_properties* fluid_props)
+    : m_fluid(fluid_props)
 {
 	m_th = m_eta_fan = m_roughness =
 		m_A_cs = m_relRough = 
@@ -3417,13 +3501,12 @@ C_CO2_to_air_cooler::C_CO2_to_air_cooler()
 	m_T_co2_hot_max = 700.0 + 273.15;	//[K]
 
 	mc_air.SetFluid(mc_air.Air);
-    m_fluid = C_fluid_properties::create_fluid_properties(E_fluid_type::CO2);
 
-    //m_cost_model = C_CO2_to_air_cooler::E_CARLSON_17;		//[-]
-    m_cost_model = C_CO2_to_air_cooler::E_WEILAND_19;       //[-]
+    //m_cost_model = C_fluid_to_air_cooler::E_CARLSON_17;		//[-]
+    m_cost_model = C_fluid_to_air_cooler::E_WEILAND_19;       //[-]
 }
 
-bool C_CO2_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_dep des_par_cycle_dep, double tol /*-*/)
+bool C_fluid_to_air_cooler::design_hx(S_des_par_ind des_par_ind, S_des_par_cycle_dep des_par_cycle_dep, double tol /*-*/)
 {
 	// Set member structures
 	ms_des_par_ind = des_par_ind;
@@ -3697,7 +3780,7 @@ int C_MEQ_target_W_dot_fan__m_dot_air::operator()(double m_dot_air /*kg/s*/, dou
 	return 0;
 }
 
-int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out::operator()(double h_co2_hot_in /*kJ/kg*/, double *diff_h_co2_hot /*-*/)
+int C_fluid_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out::operator()(double h_co2_hot_in /*kJ/kg*/, double *diff_h_co2_hot /*-*/)
 {
     m_Q_dot_node = std::numeric_limits<double>::quiet_NaN();    //[W]
     m_T_co2_hot_in = std::numeric_limits<double>::quiet_NaN();  //[K]
@@ -3768,7 +3851,7 @@ int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out::operator()(double
 }
 
 
-int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__T_co2_out::operator()(double T_co2_hot_in /*K*/, double *diff_T_co2_cold /*-*/)
+int C_fluid_to_air_cooler::C_MEQ_node_energy_balance__T_co2_out::operator()(double T_co2_hot_in /*K*/, double *diff_T_co2_cold /*-*/)
 {
 	if (m_T_co2_cold_out <= m_T_air_cold_in)
 	{
@@ -3804,7 +3887,7 @@ int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__T_co2_out::operator()(double
 	return 0;
 }
 
-//int C_CO2_to_air_cooler::C_MEQ_target_CO2_dP__L_tube_pass::operator()(double L_tube /*m*/, double *delta_P_co2 /*kPa*/)
+//int C_fluid_to_air_cooler::C_MEQ_target_CO2_dP__L_tube_pass::operator()(double L_tube /*m*/, double *delta_P_co2 /*kPa*/)
 //{
 //	double L_total = L_tube*mpc_ac->ms_hx_des_sol.m_N_passes;	//[m] Total length of flow path including loops
 //	double L_node = L_tube/mpc_ac->m_N_nodes;	//[m] Length of one node
@@ -4006,7 +4089,7 @@ int C_CO2_to_air_cooler::C_MEQ_node_energy_balance__T_co2_out::operator()(double
 //	return 0;
 //}
 
-int C_CO2_to_air_cooler::C_MEQ_target_CO2_dP__L_tube_pass::operator()(double L_tube /*m*/, double *delta_P_co2 /*kPa*/)
+int C_fluid_to_air_cooler::C_MEQ_target_CO2_dP__L_tube_pass::operator()(double L_tube /*m*/, double *delta_P_co2 /*kPa*/)
 {
 	double L_node = L_tube / (double)mpc_ac->m_N_nodes;	//[m] Length of one node
 	double V_node = L_node*mpc_ac->m_s_v*mpc_ac->m_s_h;	//[m^3] Volume of one node
@@ -4140,7 +4223,7 @@ int C_CO2_to_air_cooler::C_MEQ_target_CO2_dP__L_tube_pass::operator()(double L_t
 		mpc_ac->ms_des_par_ind.m_T_amb_des,
 		tol_T_in, m_tol_pressure,
 		&mpc_ac->mc_messages,
-        *mpc_ac->m_fluid.get(),
+        *mpc_ac->m_fluid,
         &mpc_ac->mc_co2_props,
 		mpc_ac->ms_hx_des_sol.m_d_in, mpc_ac->m_A_cs, mpc_ac->m_relRough,
 		L_node, V_node, mpc_ac->m_N_nodes, 
@@ -4154,7 +4237,7 @@ int C_CO2_to_air_cooler::C_MEQ_target_CO2_dP__L_tube_pass::operator()(double L_t
 	return 0;
 }
 
-int C_CO2_to_air_cooler::C_MEQ_target_T_hot__width_parallel::operator()(double W_par /*m*/, double *T_co2_hot /*K*/)
+int C_fluid_to_air_cooler::C_MEQ_target_T_hot__width_parallel::operator()(double W_par /*m*/, double *T_co2_hot /*K*/)
 {
 	m_L_tube = std::numeric_limits<double>::quiet_NaN();		//[m]
 	m_V_total = std::numeric_limits<double>::quiet_NaN();		//[m3]
@@ -4255,19 +4338,19 @@ int C_CO2_to_air_cooler::C_MEQ_target_T_hot__width_parallel::operator()(double W
 	return 0;
 }
 
-double /*M$*/ C_CO2_to_air_cooler::calculate_equipment_cost(double UA /*kWt/K*/, double V_material /*m^3*/,
+double /*M$*/ C_fluid_to_air_cooler::calculate_equipment_cost(double UA /*kWt/K*/, double V_material /*m^3*/,
 	double T_hot_in /*K*/, double P_hot_in /*kPa*/, double m_dot_hot /*kg/s*/, double yr_inflation/**/)
 {
 	switch (m_cost_model)
 	{
-	case C_CO2_to_air_cooler::E_CARLSON_17:
+	case C_fluid_to_air_cooler::E_CARLSON_17:
     {
         double yr_base_inflation = 2017;
         double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
         return 2.3 * 1.E-3 * UA * f_inflation;		//[M$] needs UA in kWt/K
     }
 		
-    case C_CO2_to_air_cooler::E_WEILAND_19:
+    case C_fluid_to_air_cooler::E_WEILAND_19:
     {
         double yr_base_inflation = 2017;
         double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
@@ -4279,7 +4362,7 @@ double /*M$*/ C_CO2_to_air_cooler::calculate_equipment_cost(double UA /*kWt/K*/,
 	}
 }
 
-double /*M$*/ C_CO2_to_air_cooler::calculate_bare_erected_cost(double cost_equipment /*M$*/)
+double /*M$*/ C_fluid_to_air_cooler::calculate_bare_erected_cost(double cost_equipment /*M$*/)
 {
     // Weiland 2019
     double frac_installation = 0.08;
@@ -4288,7 +4371,7 @@ double /*M$*/ C_CO2_to_air_cooler::calculate_bare_erected_cost(double cost_equip
     return cost_equipment * (1. + frac_installation + frac_labor);
 }
 
-void C_CO2_to_air_cooler::calc_air_props(double T_amb /*K*/, double P_amb /*Pa*/,
+void C_fluid_to_air_cooler::calc_air_props(double T_amb /*K*/, double P_amb /*Pa*/,
 	double & mu_air /*kg/m-s*/, double & v_air /*m3/kg*/, double & cp_air /*J/kg-K*/,
 	double & k_air /*W/m-K*/, double & Pr_air)
 {
@@ -4397,7 +4480,7 @@ int co2_outlet_given_geom_and_air_m_dot(double T_co2_cold_out /*K*/, double m_do
                     is_iter_deltaP = false;
                 }
 
-                C_CO2_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out c_node_e_bal_eq(fluid,
+                C_fluid_to_air_cooler::C_MEQ_node_energy_balance__h_co2_out c_node_e_bal_eq(fluid,
                     co2_props,
                     i_h_co2_cold, 
                     mt_P_co2((size_t)in, j), P_co2_out_guess,
@@ -4514,7 +4597,7 @@ int co2_outlet_given_geom_and_air_m_dot(double T_co2_cold_out /*K*/, double m_do
     return 0;
 }
 
-int C_CO2_to_air_cooler::off_design_given_fan_power(double T_amb /*K*/, double T_hot_in /*K*/, double P_hot_in /*kPa*/,
+int C_fluid_to_air_cooler::off_design_given_fan_power(double T_amb /*K*/, double T_hot_in /*K*/, double P_hot_in /*kPa*/,
     double m_dot_hot /*kg/s*/, double W_dot_fan_target /*MWe*/, double tol_od /*-*/, double tol_pressure /*-*/,
     double & T_co2_out /*K*/, double & P_co2_out /*kPa*/)
 {
@@ -4615,7 +4698,7 @@ int C_CO2_to_air_cooler::off_design_given_fan_power(double T_amb /*K*/, double T
     return 0;
 }
 
-int C_CO2_to_air_cooler::off_design_given_T_out(double T_amb /*K*/, double T_hot_in /*K*/, double P_hot_in /*kPa*/,
+int C_fluid_to_air_cooler::off_design_given_T_out(double T_amb /*K*/, double T_hot_in /*K*/, double P_hot_in /*kPa*/,
 	double m_dot_hot /*kg/s*/, double T_hot_out /*K*/, double tol_m_dot /*-*/, double tol_m_pressure /*-*/,
     double & W_dot_fan /*MWe*/, double & P_hot_out /*kPa*/)
 {
@@ -4720,7 +4803,7 @@ int C_CO2_to_air_cooler::off_design_given_T_out(double T_amb /*K*/, double T_hot
 	return 0;
 }
 
-int C_CO2_to_air_cooler::C_MEQ_od__T_co2_out__fan_power::operator()(double T_co2_out /*K*/, double *W_dot_fan_calc /*MWe*/)
+int C_fluid_to_air_cooler::C_MEQ_od__T_co2_out__fan_power::operator()(double T_co2_out /*K*/, double *W_dot_fan_calc /*MWe*/)
 {
     m_P_co2_out_calc = std::numeric_limits<double>::quiet_NaN();
 
@@ -4729,7 +4812,7 @@ int C_CO2_to_air_cooler::C_MEQ_od__T_co2_out__fan_power::operator()(double T_co2
     return err_code;
 }
 
-int C_CO2_to_air_cooler::C_MEQ_od_air_mdot__T_co2_out::operator()(double m_dot_air /*kg/s*/, double *T_hot_out_calc /*K*/)
+int C_fluid_to_air_cooler::C_MEQ_od_air_mdot__T_co2_out::operator()(double m_dot_air /*kg/s*/, double *T_hot_out_calc /*K*/)
 {
     m_W_dot_fan = m_P_co2_out = m_q_dot_tube = std::numeric_limits<double>::quiet_NaN();
 
@@ -4782,7 +4865,7 @@ int C_CO2_to_air_cooler::C_MEQ_od_air_mdot__T_co2_out::operator()(double m_dot_a
             m_T_amb,
             m_tol_op / 2.0, m_tol_pressure,
             &mpc_ac->mc_messages,
-            *mpc_ac->m_fluid.get(),
+            *mpc_ac->m_fluid,
             &mpc_ac->mc_co2_props,
 		    mpc_ac->ms_hx_des_sol.m_d_in, mpc_ac->m_A_cs, mpc_ac->m_relRough,
 		    mpc_ac->ms_hx_des_sol.m_L_node, mpc_ac->ms_hx_des_sol.m_V_node, mpc_ac->m_N_nodes,
@@ -4804,9 +4887,8 @@ int C_CO2_to_air_cooler::C_MEQ_od_air_mdot__T_co2_out::operator()(double m_dot_a
 	return air_cooler_code;
 }
 
-double C_CO2_to_air_cooler::air_pressure(double elevation /*m*/)
+double C_fluid_to_air_cooler::air_pressure(double elevation /*m*/)
 {
 	// http://www.engineeringtoolbox.com/air-altitude-pressure-d_462.html	
 	return 101325.0*pow(1 - 2.25577E-5*elevation, 5.25588);	//[Pa] 
 }
-

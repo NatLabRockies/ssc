@@ -502,8 +502,8 @@ double battery_t::calculate_current_for_power_kw(double &P_kw) {
     if (P_kw < 0) {
         double max_P = calculate_max_charge_kw(&current);
         if (max_P > P_kw) {
-            P_kw = -max_P;
-            return -current;
+            P_kw = max_P;
+            return current;
         }
     } else {
         double max_P = calculate_max_discharge_kw(&current);
@@ -537,6 +537,8 @@ double battery_t::calculate_max_charge_kw(double *max_current_A) {
         thermal->updateTemperature(current, state->last_idx + 1);
         qmax = capacity->qmax() * thermal->capacity_percent() * 0.01 * SOC_ratio;
     }
+    current = std::min(0.0, current);
+    power_W = std::min(0.0, power_W);
     if (max_current_A)
         *max_current_A = current;
     *thermal->state = thermal_initial;
@@ -556,6 +558,8 @@ double battery_t::calculate_max_discharge_kw(double *max_current_A) {
         thermal->updateTemperature(current, state->last_idx + 1);
         qmax = capacity->qmax() * thermal->capacity_percent()  * 0.01;
     }
+    current = std::max(0.0, current);
+    power_W = std::max(0.0, power_W);
     if (max_current_A)
         *max_current_A = current;
     *thermal->state = thermal_initial;

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <algorithm>
 #include "etes_dispatch.h"
-#include "lp_lib.h" 
-#include "lib_util.h"
 
 #undef min
 #undef max
@@ -1116,10 +1114,10 @@ bool etes_dispatch_opt::optimize()
         //Set problem to maximize
         set_maxim(lp);
 
-        lp_outputs.clear_output();
+        solver_outputs.clear_output();
         setup_solver_presolve_bbrules(lp);
         bool return_ok = problem_scaling_solve_loop(lp);
-        set_lp_solve_outputs(lp);
+        set_solver_outputs(lp);
 
         // Saving problem and solution for DEBUGGING formulation
         //save_problem_solution_debug(lp);
@@ -1219,7 +1217,7 @@ void etes_dispatch_opt::set_outputs_from_lp_solution(lprec* lp, unordered_map<st
 
 bool etes_dispatch_opt::set_dispatch_outputs()
 {
-    if (lp_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
+    if (solver_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
     {
         //calculate the current read step, account for number of dispatch steps per hour and the simulation time step
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)

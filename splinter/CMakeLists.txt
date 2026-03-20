@@ -4,20 +4,22 @@
 #
 #####################################################################################################################
 
-include_directories(. ../ssc)
+include_directories(. include src $ENV{ORTOOLSDIR}/include/eigen3 ../ssc)
 
 set(SPLINTER_SRC
-	bspline.cpp
-	bsplinebasis.cpp
-	bsplinebasis1d.cpp
-	bsplinebuilder.cpp
-	datapoint.cpp
-	datatable.cpp
-	function.cpp
-	knots.cpp
-	mykroneckerproduct.cpp
-	serializer.cpp
-	utilities.cpp)
+	src/bspline.cpp
+	src/bspline_basis.cpp
+	src/bspline_basis_1d.cpp
+	src/bspline_builders.cpp
+	src/bspline_utils.cpp
+	src/data_point.cpp
+	src/data_table.cpp
+	src/function.cpp
+	src/json_parser.cpp
+	src/knot_vector.cpp
+	src/knot_builders.cpp
+	src/kronecker_product.cpp
+	src/utilities.cpp)
 
 
 #####################################################################################################################

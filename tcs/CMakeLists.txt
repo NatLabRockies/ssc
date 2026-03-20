@@ -4,13 +4,16 @@
 #
 #####################################################################################################################
 
-include_directories(. ../nlopt ../shared ../splinter ../lpsolve ../solarpilot)
+include_directories(. ../nlopt ../shared ../lpsolve ../solarpilot $ENV{ORTOOLSDIR}/include/eigen3 $ENV{ORTOOLSDIR}/include )
 
 set(TCS_SRC
 		base_dispatch.cpp
+        base_dispatch_lpsolve.cpp
+        base_dispatch_ortools.cpp
 		co2_compressor_library.cpp
 		CO2_properties.cpp
 		csp_dispatch.cpp
+        csp_dispatch_ortools.cpp
 		csp_radiator.cpp
 		csp_solver_cavity_receiver.cpp
 		csp_solver_core.cpp
@@ -85,11 +88,14 @@ set(TCS_SRC
 		tou_translator.cpp
 		flat_plate_solar_collector.cpp
 		base_dispatch.h
+        base_dispatch_lpsolve.h
+        base_dispatch_ortools.h
 		cavity_calcs.h
 		co2_compressor_library.h
 		CO2_properties.h
 		co2_testing.h
 		csp_dispatch.h
+        csp_dispatch_ortools.h
 		csp_radiator.h
 		csp_solver_cavity_receiver.h
 		csp_solver_core.h

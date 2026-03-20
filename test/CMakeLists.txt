@@ -11,7 +11,7 @@ elseif (DEFINED ENV{GTEST})
 endif()
 
 include_directories(${GTDIR}/include ${GTDIR}/googletest/include ${GTDIR}/googletest/include/gtest . input_cases shared_test ssc_test tcs_test
-						../ssc ../tcs ../solarpilot ../shared ../splinter )
+						../ssc ../tcs ../solarpilot ../shared ../splinter/include $ENV{ORTOOLSDIR}/include/eigen3 $ENV{ORTOOLSDIR}/include)
 
 file(GLOB SSC_TESTS ssc_test/*.cpp)
 file(GLOB SSC_TESTS_HEADERS ssc_test/*.h)
@@ -77,8 +77,9 @@ endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR "Debug" IN_LIST CMAKE_CONFIGURATION_TYPES)
     find_library( GTESTD_LIB
-            NAMES libgtest.a gtest.lib libgtest.so
-            PATHS $ENV{GTEST_DIR} ${GTDIR}/build/lib ${GTDIR}/build/lib/Debug)
+        NAMES libgtest.a gtest.lib libgtest.so
+        # ortools release libraries only
+        PATHS $ENV{GTEST_DIR} ${GTDIR}/build/lib ${GTDIR}/build/lib/Release)
     if(UNIX AND ENABLE_COVERAGE)
         target_link_options(Test PRIVATE --coverage)
         target_link_libraries(Test debug gcov ${GTESTD_LIB})
@@ -95,8 +96,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR "Release" IN_LIST CMAKE_CONFIGURATION_
 endif()
 target_link_libraries(Test ssc splinter)
 if (UNIX)
-    find_package(Threads REQUIRED)
-    target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
+#    find_package(Threads REQUIRED)
+#    target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
+    target_link_libraries(Test -ldl -lpthread)
 endif()
 
 
@@ -109,12 +111,13 @@ endif()
 if(MSVC)
     set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
 
-	foreach( file_i ${LIBCURL_FILES})
+	file(GLOB ORTOOLS_DLLS "$ENV{ORTOOLSDIR}/bin/*.dll")
+	foreach( file_i ${ORTOOLS_DLLS})
 		add_custom_command(
 		TARGET Test
 		POST_BUILD
 		COMMAND ${CMAKE_COMMAND}
-		ARGS -E copy $ENV{WEXDIR}/build_resources/libcurl_ssl_x64/bin/${file_i} ${TEST_DIR}
+		ARGS -E copy ${file_i} ${TEST_DIR}
 	)
 	endforeach( file_i )
 endif()

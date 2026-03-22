@@ -47,7 +47,7 @@ private:
     // CoolProp indices
     long m_iTD = -1;
     long m_iPT = -1;
-    long m_iPH = -1;
+    long m_iHP = -1;
     long m_iPS = -1;
     long m_iHS = -1;
     long m_iQT = -1;

@@ -756,6 +756,8 @@ var_info vtab_sco2_design[] = {
 	{ SSC_INPUT,  SSC_NUMBER,  "eta_thermal_des",      "Power cycle thermal efficiency",                         "",           "",    "System Design",      "design_method=1", "",  "" },
     { SSC_INPUT,  SSC_NUMBER,  "eta_thermal_cutoff",   "Minimum eta allowable to solve and return cmod success", "",           "",    "System Design",      "?=0",   "",       "" },
 
+    { SSC_INPUT,  SSC_STRING,  "coolprop_fluid",       "Coolprop fluid name",                                    "",           "",    "System Design",      "",      "",       "" },
+    { SSC_INPUT,  SSC_STRING,  "coolprop_backend",     "Coolprop backend",                                       "",           "",    "System Design",      "",      "",       "" },
 
         // Heat exchanger design
             // Combined recuperator design parameter (design_method == 2)
@@ -1373,7 +1375,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
 	bool is_rc = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_is_rc;
 
     // Make fluid properties ptr (this should be shared with cycle)
-    auto fluid_ptr = C_fluid_properties::create_fluid_properties(c_sco2_cycle.get_fluid_type());
+    auto fluid_ptr = c_sco2_cycle.get_fluid();
 
 	// Get data for P-h cycle plot
 	std::vector<double> P_t;		//[MPa]

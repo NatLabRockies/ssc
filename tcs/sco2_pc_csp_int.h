@@ -777,7 +777,7 @@ public:
 
 	double opt_P_LP_in__fixed_N_turbo__return_f_obj(double P_mc_in /*kPa*/, double od_tol /*-*/);
 
-    const E_fluid_type get_fluid_type() { return m_fluid_type; }
+    C_fluid_properties* get_fluid() { return &mpc_sco2_cycle->get_fluid(); }
 
 };
 

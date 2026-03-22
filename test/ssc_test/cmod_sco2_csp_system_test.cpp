@@ -264,6 +264,9 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, simple_default)
     // Get default parameters
     ssc_data_t data = get_default_sco2_pars();
 
+    ssc_data_set_string(data, "coolprop_fluid", "CarbonDioxide");
+    //ssc_data_set_string(data, "coolprop_backend", "TTSE");
+
     // Set test specific values
     ssc_data_set_number(data, "is_recomp_ok", 0);
 

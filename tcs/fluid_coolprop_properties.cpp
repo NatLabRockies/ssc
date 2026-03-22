@@ -52,7 +52,7 @@ void C_coolprop_properties::init_handle()
     // Input pairs (CoolProp naming varies across versions)
     m_iTD = get_input_pair_index("DmassT_INPUTS");          // (T [K], rho [kg/m3])
     m_iPT = get_input_pair_index("PT_INPUTS");                          // (P [Pa], T [K])
-    m_iPH = get_input_pair_index("HmassP_INPUTS");        // (P [Pa], h [J/kg])
+    m_iHP = get_input_pair_index("HmassP_INPUTS");        // (P [Pa], h [J/kg])
     m_iPS = get_input_pair_index("PSmass_INPUTS");        // (P [Pa], s [J/kg-K])
     m_iHS = get_input_pair_index("HmassSmass_INPUTS");    // (h [J/kg], s [J/kg-K])
     m_iQT = get_input_pair_index("QT_INPUTS");            // (Q [-], T [K]) or (T [K], Q [-]) depending on naming
@@ -71,7 +71,7 @@ void C_coolprop_properties::init_handle()
     m_iSpeedSound = get_param_index("speed_of_sound");
 
     // If any are invalid, render handle unusable
-    if (m_iTD < 0 || m_iPT < 0 || m_iPH < 0 || m_iPS < 0 || m_iHS < 0 ||
+    if (m_iTD < 0 || m_iPT < 0 || m_iHP < 0 || m_iPS < 0 || m_iHS < 0 ||
         m_iQT < 0 || m_iPQ < 0 ||
         m_iT < 0 || m_iP < 0 || m_iDmass < 0 || m_iUmass < 0 ||
         m_iHmass < 0 || m_iSmass < 0 || m_iCvmass < 0 ||
@@ -103,6 +103,11 @@ int C_coolprop_properties::update_handle_state(long input_pair, double val1, dou
     long err_code = 0;
     char err_buffer[k_err_buffer_len] = { 0 };
     AbstractState_update(m_handle, input_pair, val1, val2, &err_code, err_buffer, k_err_buffer_len);
+
+    if (err_code != 0)
+    {
+        int x = 0;
+    }
 
     return (int)err_code;
 }
@@ -184,7 +189,7 @@ int C_coolprop_properties::TP(double T, double P, fluid_state* state)
 int C_coolprop_properties::PH(double P, double H, fluid_state* state)
 {
     // P [kPa], H [kJ/kg]
-    const int err_code = update_handle_state(m_iPH, P * 1.e3, H * 1.e3);
+    const int err_code = update_handle_state(m_iHP, H * 1.e3, P * 1.e3);
     if (err_code == 0)
         return fluid_state_from_handle(state);
 

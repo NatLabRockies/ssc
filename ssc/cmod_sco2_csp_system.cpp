@@ -335,8 +335,19 @@ public:
         //FILE* fp = fopen("sco2_cmod_to_lk.lk", "w");
         //write_cmod_to_lk_script(fp, m_vartab);
 
+        // Get fluid info
         E_fluid_type fluid_type = E_fluid_type::CO2;
-        C_sco2_phx_air_cooler c_sco2_cycle(fluid_type);
+        std::string coolprop_fluid = "";
+        std::string coolprop_backend = "";
+        if (is_assigned("coolprop_fluid"))
+        {
+            fluid_type = E_fluid_type::COOLPROP;
+            coolprop_fluid = as_string("coolprop_fluid");
+            if (is_assigned("coolprop_backend"))
+                coolprop_backend = as_string("coolprop_backend");
+        }
+
+        C_sco2_phx_air_cooler c_sco2_cycle(fluid_type, coolprop_fluid, coolprop_backend);
 
 		int sco2_des_err = sco2_design_cmod_common(this, c_sco2_cycle);
 		if (sco2_des_err != 0)

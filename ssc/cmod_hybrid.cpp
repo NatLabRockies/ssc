@@ -459,71 +459,56 @@ public:
                 escal_or_annual(input, pOMFixed, analysisPeriod, "om_fixed", inflation_rate, 1.0, false, input.as_double("om_fixed_escal") * 0.01); // $ 
                 escal_or_annual(input, pOMProduction, analysisPeriod, "om_production", inflation_rate, 0.001, false, input.as_double("om_production_escal") * 0.01); // $/kWh after conversion
                 escal_or_annual(input, pOMCapacity, analysisPeriod, "om_capacity", inflation_rate, system_capacity, false, input.as_double("om_capacity_escal") * 0.01); // $ after multiplying by system capacity
-
-                //ssc_number_t* pEnergyNet = ((var_table*)compute_module_outputs)->allocate("cf_energy_net", analysisPeriod + 1);
-                //ssc_number_t* pDegradation = ((var_table*)compute_module_outputs)->allocate("cf_degradation", analysisPeriod + 1);
-                //bool system_use_lifetime_output = false;
+                ssc_number_t* curGen = ssc_data_get_array(compute_module_outputs, "gen", &len);
+                currentTimeStepsPerHour = len / 8760;
+                bool system_use_lifetime_output = false;
                 //if (compute_module_inputs->table.lookup("system_use_lifetime_output"))
                 //    system_use_lifetime_output = compute_module_inputs->table.lookup("system_use_lifetime_output")->num;
-                //if (system_use_lifetime_output > 0) { // e.g. pvsamv1
-                //    size_t timestepsPerYear = len / analysisPeriod;
-                //    for (int i = 0; i < analysisPeriod; i++) {
-                //        pDegradation[i + 1] = 1.0;
-                //        pEnergyNet[i + 1] = 0;
-                //        for (size_t j = 0; j < timestepsPerYear; j++) { // steps per year
-                //            pEnergyNet[i + 1] += curGen[i * timestepsPerYear + j] * currentTimeStepsPerHour; // power to energy
-                //        }
-                //    }
-                //}
-                //else {
-                //    size_t count_degrad = 0;
-                //    ssc_number_t* degrad = input.as_array("degradation", &count_degrad);
-                //    if (compute_module == "custom_generation")
-                //        input.assign("generic_degradation", *input.lookup("degradation"));
-                //    if (count_degrad == 1) {
-                //        for (int i = 1; i <= analysisPeriod; i++)
-                //            pDegradation[i] = pow((1.0 - degrad[0] / 100.0), i - 1);
-                //    }
-                //    else if (count_degrad > 0) {
-                //        for (int i = 0; i < analysisPeriod && i < (int)count_degrad; i++)
-                //            pDegradation[i + 1] = (1.0 - degrad[i] / 100.0);
-                //    }
-                //    ssc_number_t first_year_energy = ((var_table*)compute_module_outputs)->as_double("annual_energy"); // first year energy value
-                //    for (int i = 1; i <= analysisPeriod; i++) {
-                //        pEnergyNet[i] = first_year_energy * pDegradation[i];
-                //    }
-                //}
-                //for (int i = 1; i <= analysisPeriod; i++) {
-                //    pOMProduction[i] *= pEnergyNet[i];
-                //}
-                //fuelcell_discharged = ((var_table*)compute_module_outputs)->as_vector_double("fuelcell_annual_energy_discharged");
-                //if (fuelcell_discharged.size() == 1) { // ssc #992
-                //    double first_val = fuelcell_discharged[0]; // first value differs here!
-                //    fuelcell_discharged.resize(analysisPeriod, first_val);
-                //}
-                //if (fuelcell_discharged.size() != (size_t)analysisPeriod)
-                //    throw exec_error("hybrid", util::format("fuelcell_discharged size (%d) incorrect", (int)fuelcell_discharged.size()));
-                // fuelcell cost - replacement from lifetime analysis
-                //if (input.is_assigned("fuelcell_replacement_option") && (input.as_integer("fuelcell_replacement_option") > 0))
+                //log(util::format("Simulation time step is %d minutes for %s.", 60 / int(maximumTimeStepsPerHour), compute_module.c_str()), SSC_NOTICE);
+                //if (system_use_lifetime_output > 0) // below - assuming single year only
+                //    currentTimeStepsPerHour /= analysisPeriod;
+                //if (currentTimeStepsPerHour > maximumTimeStepsPerHour)
                 //{
-                //    size_t count;
-                //    ssc_number_t* fuelcell_rep = 0;
-                //    if (input.as_integer("fuelcell_replacement_option") == 1)
-                //        fuelcell_rep = ((var_table*)compute_module_outputs)->as_array("fuelcell_replacement", &count); // replacements per year calculated
-                //    else // user specified
-                //        fuelcell_rep = input.as_array("fuelcell_replacement_schedule", &count); // replacements per year user-defined
-
-                //    escal_or_annual(input, pFuelCellReplacement, analysisPeriod, "om_fuelcell_replacement_cost", inflation_rate, nameplate, false, input.as_double("om_replacement_cost_escal") * 0.01);
-
-                //    for (size_t i = 0; i < (size_t)analysisPeriod && i < count; i++) {
-                //        pFuelCellReplacement[i + 1] = fuelcell_rep[i] * pFuelCellReplacement[i + 1];
-                //    }
+                //    maximumTimeStepsPerHour = currentTimeStepsPerHour;
+                //    ts_adj = true;
                 //}
-                //else {
-                //    for (size_t i = 0; i < (size_t)analysisPeriod; i++) {
-                //        pFuelCellReplacement[i + 1] = 0.0;
-                //    }
-                //}
+                genTimestepsPerHour.push_back(currentTimeStepsPerHour);
+                ssc_number_t* pEnergyNet = ((var_table*)compute_module_outputs)->allocate("cf_energy_net", analysisPeriod + 1);
+                ssc_number_t* pDegradation = ((var_table*)compute_module_outputs)->allocate("cf_degradation", analysisPeriod + 1);
+                system_use_lifetime_output = false;
+                /*if (compute_module_inputs->table.lookup("system_use_lifetime_output"))
+                    system_use_lifetime_output = compute_module_inputs->table.lookup("system_use_lifetime_output")->num;*/
+                if (system_use_lifetime_output > 0) { // e.g. pvsamv1
+                    size_t timestepsPerYear = len / analysisPeriod;
+                    for (int i = 0; i < analysisPeriod; i++) {
+                        pDegradation[i + 1] = 1.0;
+                        pEnergyNet[i + 1] = 0;
+                        for (size_t j = 0; j < timestepsPerYear; j++) { // steps per year
+                            pEnergyNet[i + 1] += curGen[i * timestepsPerYear + j] * currentTimeStepsPerHour; // power to energy
+                        }
+                    }
+                }
+                else {
+                    size_t count_degrad = 0;
+                    ssc_number_t* degrad = input.as_array("degradation", &count_degrad);
+                    if (compute_module == "custom_generation")
+                        input.assign("generic_degradation", *input.lookup("degradation"));
+                    if (count_degrad == 1) {
+                        for (int i = 1; i <= analysisPeriod; i++)
+                            pDegradation[i] = pow((1.0 - degrad[0] / 100.0), i - 1);
+                    }
+                    else if (count_degrad > 0) {
+                        for (int i = 0; i < analysisPeriod && i < (int)count_degrad; i++)
+                            pDegradation[i + 1] = (1.0 - degrad[i] / 100.0);
+                    }
+                    ssc_number_t first_year_energy = ((var_table*)compute_module_outputs)->as_double("annual_energy"); // first year energy value
+                    for (int i = 1; i <= analysisPeriod; i++) {
+                        pEnergyNet[i] = first_year_energy * pDegradation[i];
+                    }
+                }
+                
+                 // fuelcell cost - replacement from lifetime analysis
+                
                 // production O and M conversion to $
                /* for (int i = 1; i <= analysisPeriod; i++) {
                     pOMProduction[i] *= pEnergyNet[i];
@@ -531,21 +516,32 @@ public:
 
                 // add to gen "fuelcell_power" * timestep (set for pGen above)
                 // cash flow line item is fuelcell_annual_energy_discharged from cmod_fuelcell
-                std::vector<double> gen(genLength, 0);
-                gen = ((var_table*)compute_module_outputs)->as_vector_double("fuelcell_power");
-                if (gen.size() != genLength)
-                    throw exec_error("hybrid", util::format("fuelcell_power size (%d) incorrect", (int)gen.size()));
-                for (size_t g = 0; g < genLength; g++) {
-                    pGen[g] += gen[g] * maximumTimeStepsPerHour;
+                size_t count_gen;
+                ssc_number_t* gen = ((var_table*)compute_module_outputs)->as_array("gen", &count_gen);
+                size_t count_degrade;
+                ssc_number_t* cf_degradation = ((var_table*)compute_module_outputs)->as_array("cf_degradation", &count_degrade);
+                idx = 0;
+                for (int y = 1; y <= analysisPeriod; y++) {
+                    for (size_t h = 0; h < 8760; h++) {
+                        for (size_t sph = 0; sph < maximumTimeStepsPerHour; sph++) {
+                            size_t offset = sph / maximumTimeStepsPerHour / currentTimeStepsPerHour;
+                            if (offset > currentTimeStepsPerHour) offset = currentTimeStepsPerHour;
+                            if (count_gen == genLength)
+                                pGen[idx] += gen[idx]; // lifetime output with degradation and availability
+                            else
+                                pGen[idx] += gen[h + offset] * cf_degradation[y];
+                            idx++;
+                        }
+                    }
                 }
 
 
-                // resize annual outputs
-                size_t arr_length = analysisPeriod + 1;
-                ssc_number_t yr_0_value = 0.0;
-                //prepend_to_output((var_table*)compute_module_outputs, "fuelcell_replacement", arr_length, yr_0_value);
-                //prepend_to_output((var_table*)compute_module_outputs, "annual_fuel_usage_lifetime", arr_length, yr_0_value);
-                prepend_to_output((var_table*)compute_module_outputs, "fuelcell_annual_energy_discharged", arr_length, yr_0_value);
+                //// resize annual outputs
+                //size_t arr_length = analysisPeriod + 1;
+                //ssc_number_t yr_0_value = 0.0;
+                ////prepend_to_output((var_table*)compute_module_outputs, "fuelcell_replacement", arr_length, yr_0_value);
+                ////prepend_to_output((var_table*)compute_module_outputs, "annual_fuel_usage_lifetime", arr_length, yr_0_value);
+                //prepend_to_output((var_table*)compute_module_outputs, "fuelcell_annual_energy_discharged", arr_length, yr_0_value);
 
                 ssc_data_set_table(outputs, compute_module.c_str(), compute_module_outputs);
                 ssc_module_free(module);

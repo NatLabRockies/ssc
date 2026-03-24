@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_core.h"
 #include "csp_solver_pt_receiver.h"
 
-#include "../splinter/QR"
+#include <Eigen/Dense>
 
 class C_falling_particle_receiver : public C_pt_receiver
 {

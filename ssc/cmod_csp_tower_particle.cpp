@@ -118,6 +118,8 @@ static var_info _cm_vtab_csp_tower_particle[] = {
     { SSC_INPUT,     SSC_NUMBER, "washing_frequency",                  "Mirror washing frequency",                                                                                                                "none",         "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "check_max_flux",                     "Check max flux at design point",                                                                                                          "",             "",                                  "Heliostat Field",                          "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "sun_loc_des",                        "Sun location at design point (0 = Summer solstice, 1 = Equinox, 2 = Winter solstice)",                                                    "",             "",                                  "Heliostat Field",                          "?=0",                                                              "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "solar_field_des_factor",             "Solar field design factor",                                                                                                               "",             "",                                  "Heliostat Field",                          "?=1",                                                              "",              "" },
+
 
     // Inputs required for user-defined SF performance when field_model_type = 4
     // Values can be defined by mapping to equivalent _calc output for simulation results with field_model_type < 3
@@ -403,6 +405,7 @@ static var_info _cm_vtab_csp_tower_particle[] = {
     { SSC_OUTPUT,    SSC_NUMBER, "land_area_base_calc",                "Land area occupied by heliostats",                                                                                                         "acre",         "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_OUTPUT,    SSC_NUMBER, "total_land_area_calc",               "Total land area - out",                                                                                                                    "acre",         "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
     { SSC_OUTPUT,    SSC_NUMBER, "W_dot_col_tracking_des",             "Collector tracking power at design",                                                                                                       "MWe",          "",                                  "Heliostat Field",                          "*",                                                                "",              ""},
+
 
         // Receiver Geometry
     { SSC_OUTPUT,    SSC_ARRAY,  "rec_height_calc",                    "Receiver height - out",                                                                                                                    "m",            "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
@@ -946,13 +949,14 @@ public:
         refl_image_error = std::sqrt(2. * helio_optical_error_mrad * 2. * helio_optical_error_mrad * 2.);   //[mrad]
         assign("refl_image_error", refl_image_error);   //[mrad]
         assign("helio_optical_error", (ssc_number_t)(helio_optical_error_mrad * 1.E-3));
+        double solar_field_des_factor = as_number("solar_field_des_factor");
+        assign("q_design", q_dot_rec_des * solar_field_des_factor);       //[MWt]
 
         if (field_model_type < 4) {
             // Field types 0-3 Requires solarPILOT
             if (field_model_type == 0 && sim_type == 1) {
                 // Run heliostat field / receiver optimization first
                 solarpilot_invoke spi_opt(this);
-                assign("q_design", q_dot_rec_des);       //[MWt]
 
                 // Optimize design field and tower/receiver geometry without flux_map calculations
                 assign("is_optimize", 1); 
@@ -1008,7 +1012,6 @@ public:
             }
 
             solarpilot_invoke spi(this);
-            assign("q_design", q_dot_rec_des);       //[MWt]
 
             // TODO: Check 'n_flux_x' and 'n_flux_y'?
             //      - n_flux_y must be greater than the number of troughs in the curtain

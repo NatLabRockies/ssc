@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1286,6 +1286,10 @@ var_info vtab_sco2_design[] = {
     { SSC_OUTPUT, SSC_NUMBER,  "t2_D",                 "Secondary Turbine diameter",                             "m",          "Turbine 2",  "",      "cycle_config=4",     "",       "" },
     { SSC_OUTPUT, SSC_NUMBER,  "t2_cost_equipment",    "Secondary Tubine cost - equipment",                      "M$",         "Turbine 2",  "",      "cycle_config=4",     "",       "" },
     { SSC_OUTPUT, SSC_NUMBER,  "t2_cost_bare_erected", "Secondary Tubine cost - equipment plus install",         "M$",         "Turbine 2",  "",      "cycle_config=4",     "",       "" },
+        // Turbine Totals
+    { SSC_OUTPUT, SSC_NUMBER,   "t_tot_cost_equip",    "Turbine total cost",                                     "M$",         "Compressor Totals",    "",  "*",     "",       "" },
+    { SSC_OUTPUT, SSC_NUMBER,   "t_tot_W_dot",         "Turbine total summed power",                             "MWe",        "Compressor Totals",    "",  "*",     "",       "" },
+    { SSC_OUTPUT, SSC_NUMBER,   "back_work_ratio",     "Back work ratio",                                        "",           "Compressor Totals",    "",  "*",     "",       "" },
         // Recuperators																				 
 	{ SSC_OUTPUT, SSC_NUMBER,  "recup_total_UA_assigned", "Total recuperator UA assigned to design routine",     "MW/K",       "Recuperators",    "",      "*",     "",       "" },
     { SSC_OUTPUT, SSC_NUMBER,  "recup_total_UA_calculated", "Total recuperator UA calculated considering max eff and/or min temp diff parameter", "MW/K",       "Recuperators",    "",      "*",     "",       "" },
@@ -2096,7 +2100,9 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
 	cm->assign("c_tot_cost_equip", comp_cost_equip_sum);		//[M$]
 	cm->assign("c_tot_W_dot", comp_power_sum);		//[MWe]
 	// Turbine
-	cm->assign("t_W_dot", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_t*1.E-3));	//[MWe] convert from kWe
+    double t_tot_W_dot = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_t * 1.E-3;    // [MWe]
+    double t_tot_cost_equip = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t_des_solved.m_equipment_cost;    // [M$]
+    cm->assign("t_W_dot", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_t*1.E-3));	//[MWe] convert from kWe
 	cm->assign("t_m_dot_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_m_dot_t);		//[kg/s]
 	cm->assign("T_turb_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::TURB_IN] - 273.15));	//[C] Turbine inlet temp, convert from K
 	cm->assign("t_P_in_des", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::TURB_IN] * 1.E-3));	//[MPa] Turbine inlet pressure, convert from kPa
@@ -2132,9 +2138,17 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_phx_air_cooler & c_sco2_c
         cost_equip_sum += c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t2_des_solved.m_equipment_cost;			//[M$]
         cm->assign("t2_cost_bare_erected", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t2_des_solved.m_bare_erected_cost);		//[M$]
         cost_bare_erected_sum += c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t2_des_solved.m_bare_erected_cost;
-    }
-    
 
+        t_tot_W_dot += c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_t2 * 1.E-3; // [MWe]
+        t_tot_cost_equip += c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t2_des_solved.m_equipment_cost; // [M$]
+    }
+
+    // Turbine Totals
+    cm->assign("t_tot_cost_equip", t_tot_cost_equip);   // [M$]
+    cm->assign("t_tot_W_dot", t_tot_W_dot); // [MWe]
+
+    // Back work ratio
+    cm->assign("back_work_ratio", comp_power_sum / t_tot_W_dot);    // []
 
         // Recuperator
     int LTR_LP_IN_enum = cycle_config == 4 ? C_sco2_cycle_core::TURB2_OUT : C_sco2_cycle_core::HTR_LP_OUT;  // Define LTR LP inlet state point

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -102,3 +102,57 @@ TEST_F(CmodLeveragedPartnershipFlipTest, PVBattery) {
     Test("levpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
+TEST_F(CmodLeveragedPartnershipFlipTest, IrrTarget) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/irr_target/lev_flip_irr_dscr_targets_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/irr_target/lev_flip_irr_dscr_targets_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "tax_investor_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs", "cf_debt_balance" };
+
+    Test("levpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodLeveragedPartnershipFlipTest, FixedDebtFixedPPA) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/levpartflip/lpf-fixed-debt-fixed-price_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/levpartflip/lpf-fixed-debt-fixed-price_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "tax_investor_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs", "cf_debt_balance" };
+
+    Test("levpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodLeveragedPartnershipFlipTest, FixedIRRTarget) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/levpartflip/lpf-fixed-debt-irr-target_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/levpartflip/lpf-fixed-debt-irr-target_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "tax_investor_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs", "cf_debt_balance" };
+
+    Test("levpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodLeveragedPartnershipFlipTest, BonusDepr) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/levpartflip/lev_bonus_depr_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/levpartflip/lev_bonus_depr_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "tax_investor_aftertax_irr", "pre_depr_alloc_basis", "depr_stabas_first_year_bonus_macrs_5", "depr_fedbas_first_year_bonus_macrs_5" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs", "cf_debt_balance" };
+
+    Test("levpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodLeveragedPartnershipFlipTest, PBIforDSCR) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/levpartflip/lev_pbi_irr_dscr_targets_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/levpartflip/lev_pbi_irr_dscr_targets_PVWatts_Leveraged_Partnership_Flip_cmod_levpartflip_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "min_dscr", "tax_investor_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs", "cf_debt_balance" };
+
+    Test("levpartflip", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}

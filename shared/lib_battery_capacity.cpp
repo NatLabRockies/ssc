@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ double tolerance = 0.002; // Used for capacity calcs. Please use powerflow_toler
 Define Capacity Model
 */
 
-bool capacity_state::operator==(const capacity_state &p) {
+bool capacity_state::operator==(const capacity_state &p) const {
     bool equal = (q0 == p.q0);
     equal &= (qmax_lifetime == p.qmax_lifetime);
     equal &= (qmax_thermal == p.qmax_thermal);

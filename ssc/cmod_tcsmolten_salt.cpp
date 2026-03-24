@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _HAS_STD_BYTE 0
+
 #include "core.h"
 
 // for adjustment factors
@@ -51,7 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_pc_Rankine_indirect_224.h"
 #include "csp_solver_two_tank_tes.h"
 
-#include "csp_dispatch.h"
+//#include "csp_dispatch.h"
+#include "csp_dispatch_ortools.h"
 
 #include "csp_solver_cr_electric_resistance.h"
 #include "csp_solver_cavity_receiver.h"
@@ -2075,7 +2078,8 @@ public:
 
         // *****************************************************
         // System dispatch
-        csp_dispatch_opt dispatch;
+        csp_dispatch_ortools dispatch;
+        //csp_dispatch_opt dispatch;
 
         if (is_dispatch && sim_type == 1){
 
@@ -2778,8 +2782,7 @@ public:
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
         for( size_t i = 0; i < count; i++ )
         {
-            size_t hour = (size_t)ceil(p_time_final_hr[i]);
-            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(i));           //[kWe]
             p_gensales_after_avail[i] = max(0.0, p_gen[i]);                         //[kWe]
         }
 

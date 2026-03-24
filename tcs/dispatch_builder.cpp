@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,113 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include "dispatch_builder.h"
 
-//#include "lp_lib.h" 
-//#include "lib_util.h"
-
 /*
 
 Careful with namespaces in this file.. importing the LPsolve library introduces new macro definitions
 and function definitions.
 
 */
-
-void __WINAPI opt_logfunction(lprec* lp, void* userhandle, char* buf)
-{
-    s_solver_params* par = static_cast<s_solver_params*>(userhandle);
-    std::string line = buf;
-    par->log_message.append(line);
-}
-
-int __WINAPI opt_abortfunction(lprec* lp, void* userhandle)
-{
-    s_solver_params* par = static_cast<s_solver_params*>(userhandle);
-    return par->is_abort_flag ? TRUE : FALSE;
-}
-
-void __WINAPI opt_iter_function(lprec* lp, void* userhandle, int msg)
-{
-    s_solver_params* par = static_cast<s_solver_params*>(userhandle);
-
-    /*if( get_timeout(lp) > 0 )
-        par->is_abort_flag = true;*/
-
-    if (msg == MSG_MILPBETTER)
-    {
-        par->obj_relaxed = get_bb_relaxed_objective(lp);
-
-        double cur = get_working_objective(lp);
-
-        if (par->obj_relaxed > 0.)
-            if (cur / par->obj_relaxed > 1. - par->mip_gap)
-                par->is_abort_flag = true;
-    }
-
-    if (get_total_iter(lp) > par->max_bb_iter)
-        par->is_abort_flag = true;
-}
-
-s_solver_params::s_solver_params()
-{
-    is_abort_flag = false;
-    log_message = "";
-    obj_relaxed = std::numeric_limits<double>::quiet_NaN();
-
-    //user settings
-    steps_per_hour = 1;
-    optimize_frequency = 24;
-    optimize_horizon = 48;
-
-    max_bb_iter = 10000;
-    mip_gap = 0.055;
-    solution_timeout = 5.;
-
-    presolve_type = -1;
-    bb_type = -1;
-    disp_reporting = -1;
-    scaling_type = -1;
-
-    is_write_ampl_dat = false;
-    is_ampl_engine = false;
-    ampl_data_dir = "";
-    ampl_exec_call = "";
-}
-
-void s_solver_params::set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
-    int disp_max_iter, double disp_mip_gap, double disp_timeout,
-    int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting)
-{
-    //user settings
-    steps_per_hour = disp_steps_per_hour;
-    optimize_frequency = disp_frequency;
-    optimize_horizon = disp_horizon;
-
-    max_bb_iter = disp_max_iter;
-    mip_gap = disp_mip_gap;
-    solution_timeout = disp_timeout;
-
-    presolve_type = disp_spec_presolve;
-    bb_type = disp_spec_bb;
-    scaling_type = disp_spec_scaling;
-    disp_reporting = disp_spec_reporting;
-}
-
-
-void s_solver_params::set_ampl_inputs(bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec)
-{
-    is_write_ampl_dat = is_write_ampl_dat_spec;
-    is_ampl_engine = is_ampl_engine_spec;
-    ampl_data_dir = ampl_data_dir_spec;
-    ampl_exec_call = ampl_exec_call_spec;
-}
-
-void s_solver_params::reset()
-{
-    is_abort_flag = false;
-    log_message.clear();
-    obj_relaxed = 0.;
-}
-
-// -----------------------------------------
 
 optimization_vars::optimization_vars()
 {

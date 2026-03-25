@@ -224,7 +224,6 @@ static var_info _cm_vtab_fresnel_physical[] = {
     { SSC_INPUT,    SSC_NUMBER,         "disp_pen_ramping",            "Dispatch cycle production change penalty",                                              "$/MWe-change",        "",                             "Sys_Control",          "is_dispatch=1",    "",                 "" },
    
     { SSC_INPUT,    SSC_NUMBER,         "can_cycle_use_standby",       "Can the cycle use standby operation?",                                                  "",                    "",                             "tou",                  "?=0",                     "",          "SIMULATION_PARAMETER" },
-    { SSC_INPUT,    SSC_NUMBER,         "disp_steps_per_hour",         "Time steps per hour for dispatch optimization calculations",                            "-",                   "",                             "tou",                  "?=1",                     "",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_spec_presolve",          "Dispatch optimization presolve heuristic",                                              "-",                   "",                             "tou",                  "?=-1",                    "",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_spec_bb",                "Dispatch optimization B&B heuristic",                                                   "-",                   "",                             "tou",                  "?=-1",                    "",          "SIMULATION_PARAMETER" },
     { SSC_INPUT,    SSC_NUMBER,         "disp_reporting",              "Dispatch optimization reporting level",                                                 "-",                   "",                             "tou",                  "?=-1",                    "",          "SIMULATION_PARAMETER" },
@@ -1222,7 +1221,7 @@ public:
                 double q_dot_cycle_des = W_dot_cycle_des / eta_cycle;   //[MWt]
                 double q_dot_rec_des = q_dot_cycle_des * c_fresnel.m_solar_mult; //[MWt]
 
-                dispatch.solver_params.set_user_inputs(as_integer("disp_steps_per_hour"), as_integer("disp_frequency"), as_integer("disp_horizon"),
+                dispatch.solver_params.set_user_inputs(steps_per_hour, as_integer("disp_frequency"), as_integer("disp_horizon"),
                     as_integer("disp_max_iter"), as_double("disp_mip_gap"), as_double("disp_timeout"),
                     as_integer("disp_spec_presolve"), as_integer("disp_spec_bb"), as_integer("disp_spec_scaling"), as_integer("disp_reporting"));
 

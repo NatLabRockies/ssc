@@ -38,14 +38,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common.h"
 
 static var_info _cm_vtab_custom_generation[] = {
-//	  VARTYPE           DATATYPE         NAME                           LABEL                                 UNITS           META     GROUP                REQUIRED_IF        CONSTRAINTS           UI_HINTS
-	{ SSC_INPUT,        SSC_NUMBER,      "spec_mode",                  "Spec mode: 0=constant CF,1=profile",  "",             "",      "Plant",      "*",               "",                    "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "derate",                     "Derate",                              "%",            "",      "Plant",      "*",               "",                    "" },
-	{ SSC_INOUT,        SSC_NUMBER,      "system_capacity",            "Nameplace Capcity",                   "kW",           "",      "Plant",      "*",               "",                    "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "user_capacity_factor",       "Capacity Factor",                     "%",            "",      "Plant",      "*",               "",                    "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "heat_rate",                  "Heat Rate",                           "MMBTUs/MWhe",  "",      "Plant",      "*",               "",                    "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "conv_eff",                   "Conversion Efficiency",               "%",            "",      "Plant",      "*",               "",                    "" },
-	{ SSC_INPUT,        SSC_ARRAY,       "energy_output_array",        "Array of Energy Output Profile",      "kW",           "",      "Plant",      "spec_mode=1",     "",                    "" },
+//	  VARTYPE           DATATYPE         NAME                           LABEL                                                       UNITS           META     GROUP                REQUIRED_IF        CONSTRAINTS           UI_HINTS
+	{ SSC_INPUT,        SSC_NUMBER,      "spec_mode",                  "Spec mode: 0=constant CF,1=profile,2=lifetime profile ",    "",             "",      "Plant",      "*",               "",                    "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "derate",                     "Derate",                                                    "%",            "",      "Plant",      "*",               "",                    "" },
+	{ SSC_INOUT,        SSC_NUMBER,      "system_capacity",            "Nameplace Capcity",                                         "kW",           "",      "Plant",      "*",               "",                    "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "user_capacity_factor",       "Capacity Factor",                                           "%",            "",      "Plant",      "*",               "",                    "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "heat_rate",                  "Heat Rate",                                                 "MMBTUs/MWhe",  "",      "Plant",      "*",               "",                    "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "conv_eff",                   "Conversion Efficiency",                                     "%",            "",      "Plant",      "*",               "",                    "" },
+	{ SSC_INPUT,        SSC_ARRAY,       "energy_output_array",        "Array of Energy Output Profile",                            "kW",           "",      "Plant",      "spec_mode=1",     "",                    "" },
+    { SSC_INPUT,        SSC_ARRAY,       "energy_output_array_lifetime",        "Array of Energy Output Profile (lifetime)",        "kW",           "",      "Plant",      "spec_mode=2",     "",                    "" },
 
 	// optional for lifetime analysis
 	{ SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",                  "Custom generation profile lifetime simulation",                               "0/1",      "",                              "Lifetime",             "?=0",                        "INTEGER,MIN=0,MAX=1",          "" },
@@ -161,13 +162,42 @@ public:
 				{
 					for (size_t ihourstep = 0; ihourstep < steps_per_hour; ihourstep++)
 					{
-						enet[idx] = (ssc_number_t)(output*haf(ihour)) * sys_degradation[iyear]; // kW
+						enet[idx] = (ssc_number_t)(output) * sys_degradation[iyear]; // kW
 						idx++;
 					}
 				}
 			}
 		}
-		// Input generation profile
+        else if (spec_mode == 2) {
+            size_t nrec_gen = 0;
+            ssc_number_t* enet_in = as_array("energy_output_array_lifetime", &nrec_gen); // kW
+            size_t steps_per_hour_gen = nrec_gen / (8760 * nyears);
+
+            if (!enet_in) {
+                throw exec_error("custom_generation", util::format("energy_output_array_lifetime variable had no values."));
+            }
+
+            if (nrec_gen < nrec_load * nyears) {
+                throw exec_error("custom_generation", util::format("energy_output_array %d must be greater than or equal to load array * analysis period %d", nrec_gen, nrec_load * nyears));
+            }
+            else {
+                nlifetime = nrec_gen;
+                steps_per_hour = steps_per_hour_gen;
+                ts_hour = 1 / (double)(steps_per_hour);
+            }
+
+            enet = allocate("gen", nlifetime);
+            for (size_t iyear = 0; iyear < nyears; iyear++) {
+                for (size_t ihour = 0; ihour < 8760; ihour++) {
+                    for (size_t ihourstep = 0; ihourstep < steps_per_hour_gen; ihourstep++)
+                    {
+                        enet[idx] = enet_in[idx] * (ssc_number_t)(derate);
+                        idx++;
+                    }
+                }
+            }
+        }
+		// Input generation profile (annual or combine cases)
 		else
 		{
 			size_t nrec_gen = 0;
@@ -192,7 +222,7 @@ public:
 				for (size_t ihour = 0; ihour < 8760; ihour++){
 					for (size_t ihourstep = 0; ihourstep < steps_per_hour_gen; ihourstep++)
 					{
-						enet[idx] = enet_in[ihour* steps_per_hour_gen + ihourstep] * (ssc_number_t)(derate* haf(ihour))* sys_degradation[iyear];
+						enet[idx] = enet_in[ihour* steps_per_hour_gen + ihourstep] * (ssc_number_t)(derate)* sys_degradation[iyear];
 						idx++;
 					}
 				}

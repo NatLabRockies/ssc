@@ -35,13 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tcsmolten_salt_defaults.h"
 #include "cmod_tcsmolten_salt_test.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 namespace csp_tower {}
 using namespace csp_tower;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, Default_NoFinancial)
+TEST(PowerTowerCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
@@ -72,7 +71,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, Default_NoFinancial)
     //}
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, SlidingPressure_NoFinancial)
+TEST(PowerTowerCmod, SlidingPressure_NoFinancial)
 {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
@@ -97,7 +96,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, SlidingPressure_NoFinancial)
     }
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, FlowPattern_NoFinancial)
+TEST(PowerTowerCmod, FlowPattern_NoFinancial)
 {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
@@ -125,7 +124,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, FlowPattern_NoFinancial)
     }
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, Dispatch_optimization)
+TEST(PowerTowerCmod, Dispatch_optimization)
 {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
@@ -183,7 +182,7 @@ void CopyVarTableAndGetValue(var_table* vartab, std::string var_name, double* va
     return;
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, CopyingVarTable) {
+TEST(PowerTowerCmod, CopyingVarTable) {
     // Get an ssc_data_t with default input values for the molten salt tower model
     ssc_data_t data = tcsmolten_salt_defaults();
 
@@ -213,7 +212,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, CopyingVarTable) {
     ssc_data_free(data);
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, Start_Stop_Initialize_Default_NoFinancial) {
+TEST(PowerTowerCmod, Start_Stop_Initialize_Default_NoFinancial) {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
     int errors = power_tower.RunModule();
@@ -264,7 +263,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, Start_Stop_Initialize_Default_NoFinanc
     }
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, Dispatch_Targets_Default_NoFinancial) {
+TEST(PowerTowerCmod, Dispatch_Targets_Default_NoFinancial) {
 
     bool print_outputs = false; // True will make test fail to print output!
     int len_window = 24;

@@ -7,7 +7,6 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
   ORTOOLS_VER: "9.14"
   ORTOOLS_RELEASE: "6206"
 
@@ -53,7 +52,6 @@ jobs:
       with:
         repository: google/googletest
         path: googletest
-        ref: ${{env.GTEST_REF}}
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
@@ -148,7 +146,6 @@ jobs:
       with:
         repository: google/googletest
         path: googletest
-        ref: ${{env.GTEST_REF}}
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
@@ -268,7 +265,6 @@ jobs:
       with:
         repository: google/googletest
         path: googletest
-        ref: ${{env.GTEST_REF}}
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'

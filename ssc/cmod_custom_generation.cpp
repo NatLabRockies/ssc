@@ -46,8 +46,7 @@ static var_info _cm_vtab_custom_generation[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "heat_rate",                  "Heat Rate",                                                 "MMBTUs/MWhe",  "",      "Plant",      "*",               "",                    "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "conv_eff",                   "Conversion Efficiency",                                     "%",            "",      "Plant",      "*",               "",                    "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "energy_output_array",        "Array of Energy Output Profile",                            "kW",           "",      "Plant",      "spec_mode=1",     "",                    "" },
-    { SSC_INPUT,        SSC_ARRAY,       "energy_output_array_lifetime",        "Array of Energy Output Profile (lifetime)",        "kW",           "",      "Plant",      "spec_mode=2",     "",                    "" },
-
+ 
 	// optional for lifetime analysis
 	{ SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",                  "Custom generation profile lifetime simulation",                               "0/1",      "",                              "Lifetime",             "?=0",                        "INTEGER,MIN=0,MAX=1",          "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "analysis_period",                             "Lifetime analysis period",                             "years",    "",                              "Lifetime",             "system_use_lifetime_output=1",   "",                             "" },
@@ -123,6 +122,7 @@ public:
 		if (!haf.setup(nrec_load, nyears))
 			throw exec_error("custom_generation", "failed to setup adjustment factors: " + haf.error());
 
+        bool degradation_warning = false;
 		if (system_use_lifetime_output)
 		{
 			// setup system degradation
@@ -134,15 +134,29 @@ public:
 			{
 				for (i = 0; i < nyears; i++)
 					sys_degradation.push_back((ssc_number_t)pow((1.0 - (double)degrad[0] / 100.0), i));
+                if (spec_mode == 2 && degrad[0] > 0)
+                {
+                    degradation_warning = true;
+                }
 			}
 			else if (count_degrad > 0)
 			{
-				for (i = 0; i < nyears && i < (int)count_degrad; i++) sys_degradation.push_back((ssc_number_t)(1.0 - (double)degrad[i] / 100.0));
+                for (i = 0; i < nyears && i < (int)count_degrad; i++) {
+                    sys_degradation.push_back((ssc_number_t)(1.0 - (double)degrad[i] / 100.0));
+                    if (spec_mode == 2 && degrad[i] > 0)
+                    {
+                        degradation_warning = true;
+                    }
+                }
 			}
 		}
 		else {
 			sys_degradation.push_back(1); // single year mode - degradation handled in financial models.
 		}
+
+        if (degradation_warning) {
+            log(util::format("Degradation specified as an input but will not be applied to lifetime data. Consider changing to hourly data or applying the degradation to the lifetime profile."), SSC_WARNING);
+        }
 
 		size_t idx = 0;
 		double annual_output = 0;
@@ -170,11 +184,11 @@ public:
 		}
         else if (spec_mode == 2) {
             size_t nrec_gen = 0;
-            ssc_number_t* enet_in = as_array("energy_output_array_lifetime", &nrec_gen); // kW
+            ssc_number_t* enet_in = as_array("energy_output_array", &nrec_gen); // kW
             size_t steps_per_hour_gen = nrec_gen / (8760 * nyears);
 
             if (!enet_in) {
-                throw exec_error("custom_generation", util::format("energy_output_array_lifetime variable had no values."));
+                throw exec_error("custom_generation", util::format("energy_output_array variable had no values."));
             }
 
             if (nrec_gen < nrec_load * nyears) {

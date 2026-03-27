@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include "trough_physical_defaults.h"
 #include "csp_common_test.h"
+#include <iomanip> 
 
 namespace csp_trough {}
 using namespace csp_trough;

@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tcsmolten_salt_defaults.h"
 #include "cmod_tcsmolten_salt_test.h"
 #include "csp_common_test.h"
+#include <iomanip>
+
 
 namespace csp_tower {}
 using namespace csp_tower;

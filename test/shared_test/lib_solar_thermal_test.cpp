@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 #include "lib_solar_thermal_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 using namespace solar_thermal;
 
@@ -42,7 +41,7 @@ using namespace solar_thermal;
 //=== Using factory patterns to create the different physical and non-physical components=========
 
 // Basic test of expected power gain and outlet temperature of a single flat plate collector
-NAMESPACE_TEST(solar_thermal, FlatPlateCollectorTest, TestFlatPlateCollectorNominalOperation)
+TEST(FlatPlateCollectorTest, TestFlatPlateCollectorNominalOperation)
 {
     DefaultFpcFactory default_fpc_factory = DefaultFpcFactory();
     std::unique_ptr<FlatPlateCollector> flat_plate_collector = default_fpc_factory.MakeCollector();
@@ -58,7 +57,7 @@ NAMESPACE_TEST(solar_thermal, FlatPlateCollectorTest, TestFlatPlateCollectorNomi
 
 // Basic test of expected power gain and outlet temperature of a flat plate collector array
 // Uses a factory (abstract factory pattern) to create the different physical and non-physical components
-NAMESPACE_TEST(solar_thermal, FlatPlateArrayTest, TestFlatPlateArrayOfOneNominalOperation)
+TEST(FlatPlateArrayTest, TestFlatPlateArrayOfOneNominalOperation)
 {
     DefaultFpcFactory default_fpc_factory = DefaultFpcFactory();
     std::unique_ptr<FlatPlateArray> flat_plate_array = default_fpc_factory.MakeFpcArray();

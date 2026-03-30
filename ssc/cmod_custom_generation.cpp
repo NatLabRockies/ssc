@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_windfile.h"
 #include "lib_windwatts.h"
 
+#include "lib_time.h"
 // for adjustment factors
 #include "common.h"
 
@@ -160,6 +161,7 @@ public:
 
 		size_t idx = 0;
 		double annual_output = 0;
+        std::vector<ssc_number_t> extrapolated_current_year_generation;
 
 		// Constant generation profile
 		if (spec_mode == 0)
@@ -184,28 +186,36 @@ public:
 		}
         else if (spec_mode == 2) {
             size_t nrec_gen = 0;
-            ssc_number_t* enet_in = as_array("energy_output_array", &nrec_gen); // kW
+            std::vector<ssc_number_t> current_year_gen;
+            std::vector<ssc_number_t> enet_in = as_vector_double("energy_output_array"); // kW
+            nrec_gen = enet_in.size();
             size_t steps_per_hour_gen = nrec_gen / (8760 * nyears);
+            size_t steps_per_year = 0;
+            // Set this input up for yearly to daily arrays
+            if (steps_per_hour_gen < 1) {
+                steps_per_hour_gen = 1;
+            }
 
-            if (!enet_in) {
+            if (enet_in.empty()) {
                 throw exec_error("custom_generation", util::format("energy_output_array variable had no values."));
             }
-
-            if (nrec_gen < nrec_load * nyears) {
-                throw exec_error("custom_generation", util::format("energy_output_array %d must be greater than or equal to load array * analysis period %d", nrec_gen, nrec_load * nyears));
-            }
             else {
-                nlifetime = nrec_gen;
+                steps_per_year = nrec_gen / (size_t) nyears;
+                nlifetime = steps_per_hour_gen * 8760 * nyears;
                 steps_per_hour = steps_per_hour_gen;
                 ts_hour = 1 / (double)(steps_per_hour);
             }
 
             enet = allocate("gen", nlifetime);
             for (size_t iyear = 0; iyear < nyears; iyear++) {
+                current_year_gen.clear();
+                current_year_gen.reserve(steps_per_year);
+                current_year_gen.insert(current_year_gen.end(), enet_in.begin() + iyear * steps_per_year, enet_in.begin() + (iyear + 1) * steps_per_year);
+                extrapolated_current_year_generation = extrapolate_timeseries(current_year_gen, steps_per_hour_gen, derate);
                 for (size_t ihour = 0; ihour < 8760; ihour++) {
                     for (size_t ihourstep = 0; ihourstep < steps_per_hour_gen; ihourstep++)
                     {
-                        enet[idx] = enet_in[idx] * (ssc_number_t)(derate);
+                        enet[idx] = extrapolated_current_year_generation[ihour * steps_per_hour_gen + ihourstep];
                         idx++;
                     }
                 }
@@ -215,28 +225,31 @@ public:
 		else
 		{
 			size_t nrec_gen = 0;
-			ssc_number_t *enet_in = as_array("energy_output_array", &nrec_gen); // kW
-			size_t steps_per_hour_gen = nrec_gen / 8760;
+            std::vector<ssc_number_t> enet_in = as_vector_double("energy_output_array"); // kW
+            nrec_gen = enet_in.size();
+            size_t steps_per_hour_gen = nrec_gen / 8760;
+            // Set this input up for yearly to daily arrays
+            if (steps_per_hour_gen < 1) {
+                steps_per_hour_gen = 1;
+            }
 
-			if (!enet_in) {
+			if (enet_in.empty()) {
 				throw exec_error("custom_generation", util::format("energy_output_array variable had no values."));
 			}
-
-			if (nrec_gen < nrec_load) {
-				throw exec_error("custom_generation", util::format("energy_output_array %d must be greater than or equal to load array %d", nrec_gen, nrec_load));
-			}
 			else {
-				nlifetime = nrec_gen * nyears;
+				nlifetime = steps_per_hour_gen * 8760 * nyears;
 				steps_per_hour = steps_per_hour_gen;
 				ts_hour = 1 / (double)(steps_per_hour);
 			}
+
+            extrapolated_current_year_generation = extrapolate_timeseries(enet_in, steps_per_hour_gen, derate);
 
 			enet = allocate("gen", nlifetime);
 			for (size_t iyear = 0; iyear < nyears; iyear++){
 				for (size_t ihour = 0; ihour < 8760; ihour++){
 					for (size_t ihourstep = 0; ihourstep < steps_per_hour_gen; ihourstep++)
 					{
-						enet[idx] = enet_in[ihour* steps_per_hour_gen + ihourstep] * (ssc_number_t)(derate)* sys_degradation[iyear];
+						enet[idx] = extrapolated_current_year_generation[ihour* steps_per_hour_gen + ihourstep] * sys_degradation[iyear];
 						idx++;
 					}
 				}

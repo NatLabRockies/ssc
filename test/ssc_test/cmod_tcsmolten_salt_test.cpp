@@ -30,7 +30,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
+#include <iomanip>
 #include <gtest/gtest.h>
 #include "tcsmolten_salt_defaults.h"
 #include "cmod_tcsmolten_salt_test.h"

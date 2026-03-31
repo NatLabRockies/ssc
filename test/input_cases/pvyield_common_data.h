@@ -1246,7 +1246,7 @@ void pvyield_user_support_80603_meteo(ssc_data_t& data)
     ssc_data_set_number(data, "mlm_AM_c_lp3", 0);
     ssc_data_set_number(data, "mlm_AM_c_lp4", 0);
     ssc_data_set_number(data, "mlm_AM_c_lp5", 0);
-    // user support issue 80603 https://sam.nrel.gov/node/80603
+    // user support issue 80603 https://sam.nlr.gov/node/80603
     ssc_data_set_number(data, "mlm_IAM_mode", 3);
     ssc_data_set_number(data, "mlm_IAM_c_as", 0.04);
     ssc_data_set_number(data, "mlm_IAM_c_sa0", 0);
@@ -1684,7 +1684,7 @@ void pvyield_user_support_80603_AZ(ssc_data_t& data)
     ssc_data_set_number(data, "mlm_AM_c_lp3", 0);
     ssc_data_set_number(data, "mlm_AM_c_lp4", 0);
     ssc_data_set_number(data, "mlm_AM_c_lp5", 0);
-    // user support issue 80603 https://sam.nrel.gov/node/80603
+    // user support issue 80603 https://sam.nlr.gov/node/80603
     ssc_data_set_number(data, "mlm_IAM_mode", 3);
     ssc_data_set_number(data, "mlm_IAM_c_as", 0.04);
     ssc_data_set_number(data, "mlm_IAM_c_sa0", 0);

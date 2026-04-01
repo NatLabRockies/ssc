@@ -2656,7 +2656,7 @@ void grid_emulator_base::AddRow(int row, std::string label, std::string units, d
 	//Row adding method for simple performance runs
 
 	if ((GetNumberCols() < 6) || (GetNumberRows() < row + 1))
-		throw spexception("Sorry! Results table incorrectly formatted. Please contact solarpilot.support@nrel.gov for help.");
+		throw spexception("Sorry! Results table incorrectly formatted. Please contact solarpilot.support@nlr.gov for help.");
 
 	bool is_currency = false;
 	if (units.find("$") != std::string::npos) is_currency = true;

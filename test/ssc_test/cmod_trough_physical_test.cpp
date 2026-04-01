@@ -34,13 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include "trough_physical_defaults.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
+#include <iomanip> 
 
 namespace csp_trough {}
 using namespace csp_trough;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(csp_trough, PowerTroughCmod, Default_NoFinancial)
+TEST(PowerTroughCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = trough_physical_defaults();
     CmodUnderTest power_trough = CmodUnderTest("trough_physical", defaults);
@@ -98,7 +98,7 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Default_NoFinancial)
     //}
 }
 
-NAMESPACE_TEST(csp_trough, PowerTroughCmod, Start_Stop_Initialize_Default_NoFinancial)
+TEST(PowerTroughCmod, Start_Stop_Initialize_Default_NoFinancial)
 {
     ssc_data_t defaults = trough_physical_defaults();
     CmodUnderTest power_trough = CmodUnderTest("trough_physical", defaults);
@@ -154,7 +154,7 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Start_Stop_Initialize_Default_NoFina
 }
 
 
-NAMESPACE_TEST(csp_trough, PowerTroughCmod, Dispatch_Targets_Default_NoFinancial) {
+TEST(PowerTroughCmod, Dispatch_Targets_Default_NoFinancial) {
 
     bool print_outputs = false; // True will make test fail to print output!
     int len_window = 24;

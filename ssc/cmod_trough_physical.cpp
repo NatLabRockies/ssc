@@ -130,6 +130,8 @@ static var_info _cm_vtab_trough_physical[] = {
     { SSC_INPUT,        SSC_ARRAY,       "L_aperture",                "Length of a single mirror/HCE unit",                                               "m",            "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_ARRAY,       "ColperSCA",                 "Number of individual collector sections in an SCA ",                               "none",         "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_ARRAY,       "Distance_SCA",              "Piping distance between SCA's in the field",                                       "m",            "",               "solar_field",    "*",                       "",                      "" },
+    { SSC_INPUT,        SSC_NUMBER,      "opt_model",                 "Optical model (1=Solar position ; 2=Collector incidence table ; 3 = IAM matrix)",  "",             "",               "solar_field",    "?=3",                     "INTEGER",               "" },
+    { SSC_INPUT,        SSC_MATRIX,      "OpticalTable",              "Values of the optical efficiency table",                                           "",             "",               "solar_field",    "",                        "",                      "" },
     { SSC_INPUT,        SSC_MATRIX,      "IAM_matrix",                "IAM coefficients, matrix for 4 collectors",                                        "none",         "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_MATRIX,      "HCE_FieldFrac",             "Fraction of the field occupied by this HCE type ",                                 "none",         "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_MATRIX,      "D_2",                       "Inner absorber tube diameter",                                                     "m",            "",               "solar_field",    "*",                       "",                      "" },
@@ -593,7 +595,7 @@ static var_info _cm_vtab_trough_physical[] = {
     // Solar Field                                                                                                                                                                                                                   
     { SSC_OUTPUT,       SSC_ARRAY,       "Theta_ave",                 "Field collector solar incidence angle",                                            "deg",          "",               "solar_field",    "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "CosTh_ave",                 "Field collector cosine efficiency",                                                "",             "",               "solar_field",    "sim_type=1",                       "",                      "" },
-    { SSC_OUTPUT,       SSC_ARRAY,       "IAM_ave",                   "Field collector incidence angle modifier",                                         "",             "",               "solar_field",    "sim_type=1",                       "",                      "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "opt_derate_ave",            "Field collector optical derate modifier",                                          "",             "",               "solar_field",    "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "RowShadow_ave",             "Field collector row shadowing loss",                                               "",             "",               "solar_field",    "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "EndLoss_ave",               "Field collector optical end loss",                                                 "",             "",               "solar_field",    "sim_type=1",                       "",                      "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "dni_costh",                 "Field collector DNI-cosine product",                                               "W/m2",         "",               "solar_field",    "sim_type=1",                       "",                      "" },
@@ -1149,7 +1151,16 @@ public:
                 for (size_t i = 0; i < nval_Distance_SCA; i++)
                     c_trough.m_Distance_SCA[i] = (double)Distance_SCA[i];
 
+                c_trough.m_opt_model = as_integer("opt_model");                 // Optical model (1=Solar position ; 2=Collector incidence table ; 3 = IAM matrix)
                 c_trough.m_IAM_matrix = as_matrix("IAM_matrix");                //[-] IAM coefficients, matrix for 4 collectors
+
+                if (c_trough.m_opt_model != 3)
+                {
+                    if (!is_assigned("OpticalTable"))
+                        throw exec_error("trough_physical", "opt_model 1 or 2 must have OpticalTable assigned.");
+                    else
+                        c_trough.m_OpticalTable = as_matrix("OpticalTable");
+                }
 
                 // Why are these matrices - can't they be arrays?               
                 c_trough.m_HCE_FieldFrac = as_matrix("HCE_FieldFrac");          //[-] Fraction of the field occupied by this HCE type
@@ -1238,7 +1249,7 @@ public:
             {
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_THETA_AVE, allocate("Theta_ave", n_steps_fixed), n_steps_fixed);
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_COSTH_AVE, allocate("CosTh_ave", n_steps_fixed), n_steps_fixed);
-                c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_IAM_AVE, allocate("IAM_ave", n_steps_fixed), n_steps_fixed);
+                c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_OPT_DERATE_AVE, allocate("opt_derate_ave", n_steps_fixed), n_steps_fixed);
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_ROWSHADOW_AVE, allocate("RowShadow_ave", n_steps_fixed), n_steps_fixed);
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_ENDLOSS_AVE, allocate("EndLoss_ave", n_steps_fixed), n_steps_fixed);
                 c_trough.mc_reported_outputs.assign(C_csp_trough_collector_receiver::E_DNI_COSTH, allocate("dni_costh", n_steps_fixed), n_steps_fixed);

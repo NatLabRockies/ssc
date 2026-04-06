@@ -43,7 +43,7 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
 {
 	{C_csp_trough_collector_receiver::E_THETA_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_COSTH_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
-	{C_csp_trough_collector_receiver::E_IAM_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
+	{C_csp_trough_collector_receiver::E_OPT_DERATE_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_ROWSHADOW_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_ENDLOSS_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_DNI_COSTH, C_csp_reported_outputs::TS_WEIGHTED_AVE},
@@ -236,7 +236,7 @@ C_csp_trough_collector_receiver::C_csp_trough_collector_receiver()
 	m_m_dot_htf_tot = std::numeric_limits<double>::quiet_NaN();
 	m_Theta_ave = std::numeric_limits<double>::quiet_NaN();
 	m_CosTh_ave = std::numeric_limits<double>::quiet_NaN();
-	m_IAM_ave = std::numeric_limits<double>::quiet_NaN();
+	m_opt_derate_ave = std::numeric_limits<double>::quiet_NaN();
 	m_RowShadow_ave = std::numeric_limits<double>::quiet_NaN();
 	m_EndLoss_ave = std::numeric_limits<double>::quiet_NaN();
 	m_dni_costh = std::numeric_limits<double>::quiet_NaN();
@@ -256,6 +256,7 @@ C_csp_trough_collector_receiver::C_csp_trough_collector_receiver()
 
 	m_AnnulusGasMat.fill(NULL);
 	m_AbsorberPropMat.fill(NULL);
+    m_OpticalTable.fill(NULL);
 
     m_operating_mode_initial = C_csp_collector_receiver::OFF;
     m_defocus_initial = std::numeric_limits<double>::quiet_NaN();
@@ -306,36 +307,87 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	m_ColTilt = m_ColTilt*m_d2r;	//[rad] Collector tilt angle (0 is horizontal, 90deg is vertical), convert from [deg]
 	m_ColAz = m_ColAz*m_d2r;		//[rad] Collector azimuth angle, convert from [deg]
 
-	// Check m_IAM matrix against number of collectors: m_nColt
-	m_n_r_iam_matrix = (int)m_IAM_matrix.nrows();
-	m_n_c_iam_matrix = (int)m_IAM_matrix.ncols();
+    // Optical model
+    if (m_opt_model < 1 || m_opt_model > 3)
+    {
+        throw(C_csp_exception("m_opt_model must be between 1-3", "Trough collector solver"));
+    }
 
-	if (m_n_c_iam_matrix < 3)
-	{
-		throw(C_csp_exception("There must be at least 3 incident angle modifier coefficients", "Trough collector solver"));
-	}
+    // Check IAM matrix specific values
+    if (m_opt_model == 3)
+    {
+        // Check m_IAM matrix against number of collectors: m_nColt
+        m_n_r_iam_matrix = (int)m_IAM_matrix.nrows();
+        m_n_c_iam_matrix = (int)m_IAM_matrix.ncols();
 
-	if (m_n_r_iam_matrix < m_nColt)
-	{
-		m_error_msg = util::format("The number of groups of m_IAM coefficients (%d) is less than the number of collector types in this simulation (%d)", m_n_r_iam_matrix, m_nColt);
-		throw(C_csp_exception(m_error_msg, "Trough collector solver"));
-	}
+        if (m_n_c_iam_matrix < 3)
+        {
+            throw(C_csp_exception("There must be at least 3 incident angle modifier coefficients", "Trough collector solver"));
+        }
 
-	// Check that for each collector, at least 3 coefficients are != 0.0
-	for (int i = 0; i < m_nColt; i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			if (m_IAM_matrix(i, j) == 0.0)
-			{
+        if (m_n_r_iam_matrix < m_nColt)
+        {
+            m_error_msg = util::format("The number of groups of m_IAM coefficients (%d) is less than the number of collector types in this simulation (%d)", m_n_r_iam_matrix, m_nColt);
+            throw(C_csp_exception(m_error_msg, "Trough collector solver"));
+        }
 
-				m_error_msg = util::format("For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
-				throw(C_csp_exception(m_error_msg, "Trough collector solver"));
-				//message(TCS_ERROR, "For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
-				//return -1;
-			}
-		}
-	}
+        // Check that for each collector, at least 3 coefficients are != 0.0
+        for (int i = 0; i < m_nColt; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                if (m_IAM_matrix(i, j) == 0.0)
+                {
+
+                    m_error_msg = util::format("For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
+                    throw(C_csp_exception(m_error_msg, "Trough collector solver"));
+                    //message(TCS_ERROR, "For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
+                    //return -1;
+                }
+            }
+        }
+    }
+    else
+    {
+        /*
+        The input should be defined as follows:
+        - Data of size nx, ny
+        - OpticalTable of size (nx+1)*(ny+1)
+        - First nx+1 values (row 1) are x-axis values, not data, starting at index 1
+        - First value of remaining ny rows are y-axis values, not data
+        - Data is contained in cells i,j : where i>1, j>1
+        */
+        int ncol_OpticalTable = m_OpticalTable.ncols();
+        int nrow_OpticalTable = m_OpticalTable.nrows();
+
+        double* xax = new double[ncol_OpticalTable - 1];
+        double* yax = new double[nrow_OpticalTable - 1];
+        double* data = new double[(ncol_OpticalTable - 1) * (nrow_OpticalTable - 1)];
+
+        //get the xaxis data values
+        for (int i = 1; i < ncol_OpticalTable; i++) {
+            xax[i - 1] = m_OpticalTable.at(0, i) * m_d2r;
+        }
+        //get the yaxis data values
+        for (int j = 1; j < nrow_OpticalTable; j++) {
+            yax[j - 1] = m_OpticalTable.at(j, 0) * m_d2r;
+        }
+        //Get the data values
+        for (int j = 1; j < nrow_OpticalTable; j++) {
+            for (int i = 1; i < ncol_OpticalTable; i++) {
+                data[i - 1 + (ncol_OpticalTable - 1) * (j - 1)] = m_OpticalTable.at(j, i);
+            }
+        }
+
+        m_optical_table.AddXAxis(xax, ncol_OpticalTable - 1);
+        m_optical_table.AddYAxis(yax, nrow_OpticalTable - 1);
+        m_optical_table.AddData(data);
+        delete[] xax;
+        delete[] yax;
+        delete[] data;
+    }
+
+
 	// ******************************************************************
 
 	//Organize the emittance tables here
@@ -394,7 +446,7 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
     m_q_reflect_tot.resize(m_nSCA);
     m_q_reflect.resize(m_nHCEVar);
 	m_q_i.resize(m_nColt);
-	m_IAM.resize(m_nColt);
+	m_opt_derate.resize(m_nColt);
 	m_ColOptEff.resize(m_nColt, m_nSCA);
 	m_EndGain.resize(m_nColt, m_nSCA);
 	m_EndLoss.resize(m_nColt, m_nSCA);
@@ -1672,7 +1724,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta_off()
 	m_costh = 0.0;		//[-] Cosine of the incident angle between the sun and trough aperture
 
 	m_q_i.assign(m_q_i.size(),0.0);		//[W/m] DNI * A_aper / L_sca
-	m_IAM.assign(m_IAM.size(),0.0);		//[-] Incidence angle modifiers
+	m_opt_derate.assign(m_opt_derate.size(),0.0);		//[-] Incidence angle modifiers
 	m_ColOptEff.fill(0.0);				//[-] tracking * geom * rho * dirt * error * IAM * row shadow * end loss * ftrack
     m_EqOpteff = 0.;
 	m_EndGain.fill(0.0);				//[-] Light from different collector hitting receiver
@@ -1682,7 +1734,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta_off()
 
 	m_Theta_ave = 0.0; 
 	m_CosTh_ave = 0.0; 
-	m_IAM_ave = 0.0; 
+	m_opt_derate_ave = 0.0; 
 	m_RowShadow_ave = 0.0; 
 	m_EndLoss_ave = 0.0;
 	m_dni_costh = 0.0;
@@ -1696,6 +1748,39 @@ void C_csp_trough_collector_receiver::loop_optical_eta_off()
 	return;
 }
 
+double C_csp_trough_collector_receiver::calculate_opt_derate(const int i, const double SolarAz,
+    const double SolarZenRad, const double theta)
+{
+    double opt_derate = 0;
+
+    switch (m_opt_model)
+    {
+        // Sun position
+        case(1):
+        {
+            opt_derate = max(m_optical_table.interpolate(SolarAz, min(SolarZenRad, CSP::pi / 2.)), 0.0);
+            return opt_derate;
+        }
+        // Incidence angle table
+        case(2):
+        {
+            double phi_t, theta_L;
+            CSP::theta_trans(SolarAz, SolarZenRad, m_ColAz, phi_t, theta_L);
+            opt_derate = max(m_optical_table.interpolate(phi_t, max(theta_L, 0.0)), 0.0);
+            return opt_derate;
+        }
+        // IAM poly (original)
+        case(3):
+        {
+            double IAM = m_IAM_matrix(i, 0);
+            for (int j = 1; j < m_n_c_iam_matrix; j++)
+                IAM += m_IAM_matrix(i, j) * std::pow(theta, j) / m_costh;
+            opt_derate = fmax(0.0, fmin(IAM, 1.0));
+            return opt_derate;
+        }
+    }
+}
+
 void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader::S_outputs &weather,
 	const C_csp_solver_sim_info &sim_info)
 {
@@ -1705,8 +1790,6 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 	}
 	else
 	{
-
-
 		// First, clear all the values calculated below
 		loop_optical_eta_off();
 
@@ -1783,6 +1866,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
         double SolarAz = weather.m_solazi;		//[deg] Solar azimuth angle
         SolarAz = (SolarAz - 180.0) * m_d2r;	//[rad] convert from [deg]
         double SolarAlt;
+        double SolarZenRad = weather.m_solzen * m_d2r;  // [rad]
 
         if (m_accept_mode == 1) {
             SolarAlt = CSP::pi/2 - weather.m_solzen;		//[deg] Solar altitude angle
@@ -1812,16 +1896,12 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 		{
 			m_q_i[i] = weather.m_beam*m_A_aperture[i] / m_L_actSCA[i]; //[W/m] The incoming solar irradiation per aperture length
 
-			m_IAM[i] = m_IAM_matrix(i, 0);
-			for (int j = 1; j < m_n_c_iam_matrix; j++)
-				m_IAM[i] += m_IAM_matrix(i, j)*pow(theta, j) / m_costh;
-
-			m_IAM[i] = fmax(0.0, fmin(m_IAM[i], 1.0));
+            m_opt_derate[i] = calculate_opt_derate(i, SolarAz, SolarZenRad, theta);
 
 			//Calculate the Optical efficiency of the collector
 			for (int j = 0; j < m_nSCA; j++)
 			{
-				m_ColOptEff(i, j) = m_TrackingError[i] * m_GeomEffects[i] * m_Rho_mirror_clean[i] * m_Dirt_mirror[i] * m_Error[i] * m_IAM[i];
+				m_ColOptEff(i, j) = m_TrackingError[i] * m_GeomEffects[i] * m_Rho_mirror_clean[i] * m_Dirt_mirror[i] * m_Error[i] * m_opt_derate[i];
 			}
 
 			//Account for light reflecting off the collector and missing the receiver, also light from other 
@@ -1875,7 +1955,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 
 		//Calculate the flux level associated with each SCA
 		//but only calculate for the first call of the timestep<----[NO// messes with defocusing control: mjw 11.4.2010]
-		m_Theta_ave = 0.0; m_CosTh_ave = 0.0; m_IAM_ave = 0.0; m_RowShadow_ave = 0.0; m_EndLoss_ave = 0.0;
+		m_Theta_ave = 0.0; m_CosTh_ave = 0.0; m_opt_derate_ave = 0.0; m_RowShadow_ave = 0.0; m_EndLoss_ave = 0.0;
 		for (int i = 0; i < m_nSCA; i++)
 		{
 			int CT = (int)m_SCAInfoArray(i, 1) - 1;    //Collector type
@@ -1883,7 +1963,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 			//Also use this chance to calculate average optical values
 			m_Theta_ave = m_Theta_ave + theta*m_L_actSCA[CT] / m_L_tot;		//[rad]
 			m_CosTh_ave = m_CosTh_ave + m_costh*m_L_actSCA[CT] / m_L_tot;	//[-]
-			m_IAM_ave = m_IAM_ave + m_IAM[CT] * m_L_actSCA[CT] / m_L_tot;
+            m_opt_derate_ave = m_opt_derate_ave + m_opt_derate[CT] * m_L_actSCA[CT] / m_L_tot;
 			m_RowShadow_ave = m_RowShadow_ave + m_RowShadow[CT] * m_L_actSCA[CT] / m_L_tot;
 			m_EndLoss_ave = m_EndLoss_ave + m_EndLoss(CT, i)*m_L_actSCA[CT] / m_L_tot;
 
@@ -2118,7 +2198,7 @@ void C_csp_trough_collector_receiver::set_output_value()
 {
 	mc_reported_outputs.value(E_THETA_AVE, m_Theta_ave*m_r2d);		//[deg], convert from rad
 	mc_reported_outputs.value(E_COSTH_AVE, m_CosTh_ave);			//[-]
-	mc_reported_outputs.value(E_IAM_AVE, m_IAM_ave);				//[-]
+	mc_reported_outputs.value(E_OPT_DERATE_AVE, m_opt_derate_ave);				//[-]
 	mc_reported_outputs.value(E_ROWSHADOW_AVE, m_RowShadow_ave);	//[-]
 	mc_reported_outputs.value(E_ENDLOSS_AVE, m_EndLoss_ave);		//[-]
 	mc_reported_outputs.value(E_DNI_COSTH, m_dni_costh);			//[W/m2]
@@ -2346,7 +2426,7 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
 	double m_dot_htf_loop = m_m_dot_htfmin;
 	if( weather.m_beam > 50.0 && m_T_htf_out_t_end_converged[m_nSCA - 1] > (0.5*m_T_fp + 0.5*m_T_startup) )
 	{
-		double m_dot_ss = (weather.m_beam * m_CosTh_ave * m_IAM_ave * m_RowShadow_ave * m_EndLoss_ave) / 
+		double m_dot_ss = (weather.m_beam * m_CosTh_ave * m_opt_derate_ave * m_RowShadow_ave * m_EndLoss_ave) / 
 								(m_I_bn_des * m_opteff_des) * m_m_dot_loop_des;		//[kg/s]
 		m_dot_htf_loop = min( m_m_dot_htfmax, max(m_m_dot_htfmin, 0.8*m_dot_ss + 0.2*m_m_dot_htfmin) );		//[kg/s]
 	}
@@ -4205,7 +4285,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     // loop_optical_eta() has side-effects. Store affected member variable values for restore after call.
     double m_costh_ini(m_costh);
     std::vector<double> m_q_i_ini(m_q_i);
-    std::vector<double> m_IAM_ini(m_IAM);
+    std::vector<double> m_opt_derate_ini(m_opt_derate);
     util::matrix_t<double> m_ColOptEff_ini(m_ColOptEff);
     double m_EqOpteff_ini(m_EqOpteff);
     util::matrix_t<double> m_EndGain_ini(m_EndGain);
@@ -4214,7 +4294,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     std::vector<double> m_q_SCA_ini(m_q_SCA);
     double m_Theta_ave_ini(m_Theta_ave);
     double m_CosTh_ave_ini(m_CosTh_ave);
-    double m_IAM_ave_ini(m_IAM_ave);
+    double m_opt_derate_ave_ini(m_opt_derate_ave);
     double m_RowShadow_ave_ini(m_RowShadow_ave);
     double m_EndLoss_ave_ini(m_EndLoss_ave);
     double m_dni_costh_ini(m_dni_costh);
@@ -4229,7 +4309,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     // Restore member variable values
     m_costh = m_costh_ini;
     m_q_i = m_q_i_ini;
-    m_IAM = m_IAM_ini;
+    m_opt_derate = m_opt_derate_ini;
     m_ColOptEff = m_ColOptEff_ini;
     m_EqOpteff = m_EqOpteff_ini;
     m_EndGain = m_EndGain_ini;
@@ -4238,7 +4318,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     m_q_SCA = m_q_SCA_ini;
     m_Theta_ave = m_Theta_ave_ini;
     m_CosTh_ave = m_CosTh_ave_ini;
-    m_IAM_ave = m_IAM_ave_ini;
+    m_opt_derate_ave = m_opt_derate_ave_ini;
     m_RowShadow_ave = m_RowShadow_ave_ini;
     m_EndLoss_ave = m_EndLoss_ave_ini;
     m_dni_costh = m_dni_costh_ini;

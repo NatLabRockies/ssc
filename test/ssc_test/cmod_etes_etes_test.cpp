@@ -34,13 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include "etes_etes_defaults.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 namespace etes_etes_test {}
 using namespace etes_etes_test;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(etes_etes_test, EtesEtesCmod, Default_NoFinancial)
+TEST(EtesEtesCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = etes_etes_defaults();
     CmodUnderTest etes_system = CmodUnderTest("etes_electric_resistance", defaults);

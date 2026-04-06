@@ -839,20 +839,6 @@ enum {
     CF_util_escal_rate,
 
 
-    // SAM 1038
-    CF_itc_fed_amount,
-    CF_itc_fed_percent_fraction,
-    CF_itc_fed_percent_amount,
-    CF_itc_fed_percent_maxvalue,
-    CF_itc_fed,
-    CF_itc_sta_amount,
-    CF_itc_sta_percent_fraction,
-    CF_itc_sta_percent_amount,
-    CF_itc_sta_percent_maxvalue,
-    CF_itc_sta,
-    CF_itc_total,
-
-
     CF_max,
  };
 

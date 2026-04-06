@@ -1159,7 +1159,7 @@ public:
                     if (!is_assigned("OpticalTable"))
                         throw exec_error("trough_physical", "opt_model 1 or 2 must have OpticalTable assigned.");
                     else
-                        c_trough.m_OpticalTable = as_matrix("OpticalTable");
+                        c_trough.m_OpticalTable_in = as_matrix("OpticalTable");
                 }
 
                 // Why are these matrices - can't they be arrays?               

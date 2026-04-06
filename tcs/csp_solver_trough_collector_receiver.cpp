@@ -256,7 +256,7 @@ C_csp_trough_collector_receiver::C_csp_trough_collector_receiver()
 
 	m_AnnulusGasMat.fill(NULL);
 	m_AbsorberPropMat.fill(NULL);
-    m_OpticalTable.fill(NULL);
+    m_OpticalTable_in.fill(NULL);
 
     m_operating_mode_initial = C_csp_collector_receiver::OFF;
     m_defocus_initial = std::numeric_limits<double>::quiet_NaN();
@@ -357,8 +357,8 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
         - First value of remaining ny rows are y-axis values, not data
         - Data is contained in cells i,j : where i>1, j>1
         */
-        int ncol_OpticalTable = m_OpticalTable.ncols();
-        int nrow_OpticalTable = m_OpticalTable.nrows();
+        int ncol_OpticalTable = m_OpticalTable_in.ncols();
+        int nrow_OpticalTable = m_OpticalTable_in.nrows();
 
         double* xax = new double[ncol_OpticalTable - 1];
         double* yax = new double[nrow_OpticalTable - 1];
@@ -366,16 +366,16 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
 
         //get the xaxis data values
         for (int i = 1; i < ncol_OpticalTable; i++) {
-            xax[i - 1] = m_OpticalTable.at(0, i) * m_d2r;
+            xax[i - 1] = m_OpticalTable_in.at(0, i) * m_d2r;
         }
         //get the yaxis data values
         for (int j = 1; j < nrow_OpticalTable; j++) {
-            yax[j - 1] = m_OpticalTable.at(j, 0) * m_d2r;
+            yax[j - 1] = m_OpticalTable_in.at(j, 0) * m_d2r;
         }
         //Get the data values
         for (int j = 1; j < nrow_OpticalTable; j++) {
             for (int i = 1; i < ncol_OpticalTable; i++) {
-                data[i - 1 + (ncol_OpticalTable - 1) * (j - 1)] = m_OpticalTable.at(j, i);
+                data[i - 1 + (ncol_OpticalTable - 1) * (j - 1)] = m_OpticalTable_in.at(j, i);
             }
         }
 

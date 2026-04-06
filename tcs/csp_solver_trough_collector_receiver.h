@@ -435,7 +435,7 @@ public:
     double m_p_start;        //[kWe-hr] Collector startup energy, per SCA
 
     int m_opt_model;		                      // The optical model (1=Solar position ; 2=Collector incidence table ; 3 = IAM matrix)
-    util::matrix_t<double> m_OpticalTable;        // Values of the optical efficiency table
+    util::matrix_t<double> m_OpticalTable_in;        // Values of the optical efficiency table
 	util::matrix_t<double> m_IAM_matrix;		  //[-] IAM coefficients, matrix for 4 collectors
 	
 	util::matrix_t<bool> m_GlazingIntact;		  //[-] Glazing intact (broken glass) flag {1=true, else=false}

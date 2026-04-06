@@ -123,8 +123,6 @@ set(SSC_SRC
 		cmod_windpower.h
 		cmod_windpower_eqns.cpp
 		cmod_windpower_eqns.h
-        	cmod_wind_landbosse.cpp
-        	cmod_wind_landbosse.h
 		common.cpp
 		common.h
 		common_financial.cpp

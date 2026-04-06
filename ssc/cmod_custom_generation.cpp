@@ -47,6 +47,7 @@ static var_info _cm_vtab_custom_generation[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "heat_rate",                  "Heat Rate",                                                 "MMBTUs/MWhe",  "",      "Plant",      "*",               "",                    "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "conv_eff",                   "Conversion Efficiency",                                     "%",            "",      "Plant",      "*",               "",                    "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "energy_output_array",        "Array of Energy Output Profile",                            "kW",           "",      "Plant",      "spec_mode=1",     "",                    "" },
+	{ SSC_INPUT,        SSC_ARRAY,       "energy_output_array_lifetime", "Array of Energy Output Profile",                            "kW",           "",      "Plant",      "spec_mode=2",     "",                    "" },
  
 	// optional for lifetime analysis
 	{ SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",                  "Custom generation profile lifetime simulation",                               "0/1",      "",                              "Lifetime",             "?=0",                        "INTEGER,MIN=0,MAX=1",          "" },
@@ -187,7 +188,7 @@ public:
         else if (spec_mode == 2) {
             size_t nrec_gen = 0;
             std::vector<ssc_number_t> current_year_gen;
-            std::vector<ssc_number_t> enet_in = as_vector_double("energy_output_array"); // kW
+            std::vector<ssc_number_t> enet_in = as_vector_double("energy_output_array_lifetime"); // kW
             nrec_gen = enet_in.size();
             size_t steps_per_hour_gen = nrec_gen / (8760 * nyears);
             size_t steps_per_year = 0;

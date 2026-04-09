@@ -50,6 +50,15 @@ endif()
 
 Project(sam_simulation_core VERSION 1.0.0 LANGUAGES CXX C)
 
+if(MSVC)
+    set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Debug and Release Builds Configured" FORCE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++20")
+    # for linking to Release build of ortools 
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    # Get the current debug flags and remove the /D_DEBUG option.
+    string(REPLACE "/D_DEBUG" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+ endif()
+
 
 #####################################################################################################################
 #

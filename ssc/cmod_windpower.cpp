@@ -98,6 +98,9 @@ static var_info _cm_vtab_windpower[] = {
 	{ SSC_INPUT  , SSC_NUMBER , "turb_perf_loss"                     , "Turbine Sub-optimal performance loss"     , "%"       ,""                                    , "Losses"                               , "?=0"                                             , "MIN=0,MAX=100"                                   , "" } ,
 	{ SSC_INPUT  , SSC_NUMBER , "turb_specific_loss"                 , "Turbine Site-specific Powercurve loss"    , "%"       ,""                                    , "Losses"                               , "?=0"                                             , "MIN=0,MAX=100"                                   , "" } ,
 
+    { SSC_INOUT,   SSC_NUMBER,  "system_use_lifetime_output"         , "Run lifetime simulation",                   "0/1",     "",                                     "Lifetime",                              "?=0",                        "",                              "" },
+    { SSC_INPUT,   SSC_NUMBER,  "analysis_period"                    , "Analysis period",                           "years",    "",                                    "Lifetime",                              "system_use_lifetime_output=1", "",                          "" },
+    { SSC_INPUT,   SSC_ARRAY,   "generic_degradation",                 "Annual AC degradation for lifetime simulations","%/year",  "",                                 "Lifetime",                              "system_use_lifetime_output=1", "",                          "" },
 
 
         // OUTPUTS ----------------------------------------------------------------------------annual_energy
@@ -235,7 +238,6 @@ bool winddata::read_line(std::vector<double> &values)
 	return true;
 }
 
-
 cm_windpower::cm_windpower(){
 	add_var_info(_cm_vtab_windpower);
 	// performance adjustment factors
@@ -365,6 +367,29 @@ void cm_windpower::exec()
     double icingRHCutoffValue = icingCutoff ? as_double("icing_cutoff_rh") : -1;
     int icingPersistenceTimesteps = as_integer("icing_persistence_timesteps");
 
+    size_t nyears = 1;
+    std::vector<double> degradationFactor;
+    if (as_boolean("system_use_lifetime_output")) {
+        nyears = as_unsigned_long("analysis_period");
+        std::vector<double> ac_degradation = as_vector_double("generic_degradation");
+        if (ac_degradation.size() == 1) {
+            degradationFactor.push_back(1.0); // assume zero degradation in year 1
+            for (size_t y = 1; y < nyears; y++) {
+                degradationFactor.push_back(1.0 - (ac_degradation[0] * y) / 100.0);
+            }
+        }
+        else {
+            if (ac_degradation.size() != nyears)
+                throw exec_error("windpower", "Length of degradation array must be equal to analysis period.");
+            for (size_t y = 0; y < nyears; y++) {
+                degradationFactor.push_back(1.0 - ac_degradation[y] / 100.0);
+            }
+        }
+    }
+    else {
+        degradationFactor.push_back(1.0);
+    }
+
 	// Run Weibull Statistical model (single outputs) if selected, requires hourly simulation
 	if (as_integer("wind_resource_model_choice") == 1 ){
 		ssc_number_t *turbine_output = allocate("turbine_output_by_windspeed_bin", wt.powerCurveArrayLength);
@@ -393,16 +418,22 @@ void cm_windpower::exec()
 
 		int nstep = 8760;
         // set up adjustment loss for Weibull distribution wind resource
-        if (!haf.setup())
+        if (!haf.setup(nstep, nyears))
             throw exec_error("windpower", "failed to set up adjustment factors for Weibull distribution wind resource: " + haf.error());
 
         ssc_number_t farm_kw = (ssc_number_t)turbine_kw * wpc.nTurbines / (ssc_number_t)nstep;
-		ssc_number_t *farmpwr = allocate("gen", nstep);
-		for (int i = 0; i < nstep; i++) //nstep is always 8760 for Weibull
-		{
-			farmpwr[i] = farm_kw; // fill "gen"
-			farmpwr[i] *= haf(i); //apply adjustment factor/availability and curtailment losses
-		}
+		ssc_number_t *farmpwr = allocate("gen", nstep * nyears);
+        size_t idx_life = 0;
+        for (size_t y = 0; y < nyears; y++) {
+            for (int i = 0; i < nstep; i++) //nstep is always 8760 for Weibull
+            {
+                farmpwr[idx_life] = farm_kw; // fill "gen"
+                farmpwr[idx_life] *= haf(idx_life); //apply adjustment factor/availability and curtailment losses
+                farmpwr[idx_life] *= degradationFactor[y]; //apply degradation for lifetime simulation if applicable
+                idx_life++;
+            }
+
+        }
 
 		for (size_t i = 0; i < wpc.nTurbines; i++)
 			turbine_output[i] = (ssc_number_t)turbine_outkW[i];
@@ -481,18 +512,23 @@ void cm_windpower::exec()
             assign("annual_wake_loss_internal_percent", var_data((ssc_number_t)annual_wake_int_loss_percent));
         }
 
+        int nstep = 8760;
         // set up adjustment factors for constant wake loss option
-        if (!haf.setup())
+        if (!haf.setup(nstep, nyears))
             throw exec_error("windpower", "failed to set up adjustment factors for wind resource probability table: " + haf.error());
 
-        int nstep = 8760;
         ssc_number_t farm_kw = farmPower / (ssc_number_t)nstep;
-        ssc_number_t *farmpwr = allocate("gen", nstep);
-        for (int i = 0; i < nstep; i++)
-        {
-            farmpwr[i] = farm_kw; // fill "gen"
-            farmpwr[i] *= haf(i); //apply adjustment factor/availability and curtailment losses
-            farmpwr[i] *= lossMultiplier;
+        ssc_number_t *farmpwr = allocate("gen", nstep * nyears);
+        size_t idx_life = 0;
+        for (size_t y = 0; y < nyears; y++) {
+            for (int i = 0; i < nstep; i++)
+            {
+                farmpwr[idx_life] = farm_kw; // fill "gen"
+                farmpwr[idx_life] *= haf(idx_life); //apply adjustment factor/availability and curtailment losses
+                farmpwr[idx_life] *= lossMultiplier;
+                farmpwr[idx_life] *= degradationFactor[y]; //apply degradation for lifetime simulation if applicable
+                idx_life++;
+            }
         }
 
         accumulate_monthly("gen", "monthly_energy");
@@ -531,7 +567,7 @@ void cm_windpower::exec()
 	{
 		// read the wind data file
 		const char *file = as_string("wind_resource_filename");
-		windfile *wp = new windfile(file);
+        windfile *wp = new windfile(file);
 		nstep = wp->nrecords();
 		wdprov = smart_ptr<winddata_provider>::ptr(wp);
 		if (!wp->ok() || (nstep == 0))
@@ -573,17 +609,18 @@ void cm_windpower::exec()
 		throw exec_error("windpower", util::format("invalid number of data records (%d): must be an integer multiple of 8760", (int)nstep));
 
     // set up adjustment factors for time series simulation
-    if (!haf.setup(nstep))
+    if (!haf.setup(nstep, nyears))
         throw exec_error("windpower", "failed to set up adjustment factors for time series wind resource data: " + haf.error());
 
 	// allocate output data
-	ssc_number_t *farmpwr = allocate("gen", nstep);
-    ssc_number_t* wakeLosskW = allocate("wake_loss_internal_kW", nstep);
-    ssc_number_t* wakeLossPercent = allocate("wake_loss_internal_percent", nstep);
-	ssc_number_t *wspd = allocate("wind_speed", nstep);
-	ssc_number_t *wdir = allocate("wind_direction", nstep);
-	ssc_number_t *air_temp = allocate("temp", nstep);
-	ssc_number_t *air_pres = allocate("pressure", nstep);
+    size_t nlifetime = nstep * nyears;
+	ssc_number_t *farmpwr = allocate("gen", nlifetime);
+    ssc_number_t* wakeLosskW = allocate("wake_loss_internal_kW", nlifetime);
+    ssc_number_t* wakeLossPercent = allocate("wake_loss_internal_percent", nlifetime);
+	ssc_number_t *wspd = allocate("wind_speed", nlifetime);
+	ssc_number_t *wdir = allocate("wind_direction", nlifetime);
+	ssc_number_t *air_temp = allocate("temp", nlifetime);
+	ssc_number_t *air_pres = allocate("pressure", nlifetime);
 
 
 	std::vector<double> Power(wpc.nTurbines, 0.), Thrust(wpc.nTurbines, 0.),
@@ -600,63 +637,65 @@ void cm_windpower::exec()
     int icingPersistenceTSRemaining = 0; //a counter for icing to persist x number of timesteps based on user input
 
 	// compute power output at i-th timestep
-	int i = 0;
-	for (size_t hr = 0; hr < 8760; hr++)
-	{
-		int imonth = util::month_of((double)hr) - 1;
+	size_t idx_life = 0;
+    for (size_t y = 0; y < nyears; y++) {
+        size_t i_year = 0;
+        for (size_t hr = 0; hr < 8760; hr++)
+        {
+            int imonth = util::month_of((double)hr) - 1;
 
-		for (size_t istep = 0; istep < steps_per_hour; istep++)
-		{
-			if (i % (nstep / 20) == 0)
-				update("", 100.0f * ((float)i) / ((float)nstep), (float)i); //update percentage complete in UI
+            for (size_t istep = 0; istep < steps_per_hour; istep++)
+            {
+                if (idx_life % (nlifetime / 20) == 0)
+                    update("", 100.0f * ((float)idx_life) / ((float)nlifetime), (float)idx_life); //update percentage complete in UI
 
-			double wind, dir, temp, pres, closest_dir_meas_ht;
+                double wind, dir, temp, pres, closest_dir_meas_ht;
 
-			//skip leap day if applicable
-			if (contains_leap_day)
-			{
-				if (hr == 1416) //(31 days in Jan  + 28 days in Feb) * 24 hours a day, +1 to be the start of Feb 29, -1 because of 0 indexing
-					for (size_t j = 0; j < 24 * steps_per_hour; j++) //trash 24 hours' worth of lines in the weather file to skip the entire day of Feb 29
-					{
-						if (!wdprov->read(wt.hubHeight, &wind, &dir, &temp, &pres, &wt.measurementHeight, &closest_dir_meas_ht, true))
-							throw exec_error("windpower", util::format("error reading wind resource file leap day data at %d: ", i) + wdprov->error());
-					}
-			} //now continue with the normal process, none of the counters have been incremented so everything else should be ok
+                //skip leap day if applicable
+                if (contains_leap_day)
+                {
+                    if (hr == 1416) //(31 days in Jan  + 28 days in Feb) * 24 hours a day, +1 to be the start of Feb 29, -1 because of 0 indexing
+                        for (size_t j = 0; j < 24 * steps_per_hour; j++) //trash 24 hours' worth of lines in the weather file to skip the entire day of Feb 29
+                        {
+                            if (!wdprov->read(wt.hubHeight, &wind, &dir, &temp, &pres, &wt.measurementHeight, &closest_dir_meas_ht, true))
+                                throw exec_error("windpower", util::format("error reading wind resource file leap day data at %d: ", idx_life) + wdprov->error());
+                        }
+                } //now continue with the normal process, none of the counters have been incremented so everything else should be ok
 
-			// if wf.read is set to interpolate (last input), and it's able to do so, then it will set wpc.measurementHeight equal to hub_ht
-			// direction will not be interpolated, pressure and temperature will be if possible
-			if (!wdprov->read(wt.hubHeight, &wind, &dir, &temp, &pres, &wt.measurementHeight, &closest_dir_meas_ht, true))
-				throw exec_error("windpower", util::format("error reading wind resource file for interpolation at time step %d: ", i) + wdprov->error());
+                // if wf.read is set to interpolate (last input), and it's able to do so, then it will set wpc.measurementHeight equal to hub_ht
+                // direction will not be interpolated, pressure and temperature will be if possible
+                if (!wdprov->read(wt.hubHeight, &wind, &dir, &temp, &pres, &wt.measurementHeight, &closest_dir_meas_ht, true))
+                    throw exec_error("windpower", util::format("error reading wind resource file for interpolation at time step %d: ", idx_life) + wdprov->error());
 
-			if (std::abs(wt.measurementHeight - wt.hubHeight) > 35.0)
-				throw exec_error("windpower", util::format("the closest wind speed measurement height (%lg m) found is more than 35 m from the hub height specified (%lg m)", wt.measurementHeight, wt.hubHeight));
+                if (std::abs(wt.measurementHeight - wt.hubHeight) > 35.0)
+                    throw exec_error("windpower", util::format("the closest wind speed measurement height (%lg m) found is more than 35 m from the hub height specified (%lg m)", wt.measurementHeight, wt.hubHeight));
 
-			if (std::abs(closest_dir_meas_ht - wt.measurementHeight) > 10.0)
-			{
-				if (i > 0) // if this isn't the first hour, then it's probably because of interpolation
-				{
-					// probably interpolated wind speed, but could not interpolate wind direction because the directions were too far apart.
-					// first, verify:
-					if ((wt.measurementHeight == wt.hubHeight) && (closest_dir_meas_ht != wt.hubHeight))
-						// now, alert the user of this discrepancy
-						throw exec_error("windpower", util::format("on hour %d, SAM interpolated the wind speed to an %lgm measurement height, but could not interpolate the wind direction from the two closest measurements because the directions encountered were too disparate", i + 1, wt.measurementHeight));
-					else
-						throw exec_error("windpower", util::format("SAM encountered an error at hour %d: hub height = %lg, closest wind speed meas height = %lg, closest wind direction meas height = %lg ", i + 1, wt.hubHeight, wt.measurementHeight, closest_dir_meas_ht));
-				}
-				else
-					throw exec_error("windpower", util::format("the closest wind speed measurement height (%lg m) and direction measurement height (%lg m) were more than 10m apart", wt.measurementHeight, closest_dir_meas_ht));
-			}
+                if (std::abs(closest_dir_meas_ht - wt.measurementHeight) > 10.0)
+                {
+                    if (idx_life > 0) // if this isn't the first hour, then it's probably because of interpolation
+                    {
+                        // probably interpolated wind speed, but could not interpolate wind direction because the directions were too far apart.
+                        // first, verify:
+                        if ((wt.measurementHeight == wt.hubHeight) && (closest_dir_meas_ht != wt.hubHeight))
+                            // now, alert the user of this discrepancy
+                            throw exec_error("windpower", util::format("on hour %d, SAM interpolated the wind speed to an %lgm measurement height, but could not interpolate the wind direction from the two closest measurements because the directions encountered were too disparate", idx_life + 1, wt.measurementHeight));
+                        else
+                            throw exec_error("windpower", util::format("SAM encountered an error at hour %d: hub height = %lg, closest wind speed meas height = %lg, closest wind direction meas height = %lg ", idx_life + 1, wt.hubHeight, wt.measurementHeight, closest_dir_meas_ht));
+                    }
+                    else
+                        throw exec_error("windpower", util::format("the closest wind speed measurement height (%lg m) and direction measurement height (%lg m) were more than 10m apart", wt.measurementHeight, closest_dir_meas_ht));
+                }
 
-			// If the wind speed measurement height still differs from the turbine hub height (ie it wasn't corrected above, maybe because file only has one measurement height), use the shear to correct it.
-			if (std::abs(wt.measurementHeight - wt.hubHeight) > 1) {
-				if (wt.shearExponent > 1.0) wt.shearExponent = 1.0 / 7.0;
-				wind = wind * pow(wt.hubHeight / wt.measurementHeight, wt.shearExponent);
-				wt.measurementHeight = wt.hubHeight;
-			}
+                // If the wind speed measurement height still differs from the turbine hub height (ie it wasn't corrected above, maybe because file only has one measurement height), use the shear to correct it.
+                if (std::abs(wt.measurementHeight - wt.hubHeight) > 1) {
+                    if (wt.shearExponent > 1.0) wt.shearExponent = 1.0 / 7.0;
+                    wind = wind * pow(wt.hubHeight / wt.measurementHeight, wt.shearExponent);
+                    wt.measurementHeight = wt.hubHeight;
+                }
 
-			double farmp = 0., gross_farmp = 0.;
+                double farmp = 0., gross_farmp = 0.;
 
-			if ((int)wpc.nTurbines != wpc.windPowerUsingResource(
+                if ((int)wpc.nTurbines != wpc.windPowerUsingResource(
                     /* inputs */
                     wind,    /* m/s */
                     dir,    /* degrees */
@@ -673,57 +712,64 @@ void cm_windpower::exec()
                     &Turb[0],
                     &DistDown[0],
                     &DistCross[0]))
-				throw exec_error("windpower", util::format("error in wind calculation at time %d, details: %s", i, wpc.GetErrorDetails().c_str()));
+                    throw exec_error("windpower", util::format("error in wind calculation at time %d, details: %s", idx_life, wpc.GetErrorDetails().c_str()));
 
-            if (wakeModelChoice != CONSTANTVALUE && is_assigned("wake_loss_multiplier")) //wake loss multiplier isn't available for constant wake loss option
-            {
-                double wakeLossMultiplier = as_double("wake_loss_multiplier");
-                double wakeLossBeforeMultiplier = gross_farmp - farmp;
-                double newWakeLoss = wakeLossBeforeMultiplier * wakeLossMultiplier;
-                farmp = gross_farmp - newWakeLoss;
-            }
-
-            //wake loss calculations need to happen before other losses are applied
-            annual_gross += gross_farmp / (ssc_number_t)steps_per_hour;
-			annual_after_wake_loss += farmp / (ssc_number_t)steps_per_hour;       
-            wakeLosskW[i] = gross_farmp - farmp;          
-            if (gross_farmp == 0.0) wakeLossPercent[i] = 0.0;
-            else wakeLossPercent[i] = wakeLosskW[i] / gross_farmp * 100.0;
-
-			farmp *= lossMultiplier;
-			// apply and track cutoff losses
-            withoutCutOffLosses += farmp * haf(i) / (ssc_number_t)steps_per_hour;
-
-            if (lowTempCutoff){
-				if (temp < lowTempCutoffValue) farmp = 0.0;
-			}
-			if (icingCutoff){
-                if (temp < icingTempCutoffValue && wdprov->relativeHumidity()[i] > icingRHCutoffValue)
+                if (wakeModelChoice != CONSTANTVALUE && is_assigned("wake_loss_multiplier")) //wake loss multiplier isn't available for constant wake loss option
                 {
-                    farmp = 0.0;
-                    icingPersistenceTSRemaining = icingPersistenceTimesteps;
+                    double wakeLossMultiplier = as_double("wake_loss_multiplier");
+                    double wakeLossBeforeMultiplier = gross_farmp - farmp;
+                    double newWakeLoss = wakeLossBeforeMultiplier * wakeLossMultiplier;
+                    farmp = gross_farmp - newWakeLoss;
                 }
-                if (icingPersistenceTSRemaining > 0)
-                {
-                    farmp = 0.0;
-                    icingPersistenceTSRemaining--;
+
+                if (y == 0) {
+                    //wake loss calculations need to happen before other losses are applied
+                    annual_gross += gross_farmp / (ssc_number_t)steps_per_hour;
+                    annual_after_wake_loss += farmp / (ssc_number_t)steps_per_hour;
                 }
-			}
+                wakeLosskW[idx_life] = gross_farmp - farmp;
+                if (gross_farmp == 0.0) wakeLossPercent[idx_life] = 0.0;
+                else wakeLossPercent[idx_life] = wakeLosskW[idx_life] / gross_farmp * 100.0;
 
-            farmpwr[i] = (ssc_number_t)farmp * haf(i);
-            wspd[i] = (ssc_number_t)wind;
-			wdir[i] = (ssc_number_t)dir;
-			air_temp[i] = (ssc_number_t)temp;
-            if (pres > 1.1) pres = pres / physics::Pa_PER_Atm; // assumes that value greater than 1.1 is i Pa
-			air_pres[i] = (ssc_number_t)pres;
+                farmp *= lossMultiplier * degradationFactor[y];
+                // apply and track cutoff losses
+                withoutCutOffLosses += farmp * haf(idx_life) / (ssc_number_t)steps_per_hour;
 
-			// accumulate monthly and annual energy
-			monthly[imonth] += farmpwr[i] / (ssc_number_t)steps_per_hour;
-			annual += farmpwr[i] / (ssc_number_t)steps_per_hour;
+                if (lowTempCutoff) {
+                    if (temp < lowTempCutoffValue) farmp = 0.0;
+                }
+                if (icingCutoff) {
+                    if (temp < icingTempCutoffValue && wdprov->relativeHumidity()[i_year] > icingRHCutoffValue)
+                    {
+                        farmp = 0.0;
+                        icingPersistenceTSRemaining = icingPersistenceTimesteps;
+                    }
+                    if (icingPersistenceTSRemaining > 0)
+                    {
+                        farmp = 0.0;
+                        icingPersistenceTSRemaining--;
+                    }
+                }
 
-			i++;
-		} // end steps_per_hour loop
-	} // end 1->8760 loop
+                farmpwr[idx_life] = (ssc_number_t)farmp * haf(idx_life);
+                wspd[idx_life] = (ssc_number_t)wind;
+                wdir[idx_life] = (ssc_number_t)dir;
+                air_temp[idx_life] = (ssc_number_t)temp;
+                if (pres > 1.1) pres = pres / physics::Pa_PER_Atm; // assumes that value greater than 1.1 is i Pa
+                air_pres[idx_life] = (ssc_number_t)pres;
+
+                if (y == 0) {
+                    // accumulate monthly and annual energy
+                    monthly[imonth] += farmpwr[i_year] / (ssc_number_t)steps_per_hour;
+                    annual += farmpwr[i_year] / (ssc_number_t)steps_per_hour;
+                }
+
+                i_year++;
+                idx_life++;
+            } // end steps_per_hour loop
+        } // end 1->8760 loop
+        wdprov->rewind(); //reset to beginning of file for next year of simulation if applicable
+    }
     ssc_number_t* p_annual_energy_dist_time = gen_heatmap(this, steps_per_hour);
 	// assign outputs
 	assign("annual_energy", var_data((ssc_number_t)annual));

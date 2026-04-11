@@ -438,8 +438,9 @@ void cm_windpower::exec()
 		for (size_t i = 0; i < wpc.nTurbines; i++)
 			turbine_output[i] = (ssc_number_t)turbine_outkW[i];
 
-		accumulate_monthly("gen", "monthly_energy");
-		accumulate_annual("gen", "annual_energy");
+        size_t steps_per_hour = 1; // Always 1 for statistical
+        accumulate_monthly_for_year("gen", "monthly_energy", 1, 1);
+        accumulate_annual_for_year("gen", "annual_energy", 1, 1);
 
 		// metric outputs moved to technology
 		double kWhperkW = 0.0;
@@ -531,8 +532,9 @@ void cm_windpower::exec()
             }
         }
 
-        accumulate_monthly("gen", "monthly_energy");
-        accumulate_annual("gen", "annual_energy");
+        size_t steps_per_hour = 1; // Always 1 for distribution
+        accumulate_monthly_for_year("gen", "monthly_energy", 1, 1);
+        accumulate_annual_for_year("gen", "annual_energy", 1, 1);
 
         // average wind speed
         double avg_speed = 0.;

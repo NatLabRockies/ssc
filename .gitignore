@@ -360,3 +360,5 @@ ssc/ssc\.exp
 ssc/sscd\.exp
 
 build_android/lib_oldssc.zip
+
+CMakeFiles/

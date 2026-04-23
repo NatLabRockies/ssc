@@ -1973,7 +1973,7 @@ public:
         // Basis reductions are handled in depr_fed_reduction and depr_sta_reduction
 
         // Under 2024 law these are understood to be the same, keep seperate variables for reporting out
-        double pre_itc_qual_basis = itc_depr_calc.pre_depr_alloc_basis;
+        double pre_itc_qual_basis = pre_depr_alloc_basis;
         itc_depr_calc.calc_basis(pre_depr_alloc_basis, pre_itc_qual_basis);
 
         

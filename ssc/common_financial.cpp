@@ -4021,7 +4021,10 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
 
 }
 
-void itc_and_depreciation_calculations::calc_basis(double pre_depr_alloc_basis, double pre_itc_qual_basis) {
+void itc_and_depreciation_calculations::calc_basis(double in_pre_depr_alloc_basis, double in_pre_itc_qual_basis) {
+    pre_depr_alloc_basis = in_pre_itc_qual_basis;
+    pre_itc_qual_basis = in_pre_itc_qual_basis;
+
     depr_alloc_total = depr_alloc_total_frac * pre_depr_alloc_basis;
     depr_alloc_macrs_5 = depr_alloc_macrs_5_frac * depr_alloc_total;
     depr_alloc_macrs_15 = depr_alloc_macrs_15_frac * depr_alloc_total;
@@ -4032,6 +4035,7 @@ void itc_and_depreciation_calculations::calc_basis(double pre_depr_alloc_basis, 
     depr_alloc_custom = depr_alloc_custom_frac * depr_alloc_total;
     depr_alloc_none = depr_alloc_none_frac * depr_alloc_total;
 
+    // itc_basis_updates -> change this based on new inputs (this only runs for one combo)
     itc_sta_qual_macrs_5 = itc_sta_qual_macrs_5_frac * (depr_alloc_macrs_5 - depr_stabas_macrs_5_frac * depr_sta_reduction);
     itc_sta_qual_macrs_15 = itc_sta_qual_macrs_15_frac * (depr_alloc_macrs_15 - depr_stabas_macrs_15_frac * depr_sta_reduction);
     itc_sta_qual_sl_5 = itc_sta_qual_sl_5_frac * (depr_alloc_sl_5 - depr_stabas_sl_5_frac * depr_sta_reduction);
@@ -4086,6 +4090,7 @@ void itc_and_depreciation_calculations::calc_basis(double pre_depr_alloc_basis, 
         itc_disallow_sta_fixed_custom = 0;
     }
 
+    // itc_basis_updates -> change this based on new inputs (this only runs for one combo)
     itc_fed_qual_macrs_5 = itc_fed_qual_macrs_5_frac * (depr_alloc_macrs_5 - depr_fedbas_macrs_5_frac * depr_fed_reduction);
     itc_fed_qual_macrs_15 = itc_fed_qual_macrs_15_frac * (depr_alloc_macrs_15 - depr_fedbas_macrs_15_frac * depr_fed_reduction);
     itc_fed_qual_sl_5 = itc_fed_qual_sl_5_frac * (depr_alloc_sl_5 - depr_fedbas_sl_5_frac * depr_fed_reduction);

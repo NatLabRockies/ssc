@@ -149,7 +149,7 @@ class itc_and_depreciation_calculations
 public:
     itc_and_depreciation_calculations(compute_module* cm, size_t n_years);
 
-    void calc_basis(double pre_depr_alloc_basis, double pre_itc_qual_basis);
+    void calc_basis(double in_pre_depr_alloc_basis, double in_pre_itc_qual_basis);
     void set_depr_schedules(compute_module* cm);
     void major_equipment_depreciation(compute_module* cm, util::matrix_t<double>& main_cf, int cf_equipment_expenditure, int expenditure_year, int analysis_period, int cf_equipment_depreciation);
 
@@ -177,12 +177,13 @@ public:
 
     double itc_fed_amount;
     double itc_sta_amount;
-    double itc_fed_per;
+    double itc_fed_per; // Still in $, even though it has per in the name
     double itc_sta_per;
 
     double pre_depr_alloc_basis; // Total costs that could qualify for depreciation before allocations
     double pre_itc_qual_basis; // Total costs that could qualify for ITC before allocations
 
+    // Variables with 'frac' in the name have % as units, others are in $
     double depr_alloc_macrs_5_frac;
     double depr_alloc_macrs_15_frac;
     double depr_alloc_sl_5_frac;

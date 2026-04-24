@@ -399,6 +399,5 @@ var_info vtab_spectral_correction[] = {
 { SSC_INPUT, SSC_ARRAY , "coeff_inputs_lee",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=6",    ""},
 { SSC_INPUT, SSC_ARRAY , "coeff_inputs_king",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=5",    ""},
 { SSC_INPUT, SSC_ARRAY , "coeff_inputs_pelland",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=3",    ""},
-{ SSC_OUTPUT, SSC_MATRIX, "annual_energy_distribution_time",	   "Annual energy production as function of time",	"kW",		  "", "Heatmaps",		  "",	   "",	  ""},
 
     var_info_invalid };

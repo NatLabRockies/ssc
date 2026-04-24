@@ -149,6 +149,8 @@ inline void populate_itc_depr_inputs(var_table& vt)
     vt.assign("depr_bonus_fed_sl_20", var_data((ssc_number_t)0));
     vt.assign("depr_bonus_fed_sl_39", var_data((ssc_number_t)0));
     vt.assign("depr_bonus_fed_custom", var_data((ssc_number_t)0));
+
+    vt.assign("depr_en_basis_mat", var_data((ssc_number_t)0));
 }
 
 class common_financial_test : public ::testing::Test {

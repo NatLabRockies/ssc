@@ -278,6 +278,10 @@ var_info vtab_depreciation_inputs[] = {
 { SSC_INPUT,        SSC_NUMBER,		"depr_itc_fed_sl_20",                     "Federal ITC depreciation 20-yr straight line","0/1","",                  "Depreciation",			 "?=0",                       "BOOLEAN",                        "" },
 { SSC_INPUT,        SSC_NUMBER,		"depr_itc_fed_sl_39",                     "Federal ITC depreciation 39-yr straight line","0/1","",                  "Depreciation",			 "?=0",                       "BOOLEAN",                        "" },
 { SSC_INPUT,        SSC_NUMBER,		"depr_itc_fed_custom",                    "Federal ITC depreciation custom","0/1","",                  "Depreciation",			 "?=0",                       "BOOLEAN",                        "" },
+
+{ SSC_INPUT,        SSC_NUMBER,		"depr_en_basis_mat",                      "Enable Depreciation Basis Matrix","0/1","",                  "Depreciation",			 "?=0",                       "BOOLEAN",                        "" },
+{ SSC_INPUT,        SSC_MATRIX,		"depr_basis_mat",                         "Depreciation Basis Matrix","", "",                            "Depreciation",			 "depr_en_basis_mat=1",       "col 0=tech no, col 1=basis amount ($), col 2=% of total installed cost, col 3=fed itc qual 0/1, col 4=state itc qual 0/1, col 5=depreciation selection(0=macrs 5, 1=macrs 15, 2=sl 5, 3=sl 15, 4=sl 20, 5=sl 39, 6=custom)",                        "" },
+
 var_info_invalid
 };
 

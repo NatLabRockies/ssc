@@ -57,7 +57,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 
 
 #define presolve_setstatus(one, two)  presolve_setstatusex(one, two, __LINE__, __FILE__)
-STATIC int presolve_setstatusex(presolverec *psdata, int status, int lineno, char *filename)
+STATIC int presolve_setstatusex(presolverec *psdata, int status, int lineno, const char *filename)
 {
   if((status == INFEASIBLE) || (status == UNBOUNDED)) {
     report(psdata->lp,
@@ -466,7 +466,7 @@ STATIC MYBOOL presolve_rowfeasible(presolverec *psdata, int rownr, MYBOOL userow
   return( status );
 }
 
-STATIC MYBOOL presolve_debugmap(presolverec *psdata, char *caption)
+STATIC MYBOOL presolve_debugmap(presolverec *psdata, const char *caption)
 {
   lprec *lp = psdata->lp;
   MATrec *mat = lp->matA;

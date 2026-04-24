@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_util.h"
 
 C_timeseries_schedule_inputs::C_timeseries_schedule_inputs(const util::matrix_t<double>& weekdays, const util::matrix_t<double>& weekends,
-    std::vector<double> tod_factors, double base_value /*dimensional*/)
+    std::vector<double> tod_factors, double base_value /*dimensional*/, size_t start_day_of_year /*0 = Mon, 6 = Sun*/)
 {
     input_type = BLOCK;
 
@@ -45,8 +45,7 @@ C_timeseries_schedule_inputs::C_timeseries_schedule_inputs(const util::matrix_t<
     //   and does not report an error or message if this happens
 
     int tod[8760];
-
-    if (!util::translate_schedule(tod, weekdays, weekends, 1, 9)) {
+    if (!util::translate_schedule(tod, weekdays, weekends, 1, 9, start_day_of_year)) {
         std::string m_error_msg = "TOU schedules must have 12 rows and 24 columns";
         throw C_csp_exception( m_error_msg, "TOU block schedule init" );
     }
@@ -165,6 +164,6 @@ void C_csp_tou::call(double time_s, C_csp_tou::S_csp_tou_outputs& tou_outputs)
         tou_outputs.m_wlim_dispatch = tou_outputs.m_f_turbine;
     }
     else {
-        tou_outputs.m_wlim_dispatch = 9.e99;
+        tou_outputs.m_wlim_dispatch = 9.e99;    // large number to indicate no limit
     }
 }

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "sco2_pc_core.h"
 #include "sco2_recompression_cycle.h"
 #include "sco2_partialcooling_cycle.h"
+#include "sco2_htrbypass_cycle.h"
+#include "sco2_turbinesplitflow_cycle.h"
 
 #include "csp_solver_util.h"
 #include "CO2_properties.h"
@@ -60,11 +62,11 @@ C_sco2_phx_air_cooler::C_sco2_phx_air_cooler()
 	mp_mf_update = 0;			// NULL
 }
 
-void C_sco2_phx_air_cooler::design(S_des_par des_par)
+int C_sco2_phx_air_cooler::design(S_des_par des_par)
 {
 	ms_des_par = des_par;
 
-	design_core();
+	return design_core();
 }
 
 void C_sco2_phx_air_cooler::C_P_LP_in_iter_tracker::reset_vectors()
@@ -86,7 +88,7 @@ void C_sco2_phx_air_cooler::C_P_LP_in_iter_tracker::push_back_vectors(double P_L
     mv_is_converged.push_back(is_converged);    //[-]
 }
 
-void C_sco2_phx_air_cooler::design_core()
+int C_sco2_phx_air_cooler::design_core()
 {
 	// using -> C_RecompCycle::S_auto_opt_design_hit_eta_parameters
 	std::string error_msg;
@@ -120,15 +122,16 @@ void C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_eta_t, ms_des_par.m_N_turbine,
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
-            ms_des_par.m_T_amb_des, ms_des_par.m_elevation));
+            ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
+            ms_des_par.m_yr_inflation));
 
 		s_cycle_config = "partial cooling";
 
         mpc_sco2_cycle = std::move(c_pc_cycle);
 	}
-	else
+	else if(ms_des_par.m_cycle_config == 3)
 	{
-        std::shared_ptr<C_RecompCycle> c_rc_cycle = std::unique_ptr<C_RecompCycle>(new C_RecompCycle(
+        std::unique_ptr<C_HTRBypass_Cycle> c_bp_cycle = std::unique_ptr<C_HTRBypass_Cycle>(new C_HTRBypass_Cycle(
             turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -142,12 +145,112 @@ void C_sco2_phx_air_cooler::design_core()
             ms_des_par.m_eta_t, ms_des_par.m_N_turbine,
             ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
             ms_des_par.m_N_nodes_pass,
-            ms_des_par.m_T_amb_des, ms_des_par.m_elevation));
+            ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
+            ms_des_par.m_yr_inflation));
 
-		s_cycle_config = "recompression";
+		s_cycle_config = "htr bypass";
+
+        // Get and Set HTF Parameters
+        {
+            int htf_code = ms_des_par.m_hot_fl_code;
+            util::matrix_t<double> htf_user_props = ms_des_par.mc_hot_fl_props;
+            HTFProperties htf_props;
+
+            if (htf_code != HTFProperties::User_defined && htf_code < HTFProperties::End_Library_Fluids)
+            {
+                if (!htf_props.SetFluid(htf_code, true))
+                {
+                    throw(C_csp_exception("Hot fluid code is not recognized", "C_HX_co2_to_htf::initialization"));
+                }
+            }
+            else if (htf_code == HTFProperties::User_defined)
+            {
+                int n_rows = (int)htf_user_props.nrows();
+                int n_cols = (int)htf_user_props.ncols();
+                if (n_rows > 2 && n_cols == 7)
+                {
+                    if (!htf_props.SetUserDefinedFluid(htf_user_props, true))
+                    {
+                        std::string error_msg = util::format(htf_props.UserFluidErrMessage(), n_rows, n_cols);
+                        throw(C_csp_exception(error_msg, "C_HX_co2_to_htf::initialization"));
+                    }
+                }
+                else
+                {
+                    std::string error_msg = util::format("The user defined hot fluid table must contain at least 3 rows and exactly 7 columns. The current table contains %d row(s) and %d column(s)", n_rows, n_cols);
+                    throw(C_csp_exception(error_msg, "C_HX_co2_to_htf::initialization"));
+                }
+            }
+            else
+            {
+                throw(C_csp_exception("Hot fluid code is not recognized", "C_HX_co2_to_htf::initialization"));
+            }
+
+            double HTF_PHX_inlet = ms_des_par.m_T_htf_hot_in;
+            double cp_htf = htf_props.Cp(HTF_PHX_inlet);
+            double T_target = ms_des_par.m_T_bypass_target;
+            double T_target_is_htf = ms_des_par.m_T_target_is_HTF;
+            double deltaT_bp = ms_des_par.m_deltaT_bypass;
+            double HTF_PHX_cold_approach = ms_des_par.m_phx_dt_cold_approach;
+            double set_HTF_mdot = ms_des_par.m_set_HTF_mdot;
+
+            c_bp_cycle->set_bp_par(HTF_PHX_inlet, T_target, cp_htf, deltaT_bp, HTF_PHX_cold_approach, set_HTF_mdot, T_target_is_htf);
+
+        }
+        
+
+        mpc_sco2_cycle = std::move(c_bp_cycle);
+	}
+    else if (ms_des_par.m_cycle_config == 4)
+    {
+        std::unique_ptr<C_TurbineSplitFlow_Cycle> c_tsf_cycle = std::unique_ptr<C_TurbineSplitFlow_Cycle>(new C_TurbineSplitFlow_Cycle(
+            turbo_gen_motor_config,
+            eta_generator,
+            T_mc_in,
+            ms_des_par.m_W_dot_net,
+            T_t_in, ms_des_par.m_P_high_limit,
+            ms_des_par.m_DP_LT, ms_des_par.m_DP_HT,
+            ms_des_par.m_DP_PC, ms_des_par.m_DP_PHX,
+            ms_des_par.m_LTR_N_sub_hxrs, ms_des_par.m_HTR_N_sub_hxrs,
+            ms_des_par.m_eta_mc, ms_des_par.m_mc_comp_type,
+            ms_des_par.m_eta_rc,
+            ms_des_par.m_eta_t, ms_des_par.m_eta_t2,
+            ms_des_par.m_N_turbine,
+            ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
+            ms_des_par.m_N_nodes_pass,
+            ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
+            ms_des_par.m_yr_inflation));
+
+        s_cycle_config = "turbine split flow";
+
+
+        mpc_sco2_cycle = std::move(c_tsf_cycle);
+    }
+    else
+    {
+        std::unique_ptr<C_RecompCycle> c_rc_cycle = std::unique_ptr<C_RecompCycle>(new C_RecompCycle(
+            turbo_gen_motor_config,
+            eta_generator,
+            T_mc_in,
+            ms_des_par.m_W_dot_net,
+            T_t_in, ms_des_par.m_P_high_limit,
+            ms_des_par.m_DP_LT, ms_des_par.m_DP_HT,
+            ms_des_par.m_DP_PC, ms_des_par.m_DP_PHX,
+            ms_des_par.m_LTR_N_sub_hxrs, ms_des_par.m_HTR_N_sub_hxrs,
+            ms_des_par.m_eta_mc, ms_des_par.m_mc_comp_type,
+            ms_des_par.m_eta_rc,
+            ms_des_par.m_eta_t, ms_des_par.m_N_turbine,
+            ms_des_par.m_frac_fan_power, ms_des_par.m_eta_fan, ms_des_par.m_deltaP_cooler_frac,
+            ms_des_par.m_N_nodes_pass,
+            ms_des_par.m_T_amb_des, ms_des_par.m_elevation,
+            ms_des_par.m_yr_inflation));
+
+        s_cycle_config = "recompression";
 
         mpc_sco2_cycle = std::move(c_rc_cycle);
-	}
+    }
+
+    
 
 	// Set min temp
 	m_T_mc_in_min = mpc_sco2_cycle->get_design_limits().m_T_mc_in_min;		//[K]
@@ -186,11 +289,14 @@ void C_sco2_phx_air_cooler::design_core()
 		ms_cycle_des_par.m_des_tol = ms_des_par.m_des_tol;
 		ms_cycle_des_par.m_des_opt_tol = ms_des_par.m_des_opt_tol;
 		ms_cycle_des_par.m_is_recomp_ok = ms_des_par.m_is_recomp_ok;
+        ms_cycle_des_par.m_is_bypass_ok = ms_des_par.m_is_bypass_ok;
 
 		ms_cycle_des_par.m_is_des_air_cooler = ms_des_par.m_is_des_air_cooler;		//[-]
 
 		ms_cycle_des_par.m_des_objective_type = ms_des_par.m_des_objective_type;		//[-]
 		ms_cycle_des_par.m_min_phx_deltaT = ms_des_par.m_min_phx_deltaT;				//[C]
+
+        ms_cycle_des_par.m_eta_thermal_cutoff = ms_des_par.m_eta_thermal_cutoff; //[]
 
 		ms_cycle_des_par.m_fixed_P_mc_out = ms_des_par.m_fixed_P_mc_out;	//[-]
 
@@ -261,6 +367,10 @@ void C_sco2_phx_air_cooler::design_core()
         des_params.m_fixed_f_PR_HP_to_IP = ms_des_par.m_fixed_f_PR_HP_to_IP;    //[-]
 
 		des_params.m_is_recomp_ok = ms_des_par.m_is_recomp_ok;
+        des_params.m_is_bypass_ok = ms_des_par.m_is_bypass_ok;
+        des_params.m_is_turbinesplit_ok = ms_des_par.m_is_turbine_split_ok;
+
+        des_params.m_eta_thermal_cutoff = ms_des_par.m_eta_thermal_cutoff;
 
 		auto_err_code = mpc_sco2_cycle->auto_opt_design(des_params);
 	}
@@ -273,7 +383,17 @@ void C_sco2_phx_air_cooler::design_core()
 
 	if (auto_err_code != 0)
 	{
-		throw(C_csp_exception(error_msg.c_str()));
+        // Check if error code is handled (need to report out)
+        if (auto_err_code >= (int)C_sco2_cycle_core::E_cycle_error_msg::E_CANNOT_PRODUCE_POWER
+            && auto_err_code < (int)C_sco2_cycle_core::E_cycle_error_msg::E_NO_ERROR)
+        {
+            ms_des_solved.ms_rc_cycle_solved = *mpc_sco2_cycle->get_design_solved();
+            return auto_err_code;
+        }
+
+        // Unhandled exception
+        else
+            throw(C_csp_exception(error_msg.c_str()));
 	}
 
 	if (error_msg.empty())
@@ -289,31 +409,103 @@ void C_sco2_phx_air_cooler::design_core()
 	ms_des_solved.ms_rc_cycle_solved = *mpc_sco2_cycle->get_design_solved();
 
 	// Initialize the PHX
-    mc_phx.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, ms_des_par.m_phx_N_sub_hx, ms_des_par.m_phx_od_UA_target_type);
+    mc_phx.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, ms_des_par.m_phx_N_sub_hx,
+        ms_des_par.m_phx_od_UA_target_type, ms_des_par.m_yr_inflation);
+
+    // Define state enumerable for sco2 into PHX
+    int phx_cold_inlet_state = C_sco2_cycle_core::HTR_HP_OUT;
+    if (ms_des_par.m_cycle_config == 3)
+        phx_cold_inlet_state = C_sco2_cycle_core::MIXER2_OUT;
+    else if (ms_des_par.m_cycle_config == 4)
+        phx_cold_inlet_state = C_sco2_cycle_core::LTR_HP_OUT;
+
 
 	// Design the PHX
-	double q_dot_des_phx = ms_des_solved.ms_rc_cycle_solved.m_W_dot_net / ms_des_solved.ms_rc_cycle_solved.m_eta_thermal;
+	
+    // Calculate q_dot_phx using sco2 enthalpies and mass flow (using thermal efficiency does not work for htr bypass)
+    double q_dot_des_phx_old = ms_des_solved.ms_rc_cycle_solved.m_W_dot_net / ms_des_solved.ms_rc_cycle_solved.m_eta_thermal;
+    double q_dot_des_phx = ms_des_solved.ms_rc_cycle_solved.m_m_dot_t
+        * (ms_des_solved.ms_rc_cycle_solved.m_enth[C_sco2_cycle_core::TURB_IN]
+        - ms_des_solved.ms_rc_cycle_solved.m_enth[phx_cold_inlet_state]);
+
 	//ms_phx_des_par.m_Q_dot_design = ms_des_solved.ms_rc_cycle_solved.m_W_dot_net / ms_des_solved.ms_rc_cycle_solved.m_eta_thermal;		//[kWt]
 	ms_phx_des_par.m_T_h_in = ms_des_par.m_T_htf_hot_in;	//[K] HTF hot inlet temperature 
 		// Okay, but CO2-HTF HX is assumed here. How does "structure inheritance" work?
 	ms_phx_des_par.m_P_h_in = 1.0;							// Assuming HTF is incompressible...
 	ms_phx_des_par.m_P_h_out = 1.0;						// Assuming HTF is incompressible...
 		// .................................................................................
-	ms_phx_des_par.m_T_c_in = ms_des_solved.ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::HTR_HP_OUT];		//[K]
-	ms_phx_des_par.m_P_c_in = ms_des_solved.ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::HTR_HP_OUT];		//[K]
-	ms_phx_des_par.m_P_c_out = ms_des_solved.ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::TURB_IN];		//[K]
-	ms_phx_des_par.m_m_dot_cold_des = ms_des_solved.ms_rc_cycle_solved.m_m_dot_t;	//[kg/s]
+    
+
+	ms_phx_des_par.m_T_c_in = ms_des_solved.ms_rc_cycle_solved.m_temp[phx_cold_inlet_state];		//[K]
+	ms_phx_des_par.m_P_c_in = ms_des_solved.ms_rc_cycle_solved.m_pres[phx_cold_inlet_state];		//[K]
+	ms_phx_des_par.m_P_c_out = ms_des_solved.ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::TURB_IN];		    //[K]
+	ms_phx_des_par.m_m_dot_cold_des = ms_des_solved.ms_rc_cycle_solved.m_m_dot_t;	                        //[kg/s]
 		// Calculating the HTF mass flow rate in 'design_and_calc_m_dot_htf'
 	ms_phx_des_par.m_m_dot_hot_des = std::numeric_limits<double>::quiet_NaN();
 		// Set maximum effectiveness
 	ms_phx_des_par.m_eff_max = 1.0;
-	
+
 	mc_phx.design_and_calc_m_dot_htf(ms_phx_des_par, q_dot_des_phx, ms_des_par.m_phx_dt_cold_approach, ms_des_solved.ms_phx_des_solved);
 
 	//*************************************************************************************
 	//*************************************************************************************
 
-	return;
+    // Solve the Bypass HX (if necessary)
+    if (ms_des_par.m_cycle_config == 3)
+    {
+        // hard coded
+        int bp_N_subs_hx = ms_des_par.m_phx_N_sub_hx;
+        auto bp_od_UA_target_type = ms_des_par.m_phx_od_UA_target_type;
+
+        mc_bp.initialize(ms_des_par.m_hot_fl_code, ms_des_par.mc_hot_fl_props, bp_N_subs_hx, bp_od_UA_target_type,
+            ms_des_par.m_yr_inflation);
+
+        // Calculate BP heat transfer
+        double m_dot_bp_sco2 = ms_des_solved.ms_rc_cycle_solved.m_bypass_frac * (ms_des_solved.ms_rc_cycle_solved.m_m_dot_t);
+        double q_dot_des_bp = m_dot_bp_sco2 * (ms_des_solved.ms_rc_cycle_solved.m_enth[C_sco2_cycle_core::BYPASS_OUT]
+            - ms_des_solved.ms_rc_cycle_solved.m_enth[C_sco2_cycle_core::MIXER_OUT]);
+
+        // Hot Parameters (HTF)
+        ms_bp_des_par.m_T_h_in = mc_phx.ms_des_solved.m_T_h_out;    // [K] Inlet to Bypass is outlet of PHX
+        ms_bp_des_par.m_P_h_in = 1.0;	                            // Assuming HTF is incompressible...
+        ms_bp_des_par.m_P_h_out = 1.0;                              // Assuming HTF is incompressible...
+
+        // Cold Parameters (sco2)
+        ms_bp_des_par.m_T_c_in = ms_des_solved.ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::MIXER_OUT];   //[K]
+        ms_bp_des_par.m_P_c_in = ms_des_solved.ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::MIXER_OUT];   //[K]
+        ms_bp_des_par.m_P_c_out = ms_des_solved.ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::BYPASS_OUT]; //[K]
+        ms_bp_des_par.m_m_dot_cold_des = m_dot_bp_sco2;                                                   //[kg/s]
+
+        // Calculating the HTF mass flow rate in 'design_and_calc_m_dot_htf'
+        ms_bp_des_par.m_m_dot_hot_des = std::numeric_limits<double>::quiet_NaN();
+
+        // Set maximum effectiveness
+        ms_bp_des_par.m_eff_max = 1.0;
+
+        // Set Mass Flow (it is known because it is equal to PHX)
+        ms_bp_des_par.m_m_dot_hot_des = ms_phx_des_par.m_m_dot_hot_des;
+
+        
+
+        // Design
+        if (ms_bp_des_par.m_m_dot_cold_des > 0 && q_dot_des_bp > 1e-2)
+        {
+            mc_bp.design_calc_UA(ms_bp_des_par, q_dot_des_bp, ms_des_solved.ms_bp_des_solved);
+        }
+        // No Mass Flow
+        else
+        {
+            ms_des_solved.ms_bp_des_solved.m_T_h_out = mc_phx.ms_des_solved.m_T_h_out;
+            ms_des_solved.ms_bp_des_solved.m_cost_bare_erected = 0;
+            ms_des_solved.ms_bp_des_solved.m_cost_equipment = 0;
+            ms_des_solved.ms_bp_des_solved.m_UA_design = 0;
+            ms_des_solved.ms_bp_des_solved.m_eff_design = 0;
+            ms_des_solved.ms_bp_des_solved.m_min_DT_design = 0;
+            ms_des_solved.ms_bp_des_solved.m_Q_dot_design = 0;
+        }
+    }
+
+	return auto_err_code;
 }
 
 

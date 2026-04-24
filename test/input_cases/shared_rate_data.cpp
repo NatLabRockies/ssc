@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,11 +68,12 @@ void set_up_default_commercial_rate_data(rate_data& data)
 										10, 1, 9.9999999999999998e+37, 0,
 										11, 1, 9.9999999999999998e+37, 0 };
 	size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
 	data.rate_scale = { 1, 1.025 };
 	data.init(8760);
-	data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+	data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
 	data.init_energy_rates_all_months(false);
 
     // enable_nm and nm_credits_w_rollover default to false, meaning this is a net billing rate
@@ -92,11 +93,12 @@ void set_up_pge_residential_rate_data(rate_data& data)
     size_t dc_tou_rows = 1;
     bool sell_eq_buy = false;
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     data.rate_scale = { 1, 1.025 };
     data.init(8760);
     //data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], dc_tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], ec_tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], ec_tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false);
     data.enable_nm = true;
     data.nm_credits_w_rollover = true;
@@ -115,10 +117,11 @@ void set_up_residential_1_4_peak(rate_data& data, size_t steps_per_hour)
     size_t dc_tou_rows = 1;
     bool sell_eq_buy = false;
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     data.rate_scale = { 1, 1.025 };
     data.init(8760 * steps_per_hour);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], ec_tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], ec_tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false);
     data.enable_nm = true;
     data.nm_credits_w_rollover = true;
@@ -137,6 +140,7 @@ void set_up_time_series(rate_data& data)
     size_t dc_tou_rows = 1;
     bool sell_eq_buy = false;
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     ssc_number_t ur_ts_sell_rate[8760];
     ssc_number_t ur_ts_buy_rate[8760];
@@ -154,7 +158,7 @@ void set_up_time_series(rate_data& data)
     data.en_ts_sell_rate = true;
     data.setup_time_series(8760, ur_ts_sell_rate, ur_ts_buy_rate);
 
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], ec_tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], ec_tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false);
     data.enable_nm = false; // Can't have time series rates with nm
     data.nm_credits_w_rollover = false;
@@ -199,11 +203,12 @@ void set_up_simple_demand_charge(rate_data& data)
                                         10, 1, 9.9999999999999998e+37, 1,
                                         11, 1, 9.9999999999999998e+37, 1 };
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     data.rate_scale = { 1, 1.025 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.uses_billing_demand = true;
     data.en_billing_demand_lookback = false;
     data.init_energy_rates_all_months(false);
@@ -250,11 +255,12 @@ void set_up_tou_demand_charge(rate_data& data)
                                         10, 1, 9.9999999999999998e+37, 1,
                                         11, 1, 9.9999999999999998e+37, 1 };
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     data.rate_scale = { 1, 1.025 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.uses_billing_demand = true;
     data.en_billing_demand_lookback = false;
     data.init_energy_rates_all_months(false);

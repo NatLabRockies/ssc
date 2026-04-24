@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -82,6 +82,9 @@ public:
     }
     void SetInput(std::string name, const std::initializer_list<ssc_number_t>& values) {
         ssc_data_set_array(this->data_, name.c_str(), (ssc_number_t*)(values.begin()), values.size());
+    }
+    void SetInput(std::string name, ssc_number_t values[], int nrows, int ncols) {
+        ssc_data_set_matrix(this->data_, name.c_str(), values, nrows, ncols);
     }
     ssc_number_t GetOutput(std::string name) const {
         ssc_number_t output;

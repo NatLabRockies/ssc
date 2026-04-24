@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,6 +87,9 @@ var_info vtab_fuelcell_input[] = {
 	{ SSC_INPUT,        SSC_MATRIX,      "dispatch_manual_fuelcell_sched",             "Dispatch schedule for weekday",          "",          "",                 "Fuel Cell",                  "",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "dispatch_manual_fuelcell_sched_weekend",     "Dispatch schedule for weekend",          "",          "",                 "Fuel Cell",                  "",                        "",                              "" },
 
+    // Start day of week for manual dispatch arrays
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Fuel Cell", "?=0", "", "" },
+
 	{ SSC_INOUT,        SSC_NUMBER,      "capacity_factor",                   "Capacity factor",                        "%",          "",                "",                           "?=0",                     "",                              "" },
 	{ SSC_INOUT,        SSC_NUMBER,      "annual_energy",                     "Annual AC energy in Year 1",                          "kWh",        "",                "",                           "?=0",                     "",                              "" },
 
@@ -141,7 +144,7 @@ void cm_fuelcell::construct()
 	fuelCell = std::move(tmp2);
 
 	std::unique_ptr<FuelCellDispatch> tmp3(new FuelCellDispatch(fuelCell.get(), fcVars->numberOfUnits,
-		fcVars->dispatchOption, fcVars->shutdownOption, fcVars->dt_hour, fcVars->fixed_percent, fcVars->dispatch_kW,
+		fcVars->dispatchOption, fcVars->shutdownOption, fcVars->dt_hour, fcVars->fixed_percent, fcVars->startDayOfYear, fcVars->dispatch_kW,
 		fcVars->canCharge, fcVars->canDischarge, fcVars->discharge_percentByPeriod, fcVars->discharge_unitsByPeriod,
 		fcVars->scheduleWeekday,fcVars->scheduleWeekend));
 	fuelCellDispatch = std::move(tmp3);

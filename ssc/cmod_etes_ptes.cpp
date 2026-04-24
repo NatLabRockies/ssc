@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _HAS_STD_BYTE 0
 
 #include "core.h"
 
@@ -148,6 +149,8 @@ static var_info _cm_vtab_etes_ptes[] = {
 
     { SSC_INPUT,  SSC_ARRAY,  "ppa_price_input",			   "PPA prices - yearly",			                                "$/kWh",	    "",	                                 "Revenue",			                         "ppa_multiplier_model=0&etes_financial_model<5&is_dispatch=1&sim_type=1",      "",      	     "SIMULATION_PARAMETER"},
 
+    // Day of week for weekday/weekend schedules
+    { SSC_INPUT,  SSC_NUMBER,   "start_day_of_year",           "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors", "?=0", "", "" },
 
     // System performance
     { SSC_INPUT,  SSC_NUMBER, "pb_fixed_par",                  "Fixed parasitic load that don't generate heat - runs at all times","MWe/MWcap", "",                                  "System Control",                           "*",                                                                "",              ""},
@@ -783,7 +786,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"), as_matrix("dispatch_sched_weekend"),
-                            as_vector_double("dispatch_tod_factors"), ppa_price_year1);
+                            as_vector_double("dispatch_tod_factors"), ppa_price_year1, as_number("start_day_of_year"));
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule
@@ -1252,8 +1255,7 @@ public:
         ssc_number_t* p_gen = allocate("gen", count);
         for (size_t i = 0; i < count; i++)
         {
-            size_t hour = (size_t)ceil(p_time_final_hr[i]);
-            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(i));           //[kWe]
         }
         // *****************************************************
         // *****************************************************

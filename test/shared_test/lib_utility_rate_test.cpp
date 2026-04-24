@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,10 +48,11 @@ TEST(lib_utility_rate_test, test_copy)
         4, 1, 9.9999999999999998e+37, 0, 0.050000000000000003, 0 };
 	size_t tou_rows = 4;
 	bool sell_eq_buy = false;
+    size_t start_day_of_year = 0;
 
 	rate_data data;
 	data.init(8760);
-	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.rate_scale.push_back(1.0);
 
 	int steps_per_hour = 1;
@@ -96,10 +97,11 @@ TEST(lib_utility_rate_test, test_tiered_tou_cost_estimates)
 		3, 5, 9.9999999999999998e+37, 0, 0.5611, 0, };
 	size_t tou_rows = 15;
 	bool sell_eq_buy = false;
+    size_t start_day_of_year = 0;
 
 	rate_data data;
 	data.init(8760);
-	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
 	data.rate_scale.push_back(1.0);
 
 	int steps_per_hour = 1;
@@ -143,10 +145,11 @@ TEST(lib_utility_rate_test, test_tiered_sell_rates)
 		2, 3, 9.9999999999999998e+37, 0, 0.3733, 0.01 };
 	size_t tou_rows = 6;
 	bool sell_eq_buy = false;
+    size_t start_day_of_year = 0;
 
 	rate_data data;
 	data.init(8760);
-	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+	data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
 	data.rate_scale.push_back(1.0);
     data.nm_credits_w_rollover = true;
 
@@ -342,11 +345,12 @@ TEST(lib_utility_rate_test, test_sell_rates)
                                         10, 1, 9.9999999999999998e+37, 0,
                                         11, 1, 9.9999999999999998e+37, 0 };
     size_t dc_flat_rows = 12;
+    size_t start_day_of_year = 0;
 
     data.rate_scale = { 1, 1.025 };
     data.init(8760);
-    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0]);
-    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy);
+    data.setup_demand_charges(&p_ur_dc_sched_weekday[0], &p_ur_dc_sched_weekend[0], tou_rows, &p_ur_dc_tou_mat[0], dc_flat_rows, &p_ur_dc_flat_mat[0], start_day_of_year);
+    data.setup_energy_rates(&p_ur_ec_sched_weekday[0], &p_ur_ec_sched_weekend[0], tou_rows, &p_ur_ec_tou_mat[0], sell_eq_buy, start_day_of_year);
     data.init_energy_rates_all_months(false);
     data.nm_credits_w_rollover = true;
 

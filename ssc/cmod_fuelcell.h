@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,8 @@ public:
 		discharge_percent(cm.as_vector_double("dispatch_manual_percent_fc_discharge")),
 		discharge_units(cm.as_vector_unsigned_long("dispatch_manual_units_fc_discharge")),
 		scheduleWeekday(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched")),
-		scheduleWeekend(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend"))
+		scheduleWeekend(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend")),
+        startDayOfYear(cm.as_number("start_day_of_year"))
 	{
 		numberOfYears = 1;
 		if (systemUseLifetimeOutput) {
@@ -157,6 +158,7 @@ public:
 	size_t numberOfRecordsPerYear;
 	size_t numberOfLifetimeRecords;
 	size_t stepsPerHour;
+    size_t startDayOfYear;
 
 	// generation input
 	std::vector<double> systemGeneration_kW;

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1851,9 +1851,9 @@ void C_RecompCycle::design_core_standard(int & error_code)
 
 	// Initialize Recuperators
 		// LTR
-    mc_LT_recup.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type);
+    mc_LT_recup.initialize(m_LTR_N_sub_hxrs, ms_des_par.m_LTR_od_UA_target_type, m_yr_inflation);
 		// HTR
-	mc_HT_recup.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type);
+	mc_HT_recup.initialize(m_HTR_N_sub_hxrs, ms_des_par.m_HTR_od_UA_target_type, m_yr_inflation);
 
 	// Initialize a few variables
 	double m_dot_t, m_dot_mc, m_dot_rc, Q_dot_LT, Q_dot_HT, UA_LT_calc, UA_HT_calc;
@@ -2114,8 +2114,12 @@ void C_RecompCycle::design_core_standard(int & error_code)
 	{
 		double phx_deltaT = m_temp_last[TURB_IN] - m_temp_last[HTR_HP_OUT];
 		double under_min_deltaT = std::max(0.0, ms_des_par.m_min_phx_deltaT - phx_deltaT);
-		double eta_deltaT_scale = std::exp(-under_min_deltaT);
-		m_objective_metric_last = m_eta_thermal_calc_last * eta_deltaT_scale;
+		//double eta_deltaT_scale = std::exp(-under_min_deltaT);
+		//m_objective_metric_last = m_eta_thermal_calc_last * eta_deltaT_scale;
+
+        double percent_err = under_min_deltaT / ms_des_par.m_min_phx_deltaT;
+        m_objective_metric_last = m_eta_thermal_calc_last - percent_err;
+
 	}
 	else
 	{
@@ -2388,7 +2392,7 @@ void C_RecompCycle::design(S_design_parameters & des_par_in, int & error_code)
 	error_code = design_error_code;
 }
 
-void C_RecompCycle::opt_design(S_opt_design_parameters & opt_des_par_in, int & error_code)
+int C_RecompCycle::opt_design(S_opt_design_parameters & opt_des_par_in, int & error_code)
 {
 	ms_opt_des_par = opt_des_par_in;
 
@@ -2398,10 +2402,19 @@ void C_RecompCycle::opt_design(S_opt_design_parameters & opt_des_par_in, int & e
 
 	if(error_code != 0)
 	{
-		return;
+		return error_code;
 	}
 
-	finalize_design(error_code);
+    // Check if cycle is below eta cutoff value
+    if (m_eta_thermal_calc_last < ms_auto_opt_des_par.m_eta_thermal_cutoff)
+    {
+        ms_des_solved.m_eta_thermal = m_eta_thermal_calc_last;
+        return C_sco2_cycle_core::E_cycle_error_msg::E_ETA_THRESHOLD;
+    }
+
+    finalize_design(error_code);
+
+	return error_code;
 }
 
 void C_RecompCycle::opt_design_core(int & error_code)
@@ -2494,7 +2507,7 @@ void C_RecompCycle::opt_design_core(int & error_code)
 		opt_des_cycle.set_upper_bounds(ub);
 		opt_des_cycle.set_initial_step(scale);
 		opt_des_cycle.set_xtol_rel(ms_opt_des_par.m_des_opt_tol);
-
+        //opt_des_cycle.set_maxeval(10);
 		// Set max objective function
 		opt_des_cycle.set_max_objective(nlopt_cb_opt_des, this);		// Calls wrapper/callback that calls 'design_point_eta', which optimizes design point eta through repeated calls to 'design'
 		double max_f = std::numeric_limits<double>::quiet_NaN();
@@ -2816,7 +2829,15 @@ void C_RecompCycle::auto_opt_design_core(int & error_code)
 		return;
 	}
 
-	finalize_design(optimal_design_error_code);
+    // Check if cycle is below eta cutoff value
+    if (m_eta_thermal_calc_last < ms_auto_opt_des_par.m_eta_thermal_cutoff)
+    {
+        ms_des_solved.m_eta_thermal = m_eta_thermal_calc_last;
+        error_code = C_sco2_cycle_core::E_cycle_error_msg::E_ETA_THRESHOLD;
+        return;
+    }
+
+    finalize_design(optimal_design_error_code);
 
 	error_code = optimal_design_error_code;
 }
@@ -3329,7 +3350,8 @@ void C_RecompCycle::finalize_design(int & error_code)
 									m_m_dot_mc,
 									m_temp_last[MC_OUT],
 									m_pres_last[MC_OUT],
-                                    ms_des_par.m_des_tol);
+                                    ms_des_par.m_des_tol,
+                                    m_yr_inflation);
 
 	if (mc_design_err != 0)
 	{
@@ -3343,7 +3365,8 @@ void C_RecompCycle::finalize_design(int & error_code)
 										m_pres_last[LTR_LP_OUT],
 										m_m_dot_rc,
 										m_temp_last[RC_OUT],
-										m_pres_last[RC_OUT], ms_des_par.m_des_tol);
+										m_pres_last[RC_OUT], ms_des_par.m_des_tol,
+                                        m_yr_inflation);
 		
 		if (rc_des_err != 0)
 		{
@@ -3372,6 +3395,8 @@ void C_RecompCycle::finalize_design(int & error_code)
 	t_des_par.m_h_out = m_enth_last[7-cpp_offset];
 		// Mass flow
 	t_des_par.m_m_dot = m_m_dot_t;
+        // Inflation target year
+    t_des_par.m_yr_inflation = m_yr_inflation;  //[yr]
 
 	int turb_size_error_code = 0;
 	m_t.turbine_sizing(t_des_par, turb_size_error_code);
@@ -3405,11 +3430,21 @@ void C_RecompCycle::finalize_design(int & error_code)
 	s_air_cooler_des_par_ind.m_elev = m_elevation;			//[m]
     s_air_cooler_des_par_ind.m_eta_fan = m_eta_fan;          //[-]
     s_air_cooler_des_par_ind.m_N_nodes_pass = m_N_nodes_pass;    //[-]
+    s_air_cooler_des_par_ind.m_yr_inflation = m_yr_inflation; //[yr]
 
 	if (ms_des_par.m_is_des_air_cooler && std::isfinite(m_deltaP_cooler_frac) && std::isfinite(m_frac_fan_power)
 		&& std::isfinite(m_T_amb_des) && std::isfinite(m_elevation) && std::isfinite(m_eta_fan) && m_N_nodes_pass > 0)
 	{
-		mc_air_cooler.design_hx(s_air_cooler_des_par_ind, s_air_cooler_des_par_dep, ms_des_par.m_des_tol);
+        try
+        {
+            mc_air_cooler.design_hx(s_air_cooler_des_par_ind, s_air_cooler_des_par_dep, ms_des_par.m_des_tol);
+        }
+        catch (...)
+        {
+            ms_des_solved.m_eta_thermal = m_eta_thermal_calc_last;
+            error_code = C_sco2_cycle_core::E_cycle_error_msg::E_AIR_COOLER_CONVERGENCE;
+            return;
+        }
 	}
 
 

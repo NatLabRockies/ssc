@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _HAS_STD_BYTE 0
+
 #include "core.h"
 
 // for adjustment factors
@@ -51,7 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_solver_pc_Rankine_indirect_224.h"
 #include "csp_solver_two_tank_tes.h"
 
-#include "csp_dispatch.h"
+//#include "csp_dispatch.h"
+#include "csp_dispatch_ortools.h"
 
 #include "csp_solver_cr_electric_resistance.h"
 #include "csp_solver_cavity_receiver.h"
@@ -316,6 +319,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "bop_par_2",                          "Balance of plant parasitic power fraction - quadratic coeff",                                                                             "",             "",                                  "System Control",                           "*",                                                                "",              "" },
 
     // System Control
+    { SSC_INPUT,     SSC_NUMBER, "is_timestep_load_fractions",         "Use turbine load fraction for each timestep instead of block dispatch?",                                                                  "",             "",                                  "Time of Delivery Factors",                 "?=0",                                                              "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,     SSC_ARRAY,  "timestep_load_fractions",            "Turbine load fraction for each timestep, alternative to block dispatch",                                                                  "",             "",                                  "System Control",                           "",                                                                 "",              ""},
     { SSC_INPUT,     SSC_ARRAY,  "f_turb_tou_periods",                 "Dispatch logic for turbine load fraction",                                                                                                "",             "",                                  "System Control",                           "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_MATRIX, "weekday_schedule",                   "12x24 CSP operation Time-of-Use Weekday schedule",                                                                                        "",             "",                                  "System Control",                           "*",                                                                "",              ""},
@@ -354,6 +358,9 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekend",             "PPA pricing weekend schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_ARRAY,  "dispatch_tod_factors",               "TOD factors for periods 1 through 9",                                                                                                     "",
         "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                                                                                                         "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
+
+    // Day of week for weekday/weekend schedules
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",           "Start day of year for TOD periods",                                                                                                       "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors", "?=0", "", "" },
 
     { SSC_INPUT,     SSC_ARRAY,  "ppa_price_input",			           "PPA prices - yearly",			                                                                                                          "$/kWh",	      "",	                               "Revenue",			                       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",      	       "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_MATRIX, "mp_energy_market_revenue",           "Energy market revenue input",                                                                                                             "",             "Lifetime x 2[Cleared Capacity(MW),Price($/MWh)]", "Revenue",                    "csp_financial_model=6&is_dispatch=1&sim_type=1",                              "",              "SIMULATION_PARAMETER"},
@@ -689,7 +696,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_OUTPUT,    SSC_ARRAY,  "P_out_net",                          "System net electrical power",                                                                                                             "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
         // Controller outputs
-    { SSC_OUTPUT,    SSC_ARRAY,  "tou_value",                          "CSP operating time-of-use value",                                                                                                         "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
+    { SSC_OUTPUT,    SSC_ARRAY,  "tou_value",                          "CSP operating time-of-use period",                                                                                                         "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "pricing_mult",                       "PPA price multiplier",                                                                                                                    "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "n_op_modes",                         "Operating modes in reporting timestep",                                                                                                   "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
     { SSC_OUTPUT,    SSC_ARRAY,  "op_mode_1",                          "1st operating mode",                                                                                                                      "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -2049,7 +2056,7 @@ public:
         }
         else {      // Block schedules
             C_timeseries_schedule_inputs offtaker_block = C_timeseries_schedule_inputs(as_matrix("weekday_schedule"), as_matrix("weekend_schedule"),
-                as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN());
+                as_vector_double("f_turb_tou_periods"), std::numeric_limits<double>::quiet_NaN(), as_number("start_day_of_year"));
             offtaker_schedule = offtaker_block;
         }
 
@@ -2114,7 +2121,7 @@ public:
                     if (is_one_assigned || is_dispatch) {
 
                         elec_pricing_schedule = C_timeseries_schedule_inputs(as_matrix("dispatch_sched_weekday"), as_matrix("dispatch_sched_weekend"),
-                            as_vector_double("dispatch_tod_factors"), ppa_price_year1);
+                            as_vector_double("dispatch_tod_factors"), ppa_price_year1, as_number("start_day_of_year"));
                     }
                     else {
                         // If electricity pricing data is not available, then dispatch to a uniform schedule
@@ -2261,7 +2268,8 @@ public:
 
         // *****************************************************
         // System dispatch
-        csp_dispatch_opt dispatch;
+        csp_dispatch_ortools dispatch;
+        //csp_dispatch_opt dispatch;
 
         if (is_dispatch && sim_type == 1){
 
@@ -2967,8 +2975,7 @@ public:
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
         for( size_t i = 0; i < count; i++ )
         {
-            size_t hour = (size_t)ceil(p_time_final_hr[i]);
-            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(i));           //[kWe]
             p_gensales_after_avail[i] = max(0.0, p_gen[i]);                         //[kWe]
         }
 

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -502,7 +502,7 @@ void rate_data::setup_time_series(size_t cnt, ssc_number_t* ts_sr, ssc_number_t*
 }
 
 void rate_data::setup_energy_rates(ssc_number_t* ec_weekday, ssc_number_t* ec_weekend,
-	size_t ec_tou_rows, ssc_number_t* ec_tou_in, bool sell_eq_buy)
+	size_t ec_tou_rows, ssc_number_t* ec_tou_in, bool sell_eq_buy, size_t start_day_of_year)
 {
 	size_t nrows, ncols, r, c, m, i, j;
 	int period, tier;
@@ -527,7 +527,7 @@ void rate_data::setup_energy_rates(ssc_number_t* ec_weekday, ssc_number_t* ec_we
 
     size_t max_tou_periods = 36;
 
-	if (!util::translate_schedule(ec_tod, ec_schedwkday, ec_schedwkend, 1, max_tou_periods))
+	if (!util::translate_schedule(ec_tod, ec_schedwkday, ec_schedwkend, 1, max_tou_periods, start_day_of_year))
 		throw general_error("Could not translate weekday and weekend schedules for energy rates.");
 	for (i = 0; i < 8760; i++)
 	{
@@ -711,7 +711,7 @@ void rate_data::setup_energy_rates(ssc_number_t* ec_weekday, ssc_number_t* ec_we
 }
 
 void rate_data::setup_demand_charges(ssc_number_t* dc_weekday, ssc_number_t* dc_weekend, 
-	size_t dc_tou_rows, ssc_number_t* dc_tou_in, size_t dc_flat_rows, ssc_number_t* dc_flat_in) {
+	size_t dc_tou_rows, ssc_number_t* dc_tou_in, size_t dc_flat_rows, ssc_number_t* dc_flat_in, size_t start_day_of_year) {
 	size_t nrows, ncols, r, c, m, i, j, idx;
 	int period, tier, month;
 
@@ -734,7 +734,7 @@ void rate_data::setup_demand_charges(ssc_number_t* dc_weekday, ssc_number_t* dc_
 
     size_t max_tou_periods = 36;
 
-	if (!util::translate_schedule(dc_tod, dc_schedwkday, dc_schedwkend, 1, max_tou_periods))
+	if (!util::translate_schedule(dc_tod, dc_schedwkday, dc_schedwkend, 1, max_tou_periods, start_day_of_year))
 		throw general_error("Could not translate weekday and weekend schedules for demand charges");
 
 	idx = 0;

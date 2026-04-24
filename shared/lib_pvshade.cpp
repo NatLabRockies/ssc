@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -302,7 +302,7 @@ double sssky_diffuse_table::compute(double surface_tilt) {
     if (gcr == 0)
         throw std::runtime_error("sssky_diffuse_table::compute error: gcr required in initialization");
     // sky diffuse reduction
-	const size_t n_steps = 250;
+    const size_t n_steps = 250;
     double step = 1.0 / (double)n_steps;
     double skydiff = 0.0;
     double tand_stilt = tand(surface_tilt);
@@ -314,26 +314,26 @@ double sssky_diffuse_table::compute(double surface_tilt) {
     double Asky_shade[n_steps];
     for (int n = 0; n < n_steps; n++)
     {
-        if (surface_tilt != 0)
+        if (surface_tilt != 0) {
             arg[n] = (1 / tand_stilt) - (1 / (gcr * sind_stilt * (1 - n * step)));
-        else
+            gamma[n] = (-M_PI / 2) + atan(arg[n]);
+            tan_tilt_gamma[n] = tan(surface_tilt * DTOR + gamma[n]);
+            Asky_shade[n] = M_PI + M_PI / pow((1 + tan_tilt_gamma[n] * tan_tilt_gamma[n]), 0.5);
+            if ((surface_tilt * DTOR + gamma[n]) > (M_PI / 2))
+            {
+                Asky_shade[n] = 2 * M_PI - Asky_shade[n];
+            }
+            skydiff += (Asky_shade[n] / Asky) * step;
+        } else {
             arg[n] = std::numeric_limits<double>::quiet_NaN();
-        gamma[n] = (-M_PI / 2) + atan(arg[n]);
-        tan_tilt_gamma[n] = tan(surface_tilt * DTOR + gamma[n]);
-        Asky_shade[n] = M_PI + M_PI / pow((1 + tan_tilt_gamma[n] * tan_tilt_gamma[n]), 0.5);
-        if (std::isnan(Asky_shade[n]))
-        {
+            gamma[n]  = std::numeric_limits<double>::quiet_NaN();
+            tan_tilt_gamma[n] = std::numeric_limits<double>::quiet_NaN();
             Asky_shade[n] = Asky;
+            skydiff += step;
         }
-        else if ((surface_tilt * DTOR + gamma[n]) > (M_PI / 2))
-        {
-            Asky_shade[n] = 2 * M_PI - Asky_shade[n];
-        }
-        else {}
-        skydiff += (Asky_shade[n] / Asky) * step;
     }
     int surface_tilt_key = int(surface_tilt * derates_table_digits_multiplier);
-	derates_table[surface_tilt_key] = skydiff;
+    derates_table[surface_tilt_key] = skydiff;
     return skydiff;
 }
 

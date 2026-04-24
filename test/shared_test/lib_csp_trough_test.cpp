@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define private public              // for setting private data members
 #include "lib_csp_trough_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 using namespace csp_trough;
 
@@ -43,7 +42,7 @@ using namespace csp_trough;
 //=== Using factory patterns to create the different physical and non-physical components=========
 
 // Test a standard trough loop at a single point in time
-NAMESPACE_TEST(csp_trough, TroughLoop, DefaultTest)
+TEST(TroughLoop, DefaultTest)
 {
     DefaultTroughFactory default_trough_factory = DefaultTroughFactory();
     Location location = default_trough_factory.MakeLocation();
@@ -64,7 +63,7 @@ NAMESPACE_TEST(csp_trough, TroughLoop, DefaultTest)
 }
 
 // Test a standard trough loop from a homogenous initial condition to steady-state
-NAMESPACE_TEST(csp_trough, TroughLoop, SteadyStateTest)
+TEST(TroughLoop, SteadyStateTest)
 {
     DefaultTroughFactory default_trough_factory = DefaultTroughFactory();
     Location location = default_trough_factory.MakeLocation();

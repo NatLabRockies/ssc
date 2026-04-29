@@ -1051,7 +1051,7 @@ public:
                 for (size_t i = 0; i < nval_Distance_SCA; i++)
                     c_trough.m_Distance_SCA[i] = (double)Distance_SCA[i];
 
-                c_trough.m_opt_model = 3;   // hardcoded IAM for now
+                c_trough.m_opt_model = { 3,3,3,3 };   // hardcoded IAM for now
                 c_trough.m_IAM_matrix = as_matrix("IAM_matrix");                //[-] IAM coefficients, matrix for 4 collectors
 
                 // Why are these matrices - can't they be arrays?               

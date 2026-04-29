@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iosfwd>
 #include <fstream>
+#include <optional>
 
 class C_csp_trough_collector_receiver : public C_csp_collector_receiver
 {
@@ -113,7 +114,7 @@ private:
 	// Parameters calculated in init()
 	int m_n_c_iam_matrix;	//[-] Number of columns in the IAM matrix
 	int m_n_r_iam_matrix;	//[-] Number of rows in the IAM matrix
-    OpticalDataTable m_optical_table;   //[-] Optical data table
+    std::vector<std::optional<OpticalDataTable>> m_optical_tables;   //[-] Optical data table
 	double m_v_hot;			//[m^3] Hot piping volume
 	double m_v_cold;		//[m^3] Cold piping volume
 	int	m_nfsec;			//[-] Number of field sections
@@ -434,11 +435,11 @@ public:
     double m_rec_qf_delay;   //[-] Energy-based receiver startup delay (fraction of rated thermal power)
     double m_p_start;        //[kWe-hr] Collector startup energy, per SCA
 
-    int m_opt_model;		                      // The optical model (1=Solar position ; 2=Collector incidence table ; 3 = IAM matrix)
-    util::matrix_t<double> m_OpticalTable_in;        // Values of the optical efficiency table
-	util::matrix_t<double> m_IAM_matrix;		  //[-] IAM coefficients, matrix for 4 collectors
+    std::vector<int> m_opt_model;		            // The optical model (1=Solar position ; 2=Collector incidence table ; 3 = IAM matrix)
+    std::vector<util::matrix_t<double>> m_OpticalTables_in;       // Values of the optical efficiency table
+	util::matrix_t<double> m_IAM_matrix;		    //[-] IAM coefficients, matrix for 4 collectors
 	
-	util::matrix_t<bool> m_GlazingIntact;		  //[-] Glazing intact (broken glass) flag {1=true, else=false}
+	util::matrix_t<bool> m_GlazingIntact;		    //[-] Glazing intact (broken glass) flag {1=true, else=false}
 
     bool m_calc_design_pipe_vals = std::numeric_limits<double>::quiet_NaN();                 //[-] Should the HTF state be calculated at design conditions
     double m_L_rnr_pb = std::numeric_limits<double>::quiet_NaN();                            //[m] Length of hot or cold runner pipe around the power block

@@ -365,7 +365,7 @@ std::unique_ptr<TroughSpecifications> DefaultTroughFactory::MakeSpecifications()
     trough_specifications->ColperSCA = { 8., 8., 8., 8. };
     trough_specifications->Distance_SCA = { 1., 1., 1., 1. };
 
-    trough_specifications->opt_model = 3; // Set to IAM poly
+    trough_specifications->opt_model = { 2,2,2,2 }; // Set to IAM poly
 
     double vals2[] = {
         1, 0.0327, -0.1351,

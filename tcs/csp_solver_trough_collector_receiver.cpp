@@ -256,7 +256,6 @@ C_csp_trough_collector_receiver::C_csp_trough_collector_receiver()
 
 	m_AnnulusGasMat.fill(NULL);
 	m_AbsorberPropMat.fill(NULL);
-    m_OpticalTable_in.fill(NULL);
 
     m_operating_mode_initial = C_csp_collector_receiver::OFF;
     m_defocus_initial = std::numeric_limits<double>::quiet_NaN();
@@ -274,47 +273,55 @@ C_csp_trough_collector_receiver::~C_csp_trough_collector_receiver()
     }
 }
 
-void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp_cr_init_inputs init_inputs, 
-				C_csp_collector_receiver::S_csp_cr_solved_params & solved_params)
+void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp_cr_init_inputs init_inputs,
+    C_csp_collector_receiver::S_csp_cr_solved_params& solved_params)
 {
 
     // If solar multiple is not yet calculated
     if (m_is_solar_mult_designed == false)
         throw(C_csp_exception("design_solar_mult() must be called before init()", "Trough collector solver"));
-	
-	// double some_calc = m_nSCA + m_nHCEt;
-	/*
-	--Initialization call--
 
-	Do any setup required here.
-	Get the values of the inputs and parameters
-	*/
+    // double some_calc = m_nSCA + m_nHCEt;
+    /*
+    --Initialization call--
 
-	//Initialize air properties -- used in reeiver calcs
-	m_airProps.SetFluid(HTFProperties::Air);
+    Do any setup required here.
+    Get the values of the inputs and parameters
+    */
 
-	// Save init_inputs to member data
-	m_latitude = init_inputs.m_latitude;	//[deg]
-	m_longitude = init_inputs.m_longitude;	//[deg]
-	m_shift = init_inputs.m_shift;			//[deg]
-	m_latitude *= m_d2r;		//[rad] convert from [deg]
-	m_longitude *= m_d2r;		//[rad] convert from [deg]
-	m_shift *= m_d2r;			//[rad] convert from [deg]
+    //Initialize air properties -- used in reeiver calcs
+    m_airProps.SetFluid(HTFProperties::Air);
+
+    // Save init_inputs to member data
+    m_latitude = init_inputs.m_latitude;	//[deg]
+    m_longitude = init_inputs.m_longitude;	//[deg]
+    m_shift = init_inputs.m_shift;			//[deg]
+    m_latitude *= m_d2r;		//[rad] convert from [deg]
+    m_longitude *= m_d2r;		//[rad] convert from [deg]
+    m_shift *= m_d2r;			//[rad] convert from [deg]
 
     m_P_field_in = 17 / 1.e-5;                //Assumed inlet htf pressure for property lookups (DP_tot_max = 16 bar + 1 atm) [Pa]
 
-	// Adjust parameters
-	m_ColTilt = m_ColTilt*m_d2r;	//[rad] Collector tilt angle (0 is horizontal, 90deg is vertical), convert from [deg]
-	m_ColAz = m_ColAz*m_d2r;		//[rad] Collector azimuth angle, convert from [deg]
+    // Adjust parameters
+    m_ColTilt = m_ColTilt * m_d2r;	//[rad] Collector tilt angle (0 is horizontal, 90deg is vertical), convert from [deg]
+    m_ColAz = m_ColAz * m_d2r;		//[rad] Collector azimuth angle, convert from [deg]
 
-    // Optical model
-    if (m_opt_model < 1 || m_opt_model > 3)
+    if (m_nColt != m_opt_model.size())
     {
-        throw(C_csp_exception("m_opt_model must be between 1-3", "Trough collector solver"));
+        throw(C_csp_exception("m_opt_model length must equal m_nColt", "Trough collector solver"));
     }
 
     // Check IAM matrix specific values
-    if (m_opt_model == 3)
+    bool is_IAM = false;
+    for (int opt_model : m_opt_model)
+    {
+        if (opt_model == 3)
+        {
+            is_IAM = true;
+            break;
+        }
+    }
+    if(is_IAM)
     {
         // Check m_IAM matrix against number of collectors: m_nColt
         m_n_r_iam_matrix = (int)m_IAM_matrix.nrows();
@@ -334,11 +341,13 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
         // Check that for each collector, at least 3 coefficients are != 0.0
         for (int i = 0; i < m_nColt; i++)
         {
+            bool is_IAM = m_opt_model[i] == 3;
+            if (!is_IAM)
+                continue;
             for (int j = 0; j < 3; j++)
             {
                 if (m_IAM_matrix(i, j) == 0.0)
                 {
-
                     m_error_msg = util::format("For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
                     throw(C_csp_exception(m_error_msg, "Trough collector solver"));
                     //message(TCS_ERROR, "For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
@@ -347,45 +356,59 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
             }
         }
     }
-    else
+
+    // Initialize optical tables (if necessary)
+    m_optical_tables.resize(m_nColt);
+    for (int i_col = 0; i_col < m_opt_model.size(); i_col++)
     {
-        /*
-        The input should be defined as follows:
-        - Data of size nx, ny
-        - OpticalTable of size (nx+1)*(ny+1)
-        - First nx+1 values (row 1) are x-axis values, not data, starting at index 1
-        - First value of remaining ny rows are y-axis values, not data
-        - Data is contained in cells i,j : where i>1, j>1
-        */
-        int ncol_OpticalTable = m_OpticalTable_in.ncols();
-        int nrow_OpticalTable = m_OpticalTable_in.nrows();
+        int opt_model_local = m_opt_model[i_col];
 
-        double* xax = new double[ncol_OpticalTable - 1];
-        double* yax = new double[nrow_OpticalTable - 1];
-        double* data = new double[(ncol_OpticalTable - 1) * (nrow_OpticalTable - 1)];
+        // Optical model
+        if (opt_model_local < 1 || opt_model_local > 3)
+        {
+            throw(C_csp_exception("m_opt_model must be between 1-3", "Trough collector solver"));
+        }
 
-        //get the xaxis data values
-        for (int i = 1; i < ncol_OpticalTable; i++) {
-            xax[i - 1] = m_OpticalTable_in.at(0, i) * m_d2r;
-        }
-        //get the yaxis data values
-        for (int j = 1; j < nrow_OpticalTable; j++) {
-            yax[j - 1] = m_OpticalTable_in.at(j, 0) * m_d2r;
-        }
-        //Get the data values
-        for (int j = 1; j < nrow_OpticalTable; j++) {
+        if(opt_model_local != 3)
+        {
+            /*
+            The input should be defined as follows:
+            - Data of size nx, ny
+            - OpticalTable of size (nx+1)*(ny+1)
+            - First nx+1 values (row 1) are x-axis values, not data, starting at index 1
+            - First value of remaining ny rows are y-axis values, not data
+            - Data is contained in cells i,j : where i>1, j>1
+            */
+            int ncol_OpticalTable = m_OpticalTables_in[i_col].ncols();
+            int nrow_OpticalTable = m_OpticalTables_in[i_col].nrows();
+
+            std::vector<double> xax(ncol_OpticalTable - 1);
+            std::vector<double> yax(nrow_OpticalTable - 1);
+            std::vector<double> data((ncol_OpticalTable - 1) * (nrow_OpticalTable - 1));
+
+            //get the xaxis data values
             for (int i = 1; i < ncol_OpticalTable; i++) {
-                data[i - 1 + (ncol_OpticalTable - 1) * (j - 1)] = m_OpticalTable_in.at(j, i);
+                xax[i - 1] = m_OpticalTables_in[i_col].at(0, i) * m_d2r;
             }
-        }
+            //get the yaxis data values
+            for (int j = 1; j < nrow_OpticalTable; j++) {
+                yax[j - 1] = m_OpticalTables_in[i_col].at(j, 0) * m_d2r;
+            }
+            //Get the data values
+            for (int j = 1; j < nrow_OpticalTable; j++) {
+                for (int i = 1; i < ncol_OpticalTable; i++) {
+                    data[i - 1 + (ncol_OpticalTable - 1) * (j - 1)] = m_OpticalTables_in[i_col].at(j, i);
+                }
+            }
 
-        m_optical_table.AddXAxis(xax, ncol_OpticalTable - 1);
-        m_optical_table.AddYAxis(yax, nrow_OpticalTable - 1);
-        m_optical_table.AddData(data);
-        delete[] xax;
-        delete[] yax;
-        delete[] data;
+            auto& opt_table = m_optical_tables[i_col].emplace();
+            opt_table.AddXAxis(xax.data(), static_cast<int>(xax.size()));
+            opt_table.AddYAxis(yax.data(), static_cast<int>(yax.size()));
+            opt_table.AddData(data.data());
+        }
     }
+
+    
 
 
 	// ******************************************************************
@@ -1753,12 +1776,12 @@ double C_csp_trough_collector_receiver::calculate_opt_derate(const int i, const 
 {
     double opt_derate = 0;
 
-    switch (m_opt_model)
+    switch (m_opt_model[i])
     {
         // Sun position
         case(1):
         {
-            opt_derate = max(m_optical_table.interpolate(SolarAz, min(SolarZenRad, CSP::pi / 2.)), 0.0);
+            opt_derate = max(m_optical_tables[i]->interpolate(SolarAz, min(SolarZenRad, CSP::pi / 2.)), 0.0);
             return opt_derate;
         }
         // Incidence angle table
@@ -1766,7 +1789,7 @@ double C_csp_trough_collector_receiver::calculate_opt_derate(const int i, const 
         {
             double phi_t, theta_L;
             CSP::theta_trans(SolarAz, SolarZenRad, m_ColAz, phi_t, theta_L);
-            opt_derate = max(m_optical_table.interpolate(phi_t, max(theta_L, 0.0)), 0.0);
+            opt_derate = max(m_optical_tables[i]->interpolate(phi_t, max(theta_L, 0.0)), 0.0);
             return opt_derate;
         }
         // IAM poly (original)
@@ -1890,7 +1913,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 		}
 
 		// m_theta in radians
-		double theta = acos(m_costh);		//[rad] Incidene angle
+		double theta = acos(m_costh);		//[rad] Incidence angle
 
 		for (int i = 0; i < m_nColt; i++)
 		{

@@ -6844,10 +6844,13 @@ double C_csp_trough_collector_receiver::m_dot_runner(double m_dot_field, int nfi
     switch (irnr_onedir) {
     case 0:
         m_dot_rnr = m_dot_rnr_0;
+        break;
     case 1:
         m_dot_rnr = m_dot_rnr_1;
+        break;
     default:
         m_dot_rnr = m_dot_rnr_1 - (irnr_onedir - 1)*m_dot_field / float(nfieldsec) * 2;
+        break;
     }
 
     return max(m_dot_rnr, 0.0);

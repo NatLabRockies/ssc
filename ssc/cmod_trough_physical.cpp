@@ -1783,7 +1783,7 @@ public:
             else if (csp_financial_model == 7 || csp_financial_model == 8) {    // LCOE (7) and None (8)
 
                 if (is_dispatch) {
-                    throw exec_error("fresnel_physical", "Can't select dispatch optimization if No Financial model");
+                    throw exec_error("trough_physical", "Can't select dispatch optimization if No Financial model");
                 }
                 else { // if no dispatch optimization, don't need an input pricing schedule
                     // If electricity pricing data is not available, then dispatch to a uniform schedule

@@ -671,7 +671,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
     {
         double density = m_htfProps.dens(m_T_loop_in_des, std::numeric_limits<double>::quiet_NaN());
 
-        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
+        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_max_inner_diameter * m_max_inner_diameter);
     }
 
 	//need to provide fluid density

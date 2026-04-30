@@ -76,9 +76,9 @@ TEST(CoolProp, WaterProperties)
     auto water_ptr = C_fluid_properties::create_fluid_properties(E_fluid_type::WATER);
     auto coolprop_ptr = C_fluid_properties::create_fluid_properties(E_fluid_type::COOLPROP, "Water");
 
-    // Choose a T,P in the dome for water
-    double T1 = 373.15;    // [K]
-    double Q1 = 0.5;   // [kPa]
+    // Choose a T,Q in the dome for water
+    double T1 = 373.15;     // [K]
+    double Q1 = 0.5;        // []
 
     // Get fluid info
     fluid_info info_water, info_coolprop;

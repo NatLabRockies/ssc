@@ -197,12 +197,33 @@ set( DEPENDENCIES
 if (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
 
-    # Add CoolProp as IMPORTED library for MSVC (matches ssc/ssc/CMakeLists.txt pattern)
+    if (NOT DEFINED ENV{COOLPROPDIR})
+        message(FATAL_ERROR "Environment variable COOLPROPDIR is not set")
+    endif()
+
+    set(COOLPROP_DIR "$ENV{COOLPROPDIR}")
+    set(COOLPROP_DLL "${COOLPROP_DIR}/CoolProp.dll")
+    set(COOLPROP_LIB "${COOLPROP_DIR}/CoolProp.lib")
+    set(COOLPROP_INCLUDE_DIR "${COOLPROP_DIR}")
+
+    if (NOT EXISTS "${COOLPROP_DLL}")
+        message(FATAL_ERROR "CoolProp DLL not found: ${COOLPROP_DLL}")
+    endif()
+
+    if (NOT EXISTS "${COOLPROP_LIB}")
+        message(FATAL_ERROR "CoolProp import library not found: ${COOLPROP_LIB}")
+    endif()
+
+    if (NOT EXISTS "${COOLPROP_INCLUDE_DIR}/CoolPropLib.h")
+        message(FATAL_ERROR "CoolProp header not found: ${COOLPROP_INCLUDE_DIR}/CoolPropLib.h")
+    endif()
+
     add_library(CoolPropLib SHARED IMPORTED)
     set_target_properties(CoolPropLib PROPERTIES
-        IMPORTED_LOCATION "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.dll"
-        IMPORTED_IMPLIB "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.lib"
-        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/include"
+        IMPORTED_LOCATION "${COOLPROP_DLL}"
+        IMPORTED_IMPLIB "${COOLPROP_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "${COOLPROP_INCLUDE_DIR}"
     )
+
     target_link_libraries(tcs PUBLIC CoolPropLib)
 endif()

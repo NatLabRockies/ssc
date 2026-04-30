@@ -235,13 +235,6 @@ foreach( name ${DEPENDENCIES} )
 	target_link_libraries(ssc PUBLIC ${name})
 endforeach()
 
-# If CoolProp is not in a standard location, link the library directly (example for Windows and Linux)
-# Uncomment and set the correct path if needed:
-# target_link_libraries(ssc PUBLIC "${CMAKE_SOURCE_DIR}/../../../CoolProp/build/Release/CoolProp.lib")
-#target_link_libraries(ssc PUBLIC "C:/Users/tbrown2/Documents/repos/CoolProp/build/Release/CoolProp.lib")
-#find_package(CoolProp REQUIRED)
-#target_link_libraries(ssc PUBLIC CoolProp::CoolProp)
-
 if (UNIX)
     find_package(ortools REQUIRED)
     target_link_libraries(shared ortools::ortools)
@@ -264,21 +257,11 @@ endif()
 # Target Installation
 #
 #####################################################################################################################
-message(STATUS "CoolProp include: ${CMAKE_CURRENT_SOURCE_DIR}/../../../CoolProp/include")
-message(STATUS "CoolProp lib: ${CMAKE_CURRENT_SOURCE_DIR}/../../../CoolProp/build/Release/CoolProp")
 if (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
     set(SSC_LIB $<TARGET_FILE_DIR:ssc>/$<TARGET_FILE_BASE_NAME:ssc>.lib)
     set(SSC_H ${CMAKE_CURRENT_LIST_DIR}/sscapi.h)
-
-    # Add CoolProp as IMPORTED library for MSVC
-    add_library(CoolPropLib SHARED IMPORTED)
-    set_target_properties(CoolPropLib PROPERTIES
-        IMPORTED_LOCATION "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.dll"
-        IMPORTED_IMPLIB "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/install_root/shared_library/Windows/64bit/CoolProp.lib"
-        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/../../../CoolProp/include"
-    )
-    target_link_libraries(ssc PUBLIC CoolPropLib)
+    set(COOLPROP_DLL $<TARGET_PROPERTY:CoolPropLib,IMPORTED_LOCATION>)
 
     set(TESTDIR ${CMAKE_CURRENT_BINARY_DIR}/../test/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
 
@@ -289,9 +272,9 @@ if (MSVC)
 			COMMAND ${CMAKE_COMMAND}
 			ARGS -E make_directory $ENV{SAMNTDIR}/deploy/x64
 			COMMAND ${CMAKE_COMMAND}
-			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${SSC_H} $ENV{SAMNTDIR}/deploy/x64
+			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${SSC_H} ${COOLPROP_DLL} $ENV{SAMNTDIR}/deploy/x64
 			COMMAND ${CMAKE_COMMAND}
-			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${TESTDIR}
+			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${COOLPROP_DLL} ${TESTDIR}
 			)
 	endif()
 
@@ -301,7 +284,7 @@ if (MSVC)
 			TARGET ssc
 			POST_BUILD
 			COMMAND ${CMAKE_COMMAND}
-			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${SDKTOOLDIR}
+			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${COOLPROP_DLL} ${SDKTOOLDIR}
 			)
 	endif()
 
@@ -311,7 +294,7 @@ if (MSVC)
 			TARGET ssc
 			POST_BUILD
 			COMMAND ${CMAKE_COMMAND}
-			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${TCSCONSOLDEDIR}>
+			ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${COOLPROP_DLL} ${TCSCONSOLDEDIR}
 			)
 	endif()
 
@@ -322,7 +305,7 @@ if (MSVC)
 				TARGET ssc
 				POST_BUILD
 				COMMAND ${CMAKE_COMMAND}
-				ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${APIGENDIR}
+				ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${COOLPROP_DLL} ${APIGENDIR}
 				)
 		else()
 			set(APIGENDIR $ENV{SAMNTDIR}/build/api/api_autogen/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
@@ -331,7 +314,7 @@ if (MSVC)
 				    TARGET ssc
 				    POST_BUILD
 				    COMMAND ${CMAKE_COMMAND}
-				    ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${APIGENDIR}
+				    ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${COOLPROP_DLL} ${APIGENDIR}
 				    )
                endif()
 		endif()
@@ -359,7 +342,7 @@ if(DEFINED ENV{PYSAMDIR})
 				TARGET ssc
 				POST_BUILD
 				COMMAND ${CMAKE_COMMAND}
-				ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} $ENV{PYSAMDIR}/files
+				ARGS -E copy $<TARGET_FILE:ssc> ${SSC_LIB} ${COOLPROP_DLL} $ENV{PYSAMDIR}/files
 		)
 	endif()
 endif()

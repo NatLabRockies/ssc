@@ -56,6 +56,7 @@ set(SOLARPILOT_SRC
 # Compile Options per Platform
 #
 #####################################################################################################################
+set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -73,7 +74,6 @@ else()
 	else()
 		add_definitions(-D__64BIT__)
 	endif()
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-variable -Wno-uninitialized -Wno-int-to-pointer-cast ")
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		add_compile_definitions(_DEBUG)

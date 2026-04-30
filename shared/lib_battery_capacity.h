@@ -66,7 +66,7 @@ struct capacity_state {
 
     friend std::ostream &operator<<(std::ostream &os, const capacity_state &p);
 
-    bool operator==(const capacity_state &p);
+    bool operator==(const capacity_state &p) const;
 };
 
 struct capacity_params {

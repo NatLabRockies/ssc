@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 SSCEXPORT int ssc_version()
 {
-	return 303;
+	return 304;
 }
 
 SSCEXPORT const char *ssc_build_info()
@@ -123,7 +123,6 @@ extern module_entry_info
 	cm_entry_windbos,
 	cm_entry_wind_obos,
 	cm_entry_windcsm,
-	cm_entry_wind_landbosse,
 	cm_entry_biomass,
 	cm_entry_solarpilot,
 	cm_entry_belpe,
@@ -218,7 +217,6 @@ static module_entry_info *module_table[] = {
 	&cm_entry_windbos,
 	&cm_entry_wind_obos,
 	&cm_entry_windcsm,
-	&cm_entry_wind_landbosse,
 	&cm_entry_biomass,
 	&cm_entry_solarpilot,
 	&cm_entry_belpe,

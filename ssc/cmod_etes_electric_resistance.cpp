@@ -30,6 +30,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _HAS_STD_BYTE 0
+
 
 #include "core.h"
 
@@ -1100,8 +1102,7 @@ public:
         ssc_number_t* p_gen = allocate("gen", count);
         for (size_t i = 0; i < count; i++)
         {
-            size_t hour = (size_t)ceil(p_time_final_hr[i]);
-            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(i));           //[kWe]
         }
         // *****************************************************
         // *****************************************************

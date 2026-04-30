@@ -164,6 +164,6 @@ void C_csp_tou::call(double time_s, C_csp_tou::S_csp_tou_outputs& tou_outputs)
         tou_outputs.m_wlim_dispatch = tou_outputs.m_f_turbine;
     }
     else {
-        tou_outputs.m_wlim_dispatch = 9.e99;
+        tou_outputs.m_wlim_dispatch = 9.e99;    // large number to indicate no limit
     }
 }

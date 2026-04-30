@@ -661,7 +661,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
     // Max Field Flow Velocity
     m_max_field_flow_velocity = 0;
     {
-        double density = m_htfProps.dens(m_T_loop_out_des + 273.15, std::numeric_limits<double>::quiet_NaN());
+        double density = m_htfProps.dens(m_T_loop_out_des, std::numeric_limits<double>::quiet_NaN());
 
         m_max_field_flow_velocity = m_m_dot_htfmax * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
     }
@@ -669,7 +669,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
     // Min Field Flow Velocity
     m_min_field_flow_velocity = 0;
     {
-        double density = m_htfProps.dens(m_T_loop_in_des + 273.15, std::numeric_limits<double>::quiet_NaN());
+        double density = m_htfProps.dens(m_T_loop_in_des, std::numeric_limits<double>::quiet_NaN());
 
         m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
     }
@@ -866,7 +866,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
 
     // Calculate Design Point Outputs
     double T_avg = 0.5 * (m_T_loop_in_des + m_T_loop_out_des);
-    m_field_htf_cp_avg_des = m_htfProps.Cp(T_avg + 273.15);         //[kJ/kg-K]
+    m_field_htf_cp_avg_des = m_htfProps.Cp(T_avg);         //[kJ/kg-K]
 
 
 	// *********************************************
@@ -4446,22 +4446,6 @@ bool C_csp_trough_collector_receiver::design_solar_mult(std::vector<double> trou
             if (d > m_max_inner_diameter)
                 m_max_inner_diameter = d;
         }
-    }
-
-    // Max Field Flow Velocity
-    m_max_field_flow_velocity = 0;
-    {
-        double density = m_htfProps.dens(m_T_loop_out_des + 273.15, std::numeric_limits<double>::quiet_NaN());
-
-        m_max_field_flow_velocity = m_m_dot_htfmax * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
-    }
-
-    // Min Field Flow Velocity
-    m_min_field_flow_velocity = 0;
-    {
-        double density = m_htfProps.dens(m_T_loop_in_des + 273.15, std::numeric_limits<double>::quiet_NaN());
-
-        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_max_inner_diameter * m_max_inner_diameter);
     }
 
     // HCE design heat loss

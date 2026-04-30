@@ -1781,7 +1781,7 @@ double C_csp_trough_collector_receiver::calculate_opt_derate(const int i, const 
         // Sun position
         case(1):
         {
-            opt_derate = max(m_optical_tables[i]->interpolate(SolarAz, min(SolarZenRad, CSP::pi / 2.)), 0.0);
+            opt_derate = std::max(m_optical_tables[i]->interpolate(SolarAz, std::min(SolarZenRad, CSP::pi / 2.)), 0.0);
             return opt_derate;
         }
         // Incidence angle table
@@ -1789,7 +1789,7 @@ double C_csp_trough_collector_receiver::calculate_opt_derate(const int i, const 
         {
             double phi_t, theta_L;
             CSP::theta_trans(SolarAz, SolarZenRad, m_ColAz, phi_t, theta_L);
-            opt_derate = max(m_optical_tables[i]->interpolate(phi_t, max(theta_L, 0.0)), 0.0);
+            opt_derate = std::max(m_optical_tables[i]->interpolate(phi_t, std::max(theta_L, 0.0)), 0.0);
             return opt_derate;
         }
         // IAM poly (original)
@@ -1800,6 +1800,10 @@ double C_csp_trough_collector_receiver::calculate_opt_derate(const int i, const 
                 IAM += m_IAM_matrix(i, j) * std::pow(theta, j) / m_costh;
             opt_derate = fmax(0.0, fmin(IAM, 1.0));
             return opt_derate;
+        }
+        default:
+        {
+            throw(C_csp_exception("Unsupported opt_model value."));
         }
     }
 }

@@ -1829,7 +1829,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 			//mjw 4.21.11 - rescope this to be for each specific collector j=1,m_nSCA
 			for (int j = 0; j < m_nSCA; j++)
 			{
-				if (std::abs(SolarAz) <= 90.0)
+				if (std::abs(SolarAz) <= (CSP::pi / 2.0))
 				{  //mjw 5.1.11 The sun is in the southern sky (towards equator)
 					if (j == 0 || j == m_nSCA - 1)
 					{

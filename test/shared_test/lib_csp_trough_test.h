@@ -146,7 +146,7 @@ namespace csp_trough
         std::vector<double> ColperSCA;                            //[-] The number of individual collector sections in an SCA
         std::vector<double> Distance_SCA;                         //[m] Piping distance between SCA's in the field
 
-        std::vector<int> opt_model;                               //[-] Optical model (1=Solar position ; 2=IAM matrix)
+        std::vector<int> opt_model;                               //[-] Optical model 1=Solar position ; 2=Collector incidence table ; 3 = IAM matrix
         util::matrix_t<double> IAM_matrix;                        //[-] IAM coefficients, matrix for 4 collectors                                                                          
         util::matrix_t<double> HCE_FieldFrac;                     //[-] Fraction of the field occupied by this HCE type
         util::matrix_t<double> D_2;                               //[m] Inner absorber tube diameter

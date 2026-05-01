@@ -29,12 +29,12 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#pragma once
-#pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
+#ifndef __csp_iph_dispatch_
+#define __csp_iph_dispatch_
 
-#include "base_dispatch.h"
+#include "base_dispatch_lpsolve.h"
 
-class cst_iph_dispatch_opt : public base_dispatch_opt
+class cst_iph_dispatch_opt : public base_dispatch_lpsolve
 {
 public:
     struct s_params
@@ -200,3 +200,5 @@ public:
 
     bool set_dispatch_outputs();
 };
+
+#endif //__csp_iph_dispatch_

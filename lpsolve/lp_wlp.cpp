@@ -34,7 +34,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 /* Input and output of lp format model files for lp_solve                    */
 /* ------------------------------------------------------------------------- */
 
-static int write_data(void *userhandle, write_modeldata_func write_modeldata, char *format, ...)
+static int write_data(void *userhandle, write_modeldata_func write_modeldata, const char *format, ...)
 {
   char buff[DEF_STRBUFSIZE+1];
   va_list ap;
@@ -47,7 +47,7 @@ static int write_data(void *userhandle, write_modeldata_func write_modeldata, ch
   return(n);
 }
 
-STATIC void write_lpcomment(void *userhandle, write_modeldata_func write_modeldata, char *string, MYBOOL newlinebefore)
+STATIC void write_lpcomment(void *userhandle, write_modeldata_func write_modeldata, const char *string, MYBOOL newlinebefore)
 {
   write_data(userhandle, write_modeldata, "%s/* %s */\n", (newlinebefore) ? "\n" : "", string);
 }

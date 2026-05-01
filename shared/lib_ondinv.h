@@ -32,10 +32,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __lib_ondinv_h
 #define __lib_ondinv_h
 
+#include <memory>
 #include <string>
 #include <vector>
 //#include "mlm_spline.h" // spline interpolator for efficiency curves
-#include "bspline.h"
+#include <bspline.h>
 using namespace std;
 using namespace SPLINTER;
 
@@ -115,9 +116,7 @@ private:
 	bool ondIsInitialized;
 
 	int noOfEfficiencyCurves;
-//	tk::spline effSpline[2][3];
-//	BSpline m_bspline3[2][3];
-	BSpline m_bspline3[3];
+	std::vector<std::unique_ptr<BSpline>> m_bspline3;
 	double x_max[3];
 	double x_lim[3];
 	double Pdc_threshold;
@@ -130,8 +129,6 @@ private:
 	double IMaxDC_eff;
 	double T_array[6];
 	double PAC_array[6];
-
-
 
 };
 

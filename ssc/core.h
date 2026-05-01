@@ -49,11 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename T>
 struct smart_ptr
 {
-	#if __cplusplus <= 201103L
 	typedef std::unique_ptr<T> ptr;
-	#else
-	typedef std::auto_ptr<T> ptr;
-	#endif
 };
 
 /* Macros require for building

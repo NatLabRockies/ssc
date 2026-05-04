@@ -2254,3 +2254,22 @@ void prepend_to_output(compute_module* cm, std::string var_name, size_t count, s
         }
     }
 }
+
+var_info vtab_non_energy_cash_flow[] = {
+{ SSC_INPUT,        SSC_ARRAY,		"non_energy_revenue",                     "Gross non-energy revenue",                    "$",             "", "Non-energy Revenue",       "",      "",            "" },
+{ SSC_INPUT,        SSC_NUMBER,     "non_energy_revenue_escal",                 "Non-energy revenue escalation",               "%",                 "", "Non-energy Revenue",   "?=0",   "", "" },
+{ SSC_INPUT,        SSC_ARRAY,      "non_energy_revenue_ret",                 "Non-energy revenue retained by energy owner", "%",        "", "Non-energy Revenue",         "",         "", "" },
+{ SSC_INPUT,        SSC_ARRAY,		"non_energy_expenses",                    "Gross non-energy expenses",                   "$",        "", "Non-energy Revenue",         "",         "",            "" },
+{ SSC_INPUT,        SSC_NUMBER,		"non_energy_expenses_escal",                "Non-energy expenses escalation",              "%",        "", "Non-energy Revenue",         "?=0",     "",            "" },
+{ SSC_INPUT,        SSC_ARRAY,      "non_energy_expenses_ret",	              "Non-energy expenses paid by energy owner",	 "%",	        "",	"Non-energy Revenue",	   "",         "",      			"" },
+{ SSC_INPUT,        SSC_ARRAY,      "energy_revenue_ret",		              "Energy revenue retained by energy owner",	 "%",	        "",	"Non-energy Revenue",	   "",         "",      			"" },
+{ SSC_INPUT,        SSC_ARRAY,      "energy_expenses_ret",   	              "Energy expenses paid by energy owner",		 "%",	        "",	"Non-energy Revenue",	   "",         "",      			"" },
+
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_sharable_energy_revenue",             "Sharable Energy Revenue",                      "$",           "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_sharable_energy_revenue_retained",   "Sharable Energy Revenue Retained",                   "$",               "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_non_energy_revenue",                  "Share of non-energy revenue",               "$",               "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_total_energy_expenses",               "Total Energy Expenses",                     "$",               "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_energy_expenses_paid",                "Energy Expenses Paid",                      "$",              "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_non_energy_expenses",                 "Share of non-energy expenses",              "$",                   "", "Cash Flow Non-energy", "*", "", "" },
+
+var_info_invalid };

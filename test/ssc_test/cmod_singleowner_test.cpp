@@ -279,4 +279,88 @@ TEST_F(CmodSingleOwnerTest, NonEnergyRevenueFixedDebt) {
     for(size_t i = 0; i < default_ebitda.size(); i++) {
         EXPECT_NEAR(pEbitdaArray[i], default_ebitda[i], 0.1) << " ebitda issue at index i=" << i;
     }
+
+    // Test 50% revenue retained
+    std::vector<double> post_share_revenue;
+    std::vector<double> post_share_costs;
+    std::vector<double> post_share_ebitda;
+
+    for (size_t i = 0; i < default_revenue.size(); i++) {
+        post_share_revenue.push_back(pRevArray[i] * 0.5);
+        post_share_costs.push_back(pCostArray[i] * 0.5);
+        post_share_ebitda.push_back(post_share_revenue[i] - post_share_costs[i]);
+    }
+
+    std::vector<double> shared_energy_revenue = { 50 };
+    std::vector<double> shared_energy_expenses = { 50 };
+
+    ssc_data_set_array(dat_inputs, "energy_revenue_ret", shared_energy_revenue.data(), (int)shared_energy_revenue.size());
+    ssc_data_set_array(dat_inputs, "energy_expenses_ret", shared_energy_expenses.data(), (int)shared_energy_expenses.size());
+
+    errors = run_module(dat_inputs, "singleowner");
+    EXPECT_FALSE(errors);
+
+    // Expect 50% reductions in values
+    pRevArray = ssc_data_get_array(dat_inputs, "cf_total_revenue", &arr_length);
+    for (size_t i = 0; i < post_share_revenue.size(); i++) {
+        EXPECT_NEAR(pRevArray[i], post_share_revenue[i], 0.1) << " revenue issue at index i=" << i;
+    }
+
+    pCostArray = ssc_data_get_array(dat_inputs, "cf_operating_expenses", &arr_length);
+    for (size_t i = 0; i < post_share_costs.size(); i++) {
+        EXPECT_NEAR(pCostArray[i], post_share_costs[i], 0.1) << " cost issue at index i=" << i;
+    }
+
+    pEbitdaArray = ssc_data_get_array(dat_inputs, "cf_ebitda", &arr_length);
+    for (size_t i = 0; i < post_share_ebitda.size(); i++) {
+        EXPECT_NEAR(pEbitdaArray[i], post_share_ebitda[i], 0.1) << " ebitda issue at index i=" << i;
+    }
+
+
+    // Test 50% revenue retained but with non-energy revenue added
+    post_share_revenue.clear();
+    post_share_costs.clear();
+    post_share_ebitda.clear();
+
+    post_share_revenue.push_back(0.0);
+    post_share_costs.push_back(0.0);
+    post_share_ebitda.push_back(0.0);
+    for (size_t i = 1; i < default_revenue.size(); i++) {
+        post_share_revenue.push_back(default_revenue[i] * 0.5 + 100000);
+        post_share_costs.push_back(default_costs[i] * 0.5 + 50000);
+        post_share_ebitda.push_back(post_share_revenue[i] - post_share_costs[i]);
+    }
+
+    std::vector<double> non_energy_revenue(25, 100000);
+    std::vector<double> non_energy_expenses(25, 50000);
+    std::vector<double> non_energy_revenue_ret = { 100 };
+    std::vector<double> non_energy_expenses_ret = { 100 };
+
+    ssc_data_set_array(dat_inputs, "non_energy_revenue", non_energy_revenue.data(), (int)non_energy_revenue.size());
+    ssc_data_set_array(dat_inputs, "non_energy_expenses", non_energy_expenses.data(), (int)non_energy_expenses.size());
+    ssc_data_set_array(dat_inputs, "non_energy_revenue_ret", non_energy_revenue_ret.data(), (int)non_energy_revenue_ret.size());
+    ssc_data_set_array(dat_inputs, "non_energy_expenses_ret", non_energy_expenses_ret.data(), (int)non_energy_expenses_ret.size());
+
+    ssc_data_set_number(dat_inputs, "non_energy_revenue_escal", -2.5);
+    ssc_data_set_number(dat_inputs, "non_energy_expenses_escal", -2.5);
+
+    errors = run_module(dat_inputs, "singleowner");
+    EXPECT_FALSE(errors);
+
+    // Expect 50% reductions in values
+    pRevArray = ssc_data_get_array(dat_inputs, "cf_total_revenue", &arr_length);
+    for (size_t i = 0; i < post_share_revenue.size(); i++) {
+        EXPECT_NEAR(pRevArray[i], post_share_revenue[i], 0.1) << " revenue issue at index i=" << i;
+    }
+
+    pCostArray = ssc_data_get_array(dat_inputs, "cf_operating_expenses", &arr_length);
+    for (size_t i = 0; i < post_share_costs.size(); i++) {
+        EXPECT_NEAR(pCostArray[i], post_share_costs[i], 0.1) << " cost issue at index i=" << i;
+    }
+
+    pEbitdaArray = ssc_data_get_array(dat_inputs, "cf_ebitda", &arr_length);
+    for (size_t i = 0; i < post_share_ebitda.size(); i++) {
+        EXPECT_NEAR(pEbitdaArray[i], post_share_ebitda[i], 0.1) << " ebitda issue at index i=" << i;
+    }
+
 }

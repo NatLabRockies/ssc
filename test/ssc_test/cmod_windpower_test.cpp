@@ -324,7 +324,7 @@ TEST_F(CMWindPowerIntegration, UsingDataArray_cmod_windpower_lifetime) {
     ssc_data_set_number(data, "system_use_lifetime_output", 1);
     ssc_data_set_number(data, "analysis_period", 2);
     ssc_number_t degradation[1] = { 0 };
-    ssc_data_set_array(data, "generic_degradation", degradation, 1);
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
 
     compute();
     double expectedAnnualEnergy = 4219481;
@@ -392,7 +392,7 @@ TEST_F(CMWindPowerIntegration, Weibull_cmod_windpower_lifetime) {
     ssc_data_set_number(data, "system_use_lifetime_output", 1);
     ssc_data_set_number(data, "analysis_period", 2);
     ssc_number_t degradation[1] = { 0 };
-    ssc_data_set_array(data, "generic_degradation", degradation, 1);
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
     compute();
 
     ssc_number_t annual_energy;
@@ -448,7 +448,7 @@ TEST_F(CMWindPowerIntegration, WindDist_cmod_windpower_lifetime) {
     ssc_data_set_number(data, "system_use_lifetime_output", 1);
     ssc_data_set_number(data, "analysis_period", 2);
     ssc_number_t degradation[1] = { 0 };
-    ssc_data_set_array(data, "generic_degradation", degradation, 1);
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
     compute();
 
     ssc_number_t annual_energy;

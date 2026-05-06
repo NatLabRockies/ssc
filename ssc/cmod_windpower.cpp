@@ -100,7 +100,7 @@ static var_info _cm_vtab_windpower[] = {
 
     { SSC_INOUT,   SSC_NUMBER,  "system_use_lifetime_output"         , "Run lifetime simulation",                   "0/1",     "",                                     "Lifetime",                              "?=0",                        "",                              "" },
     { SSC_INPUT,   SSC_NUMBER,  "analysis_period"                    , "Analysis period",                           "years",    "",                                    "Lifetime",                              "system_use_lifetime_output=1", "",                          "" },
-    { SSC_INPUT,   SSC_ARRAY,   "generic_degradation",                 "Annual AC degradation for lifetime simulations","%/year",  "",                                 "Lifetime",                              "system_use_lifetime_output=1", "",                          "" },
+    { SSC_INPUT,   SSC_ARRAY,   "ac_degradation",                 "Annual AC degradation for lifetime simulations","%/year",  "",                                 "Lifetime",                              "system_use_lifetime_output=1", "",                          "" },
 
 
         // OUTPUTS ----------------------------------------------------------------------------annual_energy
@@ -371,7 +371,7 @@ void cm_windpower::exec()
     std::vector<double> degradationFactor;
     if (as_boolean("system_use_lifetime_output")) {
         nyears = as_unsigned_long("analysis_period");
-        std::vector<double> ac_degradation = as_vector_double("generic_degradation");
+        std::vector<double> ac_degradation = as_vector_double("ac_degradation");
         if (ac_degradation.size() == 1) {
             degradationFactor.push_back(1.0); // assume zero degradation in year 1
             for (size_t y = 1; y < nyears; y++) {

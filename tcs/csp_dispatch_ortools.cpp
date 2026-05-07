@@ -1380,7 +1380,7 @@ bool csp_dispatch_ortools::optimize()
     //throw C_csp_exception("Setup and ran first dispatch optimization problem for Debugging");
 
     set_outputs_from_solution(P);
-    print_dispatch_update();
+    //print_dispatch_update();
 
     if (result_status == MPSolver::OPTIMAL || result_status == MPSolver::FEASIBLE)
         return true; // Successful solve

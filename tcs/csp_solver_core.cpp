@@ -1555,15 +1555,15 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
             if (hour_now >= (8760. - opt_horizon))
                 mc_dispatch.solver_params.optimize_horizon = (int)std::min((double)opt_horizon, (double)(8761. - hour_now));
 
-            //message
-            std::stringstream ss;
-            ss << "Optimizing thermal energy dispatch profile for time window "
-                << (int)(mc_kernel.mc_sim_info.ms_ts.m_time / 3600.) << " - "
-                << (int)(mc_kernel.mc_sim_info.ms_ts.m_time / 3600.) + mc_dispatch.solver_params.optimize_frequency;
+            // Optimizing message
+            //std::stringstream ss;
+            //ss << "Optimizing thermal energy dispatch profile for time window "
+            //    << (int)(mc_kernel.mc_sim_info.ms_ts.m_time / 3600.) << " - "
+            //    << (int)(mc_kernel.mc_sim_info.ms_ts.m_time / 3600.) + mc_dispatch.solver_params.optimize_frequency;
 
-            mc_csp_messages.add_message(C_csp_messages::NOTICE, ss.str());
-            send_callback((float)calc_frac_current * 100.f);
-            ss.flush();
+            //mc_csp_messages.add_message(C_csp_messages::NOTICE, ss.str());
+            //send_callback((float)calc_frac_current * 100.f);
+            //ss.flush();
 
             // Update horizon parameter values
             if (!mc_dispatch.update_horizon_parameters(mc_tou)) {

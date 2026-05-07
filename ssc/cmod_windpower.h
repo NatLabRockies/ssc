@@ -62,6 +62,8 @@ public:
 	bool read_line(std::vector<double> &values) override;
 
 	std::string get_stdErrorMsg(){ return stdErrorMsg; };
+
+    void rewind() override { irecord = 0; }
 };
 
 class cm_windpower : public compute_module

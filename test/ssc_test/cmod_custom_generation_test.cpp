@@ -121,6 +121,41 @@ TEST_F(CMCustomGeneration, CommercialWithBattery_cmod_generic) {
 	}
 }
 
+TEST_F(CMCustomGeneration, cmod_custom_generation_test_adjust_losses) {
+
+    custom_generation_singleowner_battery_60min(data);
+
+    // Test constant generation
+    ssc_data_set_number(data, "adjust_constant", 5.0);
+    ssc_data_set_number(data, "system_capacity", 100.0);
+    ssc_data_set_number(data, "user_capacity_factor", 100.0);
+    ssc_data_set_number(data, "spec_mode", 0);
+
+    EXPECT_FALSE(run_module(data, "custom_generation"));
+
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 8760 * 100.0 * 0.95, 0.01);
+
+    // Test annual custom schedule
+    std::vector<double> custom_schedule(8760, 100.0);
+    ssc_data_set_array(data, "energy_output_array", custom_schedule.data(), (int)custom_schedule.size());
+    
+    EXPECT_FALSE(run_module(data, "custom_generation"));
+    ssc_data_set_number(data, "spec_mode", 1);
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 8760 * 100.0 * 0.95, 0.01);
+
+    // Test lifetime custom schedule
+    std::vector<double> custom_schedule_lifetime(8760 * 25, 100.0);
+    ssc_data_set_array(data, "energy_output_array_lifetime", custom_schedule_lifetime.data(), (int)custom_schedule_lifetime.size());
+
+    EXPECT_FALSE(run_module(data, "custom_generation"));
+    ssc_data_set_number(data, "spec_mode", 2);
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 8760 * 100.0 * 0.95, 0.01);
+}
+
 /*
 Doesn't work to to outdated exeception handling methods in SSC which can not be 
 handled robustly in a cross-platform environment

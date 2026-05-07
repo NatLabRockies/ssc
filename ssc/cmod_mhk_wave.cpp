@@ -60,7 +60,7 @@ static var_info _cm_vtab_mhk_wave[] = {
 
     { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",                  "Generic lifetime simulation",                               "0/1",      "",                              "Lifetime",             "?=0",                        "INTEGER,MIN=0,MAX=1",          "" },
     { SSC_INPUT,        SSC_NUMBER,      "analysis_period",                             "Lifetime analysis period",                             "years",    "",                              "Lifetime",             "system_use_lifetime_output=1",   "",                             "" },
-    { SSC_INPUT,        SSC_ARRAY,       "generic_degradation",                              "Annual AC degradation",                            "%/year",   "",                              "Lifetime",             "system_use_lifetime_output=1",   "",                             "" },
+    { SSC_INPUT,        SSC_ARRAY,       "ac_degradation",                              "Annual AC degradation",                            "%/year",   "",                              "Lifetime",             "system_use_lifetime_output=1",   "",                             "" },
 
 
     // losses
@@ -566,7 +566,7 @@ public:
                 // setup system degradation
                 size_t i, count_degrad = 0;
                 ssc_number_t* degrad = 0;
-                degrad = as_array("generic_degradation", &count_degrad);
+                degrad = as_array("ac_degradation", &count_degrad);
 
                 if (count_degrad == 1)
                 {

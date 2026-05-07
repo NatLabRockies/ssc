@@ -220,7 +220,7 @@ public:
                     size_t count_degrad = 0;
                     ssc_number_t* degrad = input.as_array("degradation", &count_degrad);
                     if (compute_module == "custom_generation")
-                        input.assign("generic_degradation", *input.lookup("degradation"));
+                        input.assign("ac_degradation", *input.lookup("degradation"));
                     if (count_degrad == 1) {
                         for (int i = 1; i <= analysisPeriod; i++)
                             pDegradation[i] = pow((1.0 - degrad[0] / 100.0), i - 1);

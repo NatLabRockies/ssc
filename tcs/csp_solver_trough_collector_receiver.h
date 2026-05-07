@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iosfwd>
 #include <fstream>
+#include <optional>
 
 class C_csp_trough_collector_receiver : public C_csp_collector_receiver
 {
@@ -56,7 +57,7 @@ public:
 	{
 		E_THETA_AVE,			    //[deg]
 		E_COSTH_AVE,			    //[-]
-		E_IAM_AVE,				    //[-]
+		E_OPT_DERATE_AVE,			//[-]
 		E_ROWSHADOW_AVE,		    //[-]
 		E_ENDLOSS_AVE,			    //[-]
 		E_DNI_COSTH,			    //[W/m2]
@@ -113,13 +114,14 @@ private:
 	// Parameters calculated in init()
 	int m_n_c_iam_matrix;	//[-] Number of columns in the IAM matrix
 	int m_n_r_iam_matrix;	//[-] Number of rows in the IAM matrix
+    std::vector<std::optional<OpticalDataTable>> m_optical_tables;   //[-] Optical data table
 	double m_v_hot;			//[m^3] Hot piping volume
 	double m_v_cold;		//[m^3] Cold piping volume
 	int	m_nfsec;			//[-] Number of field sections
 	int	m_nhdrsec;			//[-] Number of header sections
 	int	m_nrunsec;			//[-] Number of unique runner diameters
 	double m_L_tot;			//[m] Total length of collectors in a loop
-	
+
 	double m_m_dot_design;	//[kg/s] Total solar field mass flow rate at design
 	double m_m_dot_loop_des;//[kg/s] LOOP design mass flow rate
 	double m_W_dot_sca_tracking_nom;		//[MWe] Tracking parasitics when trough is on sun
@@ -164,18 +166,18 @@ private:
 	std::vector<double> m_q_SCA;		//[W/m] Total incident irradiation on the receiver (q"*A_aper/L_sca*cos(theta)*all_defocus)
 	std::vector<double> m_q_SCA_control_df;	//[W/m] Total incident irradiation less CONTROL defocus (m_q_sca * control_defocus)
 
-	std::vector<double> m_IAM;			//[-] Incidence angle modifiers
 	std::vector<double> m_RowShadow;	//[-] Row-to-row shadowing losses
 
 	/*m_nColt, m_nSCA*/
 	util::matrix_t<double> m_ColOptEff;	//[-] tracking * geom * rho * dirt * error * IAM * row shadow * end loss * ftrack
 	util::matrix_t<double> m_EndGain;	//[-] Light from different collector hitting receiver
 	util::matrix_t<double> m_EndLoss;	//[-] Light missing receiver due to length
+    std::vector<double> m_opt_derate;   //[-] Optical derate (default from IAM)
 
 	double m_Theta_ave;			//[rad] Field average m_theta value (but... nothing in our model allows for this to different over SCAs)
 	
 	double m_CosTh_ave;			//[-] Field average costheta value
-	double m_IAM_ave;			//[-] Field average incidence angle modifier
+	double m_opt_derate_ave;	//[-] Field average optical derate average
 	double m_RowShadow_ave;		//[-] Field average row shadowing loss
 	double m_EndLoss_ave;		//[-] Field average end loss
 	
@@ -328,6 +330,9 @@ private:
 
 	void set_output_value();
 
+    double calculate_opt_derate(const int i, const double SolarAz,
+        const double SolarZenRad, const double theta);
+
 public:
 
 	// Class to save messages for up stream classes
@@ -430,9 +435,11 @@ public:
     double m_rec_qf_delay;   //[-] Energy-based receiver startup delay (fraction of rated thermal power)
     double m_p_start;        //[kWe-hr] Collector startup energy, per SCA
 
-	util::matrix_t<double> m_IAM_matrix;		  //[-] IAM coefficients, matrix for 4 collectors
+    std::vector<int> m_opt_model;		            // The optical model (1=Solar position ; 2=Collector incidence table ; 3 = IAM matrix)
+    std::vector<util::matrix_t<double>> m_OpticalTables_in;       // Values of the optical efficiency table
+	util::matrix_t<double> m_IAM_matrix;		    //[-] IAM coefficients, matrix for 4 collectors
 	
-	util::matrix_t<bool> m_GlazingIntact;		  //[-] Glazing intact (broken glass) flag {1=true, else=false}
+	util::matrix_t<bool> m_GlazingIntact;		    //[-] Glazing intact (broken glass) flag {1=true, else=false}
 
     bool m_calc_design_pipe_vals = std::numeric_limits<double>::quiet_NaN();                 //[-] Should the HTF state be calculated at design conditions
     double m_L_rnr_pb = std::numeric_limits<double>::quiet_NaN();                            //[m] Length of hot or cold runner pipe around the power block

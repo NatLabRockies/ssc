@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2067,7 +2067,7 @@ public:
 //		log(util::format("before loop  - size of debt =%lg .",	size_of_debt),	SSC_WARNING);
 
             // Installed costs and construction costs, developer fees, and legal fees can be claimed in the basis, but reserves and financing fees cannot
-    // See https://github.com/NREL/SAM/issues/1803 and linked issues for more details
+    // See https://github.com/NatLabRockies/SAM/issues/1803 and linked issues for more details
     pre_depr_alloc_basis = cost_prefinancing
         + cost_other_financing
         + constr_total_financing;

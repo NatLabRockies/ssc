@@ -840,7 +840,7 @@ forecast_price_signal::forecast_price_signal(var_table *vt)
 
 bool forecast_price_signal::setup(size_t step_per_hour)
 {
-    size_t nsteps = 8760 * step_per_hour;;
+    size_t nsteps = 8760 * step_per_hour; // nsteps is for 1 year (is multiplied by nyears later)
 
 	int forecast_price_signal_model = vartab->as_integer("forecast_price_signal_model");
     size_t nyears = vartab->as_unsigned_long("analysis_period");
@@ -973,7 +973,6 @@ bool forecast_price_signal::setup(size_t step_per_hour)
 			mp_ancserv_4_revenue_mat.assign(mp_ancserv4_revenue_in, nrows, ncols);
 		}
 
-        if ( nsteps > 8760 * nyears) step_per_hour = nsteps / (8760 * nyears);
         if (step_per_hour < 1 || step_per_hour > 60 || step_per_hour * 8760 != nsteps)
         {
             m_error = util::format("The requested number of timesteps must be a multiple of 8760. Instead requested timesteps is %d.", (int)nsteps);

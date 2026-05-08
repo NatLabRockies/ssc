@@ -59,9 +59,9 @@ TEST_F(CmodMerchantPlantTest, PV) {
 
 TEST_F(CmodMerchantPlantTest, CustomGenerationBattery_LCOS) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/merchantplant/2022.10.21_develop_branch_Generic_Battery_Merchant_Plant_cmod_merchantplant.json";
+    file_inputs += "/test/input_json/FinancialModels/merchantplant/2026.4.14_develop_branch_Custom_Generation_Battery_Merchant_Plant_cmod_merchantplant.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/merchantplant/2022.10.21_develop_branch_Generic_Battery_Merchant_Plant_cmod_merchantplant_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/merchantplant/2026.4.14_develop_branch_Custom_Generation_Battery_Merchant_Plant_cmod_merchantplant_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcos_real" };
     std::vector<std::string> compare_array_variables = { "mp_energy_market_generated_revenue", "cf_charging_cost_grid" };
 

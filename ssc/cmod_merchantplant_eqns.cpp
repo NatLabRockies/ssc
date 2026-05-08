@@ -148,7 +148,7 @@ bool mp_ancillary_services(ssc_data_t data)
 		// if none enabled then check passes
 		ancillary_services_success = (!mp_enable_energy_market_revenue && !mp_enable_ancserv1 && !mp_enable_ancserv2 && !mp_enable_ancserv3 && !mp_enable_ancserv4);
 
-		size_t nsteps = 0, nsteps_per_year = 8760;
+		size_t nsteps = 0, nsteps_per_year = 8760; // Don't panic, this will be re-evaluted on line 214
 		if (en_mp_energy_market)
 			nsteps = std::max(nsteps, mp_energy_market_revenue.nrows());
 		if (en_mp_ancserv1)
@@ -161,6 +161,13 @@ bool mp_ancillary_services(ssc_data_t data)
 			nsteps = std::max(nsteps, mp_ancserv4_revenue.nrows());
 
 		if (nsteps < (8760 * (size_t)analysis_period)) nsteps = 8760 * (size_t)analysis_period; // extrapolated timeseries has minimum of hourly values for use in all forecasting
+        if (vt->as_boolean("system_use_lifetime_output"))
+        {
+            if (nsteps < system_gen.ncols()) nsteps = system_gen.ncols();
+        }
+        else {
+            if (nsteps < system_gen.ncols() * (size_t)analysis_period) nsteps = system_gen.ncols() * (size_t)analysis_period;
+        }
 
 		std::vector<ssc_number_t> energy_market_revenue(nsteps, 0.0);
 		std::vector<ssc_number_t> ancillary_services1_revenue(nsteps, 0.0);

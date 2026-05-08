@@ -736,7 +736,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
     // Max Field Flow Velocity
     m_max_field_flow_velocity = 0;
     {
-        double density = m_htfProps.dens(m_T_loop_out_des + 273.15, std::numeric_limits<double>::quiet_NaN());
+        double density = m_htfProps.dens(m_T_loop_out_des, std::numeric_limits<double>::quiet_NaN());
 
         m_max_field_flow_velocity = m_m_dot_htfmax * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
     }
@@ -744,9 +744,9 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
     // Min Field Flow Velocity
     m_min_field_flow_velocity = 0;
     {
-        double density = m_htfProps.dens(m_T_loop_in_des + 273.15, std::numeric_limits<double>::quiet_NaN());
+        double density = m_htfProps.dens(m_T_loop_in_des, std::numeric_limits<double>::quiet_NaN());
 
-        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
+        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_max_inner_diameter * m_max_inner_diameter);
     }
 
 	//need to provide fluid density
@@ -941,7 +941,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
 
     // Calculate Design Point Outputs
     double T_avg = 0.5 * (m_T_loop_in_des + m_T_loop_out_des);
-    m_field_htf_cp_avg_des = m_htfProps.Cp(T_avg + 273.15);         //[kJ/kg-K]
+    m_field_htf_cp_avg_des = m_htfProps.Cp(T_avg);         //[kJ/kg-K]
 
 
 	// *********************************************
@@ -1936,7 +1936,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 			//mjw 4.21.11 - rescope this to be for each specific collector j=1,m_nSCA
 			for (int j = 0; j < m_nSCA; j++)
 			{
-				if (std::abs(SolarAz) <= 90.0)
+				if (std::abs(SolarAz) <= (CSP::pi / 2.0))
 				{  //mjw 5.1.11 The sun is in the southern sky (towards equator)
 					if (j == 0 || j == m_nSCA - 1)
 					{
@@ -4555,22 +4555,6 @@ bool C_csp_trough_collector_receiver::design_solar_mult(std::vector<double> trou
         }
     }
 
-    // Max Field Flow Velocity
-    m_max_field_flow_velocity = 0;
-    {
-        double density = m_htfProps.dens(m_T_loop_out_des + 273.15, std::numeric_limits<double>::quiet_NaN());
-
-        m_max_field_flow_velocity = m_m_dot_htfmax * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
-    }
-
-    // Min Field Flow Velocity
-    m_min_field_flow_velocity = 0;
-    {
-        double density = m_htfProps.dens(m_T_loop_in_des + 273.15, std::numeric_limits<double>::quiet_NaN());
-
-        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_max_inner_diameter * m_max_inner_diameter);
-    }
-
     // HCE design heat loss
     m_HCE_heat_loss_des = std::vector<double>();
     {
@@ -6967,10 +6951,13 @@ double C_csp_trough_collector_receiver::m_dot_runner(double m_dot_field, int nfi
     switch (irnr_onedir) {
     case 0:
         m_dot_rnr = m_dot_rnr_0;
+        break;
     case 1:
         m_dot_rnr = m_dot_rnr_1;
+        break;
     default:
         m_dot_rnr = m_dot_rnr_1 - (irnr_onedir - 1)*m_dot_field / float(nfieldsec) * 2;
+        break;
     }
 
     return max(m_dot_rnr, 0.0);

@@ -91,8 +91,6 @@ static var_info _cm_vtab_trough_physical[] = {
     { SSC_INPUT,        SSC_NUMBER,      "Row_Distance",              "Spacing between rows (centerline to centerline)",                                  "m",            "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "T_loop_in_des",             "Design loop inlet temperature",                                                    "C",            "",               "solar_field",    "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "T_loop_out",                "Target loop outlet temperature",                                                   "C",            "",               "solar_field",    "*",                       "",                      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_startup",                 "Required temperature of the system before the power block can be switched on",     "C",            "",               "solar_field",    "?",                       "",                      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_shutdown",                "Temperature when solar field begins recirculating",                                "C",            "",               "solar_field",    "?",                       "",                      "" },
 
     { SSC_INPUT,        SSC_NUMBER,      "use_abs_or_rel_mdot_limit", "Use mass flow abs (0) or relative (1) limits",                                     "",             "",               "solar_field",    "?=0",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "m_dot_htfmin",              "Minimum loop HTF flow rate",                                                       "kg/s",         "",               "solar_field",    "use_abs_or_rel_mdot_limit=0",  "",                 "" },
@@ -1805,7 +1803,7 @@ public:
             else if (csp_financial_model == 7 || csp_financial_model == 8) {    // LCOE (7) and None (8)
 
                 if (is_dispatch) {
-                    throw exec_error("fresnel_physical", "Can't select dispatch optimization if No Financial model");
+                    throw exec_error("trough_physical", "Can't select dispatch optimization if No Financial model");
                 }
                 else { // if no dispatch optimization, don't need an input pricing schedule
                     // If electricity pricing data is not available, then dispatch to a uniform schedule

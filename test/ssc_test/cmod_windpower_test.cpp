@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -314,6 +314,62 @@ TEST_F(CMWindPowerIntegration, UsingDataArray_cmod_windpower) {
     free_winddata_array(windresourcedata);
 }
 
+// Run the data array in lifetime mode
+TEST_F(CMWindPowerIntegration, UsingDataArray_cmod_windpower_lifetime) {
+    // using hourly data
+    ssc_data_unassign(data, "wind_resource_filename");
+    var_table* vt = static_cast<var_table*>(data);
+    auto windresourcedata = create_winddata_array(1, 1);
+    ssc_data_set_table(data, "wind_resource_data", windresourcedata);
+    ssc_data_set_number(data, "system_use_lifetime_output", 1);
+    ssc_data_set_number(data, "analysis_period", 2);
+    ssc_number_t degradation[1] = { 0 };
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
+
+    compute();
+    double expectedAnnualEnergy = 4219481;
+    double relErr = expectedAnnualEnergy * .001;
+
+
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, expectedAnnualEnergy, relErr);
+
+    ssc_number_t monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 0, relErr / 10.);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 1972735, relErr / 10.);
+
+    int gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 2);
+
+    free_winddata_array(windresourcedata);
+
+    // 15 min data
+    ssc_data_unassign(data, "wind_resource_data");
+    windresourcedata = create_winddata_array(4, 1);
+    vt->assign("wind_resource_data", *windresourcedata);
+
+    compute();
+
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, expectedAnnualEnergy, relErr);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 0, relErr / 10.);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 1972735, relErr / 10.);
+
+    gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 4 * 2);
+
+    free_winddata_array(windresourcedata);
+}
+
 /// Using Weibull Distribution
 TEST_F(CMWindPowerIntegration, Weibull_cmod_windpower) {
     ssc_data_set_number(data, "wind_resource_model_choice", 1);
@@ -328,6 +384,30 @@ TEST_F(CMWindPowerIntegration, Weibull_cmod_windpower) {
 
     monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
     EXPECT_NEAR(monthly_energy, 15326247, e);
+}
+
+// Now in lifetime mode!
+TEST_F(CMWindPowerIntegration, Weibull_cmod_windpower_lifetime) {
+    ssc_data_set_number(data, "wind_resource_model_choice", 1);
+    ssc_data_set_number(data, "system_use_lifetime_output", 1);
+    ssc_data_set_number(data, "analysis_period", 2);
+    ssc_number_t degradation[1] = { 0 };
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
+    compute();
+
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 180453760, e);
+
+    ssc_number_t monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 15326247, e);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 15326247, e);
+
+    int gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 2);
 }
 
 /// Using Wind Resource 2-D Distribution
@@ -352,6 +432,38 @@ TEST_F(CMWindPowerIntegration, WindDist_cmod_windpower) {
 
     monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
     EXPECT_NEAR(monthly_energy, 13573000, e);
+}
+
+// Same as above, in lifetime mode 
+TEST_F(CMWindPowerIntegration, WindDist_cmod_windpower_lifetime) {
+    ssc_data_set_number(data, "wind_resource_model_choice", 2);
+    double dist[18] = { 1.5, 180, .12583,
+                       5, 180, .3933,
+                       8, 180, .18276,
+                       10, 180, .1341,
+                       13.5, 180, .14217,
+                       19, 180, .0211 };
+
+    ssc_data_set_matrix(data, "wind_resource_distribution", dist, 6, 3);
+    ssc_data_set_number(data, "system_use_lifetime_output", 1);
+    ssc_data_set_number(data, "analysis_period", 2);
+    ssc_number_t degradation[1] = { 0 };
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
+    compute();
+
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 159807000, e);
+
+    ssc_number_t monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 13573000, e);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 13573000, e);
+
+    int gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 2);
 }
 
 /// Using Wind Resource 2-D Distribution

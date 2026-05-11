@@ -838,8 +838,8 @@ enum {
     CF_annual_cost_lcos,
     CF_util_escal_rate,
 
-    CF_sharable_energy_revenue,
-    CF_sharable_energy_expenses,
+    CF_energy_revenue,
+    CF_energy_expenses,
     CF_energy_revenue_ret_percent,
     CF_energy_revenue_retained,
     CF_energy_expenses_paid_percent,
@@ -1752,7 +1752,7 @@ public:
                     * pow((1 + inflation_rate + recapitalization_escalation), i - 1);
             }
 
-            cf.at(CF_sharable_energy_expenses, i) =
+            cf.at(CF_energy_expenses, i) =
                 +cf.at(CF_om_fixed_expense, i)
                 + cf.at(CF_om_production_expense, i)
                 + cf.at(CF_om_capacity_expense, i)
@@ -1774,7 +1774,7 @@ public:
                 + cf.at(CF_utility_bill, i)
                 + cf.at(CF_Recapitalization, i);
 
-            cf.at(CF_energy_expenses_paid, i) = cf.at(CF_sharable_energy_expenses, i) * cf.at(CF_energy_expenses_paid_percent, i);
+            cf.at(CF_energy_expenses_paid, i) = cf.at(CF_energy_expenses, i) * cf.at(CF_energy_expenses_paid_percent, i);
             cf.at(CF_operating_expenses, i) = cf.at(CF_energy_expenses_paid, i) + cf.at(CF_non_energy_expenses_paid, i);
         }
 
@@ -2095,12 +2095,12 @@ public:
 
 //			log(util::format("year %d : energy value =%lg", i, m_disp_calcs.tod_energy_value(i)), SSC_WARNING);
 			// total revenue
-            cf.at(CF_sharable_energy_revenue, i) = cf.at(CF_energy_value, i) +
+            cf.at(CF_energy_revenue, i) = cf.at(CF_energy_value, i) +
                 cf.at(CF_thermal_value, i) +
                 cf.at(CF_curtailment_value, i) +
                 cf.at(CF_capacity_payment, i);
 
-            cf.at(CF_energy_revenue_retained, i) = cf.at(CF_sharable_energy_revenue, i) * cf.at(CF_energy_revenue_ret_percent, i);
+            cf.at(CF_energy_revenue_retained, i) = cf.at(CF_energy_revenue, i) * cf.at(CF_energy_revenue_ret_percent, i);
 				
             cf.at(CF_total_revenue, i) =
                 cf.at(CF_energy_revenue_retained, i) +
@@ -2851,10 +2851,12 @@ public:
 
 		save_cf(CF_Recapitalization, nyears, "cf_recapitalization");
 
-        save_cf(CF_sharable_energy_revenue, nyears, "cf_sharable_energy_revenue");
-        save_cf(CF_energy_revenue_retained, nyears, "cf_sharable_energy_revenue_retained");
+        save_cf(CF_energy_revenue, nyears, "cf_energy_revenue");
+        save_cf(CF_energy_revenue_ret_percent, nyears, "cf_energy_revenue_retained_percent", 100.0);
+        save_cf(CF_energy_revenue_retained, nyears, "cf_energy_revenue_retained");
         save_cf(CF_non_energy_revenue_retained, nyears, "cf_non_energy_revenue");
-        save_cf(CF_sharable_energy_expenses, nyears, "cf_total_energy_expenses");
+        save_cf(CF_energy_expenses, nyears, "cf_total_energy_expenses");
+        save_cf(CF_energy_expenses_paid_percent, nyears, "cf_energy_expenses_paid_percent", 100.0);
         save_cf(CF_energy_expenses_paid, nyears, "cf_energy_expenses_paid");
         save_cf(CF_non_energy_expenses_paid, nyears, "cf_non_energy_expenses");
 
@@ -2914,11 +2916,11 @@ public:
 	}
 
 	// std lib
-	void save_cf(int cf_line, int nyears, const std::string &name)
+	void save_cf(int cf_line, int nyears, const std::string &name, ssc_number_t scaling = 1.0)
 	{
 		ssc_number_t *arrp = allocate( name, nyears+1 );
 		for (int i=0;i<=nyears;i++)
-			arrp[i] = (ssc_number_t)cf.at(cf_line, i);
+			arrp[i] = (ssc_number_t)cf.at(cf_line, i) * scaling;
 	}
 
 	void escal_or_annual( int cf_line, int nyears, const std::string &variable,

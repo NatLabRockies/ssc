@@ -2266,11 +2266,13 @@ var_info vtab_non_energy_cash_flow[] = {
 
 
 // shareable (or maybe just Energy and non energy revenue?)
-{ SSC_OUTPUT,       SSC_ARRAY,      "cf_sharable_energy_revenue",             "Energy Revenue",                      "$",           "", "Cash Flow Non-energy", "*", "", "" },
-{ SSC_OUTPUT,       SSC_ARRAY,      "cf_sharable_energy_revenue_retained",    "Energy Revenue Retained",                   "$",               "", "Cash Flow Non-energy", "*", "", "" },
-{ SSC_OUTPUT,       SSC_ARRAY,      "cf_non_energy_revenue",                  "Owner share of non-energy revenue",               "$",               "", "Cash Flow Non-energy", "*", "", "" },
-{ SSC_OUTPUT,       SSC_ARRAY,      "cf_total_energy_expenses",               "Total Energy Expenses",                     "$",               "", "Cash Flow Non-energy", "*", "", "" },
-{ SSC_OUTPUT,       SSC_ARRAY,      "cf_energy_expenses_paid",                "Energy Expenses Paid",                      "$",              "", "Cash Flow Non-energy", "*", "", "" },
-{ SSC_OUTPUT,       SSC_ARRAY,      "cf_non_energy_expenses",                 "Owner share of non-energy expenses",              "$",                   "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_energy_revenue",             "Energy revenue",                      "$",           "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_energy_revenue_retained_percent",    "Percent of energy revenue retained",                   "%",               "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_energy_revenue_retained",    "Energy revenue retained",                   "$",               "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_non_energy_revenue",         "Owner share of non-energy revenue",               "$",               "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_total_energy_expenses",      "Total energy expenses",                     "$",               "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_energy_expenses_paid_percent",       "Percent of energy expenses paid",                      "%",              "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_energy_expenses_paid",       "Energy expenses paid",                      "$",              "", "Cash Flow Non-energy", "*", "", "" },
+{ SSC_OUTPUT,       SSC_ARRAY,      "cf_non_energy_expenses",        "Owner share of non-energy expenses",              "$",                   "", "Cash Flow Non-energy", "*", "", "" },
 
 var_info_invalid };

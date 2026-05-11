@@ -847,7 +847,13 @@ public:
         bool is_control_target_elec = as_boolean("is_control_target_elec");
 
         double hel_startup_power = as_double("p_start");      //[kWhe] Heliostat startup energy
-        double hrs_heater_su_at_max = as_double("hrs_startup_at_max_rate");      //[hr] duration of startup at max startup power
+
+        double hrs_heater_su_at_max = 0.0;
+        if( is_assigned("hrs_startup_at_max_rate") ) {
+
+            hrs_heater_su_at_max = as_double("hrs_startup_at_max_rate");      //[hr] duration of startup at max startup power
+        }
+
         if(is_control_target_elec){
 
             // save originals for logging if we override them below

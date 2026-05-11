@@ -843,6 +843,26 @@ public:
 
         bool is_dispatch = as_boolean("is_dispatch");
 
+        // Check if net power control mode and zero out heliostat and heater startup energy
+        bool is_control_target_elec = as_boolean("is_control_target_elec");
+
+        double hel_startup_power = as_double("p_start");      //[kWhe] Heliostat startup energy
+        double hrs_heater_su_at_max = as_double("hrs_startup_at_max_rate");      //[hr] duration of startup at max startup power
+        if(is_control_target_elec){
+
+            // save originals for logging if we override them below
+            double hel_startup_power_orig = hel_startup_power;
+            double hrs_heater_su_at_max_orig = hrs_heater_su_at_max;
+
+            hel_startup_power = 0.0;
+            hrs_heater_su_at_max = 0.0;
+            std::string log_out = util::format(
+                "The controller is targeting the system net power, so we have set the heliostat startup and heater startup "
+                "energy requirements to 0.0 to avoid unreasonable power spikes during short timesteps. Their original values were %g kWhe and %g hr, respectively.",
+                hel_startup_power_orig, hrs_heater_su_at_max_orig);
+            log(log_out);
+        }
+
         // *****************************************************
         // Check deprecated variables
             // Piping loss coefficient
@@ -1857,7 +1877,7 @@ public:
         //    so it can use the active receiver area
         C_pt_sf_perf_interp heliostatfield(A_rec);
 
-        heliostatfield.ms_params.m_p_start = as_double("p_start");      //[kWhe] Heliostat startup energy
+        heliostatfield.ms_params.m_p_start = hel_startup_power;         //[kWhe] Heliostat startup energy
         heliostatfield.ms_params.m_p_track = as_double("p_track");      //[kWe] Heliostat tracking power
         heliostatfield.ms_params.m_hel_stow_deploy = as_double("hel_stow_deploy");  // N/A
         heliostatfield.ms_params.m_v_wind_max = as_double("v_wind_max");            // N/A
@@ -1991,7 +2011,7 @@ public:
 
             double heater_efficiency = as_double("heater_efficiency") / 100.0;          //[-] convert from % input
             double f_q_dot_des_allowable_su = as_double("f_q_dot_des_allowable_su");    //[-] fraction of design power allowed during startup
-            double hrs_startup_at_max_rate = as_double("hrs_startup_at_max_rate");      //[hr] duration of startup at max startup power
+            double hrs_startup_at_max_rate = hrs_heater_su_at_max;                      //[hr] duration of startup at max startup power
             double f_heater_min = as_double("f_q_dot_heater_min");                      //[-] minimum allowable heater output as fraction of design
 
             p_electric_resistance = new C_csp_cr_electric_resistance(as_double("T_htf_cold_des"), as_double("T_htf_hot_des"),
@@ -2276,7 +2296,7 @@ public:
         system.m_bop_par_0 = as_double("bop_par_0");
         system.m_bop_par_1 = as_double("bop_par_1");
         system.m_bop_par_2 = as_double("bop_par_2");
-        system.m_is_control_target_elec = as_boolean("is_control_target_elec");
+        system.m_is_control_target_elec = is_control_target_elec;
 
         // *****************************************************
         // System dispatch

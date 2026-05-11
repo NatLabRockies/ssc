@@ -4015,6 +4015,10 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
         itc_fed_qual_none_frac = (depr_alloc_none_frac > 0) ? itc_fed_qual_none_frac / depr_alloc_none_frac : 0;
         itc_sta_qual_none_frac = (depr_alloc_none_frac > 0) ? itc_sta_qual_none_frac / depr_alloc_none_frac : 0;
     }
+    else {
+        itc_fed_qual_none_frac = 0.;
+        itc_sta_qual_none_frac = 0.;
+    }
 
     // ITC reduction
     itc_fed_percent_deprbas_sta = cm->as_boolean("itc_fed_percent_deprbas_sta") ? 1.0 : 0.0;

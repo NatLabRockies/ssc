@@ -46,6 +46,7 @@ static var_info vtab_cashloan_heat[] = {
 	{ SSC_INPUT,        SSC_NUMBER,     "mortgage",                  "Use mortgage style loan (res. only)","0/1",          "0=standard loan,1=mortgage","Financial Parameters", "?=0", "INTEGER,MIN=0,MAX=1", "" },
 
     { SSC_INPUT,        SSC_ARRAY,      "utility_bill_w_sys",          "Electricity bill for system", "$", "", "Charges by Month", "*", "", "" },
+    { SSC_INPUT,        SSC_ARRAY,      "utility_bill_wo_sys",          "Electricity bill without system", "$", "", "Charges by Month", "*", "", "" },
     { SSC_INPUT, SSC_MATRIX,           "charge_w_sys_ec_ym", "Energy charge with system", "$", "", "Charges by Month", "", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
     { SSC_INPUT, SSC_MATRIX,           "true_up_credits_ym",     "Net annual true-up payments", "$", "", "Charges by Month", "", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
     { SSC_INPUT, SSC_MATRIX, "nm_dollars_applied_ym", "Net metering credit", "$", "", "Charges by Month", "*", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },

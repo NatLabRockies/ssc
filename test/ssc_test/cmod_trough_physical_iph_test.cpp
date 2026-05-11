@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -57,12 +57,12 @@ TEST(HeatTroughCmod, Default_NoFinancial)
         double annual_total_water_use = heat_trough.GetOutput("annual_total_water_use");
 
         //EXPECT_NEAR_FRAC(heat_trough.GetOutput("annual_gross_energy"), 24267285, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(heat_trough.GetOutput("annual_energy"), 24142307, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(heat_trough.GetOutput("annual_electricity_consumption"), 94120, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(heat_trough.GetOutput("annual_thermal_consumption"), 182.81, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(heat_trough.GetOutput("annual_tes_freeze_protection"), 182.81, kErrorToleranceHi);
-        EXPECT_NEAR(heat_trough.GetOutput("annual_field_freeze_protection"), 0., kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(heat_trough.GetOutput("annual_total_water_use"), 176.3, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_energy, 24142307, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_electricity_consumption, 94120, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_thermal_consumption, 190, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_tes_freeze_protection, 190, kErrorToleranceHi);
+        EXPECT_NEAR(annual_field_freeze_protection, 0., kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_total_water_use, 176.3, kErrorToleranceHi);
 
     }
 }

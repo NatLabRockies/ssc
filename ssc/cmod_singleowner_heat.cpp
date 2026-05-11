@@ -372,6 +372,7 @@ vtab_equip_reserve[],
 vtab_tax_credits[],
 vtab_depreciation_inputs[],
 vtab_depreciation_outputs[],
+vtab_tax_outputs[],
 vtab_itc_outputs[],
 vtab_payment_incentives[],
 vtab_tax_credits_heat[],
@@ -593,6 +594,7 @@ public:
         add_var_info(vtab_depreciation_inputs );
         add_var_info(vtab_depreciation_outputs );
         add_var_info(vtab_itc_outputs);
+        add_var_info(vtab_tax_outputs);
         add_var_info( vtab_payment_incentives );
 		add_var_info( vtab_debt );
 		add_var_info( vtab_financial_metrics_heat );

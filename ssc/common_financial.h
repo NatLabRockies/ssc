@@ -228,6 +228,7 @@ public:
     double itc_sta_qual_sl_20_frac;
     double itc_sta_qual_sl_39_frac;
     double itc_sta_qual_custom_frac;
+    double itc_sta_qual_none_frac;
 
     double itc_sta_qual_total;
 
@@ -238,6 +239,7 @@ public:
     double itc_sta_qual_sl_20;
     double itc_sta_qual_sl_39;
     double itc_sta_qual_custom;
+    double itc_sta_qual_none;
 
     double itc_sta_disallow_factor;
 
@@ -265,6 +267,7 @@ public:
     double itc_fed_qual_sl_20_frac;
     double itc_fed_qual_sl_39_frac;
     double itc_fed_qual_custom_frac;
+    double itc_fed_qual_none_frac;
 
     double itc_fed_qual_total;
 
@@ -275,6 +278,7 @@ public:
     double itc_fed_qual_sl_20;
     double itc_fed_qual_sl_39;
     double itc_fed_qual_custom;
+    double itc_fed_qual_none;
 
     double itc_fed_disallow_factor;
 

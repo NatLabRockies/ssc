@@ -3900,6 +3900,7 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
         itc_sta_qual_sl_20_frac = 0;
         itc_sta_qual_sl_39_frac = 0;
         itc_sta_qual_custom_frac = 0;
+        itc_sta_qual_none_frac = 0;
 
         itc_fed_qual_macrs_5_frac = 0;
         itc_fed_qual_macrs_15_frac = 0;
@@ -3908,6 +3909,7 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
         itc_fed_qual_sl_20_frac = 0;
         itc_fed_qual_sl_39_frac = 0;
         itc_fed_qual_custom_frac = 0;
+        itc_fed_qual_none_frac = 0;
 
         util::matrix_t<double> depr_basis_mat;
         cm->get_matrix("depr_basis_mat", depr_basis_mat);
@@ -3948,6 +3950,10 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
                 itc_fed_qual_custom_frac += (depr_basis_mat.at(r, 3) ? alloc_percent : 0);
                 itc_sta_qual_custom_frac += (depr_basis_mat.at(r, 4) ? alloc_percent : 0);
             }
+            else if (depr_basis_mat.at(r, 5) == 7) { //None (for residential)
+                itc_fed_qual_none_frac += (depr_basis_mat.at(r, 3) ? alloc_percent : 0);
+                itc_sta_qual_none_frac += (depr_basis_mat.at(r, 4) ? alloc_percent : 0);
+            }
         }
         // Normalize the ITC qualification fractions by the allocation fractions to get the percent of each depreciation category that qualifies for ITC
         itc_fed_qual_macrs_5_frac = (depr_alloc_macrs_5_frac > 0) ? itc_fed_qual_macrs_5_frac / depr_alloc_macrs_5_frac : 0;
@@ -3958,6 +3964,7 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
         itc_fed_qual_sl_39_frac = (depr_alloc_sl_39_frac > 0) ? itc_fed_qual_sl_39_frac / depr_alloc_sl_39_frac : 0;
         itc_fed_qual_custom_frac = (depr_alloc_custom_frac > 0) ? itc_fed_qual_custom_frac / depr_alloc_custom_frac : 0;
 
+
         itc_sta_qual_macrs_5_frac = (depr_alloc_macrs_5_frac > 0) ? itc_sta_qual_macrs_5_frac / depr_alloc_macrs_5_frac : 0;
         itc_sta_qual_macrs_15_frac = (depr_alloc_macrs_15_frac > 0) ? itc_sta_qual_macrs_15_frac / depr_alloc_macrs_15_frac : 0;
         itc_sta_qual_sl_5_frac = (depr_alloc_sl_5_frac > 0) ? itc_sta_qual_sl_5_frac / depr_alloc_sl_5_frac : 0;
@@ -3965,7 +3972,7 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
         itc_sta_qual_sl_20_frac = (depr_alloc_sl_20_frac > 0) ? itc_sta_qual_sl_20_frac / depr_alloc_sl_20_frac : 0;
         itc_sta_qual_sl_39_frac = (depr_alloc_sl_39_frac > 0) ? itc_sta_qual_sl_39_frac / depr_alloc_sl_39_frac : 0;
         itc_sta_qual_custom_frac = (depr_alloc_custom_frac > 0) ? itc_sta_qual_custom_frac / depr_alloc_custom_frac : 0;
-
+        itc_sta_qual_custom_frac = (depr_alloc_custom_frac > 0) ? itc_sta_qual_custom_frac / depr_alloc_custom_frac : 0;
 
     }
     else {
@@ -4003,6 +4010,11 @@ itc_and_depreciation_calculations::itc_and_depreciation_calculations(compute_mod
     // TODO - place check that depr_alloc_total_frac <= 1 and <>0
     depr_alloc_none_frac = 1.0 - depr_alloc_total_frac;
     // TODO - place check that depr_alloc_none_frac >= 0
+
+    if (init_method) {
+        itc_fed_qual_none_frac = (depr_alloc_none_frac > 0) ? itc_fed_qual_none_frac / depr_alloc_none_frac : 0;
+        itc_sta_qual_none_frac = (depr_alloc_none_frac > 0) ? itc_sta_qual_none_frac / depr_alloc_none_frac : 0;
+    }
 
     // ITC reduction
     itc_fed_percent_deprbas_sta = cm->as_boolean("itc_fed_percent_deprbas_sta") ? 1.0 : 0.0;
@@ -4130,7 +4142,7 @@ void itc_and_depreciation_calculations::calc_basis(double in_pre_depr_alloc_basi
     depr_alloc_sl_20 = depr_alloc_sl_20_frac * depr_alloc_total;
     depr_alloc_sl_39 = depr_alloc_sl_39_frac * depr_alloc_total;
     depr_alloc_custom = depr_alloc_custom_frac * depr_alloc_total;
-    depr_alloc_none = depr_alloc_none_frac * depr_alloc_total;
+    depr_alloc_none = depr_alloc_none_frac * pre_depr_alloc_basis;
 
     itc_sta_qual_macrs_5 = itc_sta_qual_macrs_5_frac * (depr_alloc_macrs_5 - depr_stabas_macrs_5_frac * depr_sta_reduction);
     itc_sta_qual_macrs_15 = itc_sta_qual_macrs_15_frac * (depr_alloc_macrs_15 - depr_stabas_macrs_15_frac * depr_sta_reduction);
@@ -4139,8 +4151,9 @@ void itc_and_depreciation_calculations::calc_basis(double in_pre_depr_alloc_basi
     itc_sta_qual_sl_20 = itc_sta_qual_sl_20_frac * (depr_alloc_sl_20 - depr_stabas_sl_20_frac * depr_sta_reduction);
     itc_sta_qual_sl_39 = itc_sta_qual_sl_39_frac * (depr_alloc_sl_39 - depr_stabas_sl_39_frac * depr_sta_reduction);
     itc_sta_qual_custom = itc_sta_qual_custom_frac * (depr_alloc_custom - depr_stabas_custom_frac * depr_sta_reduction);
+    itc_sta_qual_none = itc_sta_qual_none_frac * depr_alloc_none; // Used for residential
 
-    itc_sta_qual_total = itc_sta_qual_macrs_5 + itc_sta_qual_macrs_15 + itc_sta_qual_sl_5 + itc_sta_qual_sl_15 + itc_sta_qual_sl_20 + itc_sta_qual_sl_39 + itc_sta_qual_custom;
+    itc_sta_qual_total = itc_sta_qual_macrs_5 + itc_sta_qual_macrs_15 + itc_sta_qual_sl_5 + itc_sta_qual_sl_15 + itc_sta_qual_sl_20 + itc_sta_qual_sl_39 + itc_sta_qual_custom + itc_sta_qual_none;
 
     // SAM 1038
     itc_sta_per = 0.0;
@@ -4193,8 +4206,9 @@ void itc_and_depreciation_calculations::calc_basis(double in_pre_depr_alloc_basi
     itc_fed_qual_sl_20 = itc_fed_qual_sl_20_frac * (depr_alloc_sl_20 - depr_fedbas_sl_20_frac * depr_fed_reduction);
     itc_fed_qual_sl_39 = itc_fed_qual_sl_39_frac * (depr_alloc_sl_39 - depr_fedbas_sl_39_frac * depr_fed_reduction);
     itc_fed_qual_custom = itc_fed_qual_custom_frac * (depr_alloc_custom - depr_fedbas_custom_frac * depr_fed_reduction);
+    itc_fed_qual_none = itc_fed_qual_none_frac * depr_alloc_none; // Used for residential
 
-    itc_fed_qual_total = itc_fed_qual_macrs_5 + itc_fed_qual_macrs_15 + itc_fed_qual_sl_5 + itc_fed_qual_sl_15 + itc_fed_qual_sl_20 + itc_fed_qual_sl_39 + itc_fed_qual_custom;
+    itc_fed_qual_total = itc_fed_qual_macrs_5 + itc_fed_qual_macrs_15 + itc_fed_qual_sl_5 + itc_fed_qual_sl_15 + itc_fed_qual_sl_20 + itc_fed_qual_sl_39 + itc_fed_qual_custom + itc_fed_qual_none;
 
     // SAM 1038
     itc_fed_per = 0.0;

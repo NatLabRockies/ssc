@@ -50,6 +50,7 @@ extern var_info vtab_equip_reserve[];
 extern var_info vtab_depreciation[];
 extern var_info vtab_depreciation_inputs[];
 extern var_info vtab_depreciation_outputs[];
+extern var_info vtab_tax_outputs[];
 extern var_info vtab_itc_outputs[];
 extern var_info vtab_tax_credits[];
 extern var_info vtab_payment_incentives[];

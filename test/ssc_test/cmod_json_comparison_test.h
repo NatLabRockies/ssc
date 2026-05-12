@@ -105,7 +105,7 @@ public:
                 ssc_data_get_number(dat_inputs, compare_number_variables[i].c_str(), &values_to_compare[i]);
                 if (!ssc_data_get_number(dat_outputs, compare_number_variables[i].c_str(), &values_to_match[i]))
                     values_to_match[i] = std::numeric_limits<double>::quiet_NaN();
-                if (!isnan(values_to_compare[i]) || !isnan(values_to_match[i]))
+                if (!(isnan(values_to_compare[i]) || isnan(values_to_match[i])))
                     EXPECT_NEAR(values_to_compare[i], values_to_match[i], tolerance) << " number issue at index i=" << i << " for " << compare_number_variables[i];
                 // Treats two NaNs as equal/near - option with latest gtest - requires #include <gmock/gmock.h>
                 //EXPECT_THAT(values_to_compare[i], NanSensitiveDoubleNear(values_to_match[i], tolerance));

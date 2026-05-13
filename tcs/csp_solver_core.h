@@ -309,6 +309,10 @@ public:
         double m_price_mult;    //[-]
         double m_elec_price;    //[$/kWhe]
 
+        int m_pv_tou;
+        double m_pv_mult;       //[-]
+        double m_pv_gen;        //[kWe]
+
         int m_heat_tou;
         double m_heat_mult;     //[-]
         double m_heat_price;    //[$/kWh-t]
@@ -317,9 +321,9 @@ public:
 
 		S_csp_tou_outputs()
 		{
-            m_csp_op_tou = m_pricing_tou = m_heat_tou = -1;
+            m_csp_op_tou = m_pricing_tou = m_pv_tou = m_heat_tou = -1;
 
-			m_f_turbine = m_price_mult = m_elec_price =
+            m_f_turbine = m_price_mult = m_elec_price = m_pv_mult = m_pv_gen =
                 m_heat_mult = m_heat_price = m_wlim_dispatch = std::numeric_limits<double>::quiet_NaN();
 		}
 	};
@@ -337,18 +341,21 @@ public:
 
     C_timeseries_schedule_inputs mc_offtaker_schedule;
     C_timeseries_schedule_inputs mc_elec_pricing_schedule;
+    C_timeseries_schedule_inputs mc_pv_generation_profile;
 
     C_timeseries_schedule_inputs mc_heat_pricing_schedule;
 
     C_csp_tou(C_timeseries_schedule_inputs c_offtaker_schedule,
         C_timeseries_schedule_inputs c_elec_pricing_schedule,
         C_csp_tou::C_dispatch_model_type::E_dispatch_model_type dispatch_model_type,
-        bool is_offtaker_frac_also_max)
+        bool is_offtaker_frac_also_max,
+        C_timeseries_schedule_inputs c_pv_generation_profile)
     {
         mc_offtaker_schedule = c_offtaker_schedule;
         mc_elec_pricing_schedule = c_elec_pricing_schedule;
         m_dispatch_model_type = dispatch_model_type;
         m_is_tod_pc_target_also_pc_max = is_offtaker_frac_also_max;
+        mc_pv_generation_profile = c_pv_generation_profile;
 
         mc_heat_pricing_schedule = C_timeseries_schedule_inputs(std::numeric_limits<double>::quiet_NaN(),
             std::numeric_limits<double>::quiet_NaN());
@@ -356,6 +363,14 @@ public:
         // Set defaults on heuristic rule values. No one at the cmod level knows what to do with these
         m_use_rule_1 = true;
         m_standby_off_buffer = 2.0;
+    }
+
+    // Overloaded constructor for when no PV profile is used
+    C_csp_tou(C_timeseries_schedule_inputs c_offtaker_schedule,
+        C_timeseries_schedule_inputs c_elec_pricing_schedule,
+        C_csp_tou::C_dispatch_model_type::E_dispatch_model_type dispatch_model_type,
+        bool is_offtaker_frac_also_max) : C_csp_tou(c_offtaker_schedule, c_elec_pricing_schedule, dispatch_model_type, is_offtaker_frac_also_max,
+            C_timeseries_schedule_inputs(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN())) {
     }
 
 	~C_csp_tou(){};
@@ -891,6 +906,8 @@ public:
 			PC_Q_DOT_MAX,               //[MWt] PC allowable max thermal power
             PC_Q_DOT_TARGET_SU,         //[MWt] PC target thermal power for startup
             PC_Q_DOT_TARGET_ON,         //[MWt] PC target thermal power for cycle on
+            PC_W_DOT_NET_TARGET,        //[MWe] PC target (net) electric power output
+            PC_W_DOT_NET_MAX,           //[MWe] PC max (net) electric power output
 			CTRL_IS_REC_SU,             //[-] Control decision: is receiver startup allowed?
 			CTRL_IS_PC_SU,              //[-] Control decision: is power cycle startup allowed?
 			CTRL_IS_PC_SB,              //[-] Control decision: is power cycle standby allowed?
@@ -903,12 +920,17 @@ public:
 			CTRL_OP_MODE_SEQ_A,         //[-] First 3 operating modes tried
 			CTRL_OP_MODE_SEQ_B,         //[-] Next 3 operating modes tried
 			CTRL_OP_MODE_SEQ_C,         //[-] Final 3 operating modes tried
+                // Dispatch - solver outputs
             DISPATCH_REL_MIP_GAP,       //[-] Relative MIP gap from optimization solver
 			DISPATCH_SOLVE_STATE,       //[-] The status of the dispatch optimization solver
-            DISPATCH_SUBOPT_FLAG,       //[-] Flag specifing information about LPSolve suboptimal result
+            DISPATCH_SUBOPT_FLAG,       //[-] Flag specifying information about LPSolve suboptimal result
 			DISPATCH_SOLVE_ITER,        //[-] Number of iterations before completing dispatch optimization
 			DISPATCH_SOLVE_OBJ,         //[$] Objective function value achieved by the dispatch optimization solver
-			DISPATCH_SOLVE_OBJ_RELAX,   //[$] Objective function value for the relaxed continuous problem 
+			DISPATCH_SOLVE_OBJ_RELAX,   //[$] Objective function value for the relaxed continuous problem
+            DISPATCH_PRES_NCONSTR,      //[-] Number of constraint relationships in dispatch model formulation
+            DISPATCH_PRES_NVAR,         //[-] Number of variables in dispatch model formulation
+            DISPATCH_SOLVE_TIME,        //[sec]   Time required to solve the dispatch model at each instance
+                // Dispatch - solution outputs
 			DISPATCH_QSF_EXPECT,        //[MWt] Expected total solar field energy generation in dispatch model
 			DISPATCH_QSFPROD_EXPECT,    //[MWt] Expected useful solar field energy generation in dispatch model
 			DISPATCH_QSFSU_EXPECT,      //[MWt] Solar field startup energy in dispatch model
@@ -917,10 +939,10 @@ public:
 			DISPATCH_SFEFF_EXPECT,      //[-] Expected solar field thermal efficiency adjustment in dispatch model
 			DISPATCH_QPBSU_EXPECT,      //[MWt] Power cycle startup energy consumption in dispatch model
 			DISPATCH_WPB_EXPECT,        //[MWe] Power cycle electricity production in dispatch model
+            DISPATCH_WPARASITIC_EXPECT, //[MWe] System parasitic electricity consumption in dispatch model
+            DISPATCH_QEH_EXPECT,        //[MWt] Parallel electric heater thermal consumption in dispatch model
 			DISPATCH_REV_EXPECT,        //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
-			DISPATCH_PRES_NCONSTR,      //[-] Number of constraint relationships in dispatch model formulation
-			DISPATCH_PRES_NVAR,         //[-] Number of variables in dispatch model formulation
-			DISPATCH_SOLVE_TIME,        //[sec]   Time required to solve the dispatch model at each instance
+            DISPATCH_PV_EXPECT,         //[MWe] PV electricity production in dispatch model
 
 			// **************************************************************
 			//      Outputs that are reported as weighted averages if 

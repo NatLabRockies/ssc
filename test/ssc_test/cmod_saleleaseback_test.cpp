@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -101,3 +101,57 @@ TEST_F(CmodSaleLeasebackTest, PVBattery) {
     Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
 
+TEST_F(CmodSaleLeasebackTest, IrrTarget) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/irr_target/sl_irr_dscr_targets_PVWatts_Sale_Leaseback_cmod_saleleaseback.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/irr_target/sl_irr_dscr_targets_PVWatts_Sale_Leaseback_cmod_saleleaseback_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "tax_investor_aftertax_irr"};
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs" };
+
+    Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSaleLeasebackTest, FixedDebtPPAPrice) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/saleleaseback/sl-fixed-debt-fixed-price_PVWatts_Sale_Leaseback_cmod_saleleaseback.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/saleleaseback/sl-fixed-debt-fixed-price_PVWatts_Sale_Leaseback_cmod_saleleaseback_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "tax_investor_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs" };
+
+    Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSaleLeasebackTest, FixedDebtIrrTarget) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/saleleaseback/sl-fixed-debt-irr-target_PVWatts_Sale_Leaseback_cmod_saleleaseback.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/saleleaseback/sl-fixed-debt-irr-target_PVWatts_Sale_Leaseback_cmod_saleleaseback_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "tax_investor_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs" };
+
+    Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSaleLeasebackTest, BonusDepr) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/saleleaseback/sl_bonus_depr_PVWatts_Sale_Leaseback_cmod_saleleaseback.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/saleleaseback/sl_bonus_depr_PVWatts_Sale_Leaseback_cmod_saleleaseback_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "tax_investor_aftertax_irr", "pre_depr_alloc_basis", "depr_stabas_first_year_bonus_macrs_5", "depr_fedbas_first_year_bonus_macrs_5" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs" };
+
+    Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodSaleLeasebackTest, PBIforDSCR) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/saleleaseback/sl_pbi_irr_targets_PVWatts_Sale_Leaseback_cmod_saleleaseback.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/saleleaseback/sl_pbi_irr_targets_PVWatts_Sale_Leaseback_cmod_saleleaseback_outputs.json";
+    std::vector<std::string> compare_number_variables = { "ppa", "tax_investor_aftertax_npv", "sponsor_aftertax_npv", "lcoe_real", "lppa_nom", "tax_investor_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_tax_investor_aftertax", "cf_sponsor_aftertax", "cf_annual_costs" };
+
+    Test("saleleaseback", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}

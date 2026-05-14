@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -861,7 +861,13 @@ public:
                     if ((std::isfinite(wf.alb) && (wf.alb > 0 && wf.alb < 1)))
                         alb = wf.alb;
                     else
+                    {
+                        if (n_alb_errs < 5) // display warning up to 5 times
+                        {
+                            log(util::format("Invalid albedo input value %f [year:%d month:%d day:%d hour:%d minute:%lg]. Using default albedo value %f (snow) or %f (no snow). This warning only appears for the first five instances of this error.", wf.alb, wf.year, wf.month, wf.day, wf.hour, wf.minute, as_double("albedo_default_snow"), as_double("albedo_default")), SSC_NOTICE);
+                        }
                         n_alb_errs++;
+                    }
                 }
                 else
                 {
@@ -884,11 +890,6 @@ public:
                         alb = as_double("albedo_default_snow");
                     else
                         alb = as_double("albedo_default");
-                    if (!use_wf_albedo && n_alb_errs < 5) // display warning up to 5 times
-                    {
-                        log(util::format("Albedo input value is not valid for time step %d. Using default albedo value of %f (snow) or %f (no snow). This warning only appears for the first five instances of this error.", idx, as_double("albedo_default_snow"), as_double("albedo_default")), SSC_NOTICE);
-                        n_alb_errs++;
-                    }
                 }
 
                 // report albedo value as output
@@ -1388,7 +1389,7 @@ public:
             }
 
             if (n_alb_errs > 0)
-                log(util::format("Weather file albedo has %d invalid values, using monthly value", (int)n_alb_errs), SSC_WARNING);
+                log(util::format("Weather file albedo has %d invalid values, using user-specified or default values for those time steps. See Albedo output variable.", (int)n_alb_errs), SSC_WARNING);
 
             wdprov->rewind();
         }

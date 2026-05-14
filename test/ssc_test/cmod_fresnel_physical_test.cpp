@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,9 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 TEST_F(CmodFresnelPhysicalTest, MSLFDefault) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/fresnel_physical/2025.03.13_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical.json";
+    file_inputs += "/test/input_json/TechnologyModels/fresnel_physical/2026.02.27_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical.json";
     std::string file_outputs = SSCDIR;
-    file_outputs +="/test/input_json/TechnologyModels/fresnel_physical/2025.03.13_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical_outputs.json";
+    file_outputs +="/test/input_json/TechnologyModels/fresnel_physical/2026.02.27_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical_outputs.json";
     std::vector<std::string> compare_number_variables = { "annual_energy", "q_dot_loss_tes_des" };
     std::vector<std::string> compare_array_variables = { "monthly_energy" };
 

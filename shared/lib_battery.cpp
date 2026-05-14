@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -537,6 +537,8 @@ double battery_t::calculate_max_charge_kw(double *max_current_A) {
         thermal->updateTemperature(current, state->last_idx + 1);
         qmax = capacity->qmax() * thermal->capacity_percent() * 0.01 * SOC_ratio;
     }
+    current = std::min(0.0, current);
+    power_W = std::min(0.0, power_W);
     if (max_current_A)
         *max_current_A = current;
     *thermal->state = thermal_initial;
@@ -556,6 +558,8 @@ double battery_t::calculate_max_discharge_kw(double *max_current_A) {
         thermal->updateTemperature(current, state->last_idx + 1);
         qmax = capacity->qmax() * thermal->capacity_percent()  * 0.01;
     }
+    current = std::max(0.0, current);
+    power_W = std::max(0.0, power_W);
     if (max_current_A)
         *max_current_A = current;
     *thermal->state = thermal_initial;

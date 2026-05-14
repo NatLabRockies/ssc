@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,7 +89,6 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
     params.q_pb_des = cycle_q_dot_des;
     params.eta_pb_des = cycle_eta_des;
     params.q_pb_max = pointers.mpc_pc->get_max_thermal_power();
-    //params.q_pb_min = pointers.mpc_pc->get_min_thermal_power();
     params.q_pb_min = pointers.mpc_pc->get_min_thermal_power() * 1.5;
     params.q_rec_min = pointers.col_rec->get_min_power_delivery();
     params.w_rec_pump = pointers.col_rec->get_pumping_parasitic_coef();
@@ -247,7 +246,6 @@ void csp_dispatch_ortools::build_dispatch_model()
             constraints.receiver_startup_inventory0 = c;
         }
     }
-
     // Receiver inventory bound when starting
     // ursu[t] <= Er * yrsu[t]
     for (int t = 0; t < m_nstep_opt; ++t) {

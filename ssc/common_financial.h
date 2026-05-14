@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -144,7 +144,239 @@ public:
 };
 
 
+class itc_and_depreciation_calculations
+{
+public:
+    itc_and_depreciation_calculations(compute_module* cm, size_t n_years);
 
+    void calc_basis(double pre_depr_alloc_basis, double pre_itc_qual_basis);
+    void set_depr_schedules(compute_module* cm);
+    void major_equipment_depreciation(compute_module* cm, util::matrix_t<double>& main_cf, int cf_equipment_expenditure, int expenditure_year, int analysis_period, int cf_equipment_depreciation);
+
+    void calc_annual_depreciation(int i);
+
+    void write_outputs(compute_module* cm);
+
+    ssc_number_t get_stadepr(int i) const;
+    ssc_number_t get_feddepr(int i) const;
+    ssc_number_t get_itc_sta(int i) const;
+    ssc_number_t get_itc_fed(int i) const;
+    ssc_number_t get_itc_total(int i) const;
+
+    void depreciation_sched_5_year_macrs_half_year(int cf_line);
+    void depreciation_sched_15_year_macrs_half_year(int cf_line);
+    void depreciation_sched_5_year_straight_line_half_year(int cf_line);
+    void depreciation_sched_15_year_straight_line_half_year(int cf_line);
+    void depreciation_sched_20_year_straight_line_half_year(int cf_line);
+    void depreciation_sched_39_year_straight_line_half_year(int cf_line);
+    void depreciation_sched_custom(compute_module* cm, int cf_line, const std::string& custom);
+
+    util::matrix_t<double> m_cf;
+
+    size_t nyears;
+
+    double itc_fed_amount;
+    double itc_sta_amount;
+    double itc_fed_per;
+    double itc_sta_per;
+
+    double pre_depr_alloc_basis; // Total costs that could qualify for depreciation before allocations
+    double pre_itc_qual_basis; // Total costs that could qualify for ITC before allocations
+
+    double depr_alloc_macrs_5_frac;
+    double depr_alloc_macrs_15_frac;
+    double depr_alloc_sl_5_frac;
+    double depr_alloc_sl_15_frac;
+    double depr_alloc_sl_20_frac;
+    double depr_alloc_sl_39_frac;
+    double depr_alloc_custom_frac;
+    double depr_alloc_total_frac;
+
+    double depr_alloc_none_frac;
+
+    double depr_stabas_macrs_5_frac;
+    double depr_stabas_macrs_15_frac;
+    double depr_stabas_sl_5_frac;
+    double depr_stabas_sl_15_frac;
+    double depr_stabas_sl_20_frac;
+    double depr_stabas_sl_39_frac;
+    double depr_stabas_custom_frac;
+
+    double depr_fedbas_macrs_5_frac;
+    double depr_fedbas_macrs_15_frac;
+    double depr_fedbas_sl_5_frac;
+    double depr_fedbas_sl_15_frac;
+    double depr_fedbas_sl_20_frac;
+    double depr_fedbas_sl_39_frac;
+    double depr_fedbas_custom_frac;
+
+    double depr_alloc_macrs_5;
+    double depr_alloc_macrs_15;
+    double depr_alloc_sl_5;
+    double depr_alloc_sl_15;
+    double depr_alloc_sl_20;
+    double depr_alloc_sl_39;
+    double depr_alloc_custom;
+    double depr_alloc_none;
+    double depr_alloc_total;
+
+    double itc_sta_qual_macrs_5_frac;
+    double itc_sta_qual_macrs_15_frac;
+    double itc_sta_qual_sl_5_frac;
+    double itc_sta_qual_sl_15_frac;
+    double itc_sta_qual_sl_20_frac;
+    double itc_sta_qual_sl_39_frac;
+    double itc_sta_qual_custom_frac;
+
+    double itc_sta_qual_total;
+
+    double itc_sta_qual_macrs_5;
+    double itc_sta_qual_macrs_15;
+    double itc_sta_qual_sl_5;
+    double itc_sta_qual_sl_15;
+    double itc_sta_qual_sl_20;
+    double itc_sta_qual_sl_39;
+    double itc_sta_qual_custom;
+
+    double itc_sta_disallow_factor;
+
+
+    double itc_disallow_sta_percent_macrs_5;
+    double itc_disallow_sta_percent_macrs_15;
+    double itc_disallow_sta_percent_sl_5;
+    double itc_disallow_sta_percent_sl_15;
+    double itc_disallow_sta_percent_sl_20;
+    double itc_disallow_sta_percent_sl_39;
+    double itc_disallow_sta_percent_custom;
+
+    double itc_disallow_sta_fixed_macrs_5;
+    double itc_disallow_sta_fixed_macrs_15;
+    double itc_disallow_sta_fixed_sl_5;
+    double itc_disallow_sta_fixed_sl_15;
+    double itc_disallow_sta_fixed_sl_20;
+    double itc_disallow_sta_fixed_sl_39;
+    double itc_disallow_sta_fixed_custom;
+
+    double itc_fed_qual_macrs_5_frac;
+    double itc_fed_qual_macrs_15_frac;
+    double itc_fed_qual_sl_5_frac;
+    double itc_fed_qual_sl_15_frac;
+    double itc_fed_qual_sl_20_frac;
+    double itc_fed_qual_sl_39_frac;
+    double itc_fed_qual_custom_frac;
+
+    double itc_fed_qual_total;
+
+    double itc_fed_qual_macrs_5;
+    double itc_fed_qual_macrs_15;
+    double itc_fed_qual_sl_5;
+    double itc_fed_qual_sl_15;
+    double itc_fed_qual_sl_20;
+    double itc_fed_qual_sl_39;
+    double itc_fed_qual_custom;
+
+    double itc_fed_disallow_factor;
+
+
+    double itc_disallow_fed_percent_macrs_5;
+    double itc_disallow_fed_percent_macrs_15;
+    double itc_disallow_fed_percent_sl_5;
+    double itc_disallow_fed_percent_sl_15;
+    double itc_disallow_fed_percent_sl_20;
+    double itc_disallow_fed_percent_sl_39;
+    double itc_disallow_fed_percent_custom;
+
+    double itc_disallow_fed_fixed_macrs_5;
+    double itc_disallow_fed_fixed_macrs_15;
+    double itc_disallow_fed_fixed_sl_5;
+    double itc_disallow_fed_fixed_sl_15;
+    double itc_disallow_fed_fixed_sl_20;
+    double itc_disallow_fed_fixed_sl_39;
+    double itc_disallow_fed_fixed_custom;
+
+
+    // Depreciation
+    // State depreciation
+    double depr_sta_reduction_ibi;
+
+    double depr_sta_reduction_cbi;
+
+    double depr_sta_reduction;
+
+    double depr_stabas_macrs_5;
+    double depr_stabas_macrs_15;
+    double depr_stabas_sl_5;
+    double depr_stabas_sl_15;
+    double depr_stabas_sl_20;
+    double depr_stabas_sl_39;
+    double depr_stabas_custom;
+
+    // ITC reduction
+    double itc_fed_percent_deprbas_sta;
+    double itc_fed_amount_deprbas_sta;
+    double itc_sta_percent_deprbas_sta;
+    double itc_sta_amount_deprbas_sta;
+
+
+    // Bonus depreciation
+    double depr_stabas_macrs_5_bonus_frac;
+    double depr_stabas_macrs_15_bonus_frac;
+    double depr_stabas_sl_5_bonus_frac;
+    double depr_stabas_sl_15_bonus_frac;
+    double depr_stabas_sl_20_bonus_frac;
+    double depr_stabas_sl_39_bonus_frac;
+    double depr_stabas_custom_bonus_frac;
+
+    double depr_stabas_macrs_5_bonus;
+    double depr_stabas_macrs_15_bonus;
+    double depr_stabas_sl_5_bonus;
+    double depr_stabas_sl_15_bonus;
+    double depr_stabas_sl_20_bonus;
+    double depr_stabas_sl_39_bonus;
+    double depr_stabas_custom_bonus;
+
+    double depr_stabas_total;
+
+    // Federal depreciation
+    double depr_fed_reduction_ibi;
+
+    double depr_fed_reduction_cbi;
+
+    double depr_fed_reduction;
+
+    double depr_fedbas_macrs_5;
+    double depr_fedbas_macrs_15;
+    double depr_fedbas_sl_5;
+    double depr_fedbas_sl_15;
+    double depr_fedbas_sl_20;
+    double depr_fedbas_sl_39;
+    double depr_fedbas_custom;
+
+    // ITC reduction
+    double itc_fed_percent_deprbas_fed;
+    double itc_fed_amount_deprbas_fed;
+    double itc_sta_percent_deprbas_fed;
+    double itc_sta_amount_deprbas_fed;
+
+    // Bonus depreciation
+    double depr_fedbas_macrs_5_bonus_frac;
+    double depr_fedbas_macrs_15_bonus_frac;
+    double depr_fedbas_sl_5_bonus_frac;
+    double depr_fedbas_sl_15_bonus_frac;
+    double depr_fedbas_sl_20_bonus_frac;
+    double depr_fedbas_sl_39_bonus_frac;
+    double depr_fedbas_custom_bonus_frac;
+
+    double depr_fedbas_macrs_5_bonus;
+    double depr_fedbas_macrs_15_bonus;
+    double depr_fedbas_sl_5_bonus;
+    double depr_fedbas_sl_15_bonus;
+    double depr_fedbas_sl_20_bonus;
+    double depr_fedbas_sl_39_bonus;
+    double depr_fedbas_custom_bonus;
+
+    double depr_fedbas_total;
+};
 
 
 
@@ -156,7 +388,7 @@ class advanced_financing_cost
 {
 private:
 	compute_module *m_cm;
-
+	
 public:
 	advanced_financing_cost(compute_module *cm);
 	bool compute_cost(double cost_installed, double equity, double debt, double cbi, double ibi);
@@ -165,4 +397,3 @@ public:
 
 
 #endif
-

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define private public              // for setting private data members
 #include "lib_csp_trough_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 using namespace csp_trough;
 
@@ -43,7 +42,7 @@ using namespace csp_trough;
 //=== Using factory patterns to create the different physical and non-physical components=========
 
 // Test a standard trough loop at a single point in time
-NAMESPACE_TEST(csp_trough, TroughLoop, DefaultTest)
+TEST(TroughLoop, DefaultTest)
 {
     DefaultTroughFactory default_trough_factory = DefaultTroughFactory();
     Location location = default_trough_factory.MakeLocation();
@@ -64,7 +63,7 @@ NAMESPACE_TEST(csp_trough, TroughLoop, DefaultTest)
 }
 
 // Test a standard trough loop from a homogenous initial condition to steady-state
-NAMESPACE_TEST(csp_trough, TroughLoop, SteadyStateTest)
+TEST(TroughLoop, SteadyStateTest)
 {
     DefaultTroughFactory default_trough_factory = DefaultTroughFactory();
     Location location = default_trough_factory.MakeLocation();
@@ -199,6 +198,7 @@ std::unique_ptr<Trough> TroughFactory::MakeTrough(TroughSpecifications* trough_s
     trough->m_ColperSCA = trough_specifications->ColperSCA;
     trough->m_Distance_SCA = trough_specifications->Distance_SCA;
 
+    trough->m_opt_model = trough_specifications->opt_model;
     trough->m_IAM_matrix = trough_specifications->IAM_matrix;
     trough->m_HCE_FieldFrac = trough_specifications->HCE_FieldFrac;
     trough->m_D_2 = trough_specifications->D_2;
@@ -364,6 +364,8 @@ std::unique_ptr<TroughSpecifications> DefaultTroughFactory::MakeSpecifications()
     trough_specifications->L_aperture = { 14.375, 14.375, 14.375, 14.375 };
     trough_specifications->ColperSCA = { 8., 8., 8., 8. };
     trough_specifications->Distance_SCA = { 1., 1., 1., 1. };
+
+    trough_specifications->opt_model = { 3,3,3,3 }; // Set to IAM poly
 
     double vals2[] = {
         1, 0.0327, -0.1351,

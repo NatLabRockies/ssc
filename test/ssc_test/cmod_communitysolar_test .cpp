@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,39 @@ TEST_F(CmodCommunitySolarTest, PVWatts) {
     file_outputs += "/test/input_json/FinancialModels/communitysolar/2022.08.08_develop_branch_PVWatts_Community_Solar_cmod_communitysolar_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "subscriber1_npv", "subscriber2_npv" };
     std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_project_return_aftertax_npv" };
+
+    Test("communitysolar", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodCommunitySolarTest, DSCR) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/communitysolar/cs-dscr_PVWatts_Community_Solar_cmod_communitysolar.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/communitysolar/cs-dscr_PVWatts_Community_Solar_cmod_communitysolar_outputs.json";
+    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "subscriber1_npv", "subscriber2_npv", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_project_return_aftertax_npv", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("communitysolar", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodCommunitySolarTest, PBIforDSCR) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/communitysolar/cs_pbi_dscr_targets_PVWatts_Community_Solar_cmod_communitysolar.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/communitysolar/cs_pbi_dscr_targets_PVWatts_Community_Solar_cmod_communitysolar_outputs.json";
+    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "subscriber1_npv", "subscriber2_npv", "min_dscr", "project_return_aftertax_irr" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_project_return_aftertax_npv", "cf_pretax_dscr", "cf_debt_balance" };
+
+    Test("communitysolar", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
+}
+
+TEST_F(CmodCommunitySolarTest, BonusDepr) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/communitysolar/cs_bonus_depr_PVWatts_Community_Solar_cmod_communitysolar.json";
+    std::string file_outputs = SSCDIR;
+    file_outputs += "/test/input_json/FinancialModels/communitysolar/cs_bonus_depr_PVWatts_Community_Solar_cmod_communitysolar_outputs.json";
+    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "subscriber1_npv", "subscriber2_npv", "min_dscr", "project_return_aftertax_irr", "pre_depr_alloc_basis", "depr_stabas_first_year_bonus_macrs_5", "depr_fedbas_first_year_bonus_macrs_5" };
+    std::vector<std::string> compare_array_variables = { "cf_project_return_aftertax", "cf_project_return_aftertax_npv", "cf_pretax_dscr", "cf_debt_balance" };
 
     Test("communitysolar", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }

@@ -350,6 +350,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "q_rec_heattrace",                    "Receiver heat trace energy consumption during startup",                                                                                   "kWhe",         "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER"},
 
     { SSC_INPUT,     SSC_ARRAY,  "pv_generation_profile",              "Co-located PV generation for CSP to dispatch around.",                                                                                    "kWe",          "",                                  "System Control",                           "",                                                                 "",              "SIMULATION_PARAMETER" },
+    { SSC_INPUT,     SSC_NUMBER, "pv_total_installed_cost",            "Total installed cost of co-located PV system",                                                                                            "$",            "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER" },
 
     // Pricing schedules and multipliers
         // Ideally this would work with sim_type = 2, but UI inputs availability depends on financial mode
@@ -2845,7 +2846,13 @@ public:
         );
 
         // 1.5.2016 twn: financial model needs an updated total_installed_cost, remaining are for reporting only
-        assign("total_installed_cost", (ssc_number_t)total_installed_cost);
+        if (is_assigned("pv_total_installed_cost")) {
+            double pv_total_installed_cost = as_double("pv_total_installed_cost");
+            assign("total_installed_cost", (ssc_number_t)(total_installed_cost + pv_total_installed_cost));
+        }
+        else {
+            assign("total_installed_cost", (ssc_number_t)total_installed_cost);
+        }
 
         assign("h_rec_input_to_cost_model", (ssc_number_t)h_rec_cost_in);       //[m]
         assign("csp.pt.cost.site_improvements", (ssc_number_t)site_improvement_cost);
@@ -3069,11 +3076,17 @@ public:
         if( !haf.setup(n_steps_full) )
             throw exec_error("tcsmolten_salt", "failed to setup adjustment factors: " + haf.error());
 
+
+        std::vector<double> disp_pv_expected = as_vector_double("disp_pv_expected");
         ssc_number_t *p_gen = allocate("gen", count);
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
-        for( size_t i = 0; i < count; i++ )
-        {
-            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(i));           //[kWe]
+        for( size_t i = 0; i < count; i++ ) {
+            size_t hour = (size_t)ceil(p_time_final_hr[i]);
+            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            if (is_assigned("pv_generation_profile")) {
+                //p_gen[i] += (ssc_number_t)pv_generation_profile[i];               //[kWe]     // TODO: This assumes all PV is sold to grid...
+                p_gen[i] += (ssc_number_t)(disp_pv_expected[i] * 1.E3);             //[kWe]     // TODO: Limits are not withheld 
+            }
             p_gensales_after_avail[i] = max(0.0, p_gen[i]);                         //[kWe]
         }
 

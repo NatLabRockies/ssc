@@ -838,6 +838,17 @@ enum {
     CF_annual_cost_lcos,
     CF_util_escal_rate,
 
+    CF_energy_revenue,
+    CF_energy_expenses,
+    CF_energy_revenue_ret_percent,
+    CF_energy_revenue_retained,
+    CF_energy_expenses_paid_percent,
+    CF_energy_expenses_paid,
+    CF_non_energy_revenue,
+    CF_non_energy_revenue_retained,
+    CF_non_energy_expenses,
+    CF_non_energy_expenses_paid,
+    
 
     CF_max,
  };
@@ -877,6 +888,7 @@ public:
 		add_var_info(vtab_utility_rate_common);
         add_var_info(vtab_hybrid_fin_om);
         add_var_info(vtab_update_tech_outputs);
+        add_var_info(vtab_non_energy_cash_flow);
     }
 
 	void exec( )
@@ -1411,6 +1423,74 @@ public:
         }
         save_cf(CF_utility_bill, nyears, "cf_utility_bill");
 
+        if (is_assigned("non_energy_revenue") && is_assigned("non_energy_expenses")) {
+            // Non-energy revenues & revenue sharing
+            escal_or_annual(CF_non_energy_revenue, nyears, "non_energy_revenue", inflation_rate, 1.0, false, as_double("non_energy_revenue_escal") * 0.01);
+            escal_or_annual(CF_non_energy_expenses, nyears, "non_energy_expenses", inflation_rate, 1.0, false, as_double("non_energy_expenses_escal") * 0.01);
+
+            ssc_number_t* ne_rev_ret = as_array("non_energy_revenue_ret", &count); // Percent of non-energy revenue retained by project
+
+            if (count == 1)
+            {
+                for (int i = 0; i < nyears; i++)
+                    cf.at(CF_non_energy_revenue_retained, i + 1) = cf.at(CF_non_energy_revenue, i + 1) * ne_rev_ret[0] / 100.0;
+            }
+            else
+            {
+                for (int i = 0; i < nyears && i < (int)count; i++)
+                    cf.at(CF_non_energy_revenue_retained, i + 1) = cf.at(CF_non_energy_revenue, i + 1) * ne_rev_ret[i] / 100.0;
+            }
+
+            ssc_number_t* ne_exp_ret = as_array("non_energy_expenses_ret", &count); // Percent of non-energy expenses paid by project
+
+            if (count == 1)
+            {
+                for (int i = 0; i < nyears; i++)
+                    cf.at(CF_non_energy_expenses_paid, i + 1) = cf.at(CF_non_energy_expenses, i + 1) * ne_exp_ret[0] / 100.0;
+            }
+            else
+            {
+                for (int i = 0; i < nyears && i < (int)count; i++)
+                    cf.at(CF_non_energy_expenses_paid, i + 1) = cf.at(CF_non_energy_expenses, i + 1) * ne_exp_ret[i] / 100.0;
+            }
+        }
+        // No need for an else here - these are autofilled as zeroes.
+
+        if (is_assigned("energy_revenue_ret")) {
+            ssc_number_t* energy_rev_ret = 0;
+            energy_rev_ret = as_array("energy_revenue_ret", &count);
+
+            if (count == 1)
+            {
+                for (i = 1; i <= nyears; i++) cf.at(CF_energy_revenue_ret_percent, i) = energy_rev_ret[0] / 100.0;
+            }
+            else if (count > 0)
+            {
+                for (i = 0; i < nyears && i < (int)count; i++) cf.at(CF_energy_revenue_ret_percent, i + 1) = energy_rev_ret[i] / 100.0;
+            }
+        }
+        else {
+            for (i = 1; i <= nyears; i++) cf.at(CF_energy_revenue_ret_percent, i) = 1.0;
+        }
+
+        if (is_assigned("energy_expenses_ret")) {
+            ssc_number_t* energy_exp_ret = 0;
+            energy_exp_ret = as_array("energy_expenses_ret", &count);
+
+            if (count == 1)
+            {
+                for (i = 1; i <= nyears; i++) cf.at(CF_energy_expenses_paid_percent, i) = energy_exp_ret[0] / 100.0;
+            }
+            else if (count > 0)
+            {
+                for (i = 0; i < nyears && i < (int)count; i++) cf.at(CF_energy_expenses_paid_percent, i + 1) = energy_exp_ret[i] / 100.0;
+            }
+        }
+        else {
+            for (i = 1; i <= nyears; i++) cf.at(CF_energy_expenses_paid_percent, i) = 1.0;
+        }
+
+
 		double property_tax_assessed_value = cost_prefinancing * as_double("prop_tax_cost_assessed_percent") * 0.01;
 		double property_tax_decline_percentage = as_double("prop_tax_assessed_decline");
 		double property_tax_rate = as_double("property_tax_rate")*0.01;
@@ -1672,7 +1752,7 @@ public:
                     * pow((1 + inflation_rate + recapitalization_escalation), i - 1);
             }
 
-            cf.at(CF_operating_expenses, i) =
+            cf.at(CF_energy_expenses, i) =
                 +cf.at(CF_om_fixed_expense, i)
                 + cf.at(CF_om_production_expense, i)
                 + cf.at(CF_om_capacity_expense, i)
@@ -1693,6 +1773,9 @@ public:
                 + cf.at(CF_om_hybrid_sum, i)
                 + cf.at(CF_utility_bill, i)
                 + cf.at(CF_Recapitalization, i);
+
+            cf.at(CF_energy_expenses_paid, i) = cf.at(CF_energy_expenses, i) * cf.at(CF_energy_expenses_paid_percent, i);
+            cf.at(CF_operating_expenses, i) = cf.at(CF_energy_expenses_paid, i) + cf.at(CF_non_energy_expenses_paid, i);
         }
 
         // salvage value
@@ -2012,15 +2095,21 @@ public:
 
 //			log(util::format("year %d : energy value =%lg", i, m_disp_calcs.tod_energy_value(i)), SSC_WARNING);
 			// total revenue
-			cf.at(CF_total_revenue,i) = cf.at(CF_energy_value,i) +
-				cf.at(CF_thermal_value,i) +
-				cf.at(CF_curtailment_value, i) +
-				cf.at(CF_capacity_payment, i) +
-				pbi_fed_for_ds_frac * cf.at(CF_pbi_fed,i) +
-				pbi_sta_for_ds_frac * cf.at(CF_pbi_sta,i) +
-				pbi_uti_for_ds_frac * cf.at(CF_pbi_uti,i) +
-				pbi_oth_for_ds_frac * cf.at(CF_pbi_oth,i) +
-				cf.at(CF_net_salvage_value,i);
+            cf.at(CF_energy_revenue, i) = cf.at(CF_energy_value, i) +
+                cf.at(CF_thermal_value, i) +
+                cf.at(CF_curtailment_value, i) +
+                cf.at(CF_capacity_payment, i);
+
+            cf.at(CF_energy_revenue_retained, i) = cf.at(CF_energy_revenue, i) * cf.at(CF_energy_revenue_ret_percent, i);
+				
+            cf.at(CF_total_revenue, i) =
+                cf.at(CF_energy_revenue_retained, i) +
+                cf.at(CF_non_energy_revenue_retained, i) +
+                pbi_fed_for_ds_frac * cf.at(CF_pbi_fed, i) +
+                pbi_sta_for_ds_frac * cf.at(CF_pbi_sta, i) +
+                pbi_uti_for_ds_frac * cf.at(CF_pbi_uti, i) +
+                pbi_oth_for_ds_frac * cf.at(CF_pbi_oth, i) +
+                cf.at(CF_net_salvage_value, i);
 
 			cf.at(CF_ebitda,i) = cf.at(CF_total_revenue,i) - cf.at(CF_operating_expenses,i);
 
@@ -2762,6 +2851,16 @@ public:
 
 		save_cf(CF_Recapitalization, nyears, "cf_recapitalization");
 
+        save_cf(CF_energy_revenue, nyears, "cf_energy_revenue");
+        save_cf(CF_energy_revenue_ret_percent, nyears, "cf_energy_revenue_retained_percent", 100.0);
+        save_cf(CF_energy_revenue_retained, nyears, "cf_energy_revenue_retained");
+        save_cf(CF_non_energy_revenue_retained, nyears, "cf_non_energy_revenue");
+        save_cf(CF_energy_expenses, nyears, "cf_total_energy_expenses");
+        save_cf(CF_energy_expenses_paid_percent, nyears, "cf_energy_expenses_paid_percent", 100.0);
+        save_cf(CF_energy_expenses_paid, nyears, "cf_energy_expenses_paid");
+        save_cf(CF_non_energy_expenses_paid, nyears, "cf_non_energy_expenses");
+
+
 
 		// dispatch
 		std::vector<double> ppa_cf;
@@ -2817,11 +2916,11 @@ public:
 	}
 
 	// std lib
-	void save_cf(int cf_line, int nyears, const std::string &name)
+	void save_cf(int cf_line, int nyears, const std::string &name, ssc_number_t scaling = 1.0)
 	{
 		ssc_number_t *arrp = allocate( name, nyears+1 );
 		for (int i=0;i<=nyears;i++)
-			arrp[i] = (ssc_number_t)cf.at(cf_line, i);
+			arrp[i] = (ssc_number_t)cf.at(cf_line, i) * scaling;
 	}
 
 	void escal_or_annual( int cf_line, int nyears, const std::string &variable,

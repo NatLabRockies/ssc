@@ -1666,7 +1666,7 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
         outputfile.open(filepath);
         std::string var_header = "Time, Objective, Objective_wo_weight, Price, Qin, ";
         var_header += "y_rsu, y_rsup, yr, u_rsu, x_rsu, x_r, ";
-        var_header += "y_csu, y_csup, y, u_csu, x, w_dot, delta_w, s, w_lim, wnet_lim_min";
+        var_header += "y_csu, y_csup, y, u_csu, x, w_dot, delta_w, s, w_lim, wnet_lim_min, sys_parasitic";
 
         if (params.is_parallel_heater) {
             var_header += ", y_eh, y_reh, y_hsup, q_eh";
@@ -1678,6 +1678,7 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
     }
 
     double tol = 1.e-2;
+    double sys_parasitic;
     double objective_value;
     double common_coeff;
 
@@ -1756,6 +1757,14 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
             objective_value += params.dt * std::pow(params.time_weighting, t) * pmean * params.eta_pb_des * params.inventory_incentive * cont_vars.s[t]->solution_value();
         }
 
+        sys_parasitic = (cont_vars.wdot.at(t)->solution_value() * ts_params.w_condf_expected.at(t)
+            + cont_vars.xr.at(t)->solution_value() * params.w_rec_pump
+            + cont_vars.xrsu.at(t)->solution_value() * params.w_rec_pump
+            + bin_vars.yrsu.at(t)->solution_value() * ((params.w_rec_ht / params.dt) + (params.w_stow / params.dt))
+            + bin_vars.yr.at(t)->solution_value() * params.w_track
+            + cont_vars.x.at(t)->solution_value() * params.w_cycle_pump
+            + params.sys_par_fixed);
+
         outputfile << t
             << ", " << objective_value
             << ", " << obj_wo_weight
@@ -1776,7 +1785,8 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
             << ", " << ((std::abs(cont_vars.delta_w[t]->solution_value()) < tol) ? 0.0 : cont_vars.delta_w[t]->solution_value())
             << ", " << ((std::abs(cont_vars.s[t]->solution_value()) < tol) ? 0.0 : cont_vars.s[t]->solution_value())
             << ", " << ts_params.w_lim.at(t)
-            << ", " << ts_params.wnet_lim_min.at(t);
+            << ", " << ts_params.wnet_lim_min.at(t)
+            << ", " << sys_parasitic;
         if (params.is_parallel_heater) {
             outputfile << ", " << bin_vars.yeh[t]->solution_value()
                 << ", " << bin_vars.yreh[t]->solution_value()

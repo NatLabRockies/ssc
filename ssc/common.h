@@ -78,6 +78,8 @@ extern var_info vtab_hybrid_tech_inputs[];
 extern var_info vtab_hybrid_tech_om_outputs[];
 extern var_info vtab_hybrid_fin_om[];
 
+extern var_info vtab_non_energy_cash_flow[];
+
 bool calculate_p50p90(compute_module *cm);
 
 void calculate_resilience_outputs(compute_module *cm, std::unique_ptr<resilience_runner> &resilience);

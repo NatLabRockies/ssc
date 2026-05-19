@@ -738,5 +738,45 @@ void custom_generation_commerical_battery_60min(ssc_data_t &data)
 	ssc_data_set_number(data, "batt_replacement_cost_escal", 0);
 	ssc_data_set_number(data, "total_installed_cost", 86827.921875);
 	ssc_data_set_number(data, "salvage_percentage", 0);
+
+    ssc_data_set_number(data, "depr_alloc_macrs_5_percent", 90);
+    ssc_data_set_number(data, "depr_alloc_macrs_15_percent", 1.5);
+    ssc_data_set_number(data, "depr_alloc_sl_5_percent", 0);
+    ssc_data_set_number(data, "depr_alloc_sl_15_percent", 2.5);
+    ssc_data_set_number(data, "depr_alloc_sl_20_percent", 3);
+    ssc_data_set_number(data, "depr_alloc_sl_39_percent", 0);
+    ssc_data_set_number(data, "depr_alloc_custom_percent", 0);
+    ssc_number_t p_depr_custom_schedule[1] = { 0 };
+    ssc_data_set_array(data, "depr_custom_schedule", p_depr_custom_schedule, 1);
+    ssc_data_set_number(data, "depr_bonus_sta", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_macrs_5", 1);
+    ssc_data_set_number(data, "depr_bonus_sta_macrs_15", 1);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_5", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_15", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_20", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_39", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_custom", 0);
+    ssc_data_set_number(data, "depr_bonus_fed", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_macrs_5", 1);
+    ssc_data_set_number(data, "depr_bonus_fed_macrs_15", 1);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_5", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_15", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_20", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_39", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_custom", 0);
+    ssc_data_set_number(data, "depr_itc_sta_macrs_5", 1);
+    ssc_data_set_number(data, "depr_itc_sta_macrs_15", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_5", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_15", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_20", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_39", 0);
+    ssc_data_set_number(data, "depr_itc_sta_custom", 0);
+    ssc_data_set_number(data, "depr_itc_fed_macrs_5", 1);
+    ssc_data_set_number(data, "depr_itc_fed_macrs_15", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_5", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_15", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_20", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_39", 0);
+    ssc_data_set_number(data, "depr_itc_fed_custom", 0);
 }
 #endif

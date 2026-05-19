@@ -1423,6 +1423,12 @@ public:
         }
         save_cf(CF_utility_bill, nyears, "cf_utility_bill");
 
+        double non_energy_revenue_for_ds_frac = 1.0;
+        if (is_assigned("non_energy_revenue_ds")) non_energy_revenue_for_ds_frac = as_boolean("non_energy_revenue_ds") ? 1.0 : 0.0;
+        
+        double non_energy_expenses_for_ds_frac = 1.0;
+        if (is_assigned("non_energy_expenses_ds")) non_energy_expenses_for_ds_frac = as_boolean("non_energy_expenses_ds") ? 1.0 : 0.0;
+
         if (is_assigned("non_energy_revenue") && is_assigned("non_energy_expenses")) {
             // Non-energy revenues & revenue sharing
             escal_or_annual(CF_non_energy_revenue, nyears, "non_energy_revenue", inflation_rate, 1.0, false, as_double("non_energy_revenue_escal") * 0.01);
@@ -1775,7 +1781,7 @@ public:
                 + cf.at(CF_Recapitalization, i);
 
             cf.at(CF_energy_expenses_paid, i) = cf.at(CF_energy_expenses, i) * cf.at(CF_energy_expenses_paid_percent, i);
-            cf.at(CF_operating_expenses, i) = cf.at(CF_energy_expenses_paid, i) + cf.at(CF_non_energy_expenses_paid, i);
+            cf.at(CF_operating_expenses, i) = cf.at(CF_energy_expenses_paid, i) + non_energy_expenses_for_ds_frac * cf.at(CF_non_energy_expenses_paid, i);
         }
 
         // salvage value
@@ -1813,7 +1819,6 @@ public:
 		double pbi_sta_for_ds_frac = as_boolean("pbi_sta_for_ds") ? 1.0 : 0.0;
 		double pbi_uti_for_ds_frac = as_boolean("pbi_uti_for_ds") ? 1.0 : 0.0;
 		double pbi_oth_for_ds_frac = as_boolean("pbi_oth_for_ds") ? 1.0 : 0.0;
-
 
 		//		if (ppa_mode == 0) // iterate to meet flip target by varying ppa price
 		double ppa_soln_tolerance = as_double("ppa_soln_tolerance");
@@ -2104,7 +2109,7 @@ public:
 				
             cf.at(CF_total_revenue, i) =
                 cf.at(CF_energy_revenue_retained, i) +
-                cf.at(CF_non_energy_revenue_retained, i) +
+                non_energy_revenue_for_ds_frac * cf.at(CF_non_energy_revenue_retained, i) +
                 pbi_fed_for_ds_frac * cf.at(CF_pbi_fed, i) +
                 pbi_sta_for_ds_frac * cf.at(CF_pbi_sta, i) +
                 pbi_uti_for_ds_frac * cf.at(CF_pbi_uti, i) +
@@ -2254,7 +2259,9 @@ public:
 				(1.0 - pbi_fed_for_ds_frac) * cf.at(CF_pbi_fed,i) +
 				(1-0 - pbi_sta_for_ds_frac) * cf.at(CF_pbi_sta,i) +
 				(1-0 - pbi_uti_for_ds_frac) * cf.at(CF_pbi_uti,i) +
-				(1-0 - pbi_oth_for_ds_frac) * cf.at(CF_pbi_oth,i);
+				(1-0 - pbi_oth_for_ds_frac) * cf.at(CF_pbi_oth,i) +
+                (1.0 - non_energy_revenue_for_ds_frac) * cf.at(CF_non_energy_revenue_retained, i) +
+                (1.0 - non_energy_expenses_for_ds_frac) * cf.at(CF_non_energy_expenses,i);
 			cf.at(CF_project_dsra,i) = -cf.at(CF_funding_debtservice,i) - cf.at(CF_disbursement_debtservice,i);
 			cf.at(CF_project_ra,i) =
 				cf.at(CF_project_dsra,i) +

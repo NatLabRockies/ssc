@@ -2258,9 +2258,11 @@ var_info vtab_non_energy_cash_flow[] = {
 { SSC_INPUT,        SSC_ARRAY,		"non_energy_revenue",                     "Gross non-energy revenue",                    "$",             "", "Non-energy Revenue",       "",      "",            "" },
 { SSC_INPUT,        SSC_NUMBER,     "non_energy_revenue_escal",                 "Non-energy revenue escalation",               "%",                 "", "Non-energy Revenue",   "?=0",   "", "" },
 { SSC_INPUT,        SSC_ARRAY,      "non_energy_revenue_ret",                 "Non-energy revenue retained by energy owner", "%",        "", "Non-energy Revenue",         "",         "", "" },
+{ SSC_INPUT,        SSC_NUMBER,      "non_energy_revenue_ds",                 "Non-energy revenue available for debt service", "%",        "", "Non-energy Revenue",         "?=1",         "", "" },
 { SSC_INPUT,        SSC_ARRAY,		"non_energy_expenses",                    "Gross non-energy expenses",                   "$",        "", "Non-energy Revenue",         "",         "",            "" },
 { SSC_INPUT,        SSC_NUMBER,		"non_energy_expenses_escal",                "Non-energy expenses escalation",              "%",        "", "Non-energy Revenue",         "?=0",     "",            "" },
 { SSC_INPUT,        SSC_ARRAY,      "non_energy_expenses_ret",	              "Non-energy expenses paid by energy owner",	 "%",	        "",	"Non-energy Revenue",	   "",         "",      			"" },
+{ SSC_INPUT,        SSC_NUMBER,      "non_energy_expenses_ds",	              "Non-energy expenses impact debt service",	 "%",	        "",	"Non-energy Revenue",	   "?=1",         "",      			"" },
 { SSC_INPUT,        SSC_ARRAY,      "energy_revenue_ret",		              "Energy revenue retained by energy owner",	 "%",	        "",	"Non-energy Revenue",	   "",         "",      			"" },
 { SSC_INPUT,        SSC_ARRAY,      "energy_expenses_ret",   	              "Energy expenses paid by energy owner",		 "%",	        "",	"Non-energy Revenue",	   "",         "",      			"" },
 

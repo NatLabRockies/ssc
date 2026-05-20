@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,13 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include "etes_ptes_defaults.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 namespace etes_ptes_test {}
 using namespace etes_ptes_test;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(etes_ptes_test, EtesPtesCmod, Default_NoFinancial)
+TEST(EtesPtesCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = etes_ptes_defaults();
     CmodUnderTest ptes_system = CmodUnderTest("etes_ptes", defaults);

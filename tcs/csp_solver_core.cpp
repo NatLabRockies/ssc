@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1172,12 +1172,12 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 		mc_reported_outputs.value(C_solver_outputs::W_DOT_NET, W_dot_net);								//[MWe] Total electric power output to grid        
 		
             //Dispatch optimization outputs
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_REL_MIP_GAP, mc_dispatch.lp_outputs.rel_mip_gap);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_STATE, mc_dispatch.lp_outputs.solve_state);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SUBOPT_FLAG, mc_dispatch.lp_outputs.subopt_flag);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_ITER, mc_dispatch.lp_outputs.solve_iter);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_OBJ, mc_dispatch.lp_outputs.objective);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_OBJ_RELAX, mc_dispatch.lp_outputs.objective_relaxed);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_REL_MIP_GAP, mc_dispatch.solver_outputs.rel_mip_gap);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_STATE, mc_dispatch.solver_outputs.solve_state);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SUBOPT_FLAG, mc_dispatch.solver_outputs.termination_flag);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_ITER, mc_dispatch.solver_outputs.solve_iter);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_OBJ, mc_dispatch.solver_outputs.objective);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_OBJ_RELAX, mc_dispatch.solver_outputs.objective_relaxed);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_QSF_EXPECT, mc_dispatch.disp_outputs.qsf_expect);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_QSFPROD_EXPECT, mc_dispatch.disp_outputs.qsfprod_expect);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_QSFSU_EXPECT, mc_dispatch.disp_outputs.qsfsu_expect);
@@ -1187,9 +1187,9 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_QPBSU_EXPECT, mc_dispatch.disp_outputs.qpbsu_expect);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_WPB_EXPECT, mc_dispatch.disp_outputs.wpb_expect);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_REV_EXPECT, mc_dispatch.disp_outputs.rev_expect);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_PRES_NCONSTR, mc_dispatch.lp_outputs.presolve_nconstr);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_PRES_NVAR, mc_dispatch.lp_outputs.presolve_nvar);
-		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_TIME, mc_dispatch.lp_outputs.solve_time);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_PRES_NCONSTR, mc_dispatch.solver_outputs.presolve_nconstr);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_PRES_NVAR, mc_dispatch.solver_outputs.presolve_nvar);
+		mc_reported_outputs.value(C_solver_outputs::DISPATCH_SOLVE_TIME, mc_dispatch.solver_outputs.solve_time);
 
 		// Report series of operating modes attempted during the timestep as a 'double' so can see in hourly outputs
         // Key will start with 1 then add two digits for each operating mode. Single digits enumerations will add a 0 before the number
@@ -1492,11 +1492,10 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
             send_callback((float)calc_frac_current * 100.f);
             ss.flush();
 
-            // Update horizon parameter values and inital condition parameters
+            // Update horizon parameter values
             if (!mc_dispatch.update_horizon_parameters(mc_tou)) {
                 throw(C_csp_exception("Dispatch failed to update horizon parameter values"));
             }
-            mc_dispatch.update_initial_conditions(pc_heat_prev, m_T_htf_cold_des, pc_state_persist);
 
             //predict performance for the time horizon
             if (
@@ -1507,8 +1506,11 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
                 )
                 )
             {
+                // initial condition parameters
+                mc_dispatch.update_initial_conditions(pc_heat_prev, m_T_htf_cold_des, pc_state_persist);
+
                 //call the optimize method
-                bool opt_complete = mc_dispatch.lp_outputs.last_opt_successful = mc_dispatch.optimize();
+                bool opt_complete = mc_dispatch.solver_outputs.last_opt_successful = mc_dispatch.optimize();
 
                 if (mc_dispatch.solver_params.disp_reporting && (!mc_dispatch.solver_params.log_message.empty()))
                 {

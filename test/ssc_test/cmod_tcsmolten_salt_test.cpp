@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -33,14 +33,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 #include "tcsmolten_salt_defaults.h"
+#include "cmod_tcsmolten_salt_test.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
+#include <iomanip>
+
 
 namespace csp_tower {}
 using namespace csp_tower;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, Default_NoFinancial)
+TEST(PowerTowerCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
@@ -71,7 +73,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, Default_NoFinancial)
     //}
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, SlidingPressure_NoFinancial)
+TEST(PowerTowerCmod, SlidingPressure_NoFinancial)
 {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
@@ -96,7 +98,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, SlidingPressure_NoFinancial)
     }
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, FlowPattern_NoFinancial)
+TEST(PowerTowerCmod, FlowPattern_NoFinancial)
 {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
@@ -124,6 +126,56 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, FlowPattern_NoFinancial)
     }
 }
 
+TEST(PowerTowerCmod, Dispatch_optimization)
+{
+    ssc_data_t defaults = tcsmolten_salt_defaults();
+    CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
+    power_tower.SetInput("is_dispatch", 1);
+    // Generic Low Carbon Duck Curve
+    power_tower.SetInput("dispatch_tod_factors", {0.19, 0.47, 0.75, 1.073, 1.31, 1.6, 1.91, 0, 0});
+    ssc_number_t schedule[288] = {
+          4, 4, 4, 4, 4, 4, 5, 5, 2, 2, 1, 1, 1, 1, 2, 2, 5, 5, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 5, 5, 2, 2, 1, 1, 1, 1, 2, 2, 5, 5, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 5, 5, 2, 2, 1, 1, 1, 1, 2, 2, 5, 5, 6, 6, 6, 6, 4, 4,
+
+          4, 4, 4, 4, 4, 4, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 4, 4,
+          4, 4, 4, 4, 4, 4, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 4, 4,
+
+          4, 4, 4, 4, 5, 5, 4, 4, 3, 3, 3, 3, 3, 3, 4, 4, 7, 7, 7, 7, 7, 7, 5, 5,
+          4, 4, 4, 4, 5, 5, 4, 4, 3, 3, 3, 3, 3, 3, 4, 4, 7, 7, 7, 7, 7, 7, 5, 5,
+          4, 4, 4, 4, 5, 5, 4, 4, 3, 3, 3, 3, 3, 3, 4, 4, 7, 7, 7, 7, 7, 7, 5, 5,
+
+          4, 4, 4, 4, 5, 5, 5, 5, 2, 2, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 6, 6, 5, 5,
+          4, 4, 4, 4, 5, 5, 5, 5, 2, 2, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 6, 6, 5, 5,
+          4, 4, 4, 4, 5, 5, 5, 5, 2, 2, 1, 1, 2, 2, 4, 4, 6, 6, 6, 6, 6, 6, 5, 5};
+
+    //power_tower.SetInput("dispatch_sched_weekday", &schedule[0], schedule.size());
+    power_tower.SetInput("dispatch_sched_weekday", schedule, 12, 24);
+    power_tower.SetInput("dispatch_sched_weekend", schedule, 12, 24);
+    power_tower.SetInput("ppa_price_input", { 0.095 });
+    power_tower.SetInput("ppa_soln_mode", 1);
+
+    int errors = power_tower.RunModule();
+    EXPECT_FALSE(errors);
+    if (!errors)
+    {
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_energy"), 586824483, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("land_area_base_calc"), 1847, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("capacity_factor"), 65.72, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_W_cycle_gross"), 656930098, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("kwh_per_kw"), 5757, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("conversion_factor"), 89.3283, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("N_hel_calc"), 8790, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("rec_height"), 21.60, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("A_sf"), 1269054, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("D_rec"), 17.65, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_total_water_use"), 98840.3, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("total_land_area"), 1892, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("h_tower"), 193.5, kErrorToleranceHi);
+    }
+}
+
 void CopyVarTableAndGetValue(var_table* vartab, std::string var_name, double* var_value) {
     var_table vartab_copy;
     vartab_copy = *vartab;  // uses copy assignment operator, which is fine
@@ -132,7 +184,7 @@ void CopyVarTableAndGetValue(var_table* vartab, std::string var_name, double* va
     return;
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, CopyingVarTable) {
+TEST(PowerTowerCmod, CopyingVarTable) {
     // Get an ssc_data_t with default input values for the molten salt tower model
     ssc_data_t data = tcsmolten_salt_defaults();
 
@@ -162,7 +214,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, CopyingVarTable) {
     ssc_data_free(data);
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, Start_Stop_Initialize_Default_NoFinancial) {
+TEST(PowerTowerCmod, Start_Stop_Initialize_Default_NoFinancial) {
     ssc_data_t defaults = tcsmolten_salt_defaults();
     CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
     int errors = power_tower.RunModule();
@@ -213,7 +265,7 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, Start_Stop_Initialize_Default_NoFinanc
     }
 }
 
-NAMESPACE_TEST(csp_tower, PowerTowerCmod, Dispatch_Targets_Default_NoFinancial) {
+TEST(PowerTowerCmod, Dispatch_Targets_Default_NoFinancial) {
 
     bool print_outputs = false; // True will make test fail to print output!
     int len_window = 24;
@@ -360,6 +412,47 @@ NAMESPACE_TEST(csp_tower, PowerTowerCmod, Dispatch_Targets_Default_NoFinancial) 
         EXPECT_FALSE(true); //needed to make the test fail for output
     }
 }
+
+TEST_F(CmodMSPTTest, ELEC_HEATER) {
+    std::string file_inputs = SSCDIR;
+    // Had to decrease default freeze protection temp to get empirical field + steam heat sink to solve
+    file_inputs += "/test/input_json/TechnologyModels/mspt/25.06.03-dev-mspt-electric-heater.json";
+    std::string file_outputs = SSCDIR;
+
+    char solar_resource_path[256];
+    std::string sWeatherFile = "%s/test/input_cases/general_data/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv";
+    int npvy1 = sprintf(solar_resource_path, sWeatherFile.c_str(), std::getenv("SSCDIR")); // TODO - update for robustness
+    std::ifstream file(file_inputs);
+    std::ostringstream tmp;
+    tmp << file.rdbuf();
+    file.close();
+    ssc_data_t dat_inputs = json_to_ssc_data(tmp.str().c_str());
+    ssc_data_set_string(dat_inputs, "solar_resource_file", solar_resource_path);
+
+    // Requires dispatch optimization, which takes forever, so let's just simulate a few days
+    ssc_data_set_number(dat_inputs, "time_start", 0);
+    ssc_data_set_number(dat_inputs, "time_stop", 3600 * 10 * 24);   // first 10 days
+
+    std::string cmod = "tcsmolten_salt";
+
+    tmp.str("");
+    int errors = run_module(dat_inputs, cmod);
+
+    EXPECT_FALSE(errors);
+    if (!errors)
+    {
+        ssc_data_t dat_outputs = json_to_ssc_data(tmp.str().c_str());
+
+        double annual_energy_calc = std::numeric_limits<double>::quiet_NaN();
+        ssc_data_get_number(dat_inputs, "annual_energy", &annual_energy_calc);
+
+        // annual electricity is negative from so much grid charging - convert to positive values
+        EXPECT_NEAR_FRAC(-annual_energy_calc, 9047502., 0.001);
+    }
+    ssc_data_free(dat_inputs);
+    dat_inputs = nullptr;
+}
+
 
 /// Test tcsmolten_salt with alternative condenser type: Evaporative
 /// Rest default configurations with respect to the single owner financial model

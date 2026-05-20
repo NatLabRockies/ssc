@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 #include "lib_csp_tes_test.h"
-#include "vs_google_test_explorer_namespace.h"
 #include "csp_common_test.h"
 
 using namespace csp_common;
@@ -45,7 +44,7 @@ const double kErrorToHi = 0.01;      // 1.0%
 //=== Using factory patterns to create the different physical and non-physical components=========
 
 // Test draining storage tank
-NAMESPACE_TEST(csp_common, StorageTank, DrainingTank)
+TEST(StorageTank, DrainingTank)
 {
     bool is_hot_tank = false;
     double dt = 3600.;
@@ -75,7 +74,7 @@ NAMESPACE_TEST(csp_common, StorageTank, DrainingTank)
 }
 
 // Test an initially drained storage tank
-NAMESPACE_TEST(csp_common, StorageTank, InitiallyDrainedTank)
+TEST(StorageTank, InitiallyDrainedTank)
 {
     bool is_hot_tank = false;
     double dt = 3600.;
@@ -188,7 +187,7 @@ double C_to_K(double T) {
     return T + 273.15;
 }
 
-NAMESPACE_TEST(csp_common, TesCspSolver, Default)
+TEST(TesCspSolver, Default)
 {
     std::vector<double> tes_lengths{ 0, 90, 100, 120, 0, 0, 0, 0, 80, 120, 80 };
 
@@ -321,7 +320,7 @@ NAMESPACE_TEST(csp_common, TesCspSolver, Default)
     EXPECT_NEAR(tes.get_cold_temp(), 566.1, 0.1);
 }
 
-NAMESPACE_TEST(csp_common, TesSubcomponentCmod, Default)
+TEST(TesSubcomponentCmod, Default)
 {
     const size_t n_steps = 24;
     ssc_data_t inputs = ssc_data_create();

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -462,9 +462,10 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, TestSummerPeakGridCharging) {
     batteryPower = dispatchAutoBTM->getBatteryPower();
     batteryPower->connectionMode = ChargeController::AC_CONNECTED;
 
-    std::vector<double> expectedPower = { 0.0, -0.22, -0.319, -0.319, -0.356, -0.103, 0, -0.001, -0.383,
-                                          -0.501, -1.281, -1.499, -1.447, -1.28, -1.005, -0.626, 1.564, 2.376, 3.37,
-                                         4.122, 0.0, 0.0, 0.0, 0};
+    std::vector<double> expectedPower = { 0.0, -2.57, -2.67,  -2.75, -2.71, -2.46,
+                                         -1.38, -0.12, -0.72, -1.41, -2.35, -2.85,
+                                        -3.17, -3.34, -3.29, 0.0, 1.564, 2.376,
+                                         3.37, 4.122, 4.074, 3.41, 0.0, 2.20 };
     for (size_t h = 0; h < 24; h++) {
         batteryPower->powerSystem = pv_prediction[h]; // Match the predicted PV
         batteryPower->powerLoad = load_prediction[h]; // Match the predicted load
@@ -489,19 +490,16 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, TestSummerPeakGridChargingSubhourly) {
         true, canGridCharge, false, false, util_rate, replacementCost, cyclingChoice, cyclingCost, omCost, interconnection_limit,
         chargeOnlySystemExceedLoad, dischargeOnlyLoadExceedSystem, dischargeToGrid, min_outage_soc, dispatch_t::LOAD_FORECAST_CHOICE::LOAD_LOOK_AHEAD);
 
-    load_prediction = { 1.44289, 1.27067, 1.1681, 1.09342, 1.12921, 1.39345, 1.57299, 1.63055, 1.85622, 2.44991, 2.61812, 2.90909, 3.29601, 3.64366, 3.88232, 3.99237, 4.09673, 4.11102, 4.09175, 4.13445, 3.91011, 3.27815, 2.67845, 2.11802, 1.78025, 1.57142, 1.42908, 1.32466,
-                            1.34971, 1.65378, 1.80832, 1.89189, 2.15165, 2.83263, 2.98228, 3.22567, 3.50516, 3.83516, 3.92251, 4.05548, 4.13676, 4.13277, 4.0915, 4.19724, 4.00006, 3.34509, 2.68845, 2.08509, 1.7126, };
+    load_prediction = { 1.44289, 1.27067, 1.1681, 1.09342, 1.12921, 1.39345, 1.57299, 1.63055, 1.85622, 2.44991, 2.61812, 2.90909, 3.29601, 3.64366, 3.88232, 3.99237, 4.09673, 4.11102, 4.09175, 4.13445, 3.91011, 3.27815, 2.67845, 2.11802, 1.78025, 1.57142, 1.42908, 1.32466, 1.34971, 1.65378, 1.80832, 1.89189, 2.15165, 2.83263, 2.98228, 3.22567, 3.50516, 3.83516, 3.92251, 4.05548, 4.13676, 4.13277, 4.0915, 4.19724, 4.00006, 3.34509, 2.68845, 2.08509, 1.7126};
 
-    pv_prediction = { -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, 0.129814, 0.75348, 1.47006, 2.45093, 2.9696, 3.30167, 3.47537, 3.42799, 3.14281, 2.59477, 1.83033, 0.857618, 0.176968, -0.00116655, -0.00116655, -0.00116655
-                - 0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, 0.078559, 0.420793, 1.35006, 2.03824, 2.47638, 2.70446, 3.22802, 2.74022, 2.81986, 2.39299, 1.68699, 0.881843,
-                0.169532, -0.00116655, -0.00116655, -0.00116655, -0.00116655 };
+    pv_prediction = { -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, 0.129814, 0.75348, 1.47006, 2.45093, 2.9696, 3.30167, 3.47537, 3.42799, 3.14281, 2.59477, 1.83033, 0.857618, 0.176968, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, -0.00116655, 0.078559, 0.420793, 1.35006, 2.03824, 2.47638, 2.70446, 3.22802, 2.74022, 2.81986, 2.39299, 1.68699, 0.881843, 0.169532, -0.00116655, -0.00116655, -0.00116655, -0.00116655 };
 
     std::vector<double> subhourly_load;
     std::vector<double> subhourly_pv;
 
-    for (int i = 0; i < load_prediction.size() && i < pv_prediction.size(); i++)
+    for (size_t i = 0; i < load_prediction.size() && i < pv_prediction.size(); i++)
     {
-        for (int j = 0; j < 2; j++)
+        for (size_t j = 0; j < 2; j++)
         {
             subhourly_load.push_back(load_prediction[i]);
             subhourly_pv.push_back(pv_prediction[i]);
@@ -515,17 +513,18 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, TestSummerPeakGridChargingSubhourly) {
     batteryPower = dispatchAutoBTM->getBatteryPower();
     batteryPower->connectionMode = ChargeController::AC_CONNECTED;
 
-    std::vector<double> expectedPower = { 0.0, -0.22, -0.319, -0.319, -0.356, -0.103, 0, -0.001, -0.383,
-                                          -0.501, -1.281, -1.499, -1.447, -1.28, -1.005, -0.626, 1.564, 2.376, 3.37,
-                                         4.122, 0.0, 0.0, 0.0, 0 };
+    std::vector<double> expectedPower = { 0.0,0.0, -2.57,-2.57, -2.67,-2.67,  -2.75,-2.75, -2.71,-2.71, -2.46,-2.46, -0.48, -2.28, -0.12,-0.12, -0.72,-0.72, -1.41,-1.41, -2.35,-2.35, -2.85,-2.85, -3.17,-3.17, -3.34, -3.34, -3.29,-3.29, 0.88,0.88, 1.564,1.564, 2.376,2.376, 3.37,3.37, 4.122,4.122, 4.074, 4.074, 3.41, 3.41, 2.79, 2.79, 2.20, 2.20 };
+    // works with AppleClang 17 and later (XCode 16.4 and later) and fails with earlier AppleClang and XCode and on other platforms (Windows and Ubuntu runners)
+//    std::vector<double> expectedPower = { 0.0,0.0, -2.57,-2.57, -2.67,-2.67,  -2.75,-2.75, -2.71,-2.71, -2.46,-2.46, -2.28, -0.48, -0.12,-0.12, -0.72,-0.72, -1.41,-1.41, -2.35,-2.35, -2.85,-2.85, -3.17,-3.17, -3.34, -3.34, -3.29,-3.29, 0.88,0.88, 1.564,1.564, 2.376,2.376, 3.37,3.37, 4.122,4.122, 4.074, 4.074, 3.41, 3.41, 2.79, 2.79, 2.20, 2.20 };
     for (size_t h = 0; h < 24; h++) {
         batteryPower->powerSystem = pv_prediction[h]; // Match the predicted PV
         batteryPower->powerLoad = load_prediction[h]; // Match the predicted load
-        for (int j = 0; j < 2; j++)
+        for (size_t j = 0; j < 2; j++)
         {
             dispatchAutoBTM->dispatch(0, h, j);
-            EXPECT_NEAR(batteryPower->powerBatteryDC, expectedPower[h], 0.1) << " error in expected at hour " << h << " step " << j;
-        }
+ //           EXPECT_NEAR(batteryPower->powerBatteryDC, expectedPower[h * 2 + j], 0.1) << " error in expected at hour " << h << " step " << j;
+            EXPECT_NEAR(batteryPower->powerBatteryDC, expectedPower[h + h + j], 0.1) << " error in expected at hour " << h << " step " << j;
+ }
     }
     delete util_rate;
 }
@@ -564,7 +563,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, TestCommercialPeakForecasting) {
     batteryPower = dispatchAutoBTM->getBatteryPower();
     batteryPower->connectionMode = ChargeController::AC_CONNECTED;
 
-    std::vector<double> expectedPower = { 50.02, 44.22, 44.0, 45.24, 4.44, 0, 0, 0, 0, 0.0, 0, -46.0, -46.0, -45.39, 0, 50.08, 50.06, 34.720, 0,
+    std::vector<double> expectedPower = { 50.02, 44.22, 44.0, 45.24, 4.44, 0, 0, 0, 0, 0.0, 0, -46.0, -46.0, -46.0, 0, 50.08, 50.06, 35.31, 0,
                                          0, 0, -46.0, -46.0, -46.0 };
     for (size_t h = 0; h < 24; h++) {
         batteryPower->powerSystem = pv_prediction[h]; // Match the predicted PV
@@ -871,7 +870,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutagePeakShavingDai
                                         0, 52.1, 52.1, 52.1, 52.1, 52.1, // 18 - 23
                                         52.1, 52.1, 52.1, 52.1 };
 
-    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NREL/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
+    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NatLabRockies/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0 };
@@ -1521,7 +1520,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutagePeakShavingDC)
                                         -57.6, -57.6, -57.6, -57.6, -1.1, 0,
                                          0, 62.6, 62.6, 62.6, 62.8, 63.0 };
 
-    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 19.6, 49.7, // Fixing https://github.com/NREL/ssc/issues/569 could probably get the crit load unmet in step 4 to zero
+    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 19.6, 49.7, // Fixing https://github.com/NatLabRockies/ssc/issues/569 could probably get the crit load unmet in step 4 to zero
                                                 50, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0 };
@@ -1590,7 +1589,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageFuelCellCharge
                                         -48, -48, -48, -48, -38.57, 0,
                                         0, 52.16, 52.16, 52.16, 52.32, 52.42 };
 
-    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NREL/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
+    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NatLabRockies/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0 };

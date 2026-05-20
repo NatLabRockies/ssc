@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -281,7 +281,7 @@ void dispatch_automatic_front_of_meter_t::update_dispatch(size_t year, size_t ho
                 }
             }
             pv_hours_on = revenueToPVChargeForecast.size() / _steps_per_hour;
-            revenueToPVChargeMax = pv_hours_on >= t_duration ? *std::max_element(std::begin(revenueToPVChargeForecast), std::end(revenueToPVChargeForecast)): 0;
+            revenueToPVChargeMax = (!revenueToPVChargeForecast.empty() && pv_hours_on >= t_duration) ? *std::max_element(std::begin(revenueToPVChargeForecast), std::end(revenueToPVChargeForecast)): 0;
         }
 
         /*! Economic benefit of charging from clipped PV in current time step to discharge sometime in the next X hours (clipped PV is free) ($/kWh) */

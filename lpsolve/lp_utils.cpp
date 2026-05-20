@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -966,7 +966,7 @@ STATIC MYBOOL verifyLink(LLrec *linkmap, int itemnr, MYBOOL doappend)
 STATIC PVrec *createPackedVector(int size, REAL *values, int *workvector)
 {
   int      i, k;
-  REGISTER REAL  ref;
+  REAL  ref;
   PVrec    *newPV = NULL;
   MYBOOL   localWV = (MYBOOL) (workvector == NULL);
 
@@ -1013,7 +1013,7 @@ STATIC PVrec *createPackedVector(int size, REAL *values, int *workvector)
 STATIC MYBOOL unpackPackedVector(PVrec *PV, REAL **target)
 {
   int      i, ii, k;
-  REGISTER REAL ref;
+  REAL ref;
 
   /* Test for validity of the target and create it if necessary */
   if(target == NULL)

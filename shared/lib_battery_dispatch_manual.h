@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -67,6 +67,7 @@ public:
         bool can_clip_charge,
         bool can_curtail_charge,
         double interconnection_limit,
+        size_t start_day_of_year,
         bool chargeOnlySystemExceedLoad = true,
         bool dischargeOnlyLoadExceedSystem = true,
         double SOC_min_outage = 0.0,
@@ -104,7 +105,8 @@ protected:
 		std::map<size_t, double> dm_percent_gridcharge,
         bool can_clip_charge,
         bool can_curtail_charge,
-        bool priorityChargeBattery);
+        bool priorityChargeBattery,
+        size_t start_day_of_year);
 
 	void SOC_controller() override;
 	bool check_constraints(double &I, size_t count) override;
@@ -128,6 +130,8 @@ protected:
 
 	std::map<size_t, double> _percent_discharge_array;
 	std::map<size_t, double> _percent_charge_array;
+
+    size_t _start_day_of_year;
 
 };
 

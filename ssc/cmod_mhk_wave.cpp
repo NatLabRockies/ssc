@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ static var_info _cm_vtab_mhk_wave[] = {
 
     { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",                  "Generic lifetime simulation",                               "0/1",      "",                              "Lifetime",             "?=0",                        "INTEGER,MIN=0,MAX=1",          "" },
     { SSC_INPUT,        SSC_NUMBER,      "analysis_period",                             "Lifetime analysis period",                             "years",    "",                              "Lifetime",             "system_use_lifetime_output=1",   "",                             "" },
-    { SSC_INPUT,        SSC_ARRAY,       "generic_degradation",                              "Annual AC degradation",                            "%/year",   "",                              "Lifetime",             "system_use_lifetime_output=1",   "",                             "" },
+    { SSC_INPUT,        SSC_ARRAY,       "ac_degradation",                              "Annual AC degradation",                            "%/year",   "",                              "Lifetime",             "system_use_lifetime_output=1",   "",                             "" },
 
 
     // losses
@@ -444,9 +444,13 @@ public:
 			    for (size_t j = 0; j < (size_t)wave_power_matrix.ncols(); j++) {
 
 				    //Calculate and allocate annual_energy_distribution:
-				    if (j == 0 || i == 0)	//Where (i = 0) is the row header, and (j =  0) is the column header.
-					    p_annual_energy_dist[k] = (ssc_number_t) wave_resource_matrix.at(i, j); //Don't do anything with top left corner of matrix as this value is always 0 and not part of the grid
-				    else {
+                    if (j == 0 || i == 0) {	//Where (i = 0) is the row header, and (j =  0) is the column header.
+                        if (wave_resource_matrix.at(i, j) != wave_power_matrix.at(i, j)) {
+                            throw exec_error("mhk_wave", "Resource matrix and Power matrix bins do not match.");
+                        }
+                        p_annual_energy_dist[k] = (ssc_number_t)wave_resource_matrix.at(i, j); //Don't do anything with top left corner of matrix as this value is always 0 and not part of the grid
+                    }
+                    else {
                         //Find annual probability (as a %) of wave at height i and period j, multiply by 8760/100 to find fractional hours per year that wave(i,j) is achieved;
                         //Mult. by number of devices and total loss multiplier to find energy for certain wave type in grid
                         p_annual_energy_dist[k] = (ssc_number_t)(wave_resource_matrix.at(i,j) * wave_power_matrix.at(i,j) * 8760.0 / 100.0) * (1-total_loss/100) * number_devices; 
@@ -562,7 +566,7 @@ public:
                 // setup system degradation
                 size_t i, count_degrad = 0;
                 ssc_number_t* degrad = 0;
-                degrad = as_array("generic_degradation", &count_degrad);
+                degrad = as_array("ac_degradation", &count_degrad);
 
                 if (count_degrad == 1)
                 {

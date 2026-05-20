@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -166,7 +166,7 @@ static var_info vtab_utility_rate5[] = {
 	{ SSC_OUTPUT, SSC_ARRAY, "charge_w_sys_ec", "Energy charge with system", "$", "", "Charges by Month", "*", "", "" },
 	{ SSC_OUTPUT, SSC_ARRAY, "charge_wo_sys_ec", "Energy charge without system", "$", "", "Charges by Month", "*", "", "" },
 
-    // Updated based on https://github.com/NREL/SAM/issues/372
+    // Updated based on https://github.com/NatLabRockies/SAM/issues/372
 	{ SSC_OUTPUT, SSC_MATRIX, "charge_w_sys_ec_gross_ym", "Energy charge with system before credits", "$", "", "Charges by Month", "*", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
 	{ SSC_OUTPUT, SSC_MATRIX, "nm_dollars_applied_ym", "Net metering credit", "$", "", "Charges by Month", "*", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
 	{ SSC_OUTPUT, SSC_MATRIX, "excess_kwhs_earned_ym", "Excess generation", "kWh", "", "Charges by Month", "*", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
@@ -174,7 +174,7 @@ static var_info vtab_utility_rate5[] = {
     { SSC_OUTPUT, SSC_MATRIX, "two_meter_sales_ym",     "Buy all sell all electricity sales to grid", "$", "", "Charges by Month", "*", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
     { SSC_OUTPUT, SSC_MATRIX, "true_up_credits_ym",     "Net annual true-up payments", "$", "", "Charges by Month", "*", "", "COL_LABEL=MONTHS,FORMAT_SPEC=CURRENCY,GROUP=UR_AM" },
 
-	// Updated based on https://github.com/NREL/SAM/issues/372
+	// Updated based on https://github.com/NatLabRockies/SAM/issues/372
 	{ SSC_OUTPUT, SSC_ARRAY, "year1_monthly_ec_charge_gross_with_system", "Energy charge with system before credits", "$/mo", "", "Monthly", "*", "LENGTH=12", "" },
 	{ SSC_OUTPUT, SSC_ARRAY, "year1_nm_dollars_applied", "Net metering credit", "$/mo", "", "Monthly", "*", "LENGTH=12", "" },
 	{ SSC_OUTPUT, SSC_ARRAY, "year1_excess_kwhs_earned", "Excess generation", "kWh/mo", "", "Monthly", "*", "LENGTH=12", "" },
@@ -280,6 +280,8 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
     ssc_number_t* parr = 0;
     ssc_number_t* ts_sr = NULL; ssc_number_t* ts_br = NULL;
 
+    size_t start_day_of_year = vt->as_number("start_day_of_year");
+
     rate.init(num_recs_yearly);
 
     double inflation_rate = vt->as_double("inflation_rate") * 0.01;
@@ -363,7 +365,7 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
 
     bool sell_eq_buy = vt->as_boolean("ur_sell_eq_buy");
 
-    rate.setup_energy_rates(ec_weekday, ec_weekend, tou_rows, ec_tou_in, sell_eq_buy);
+    rate.setup_energy_rates(ec_weekday, ec_weekend, tou_rows, ec_tou_in, sell_eq_buy, start_day_of_year);
 
     ssc_number_t* dc_weekday = NULL; ssc_number_t* dc_weekend = NULL; ssc_number_t* dc_tou_in = NULL; ssc_number_t* dc_flat_in = NULL;
     size_t dc_tier_rows = 0; size_t dc_flat_rows = 0;
@@ -403,7 +405,7 @@ void rate_setup::setup(var_table* vt, int num_recs_yearly, size_t nyears, rate_d
             throw exec_error(cm_name, ss.str());
         }
         dc_flat_rows = nrows;
-        rate.setup_demand_charges(dc_weekday, dc_weekend, dc_tier_rows, dc_tou_in, dc_flat_rows, dc_flat_in);
+        rate.setup_demand_charges(dc_weekday, dc_weekend, dc_tier_rows, dc_tou_in, dc_flat_rows, dc_flat_in, start_day_of_year);
     }
 
     int metering_option = vt->as_integer("ur_metering_option");
@@ -2367,7 +2369,7 @@ public:
 
 								// cumulative energy used to determine tier for credit of entire surplus amount
 
-                                // check for vlid tier structure per https://github.com/NREL/SAM/issues/1834
+                                // check for vlid tier structure per https://github.com/NatLabRockies/SAM/issues/1834
                                 size_t max_tier = curr_month.ec_tou_ub.ncols() - 1;
                                 if (cumulative_energy > curr_month.ec_tou_ub.at(row, max_tier)) {
                                     std::ostringstream ss;

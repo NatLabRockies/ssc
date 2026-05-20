@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,21 +29,11 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-//#pragma once
-//#pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
 
 #ifndef __base_dispatch_
 #define __base_dispatch_
 
-#include "dispatch_builder.h"
 #include "csp_solver_core.h"
-
-/* Suboptimal dispatch flags */
-#define INTERATION              1
-#define TIMELIMIT               2
-#define MIPGAP                  3
-#define MIPGAPLPSOLVE           4
-#define FAILED                  5
 
 class base_dispatch_opt
 {
@@ -53,13 +43,42 @@ protected:
     
     void clear_output();
 
-private:
     void not_implemented_function(std::string function_name);
 
 public:
     int m_current_read_step;           //current step to read from optimization results
 
-    s_solver_params solver_params;
+    struct s_solver_params
+    {
+        bool is_abort_flag;         //optimization flagged for abort
+        std::string log_message;
+        double obj_relaxed;
+
+        //user settings
+        int steps_per_hour;         //[-] Number of time steps per hour
+        int optimize_frequency;
+        int optimize_horizon;
+
+        int max_bb_iter;            //Maximum allowable iterations for B&B algorithm
+        double mip_gap;             //convergence tolerance - gap between relaxed MIP solution and current best solution
+        double solution_timeout;    //[s] Max solve time for each solution
+        int presolve_type;
+        int bb_type;
+        int disp_reporting;
+        int scaling_type;
+
+        bool is_write_ampl_dat;     //write ampl data files?
+        bool is_ampl_engine;        //run with external AMPL engine
+        std::string ampl_data_dir;  //directory to write ampl data files
+        std::string ampl_exec_call; //system call for running ampl
+
+        s_solver_params();
+        void set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
+            int disp_max_iter, double disp_mip_gap, double disp_timeout,
+            int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting);
+        void set_ampl_inputs(bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec);
+        void reset();
+    } solver_params;
 
     struct S_pointers
     {
@@ -101,37 +120,46 @@ public:
 
     } pointers;
 
-    struct s_lp_outputs
+    enum termination_flags {
+        optimal,
+        iteration,
+        timelimit,
+        mipgap,
+        mipgap_lpsolve,
+        failed
+    };
+
+    struct s_solver_outputs
     {
-        bool last_opt_successful;     //last optimization run was successful?
+        bool last_opt_successful;       //last optimization run was successful?
         double objective;
         double objective_relaxed;
         double rel_mip_gap;
         int solve_iter;                 //Number of iterations required to solve
-        int solve_state;
-        int subopt_flag;                //Flag specifing information about LPSolve suboptimal result
+        int solve_state;                // TODO: Set this to NOTRUN or NOT_SOLVED depending on solver
+        termination_flags termination_flag;                //Flag specifying information about termination result
         double solve_time;
         int presolve_nconstr;
         int presolve_nvar;
 
-        s_lp_outputs() {
+        s_solver_outputs() {
             last_opt_successful = false;
             objective = std::numeric_limits<double>::quiet_NaN();
             objective_relaxed = std::numeric_limits<double>::quiet_NaN();
             rel_mip_gap = std::numeric_limits<double>::quiet_NaN();
             solve_iter = 0;
-            solve_state = NOTRUN;
-            subopt_flag = OPTIMAL;
+            solve_state = -1;
+            termination_flag = termination_flags::failed;
             presolve_nconstr = 0;
             solve_time = 0.;
             presolve_nvar = 0;
         }
 
         void clear_output() {
-            s_lp_outputs();
+            s_solver_outputs();
         }
 
-    } lp_outputs;
+    } solver_outputs;
 
     struct s_disp_outputs
     {
@@ -164,9 +192,6 @@ public:
 
     virtual void init(double cycle_q_dot_des, double cycle_eta_des);
 
-    // Set default solver parameters if user did not set them
-    virtual void set_default_solver_parameters();
-
     //check parameters and inputs to make sure everything has been set up correctly
     bool check_setup();
 
@@ -190,35 +215,14 @@ public:
     //Populated dispatch outputs for csp solver core
     virtual bool set_dispatch_outputs();
 
-    //Constructs lp model
-    lprec* construct_lp_model(optimization_vars* opt_vars);
-
-    //Set LPsolve solver presolve settings and bb rules
-    void setup_solver_presolve_bbrules(lprec* lp);
-
-    //Problem scaling loop algorithm
-    bool problem_scaling_solve_loop(lprec* lp);
-
-    //Set LPsolve outputs
-    void set_lp_solve_outputs(lprec* lp);
-
     //Used by cmod to get dispatch annual stats on solves
-    void count_solutions_by_type(std::vector<int>& flag, int dispatch_freq, std::string& log_msg);
+    virtual void count_solutions_by_type(std::vector<int>& flag, int dispatch_freq, std::string& log_msg);
 
     //Calculates average relative mip gap of suboptimal solutions
-    double calc_avg_subopt_gap(std::vector<double>& gap, std::vector<int>& flag, int dispatch_freq);
-
-    // Saving problem and solution for debugging
-    void save_problem_solution_debug(lprec* lp);
+    virtual double calc_avg_subopt_gap(std::vector<double>& gap, std::vector<int>& flag, int dispatch_freq);
 
     //Dispatch update and result print to screen
-    void print_dispatch_update();
-
-    // Parse column name to get variable name (root) and index (ind)
-    bool parse_column_name(char* colname, char* root, char* ind);
-
-    // simple string compare
-    bool strcompare(std::string a, std::string b);
+    virtual void print_dispatch_update();
 
     // Print dispatch solver log to file for debugging solver
     void print_log_to_file();

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,8 @@ static var_info _cm_vtab_pvsamv1[] = {
         // misc inputs
         {SSC_INPUT, SSC_NUMBER,   "en_snow_model",                        "Toggle snow loss estimation",                         "0/1",    "",                                                                                                                                                                                      "Losses",                                                "?=0",                                "BOOLEAN",             "" },
         { SSC_INPUT,        SSC_NUMBER,     "snow_slide_coefficient",		"Snow Slide Coefficient",			"",					"",					"Losses", "?=1.97",           "",                             "" },
-
+        {SSC_INPUT, SSC_ARRAY,    "snow_array",                           "Hourly snow depth ",                                 "cm",   "",                                                                                                                                                                                     "Losses",                                                "?", "", ""},
+        {SSC_INPUT, SSC_NUMBER,   "use_snow_weather_file",                "Use the snow depth from the weather file",             "0/1",   "0=user-specified,1=weatherfile", "Losses", "*", "", ""},
         {SSC_INPUT, SSC_NUMBER,   "system_capacity",                      "DC Nameplate capacity",                               "kWdc",   "",                                                                                                                                                                                      "System Design",                                         "*",                                  "",                    "" },
         {SSC_INPUT, SSC_NUMBER,   "use_wf_albedo",                        "Use albedo in weather file if provided",              "0/1",    "0=user-specified,1=weatherfile",                                                                                                                                                        "Solar Resource",                                        "?=1",                                "BOOLEAN",             "" },
         {SSC_INPUT, SSC_NUMBER,   "use_spatial_albedos",                  "Use spatial albedo values",                           "0/1",    "0=no,1=yes",                                                                                                                                                                            "Solar Resource",                                        "?=0",                                "BOOLEAN",             "" },
@@ -620,7 +621,7 @@ static var_info _cm_vtab_pvsamv1[] = {
         { SSC_OUTPUT,        SSC_ARRAY,      "tdry",                                       "Weather file ambient temperature",                                               "C",      "",                      "Time Series",       "*",                    "",                              "" },
         { SSC_OUTPUT,        SSC_ARRAY,      "alb",                                        "Albedo",							                                 "",       "",                     "Time Series",       "",                    "",                              "" },
         { SSC_OUTPUT,        SSC_MATRIX,     "alb_spatial",                                "Albedo spatial",  				                                     "",       "",                     "Time Series",       "",                    "",                              "" },
-        { SSC_OUTPUT,        SSC_ARRAY,      "snowdepth",                                  "Weather file snow depth",							                            "cm",       "",                    "Time Series",       "",                    "",                              "" },
+        { SSC_OUTPUT,        SSC_ARRAY,      "snowdepth",                                  "Snow depth",							                            "cm",       "",                    "Time Series",       "",                    "",                              "" },
 
         // calculated sun position data
         { SSC_OUTPUT,        SSC_ARRAY,      "sol_zen",                                    "Sun zenith angle",                                                  "degrees",    "",                      "Time Series",       "*",                    "",                              "" },
@@ -2465,9 +2466,20 @@ void cm_pvsamv1::exec()
                 if (PVSystem->enableSnowModel)
                 {
                     float smLoss = 0.0f;
-
+                    float snowDep = 0.0f;
+                    // Now we have the option to either use weather file snow data or user input snow data
+                    if (PVSystem->useWeatherFileSnow)
+                    {
+                        // Use weather file snow data
+                        snowDep = (float)wf.snow;
+                    }
+                    else
+                    {
+                        // Use user input snow data
+                        snowDep = Irradiance->userSpecifiedSnowDepth[idx % nrec];
+                    }
                     if (!Subarrays[nn]->snowModel.getLoss((float)(Subarrays[nn]->poa.poaBeamFront + Subarrays[nn]->poa.poaDiffuseFront + Subarrays[nn]->poa.poaGroundFront + ipoa_rear_after_losses[nn]),
-                        (float)Subarrays[nn]->poa.surfaceTiltDegrees, (float)wf.wspd, (float)wf.tdry, (float)wf.snow, sunup, 1.0f / step_per_hour, smLoss))
+                        (float)Subarrays[nn]->poa.surfaceTiltDegrees, (float)wf.wspd, (float)wf.tdry, snowDep, sunup, 1.0f / step_per_hour, smLoss))
                     {
                         if (!Subarrays[nn]->snowModel.good)
                             throw exec_error("pvsamv1", Subarrays[nn]->snowModel.msg);
@@ -2564,7 +2576,14 @@ void cm_pvsamv1::exec()
             {
                 Irradiance->p_weatherFileWindSpeed[idx] = (ssc_number_t)wf.wspd;
                 Irradiance->p_weatherFileAmbientTemp[idx] = (ssc_number_t)wf.tdry;
-                Irradiance->p_weatherFileSnowDepth[idx] = (ssc_number_t)wf.snow;
+                double snoDep;
+                if (PVSystem->useWeatherFileSnow) {
+                    snoDep = (ssc_number_t)wf.snow;
+                }
+                else {
+                    snoDep = Irradiance->userSpecifiedSnowDepth[idx % nrec];
+                }
+                Irradiance->p_snowDepth[idx] = snoDep;
                 Irradiance->p_sunZenithAngle[idx] = (ssc_number_t)solzen;
                 Irradiance->p_sunAltitudeAngle[idx] = (ssc_number_t)solalt;
                 Irradiance->p_sunAzimuthAngle[idx] = (ssc_number_t)solazi;
@@ -3279,7 +3298,7 @@ void cm_pvsamv1::exec()
 
         // calculate system performance factor
         // reference: (http://files.sma.de/dl/7680/Perfratio-UEN100810.pdf)
-        // additional reference: (http://www.nrel.gov/docs/fy05osti/37358.pdf)
+        // additional reference: (http://www.nlr.gov/docs/fy05osti/37358.pdf)
         // PR = net_ac (kWh) / ( total input radiation (kWh) * stc efficiency (%) )
         // bug fix 6/15/15 jmf: total input radiation for PR should NOT including shading or soiling, hence use Nominal value.
         assign("performance_ratio", var_data((ssc_number_t)(ac_net / (nom_rad * mod_eff / 100.0))));

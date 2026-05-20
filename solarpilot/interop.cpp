@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2491,7 +2491,7 @@ void grid_emulator_base::AddRow(int row, std::string label, std::string units, d
 	//Row adding method for simple performance runs
 
 	if ((GetNumberCols() < 6) || (GetNumberRows() < row + 1))
-		throw spexception("Sorry! Results table incorrectly formatted. Please contact solarpilot.support@nrel.gov for help.");
+		throw spexception("Sorry! Results table incorrectly formatted. Please contact solarpilot.support@nlr.gov for help.");
 
 	bool is_currency = false;
 	if (units.find("$") != std::string::npos) is_currency = true;

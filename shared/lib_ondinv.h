@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __lib_ondinv_h
 #define __lib_ondinv_h
 
+#include <memory>
 #include <string>
 #include <vector>
 //#include "mlm_spline.h" // spline interpolator for efficiency curves
-#include "bspline.h"
+#include <bspline.h>
 using namespace std;
 using namespace SPLINTER;
 
@@ -63,10 +64,10 @@ public:
 	double INomDC; // [A]
 	double INomAC; // [A]
 	double IMaxAC; // [A]
-	double TPNom; // [°C]
-	double TPMax; // [°C]
-	double TPLim1; // [°C]
-	double TPLimAbs; // [°C]
+	double TPNom; // [ï¿½C]
+	double TPMax; // [ï¿½C]
+	double TPLim1; // [ï¿½C]
+	double TPLimAbs; // [ï¿½C]
 	double PLim1; // [kW]
 	double PLimAbs; // [kW]
 	double VNomEff[3]; // [V]
@@ -87,7 +88,7 @@ public:
 		/* inputs */
 		double Pdc,			/* Input power to inverter (Wdc) */
 		double Vdc,			/* Voltage input to inverter (Vdc) */
-		double Tamb,		/* Ambient temperature (°C) */
+		double Tamb,		/* Ambient temperature (ï¿½C) */
 
 		/* outputs */
 		double *Pac,		/* AC output power (Wac) */
@@ -115,9 +116,7 @@ private:
 	bool ondIsInitialized;
 
 	int noOfEfficiencyCurves;
-//	tk::spline effSpline[2][3];
-//	BSpline m_bspline3[2][3];
-	BSpline m_bspline3[3];
+	std::vector<std::unique_ptr<BSpline>> m_bspline3;
 	double x_max[3];
 	double x_lim[3];
 	double Pdc_threshold;
@@ -130,8 +129,6 @@ private:
 	double IMaxDC_eff;
 	double T_array[6];
 	double PAC_array[6];
-
-
 
 };
 

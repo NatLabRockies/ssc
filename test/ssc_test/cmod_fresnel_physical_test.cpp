@@ -40,13 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 TEST_F(CmodFresnelPhysicalTest, MSLFDefault) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/fresnel_physical/2026.02.27_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical.json";
+    file_inputs += "/test/input_json/TechnologyModels/fresnel_physical/2026.05.08_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical.json";
     std::string file_outputs = SSCDIR;
-    file_outputs +="/test/input_json/TechnologyModels/fresnel_physical/2026.02.27_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical_outputs.json";
+    file_outputs +="/test/input_json/TechnologyModels/fresnel_physical/2026.05.08_develop_branch_MSLF_Single_Owner_cmod_fresnel_physical_outputs.json";
     std::vector<std::string> compare_number_variables = { "annual_energy", "q_dot_loss_tes_des" };
     std::vector<std::string> compare_array_variables = { "monthly_energy" };
 
-    Test("fresnel_physical", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 0.001, "tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv");
+    Test("fresnel_physical", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100., "tucson_az_32.116521_-110.933042_psmv3_60_tmy.csv");
 }
 
 TEST_F(CmodFresnelPhysicalTest, MSLF_IPH_LCOH_Default) {

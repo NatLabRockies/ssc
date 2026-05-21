@@ -221,6 +221,9 @@ public:
     virtual double get_efficiency_at_load(double load_frac, double* w_dot_condenser = 0);
     virtual double get_htf_pumping_parasitic_coef();		//[kWe/kWt]
 
+    virtual double get_design_pumping_power();      //[MWe]
+    virtual double get_design_cooling_power();      //[MWe]
+
     // This can vary between timesteps for Type224, depending on remaining startup energy and time
     virtual double get_max_q_pc_startup();		//[MWt]
 

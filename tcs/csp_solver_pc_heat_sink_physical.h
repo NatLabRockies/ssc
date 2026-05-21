@@ -74,6 +74,8 @@ private:
     double m_h_ext_hot_des;     // [kJ/kg] Steam target outlet enthalpy
     double m_T_ext_hot_des; //[C]
 
+    double m_W_dot_pumping_power_des;   //[MWe]
+
     double m_hx_UA_des;     //[kW/K]
 
     bool m_did_init_pass;   //[-]
@@ -156,6 +158,8 @@ public:
 	// This can vary between timesteps for Type224, depending on remaining startup energy and time
 	virtual double get_max_q_pc_startup();		//[MWt]
 
+    virtual double get_design_pumping_power();      //[MWe]
+    virtual double get_design_cooling_power();      //[MWe]
 
 	virtual void call(const C_csp_weatherreader::S_outputs &weather,
 		C_csp_solver_htf_1state &htf_state_in,

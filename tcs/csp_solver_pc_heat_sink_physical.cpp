@@ -51,7 +51,7 @@ static C_csp_reported_outputs::S_output_info S_output_info[]=
 	csp_info_invalid
 };
 
-C_pc_heat_sink_physical::C_pc_heat_sink_physical()
+C_pc_heat_sink_physical::C_pc_heat_sink_physical() : C_csp_power_cycle(HEAT)
 {
 	mc_reported_outputs.construct(S_output_info);
 
@@ -59,7 +59,7 @@ C_pc_heat_sink_physical::C_pc_heat_sink_physical()
 
 	m_m_dot_htf_des = m_m_dot_ext_des = m_m_dot_ext_min =
         m_m_dot_ext_max = m_h_ext_cold_des = m_h_ext_hot_des =
-        m_T_ext_hot_des = m_hx_UA_des = std::numeric_limits<double>::quiet_NaN();
+        m_T_ext_hot_des = m_hx_UA_des = m_W_dot_pumping_power_des = std::numeric_limits<double>::quiet_NaN();
 
     m_did_init_pass = false;
 }
@@ -166,6 +166,8 @@ void C_pc_heat_sink_physical::init(C_csp_power_cycle::S_solved_params &solved_pa
 	// Assign Design HTF mdot
     m_m_dot_htf_des = m_hx.ms_des_calc_UA_par.m_m_dot_hot_des;	//[kg/s]
 
+    m_W_dot_pumping_power_des = ms_params.m_htf_pump_coef * m_m_dot_htf_des / 1.E3;   //[MWe]
+
 	// Set 'solved_params' structure
 	solved_params.m_W_dot_des = 0.0;		//[MWe] Assuming heat sink is not generating electricity FOR THIS MODEL
 	solved_params.m_eta_des = 1.0;			//[-] Same
@@ -266,6 +268,17 @@ double C_pc_heat_sink_physical::get_htf_pumping_parasitic_coef()
 	return ms_params.m_htf_pump_coef* (m_m_dot_htf_des) / (ms_params.m_q_dot_des*1000.0);	// kWe/kWt
 }
 
+double C_pc_heat_sink_physical::get_design_pumping_power() {
+
+    return m_W_dot_pumping_power_des;   //[MWe]
+}
+
+double C_pc_heat_sink_physical::get_design_cooling_power() {
+
+    // No cooling parasitics for heat sink
+    return 0.0;
+}
+
 void C_pc_heat_sink_physical::call(const C_csp_weatherreader::S_outputs &weather,
 	C_csp_solver_htf_1state &htf_state_in,
 	const C_csp_power_cycle::S_control_inputs &inputs,
@@ -295,6 +308,7 @@ void C_pc_heat_sink_physical::call(const C_csp_weatherreader::S_outputs &weather
         case STARTUP:
         case ON:
         case STANDBY:
+        case ESTIMATE_ON:
         {
             // Get HTF inlet enthalpy
             double h_htf_hot = mc_pc_htfProps.enth_lookup(htf_state_in.m_temp + 273.15);   //[kJ/kg]

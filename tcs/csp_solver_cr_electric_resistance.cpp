@@ -74,6 +74,7 @@ C_csp_cr_electric_resistance::C_csp_cr_electric_resistance(double T_htf_cold_des
     m_q_dot_su_max = std::numeric_limits<double>::quiet_NaN();
     m_E_su_des = std::numeric_limits<double>::quiet_NaN();
     m_W_dot_heater_des = std::numeric_limits<double>::quiet_NaN();
+    m_W_dot_pump_des = std::numeric_limits<double>::quiet_NaN();
 
     // Initialize state variables
     m_E_su_initial = m_E_su_calculated = std::numeric_limits<double>::quiet_NaN();
@@ -131,6 +132,9 @@ void C_csp_cr_electric_resistance::init(const C_csp_collector_receiver::S_csp_cr
     m_cp_htf_des = mc_pc_htfProps.Cp_ave(physics::CelciusToKelvin(m_T_htf_cold_des), physics::CelciusToKelvin(m_T_htf_hot_des));	//[kJ/kg-K]
     m_m_dot_htf_des = m_q_dot_heater_des*1.E3 / (m_cp_htf_des*(m_T_htf_hot_des - m_T_htf_cold_des));	//[kg/s]
     m_W_dot_heater_des = m_q_dot_heater_des / m_heater_efficiency;      //[MWe]
+
+    // For now, we're not modeling pumping power through the heater
+    m_W_dot_pump_des = 0.0;     //[MWe]
 
     // Check startup parameters
     m_f_q_dot_des_allowable_su = std::max(0.0, m_f_q_dot_des_allowable_su); //[-]
@@ -201,14 +205,18 @@ double C_csp_cr_electric_resistance::get_max_power_delivery(double T_htf_cold_in
 
 double C_csp_cr_electric_resistance::get_tracking_power()	//MWe
 {
-    throw(C_csp_exception("C_csp_cr_electric_resistance::get_tracking_power(...) is not complete"));
-    return std::numeric_limits<double>::quiet_NaN();
+    return 0.0;
 }
 
 double C_csp_cr_electric_resistance::get_col_startup_power()		//MWe-hr
 {
     throw(C_csp_exception("C_csp_cr_electric_resistance::get_col_startup_power(...) is not complete"));
     return std::numeric_limits<double>::quiet_NaN();
+}
+
+double C_csp_cr_electric_resistance::get_design_pumping_power() {
+
+    return m_W_dot_pump_des;    //[MWe]
 }
 
 void C_csp_cr_electric_resistance::off(const C_csp_weatherreader::S_outputs& weather,

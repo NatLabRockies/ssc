@@ -81,7 +81,7 @@ static C_csp_reported_outputs::S_dependent_output_info S_dependent_output_info[]
     csp_dep_info_invalid
 };
 
-C_pc_Rankine_indirect_224::C_pc_Rankine_indirect_224()
+C_pc_Rankine_indirect_224::C_pc_Rankine_indirect_224() : C_csp_power_cycle(ELEC)
 {
 	m_is_initialized = false;
 
@@ -916,6 +916,9 @@ double C_pc_Rankine_indirect_224::get_min_thermal_power()     //MW
 
 double C_pc_Rankine_indirect_224::get_max_q_pc_startup()
 {
+    // The maximum thermal power to the cycle during startup is governed by the minimum of:
+    // a) the maximum allowable thermal power to the cycle defined by design point max_frac and design thermal input
+    // b) ramping constraints imposed by the cycle startup time remaining
 	if( m_startup_time_remain_prev > 0.0 )
 		return fmin(ms_params.m_cycle_max_frac * ms_params.m_P_ref / ms_params.m_eta_ref*1.e-3,
 			m_startup_energy_remain_prev / 1.E3 / m_startup_time_remain_prev);		//[MWt]
@@ -1068,6 +1071,15 @@ double C_pc_Rankine_indirect_224::get_htf_pumping_parasitic_coef()
 	return ms_params.m_htf_pump_coef* (m_m_dot_design / 3600.) / (m_q_dot_design*1000.);	// kWe/kWt
 }
 
+double C_pc_Rankine_indirect_224::get_design_pumping_power() {
+
+    return m_W_dot_htf_pump_des;    //[MWe]
+}
+
+double C_pc_Rankine_indirect_224::get_design_cooling_power() {
+
+    return m_W_dot_cooling_des;     //[MWe]
+}
 
 void C_pc_Rankine_indirect_224::call(const C_csp_weatherreader::S_outputs &weather,
 	C_csp_solver_htf_1state &htf_state_in,
@@ -1247,6 +1259,7 @@ void C_pc_Rankine_indirect_224::call(const C_csp_weatherreader::S_outputs &weath
 		break;
 
 	case ON:
+    case ESTIMATE_ON:
 
 		if( !ms_params.m_is_user_defined_pc )
 		{
@@ -1429,6 +1442,15 @@ void C_pc_Rankine_indirect_224::call(const C_csp_weatherreader::S_outputs &weath
 			m_dot_demand = 0.0;	//[kg/hr] Not captured in User-defined power cycle model
             P_cond_iter_rel_err = 0.0;
 		}
+
+        if( m_operating_mode_calc == ESTIMATE_ON ){
+
+            out_solver.m_T_htf_cold = T_htf_cold;		//[C] HTF outlet temperature
+            out_solver.m_q_dot_htf = q_dot_htf;
+            out_solver.m_P_cycle = P_cycle*1.E-3;       //[MWe]
+
+            return;
+        }
 
 		break;
 

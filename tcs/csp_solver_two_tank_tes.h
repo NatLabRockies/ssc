@@ -406,6 +406,7 @@ private:
 
 	double m_m_dot_tes_des_over_m_dot_external_des;	//[-]
 
+    double m_W_dot_pumping_des; //[MWe]
 
     // Used for config with hx
 	double get_tes_m_dot(double m_dot_external /*kg/s*/);	//[kg/s]
@@ -490,8 +491,8 @@ public:
     double m_cold_tank_Thtr;	//[C] convert to K in init()
     double m_cold_tank_max_heat;//[MW]
     double m_dt_hot;			//[C] Temperature difference across heat exchanger - assume hot and cold deltaTs are equal
-    double m_T_cold_des;	    //[C] convert to K in init()
-    double m_T_hot_des;	        //[C] convert to K in init()
+    double m_T_cold_des;	    //[C] convert to K in init() - External HTF cold temp
+    double m_T_hot_des;	        //[C] convert to K in init() - External HTF hot temp
     double m_dP_src_des;        //[bar] Total source pressure drop at design
     double m_T_tank_hot_ini;	//[C] Initial temperature in hot storage tank
     double m_T_tank_cold_ini;	//[C] Initial temperature in cold storage cold
@@ -552,6 +553,8 @@ public:
 
     virtual double get_degradation_rate();  // s^-1
 
+    virtual double get_design_pumping_power();  //[MWe]
+
 	virtual void reset_storage_to_initial_state();
 
 	virtual void discharge_avail_est(double T_cold_K, double step_s, 
@@ -593,7 +596,7 @@ public:
         double T_sf_in, double T_sf_out, double T_pb_in, double T_pb_out, bool recirculating,
         double &P_drop_col, double &P_drop_gen);
 
-    virtual /*MWe*/ double pumping_power(double m_dot_sf /*kg/s*/, double m_dot_pb /*kg/s*/, double m_dot_tank /*kg/s*/,
+    /*MWe*/ double pumping_power(double m_dot_sf /*kg/s*/, double m_dot_pb /*kg/s*/, double m_dot_tank /*kg/s*/,
         double T_sf_in /*K*/, double T_sf_out /*K*/, double T_pb_in /*K*/, double T_pb_out /*K*/, bool recirculating);
 
     void get_design_parameters(double& vol_one_temp_avail /*m3*/, double& vol_one_temp_total /*m3*/,

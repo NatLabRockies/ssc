@@ -160,11 +160,11 @@ TEST(PowerTowerCmod, Dispatch_optimization)
     EXPECT_FALSE(errors);
     if (!errors)
     {
-        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_energy"), 586824483, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_energy"), 597081359, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_tower.GetOutput("land_area_base_calc"), 1847, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_tower.GetOutput("capacity_factor"), 65.72, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_W_cycle_gross"), 656930098, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_tower.GetOutput("kwh_per_kw"), 5757, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("capacity_factor"), 66.87, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("annual_W_cycle_gross"), 666908645, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(power_tower.GetOutput("kwh_per_kw"), 5858, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_tower.GetOutput("conversion_factor"), 89.3283, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_tower.GetOutput("N_hel_calc"), 8790, kErrorToleranceHi);
         EXPECT_NEAR_FRAC(power_tower.GetOutput("rec_height"), 21.60, kErrorToleranceHi);
@@ -447,7 +447,7 @@ TEST_F(CmodMSPTTest, ELEC_HEATER) {
         ssc_data_get_number(dat_inputs, "annual_energy", &annual_energy_calc);
 
         // annual electricity is negative from so much grid charging - convert to positive values
-        EXPECT_NEAR_FRAC(-annual_energy_calc, 9047502., 0.001);
+        EXPECT_NEAR_FRAC(-annual_energy_calc, 9036667., 0.001);
     }
     ssc_data_free(dat_inputs);
     dat_inputs = nullptr;

@@ -40,6 +40,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
+static const char* size_battery_doc =
+    "Resizes the battery for a battery data object \\n\\n"
+    "Input: var_table with key-value pairs\\n"
+    "     'nominal_energy': double [kWh]\\n"
+    "     'desired_capacity': double [kWh]\\n"
+    "     'desired_voltage': double [V]\\n"
+    "     'mass': double [kg] \\n"
+    "     'surface_area': double [m^2],\\n"
+    "     'module_capacity': double [kWh], optional\\n"
+    "     'module_surface_area': double [m^2], optional\\n"
+    "Output: key-value pairs added to var_table, mass, surface_area, and nominal_energy will be modified\\n"
+    "     'original_capacity': kWh [kWh]\\n";
+
+
+SSCEXPORT bool Size_battery(ssc_data_t data);
+
 static const char* size_batterystateful_doc =
     "Resizes the battery for a battery_stateful data object \\n\\n"
     "Input: var_table with key-value pairs\\n"

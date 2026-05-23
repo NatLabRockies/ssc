@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -77,6 +77,8 @@ public:
 	virtual bool read_line( std::vector<double> &values ) = 0;
 	virtual size_t nrecords() = 0;
 
+    virtual void rewind();
+
 	
 	std::string error() { return m_errorMsg; }
 
@@ -97,24 +99,30 @@ protected:
 class windfile : public winddata_provider
 {
 private:
-  	std::ifstream m_ifs;
-	std::string m_buf;
-	std::string m_file;
-	size_t m_nrec;
+    std::string m_file;
+    size_t      m_nrec;
+    size_t      m_index;
+
+    // All data rows loaded into memory during open() so that rewind()
+    // can replay the same year for multi-year (lifetime) simulations
+    // without re-reading the file, analogous to the weatherfile class.
+    std::vector<std::vector<double>> m_cache;
 
 public:
-	windfile();
-	explicit windfile( const std::string &file );
-	~windfile() override;
+    windfile();
+    explicit windfile(const std::string& file);
+    ~windfile() override = default;
 
-	bool ok();
-	std::string filename();
-	void close();
-	bool open( const std::string &file );
-	
-	bool read_line(std::vector<double> &values) override;
-	size_t nrecords() override;
-	
+    bool ok() const;
+    std::string filename() const;
+    void close();
+    bool open(const std::string& file);
+
+    /// Reset the read cursor to the first data record.
+    void rewind() override { m_index = 0; }
+
+    bool   read_line(std::vector<double>& values) override;
+    size_t nrecords() override;
 };
 
 #endif

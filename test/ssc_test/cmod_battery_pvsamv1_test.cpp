@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -955,7 +955,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
         EXPECT_NEAR(batt_stats.peakKwCharge, peakKwCharge, m_error_tolerance_lo);
         EXPECT_NEAR(batt_stats.peakKwDischarge, peakKwDischarge, m_error_tolerance_lo);
         EXPECT_NEAR(batt_stats.peakCycles, peakCycles, m_error_tolerance_lo);
-        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
 
         auto batt_q_rel = data_vtab->as_vector_ssc_number_t("batt_capacity_percent");
         auto batt_cyc_avg = data_vtab->as_vector_ssc_number_t("batt_DOD_cycle_average");
@@ -1246,10 +1246,10 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
         auto batt_power = data_vtab->as_vector_ssc_number_t("batt_power");
         daily_battery_stats batt_stats = daily_battery_stats(batt_power);
 
-        EXPECT_NEAR(batt_stats.peakKwCharge, peakKwCharge, 0.5); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.peakKwCharge, peakKwCharge, 0.5); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
         EXPECT_NEAR(batt_stats.peakKwDischarge, peakKwDischarge, m_error_tolerance_lo);
-        EXPECT_NEAR(batt_stats.peakCycles, peakCycles, 1); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
-        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.peakCycles, peakCycles, 1); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
+        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
 
         // No grid export for this configuration
         auto monthly_to_grid = data_vtab->as_vector_ssc_number_t("monthly_batt_to_grid");

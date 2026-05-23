@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // for adjustment factors
 #include "common.h"
 
+#include "cmod_geothermal_costs.h"
 
 
 static var_info _cm_vtab_geothermal[] = {
@@ -264,21 +265,41 @@ class cm_geothermal : public compute_module
 {
 private:
 public:
-	
+
+    bool m_is_include_geo_costs = false;
+
 	cm_geothermal()
 	{
 		add_var_info( _cm_vtab_geothermal );
 
-        //add_var_info(_cm_);
+        if( m_is_include_geo_costs ) {
+            add_var_info(_cm_vtab_geothermal_costs);
+        }
 
 		// performance adjustment factors
 		add_var_info(vtab_adjustment_factors);
 //		add_var_info(vtab_technology_outputs);
 	}
 
-	void exec( )
-	{
-		int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
+    void exec()
+    {
+        
+        if( m_is_include_geo_costs ) {
+        
+            // Update geothermal costs by running the geothermal costs cmod
+            std::string geo_cost_module_name = "geothermal_costs";
+            ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
+            var_table* geo_cost_vtab = this->get_var_table();
+        
+            ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
+        
+            ssc_module_exec(geo_cost_module, geo_cmod_inputs);
+            // *************************************************************
+            // *************************************************************
+        
+        }
+
+        int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
 
 		// set the geothermal model inputs -------------------------------------
 		SGeothermal_Inputs geo_inputs;

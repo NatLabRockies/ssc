@@ -268,6 +268,9 @@ public:
 	cm_geothermal()
 	{
 		add_var_info( _cm_vtab_geothermal );
+
+        //add_var_info(_cm_);
+
 		// performance adjustment factors
 		add_var_info(vtab_adjustment_factors);
 //		add_var_info(vtab_technology_outputs);

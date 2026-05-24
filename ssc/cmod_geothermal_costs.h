@@ -36,19 +36,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sscapi.h"
 
 
-static var_info _cm_vtab_geothermal_costs[] = {
+static var_info _cm_vtab_geothermal_costs_unique[] = {
     /*   VARTYPE        DATATYPE       NAME                                  LABEL                                                       UNITS     META    GROUP        REQUIRED_IF                 CONSTRAINTS                     UI_HINTS */
 
     { SSC_INPUT,      SSC_NUMBER,     "conversion_type",                    "Conversion Type",                                           "",        "",     "GeoHourly", "*",                        "INTEGER",                       ""   },
     { SSC_INPUT,      SSC_NUMBER,     "ppi_base_year",                      "PPI Base Year",                                             "",        "",     "GeoHourly", "?=19",                     "",                              ""   },
 
     // Binary Plant Type Inputs:
-    { SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MW",      "",     "GeoHourly", "*",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kW",      "",     "GeoHourly", "*",                        "",                              ""   },
+    //{ SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MW",      "",     "GeoHourly", "*",                        "",                              ""   },
+    //{ SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kW",      "",     "GeoHourly", "*",                        "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "design_temp",                        "Power block design temperature",                            "C",       "",     "GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "dt_prod_well",                       "Temperature loss in production well",                       "C",       "",     "GeoHourly", "*",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
+    //{ SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
 
     // Flash Plant Type Inputs:
     { SSC_INPUT,      SSC_NUMBER,     "qRejectTotal",                       "Total Rejected Heat",                                       "btu/h",   "",     "GeoHourly", "conversion_type=1",       "",                              ""   },
@@ -142,6 +142,18 @@ static var_info _cm_vtab_geothermal_costs[] = {
     { SSC_OUTPUT,     SSC_NUMBER,     "prod_total_cost",                    "Total production well system cost",                         "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_well_cost",                      "Injection cost per well",                                   "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_total_cost",                     "Total injection well system cost",                          "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+
+    var_info_invalid
+};
+
+static var_info _cm_vtab_geothermal_costs_upstream[] = {
+    /*   VARTYPE        DATATYPE       NAME                                  LABEL                                                       UNITS     META    GROUP        REQUIRED_IF                 CONSTRAINTS                     UI_HINTS */
+
+    // Binary Plant Type Inputs:
+    { SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MW",      "",     "GeoHourly", "*",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kW",      "",     "GeoHourly", "*",                        "",                              ""   },
+
+    { SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
 
     var_info_invalid
 };

@@ -47,7 +47,7 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "ui_calculations_only",               "If = 1, only run UI calculations",             "",               "",             "GeoHourly",        "*",                        "",                "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",          "Geothermal lifetime simulation",              "0/1",     "0=SingleYearRepeated,1=RunEveryYear",     "GeoHourly",             "?=0",           "BOOLEAN",                        "" },
     { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_prod_well_ratio",          "Ratio of injection wells to production wells",              "",     "",     "GeoHourly",             "",           "",                        "" },
-        { SSC_INPUT,        SSC_NUMBER,      "drilling_success_rate",          "Drilling success rate",              "%",     "",     "GeoHourly",             "",           "",                        "" },
+    { SSC_INPUT,        SSC_NUMBER,      "drilling_success_rate",          "Drilling success rate",              "%",     "",     "GeoHourly",             "",           "",                        "" },
     { SSC_INPUT,        SSC_NUMBER,      "stim_success_rate",          "Stimulation success rate",              "%",     "",     "GeoHourly",             "",           "",                        "" },
     { SSC_INPUT,        SSC_NUMBER,      "failed_prod_flow_ratio",          "Failed production well flow ratio",              "",     "",     "GeoHourly",             "",           "",                        "" },
     { SSC_INPUT,        SSC_NUMBER,      "stimulation_type",          "Which wells are stimulated",              "0/1/2/3",     "0=Injection,1=Production,2=Both,3=Neither",     "GeoHourly",             "?=3",           "",                        "" },
@@ -266,14 +266,14 @@ class cm_geothermal : public compute_module
 private:
 public:
 
-    bool m_is_include_geo_costs = false;
+    bool m_is_include_geo_costs = true;
 
 	cm_geothermal()
 	{
 		add_var_info( _cm_vtab_geothermal );
 
         if( m_is_include_geo_costs ) {
-            add_var_info(_cm_vtab_geothermal_costs);
+            add_var_info(_cm_vtab_geothermal_costs_unique);
         }
 
 		// performance adjustment factors
@@ -283,22 +283,6 @@ public:
 
     void exec()
     {
-        
-        if( m_is_include_geo_costs ) {
-        
-            // Update geothermal costs by running the geothermal costs cmod
-            std::string geo_cost_module_name = "geothermal_costs";
-            ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
-            var_table* geo_cost_vtab = this->get_var_table();
-        
-            ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
-        
-            ssc_module_exec(geo_cost_module, geo_cmod_inputs);
-            // *************************************************************
-            // *************************************************************
-        
-        }
-
         int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
 
 		// set the geothermal model inputs -------------------------------------
@@ -435,6 +419,31 @@ public:
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
         assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
 
+        //Assigning 2nd Law efficiency:
+            //double eff_secondlaw = var_data(static_cast<ssc_number_t>(geo_outputs.eff_secondlaw));
+        double eff_secondlaw = geo_outputs.eff_secondlaw;
+        assign("eff_secondlaw", (ssc_number_t)eff_secondlaw);
+
+
+        //***********************************************************
+        // Call cost models
+
+        if( m_is_include_geo_costs ) {
+
+            // Update geothermal costs by running the geothermal costs cmod
+            std::string geo_cost_module_name = "geothermal_costs";
+            ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
+            var_table* geo_cost_vtab = this->get_var_table();
+
+            ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
+
+            ssc_module_exec(geo_cost_module, geo_cmod_inputs);
+            // *************************************************************
+            // *************************************************************
+
+        }
+        // ***************************************************************
+
 		if (iControl == 1) {
 			
 		// just doing calculations for the UI, not running the model
@@ -478,7 +487,6 @@ public:
 			pbInputs.demand_var = pbInputs.m_dot_htf;
 			pbInputs.standby_control = 1;
 			pbInputs.rel_humidity = 0.7;
-			// pbInputs.f_restart = 1.0;		// twn 12.6.12 - f_restart no longer used in Type 224
 
 			// hybrid dispatch schedule, which will set the value for pbInputs.TOU
 			const char *sched = as_string("hybrid_dispatch_schedule");
@@ -580,11 +588,7 @@ public:
 				throw exec_error("geothermal", "error from geothermal hourly model: " + err_msg + ".");
 
 
-			//Assigning 2nd Law efficiency:
-			//double eff_secondlaw = var_data(static_cast<ssc_number_t>(geo_outputs.eff_secondlaw));
-			double eff_secondlaw = geo_outputs.eff_secondlaw;
-			assign("eff_secondlaw", (ssc_number_t)eff_secondlaw);
-
+			
 			
 
 			//Assign HP & LP Flash Pressures: 

@@ -246,7 +246,8 @@ public:
 
 	cm_geothermal_costs() {
 
-		add_var_info(_cm_vtab_geothermal_costs);
+		add_var_info(_cm_vtab_geothermal_costs_unique);
+        add_var_info(_cm_vtab_geothermal_costs_upstream);
 	}
 
 

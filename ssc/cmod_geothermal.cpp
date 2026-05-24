@@ -44,7 +44,9 @@ static var_info _cm_vtab_geothermal[] = {
     //   VARTYPE           DATATYPE         NAME                                   LABEL                                           UNITS             META                        GROUP           REQUIRED_IF                  CONSTRAINTS        UI_HINTS
 
     // control input                                                                                                                                               
-    { SSC_INPUT,        SSC_NUMBER,      "ui_calculations_only",               "If = 1, only run UI calculations",             "",               "",                         "GeoHourly",     "*",                         "",                "" },
+    //{ SSC_INPUT,        SSC_NUMBER,      "ui_calculations_only",               "If = 1, only run UI calculations",             "",               "",                         "GeoHourly",     "*",                         "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "sim_type",                           "1 (default): timeseries, 2: design only",      "",               "",                         "System Control",  "?=1",                    "",      "SIMULATION_PARAMETER"},
+
     { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",         "Geothermal lifetime simulation",               "0/1",            "0=SingleYearRepeated,1=RunEveryYear", "GeoHourly",     "?=0",                      "BOOLEAN",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_prod_well_ratio",  "Ratio of injection wells to production wells", "",               "",                         "GeoHourly",     "",                          "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "drilling_success_rate",              "Drilling success rate",                        "%",              "",                         "GeoHourly",     "",                          "",                "" },
@@ -55,8 +57,8 @@ static var_info _cm_vtab_geothermal[] = {
     //{ SSC_INOUT,        SSC_NUMBER,      "baseline_cost",          "Baseline cost",              "$/kW",     "",     "GeoHourly",             "?=0",           "",                        "" },
 
     // climate and resource inputs                                                                                                                                  
-    { SSC_INPUT,        SSC_STRING,      "file_name",                          "local weather file path",                      "",               "",                         "GeoHourly",     "ui_calculations_only=0",    "LOCAL_FILE",      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "resource_potential",                 "Resource Potential",                           "MW",             "",                         "GeoHourly",     "ui_calculations_only=0",    "",                "" },
+    { SSC_INPUT,        SSC_STRING,      "file_name",                          "local weather file path",                      "",               "",                         "GeoHourly",     "sim_type=1",                "LOCAL_FILE",      "" },
+    { SSC_INPUT,        SSC_NUMBER,      "resource_potential",                 "Resource Potential",                           "MW",             "",                         "GeoHourly",     "sim_type=1",                "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "resource_type",                      "Type of Resource",                             "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "resource_temp",                      "Resource Temperature",                         "C",              "",                         "GeoHourly",     "*",                         "MAX=373",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "resource_depth",                     "Resource Depth",                               "m",              "",                         "GeoHourly",     "*",                         "",                "" },
@@ -71,7 +73,7 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "nameplate",                          "Desired plant output",                         "kW",             "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "analysis_type",                      "Analysis Type",                                "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "num_wells",                          "Number of Wells",                              "",               "",                         "GeoHourly",     "*",                         "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem",                    "Number of Wells GETEM calc'd",                 "",               "",                         "GeoHourly",     "ui_calculations_only=0",    "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem",                    "Number of Wells GETEM calc'd",                 "",               "",                         "GeoHourly",     "sim_type=1",                "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "conversion_type",                    "Conversion Type",                              "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "plant_efficiency_input",             "Plant efficiency",                             "",               "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "conversion_subtype",                 "Conversion Subtype",                           "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
@@ -129,37 +131,37 @@ static var_info _cm_vtab_geothermal[] = {
 
     // power block parameters needed but not on power block SAM input page                                                                                         
   //{ SSC_INPUT,        SSC_NUMBER,      "tech_type",                          "Technology type ID",                                  "(1-4)",   "",             "GeoHourly",        "*",                         "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_htf_cold_ref",                     "Outlet design temp",                                  "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_htf_hot_ref",                      "Inlet design temp",                                   "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "HTF",                                "Heat trans fluid type ID",                            "(1-27)",  "",             "GeoHourly",        "ui_calculations_only=0",    "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "T_htf_cold_ref",                     "Outlet design temp",                                  "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "T_htf_hot_ref",                      "Inlet design temp",                                   "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "HTF",                                "Heat trans fluid type ID",                            "(1-27)",  "",             "GeoHourly",        "sim_type=1",                "INTEGER",         "" },
 
     // power block input parameters                                                                                                                                   
   //{ SSC_INPUT,        SSC_NUMBER,      "P_ref",                              "Design Output",                                       "MW",      "",             "GeoHourly",        "*",                         "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "P_boil",                             "Design Boiler Pressure",                              "bar",     "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "eta_ref",                            "Desgin conversion efficiency",                        "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "q_sby_frac",                         "% thermal power for standby mode",                    "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "startup_frac",                       "% thermal power for startup",                         "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "startup_time",                       "Hours to start power block",                          "hours",   "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "pb_bd_frac",                         "Blowdown steam fraction",                             "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_amb_des",                          "Design ambient temperature",                          "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "CT",                                 "Condenser type (Wet, Dry,Hybrid)",                    "(1-3)",   "",             "GeoHourly",        "ui_calculations_only=0",    "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "dT_cw_ref",                          "Design condenser cooling water inlet/outlet T diff",  "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_approach",                         "Approach Temperature",                                "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_ITD_des",                          "Design ITD for dry system",                           "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "P_cond_ratio",                       "Condenser pressure ratio",                            "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "P_cond_min",                         "Minimum condenser pressure",                          "in Hg",   "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hr_pl_nlev",                         "# part-load increments",                              "(0-9)",   "",             "GeoHourly",        "ui_calculations_only=0",    "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl1",                            "HC Control 1",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl2",                            "HC Control 2",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl3",                            "HC Control 3",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl4",                            "HC Control 4",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl5",                            "HC Control 5",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl6",                            "HC Control 6",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl7",                            "HC Control 7",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl8",                            "HC Control 8",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl9",                            "HC Control 9",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "P_boil",                             "Design Boiler Pressure",                              "bar",     "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "eta_ref",                            "Desgin conversion efficiency",                        "%",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "q_sby_frac",                         "% thermal power for standby mode",                    "%",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "startup_frac",                       "% thermal power for startup",                         "%",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "startup_time",                       "Hours to start power block",                          "hours",   "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "pb_bd_frac",                         "Blowdown steam fraction",                             "%",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "T_amb_des",                          "Design ambient temperature",                          "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "CT",                                 "Condenser type (Wet, Dry,Hybrid)",                    "(1-3)",   "",             "GeoHourly",        "sim_type=1",                "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "dT_cw_ref",                          "Design condenser cooling water inlet/outlet T diff",  "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "T_approach",                         "Approach Temperature",                                "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "T_ITD_des",                          "Design ITD for dry system",                           "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "P_cond_ratio",                       "Condenser pressure ratio",                            "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "P_cond_min",                         "Minimum condenser pressure",                          "in Hg",   "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hr_pl_nlev",                         "# part-load increments",                              "(0-9)",   "",             "GeoHourly",        "sim_type=1",                "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl1",                            "HC Control 1",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl2",                            "HC Control 2",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl3",                            "HC Control 3",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl4",                            "HC Control 4",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl5",                            "HC Control 5",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl6",                            "HC Control 6",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl7",                            "HC Control 7",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl8",                            "HC Control 8",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl9",                            "HC Control 9",                                        "",        "",             "GeoHourly",        "sim_type=1",                "",                "" },
     // dispatch
-    { SSC_INPUT,        SSC_STRING,      "hybrid_dispatch_schedule",           "Daily dispatch schedule",                           "",        "",             "GeoHourly",        "ui_calculations_only=0",    "TOUSCHED",        "" },
+    { SSC_INPUT,        SSC_STRING,      "hybrid_dispatch_schedule",           "Daily dispatch schedule",                           "",        "",             "GeoHourly",        "sim_type=1",                  "TOUSCHED",        "" },
 
     { SSC_INPUT,        SSC_NUMBER,      "allow_reservoir_replacements",       "Allow reservoir replacements",                      "",        "",             "GeoHourly",        "?=0",                      "",                "" },
 
@@ -230,23 +232,23 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_ARRAY,       "gen",                                "System power generated",                             "kW",      "",             "GeoHourly",        "",                         "",                "" },
     { SSC_OUTPUT,       SSC_MATRIX,      "annual_energy_distribution_time",    "Annual energy production as function of Time",       "",        "",             "Heatmaps",         "",                         "",                "" },
 
-    { SSC_OUTPUT,       SSC_ARRAY,       "system_lifetime_recapitalize",       "Resource replacement? (1=yes)",                      "",        "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-
-    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_resource_temperature",       "Monthly avg resource temperature",                   "C",       "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_power",                      "Monthly power",                                      "kW",      "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "system_lifetime_recapitalize",       "Resource replacement? (1=yes)",                      "",        "",             "GeoHourly",        "sim_type=1",               "",                "" },
+                                                                                                                                                                                                                
+    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_resource_temperature",       "Monthly avg resource temperature",                   "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_power",                      "Monthly power",                                      "kW",      "",             "GeoHourly",        "sim_type=1",               "",                "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy",                     "Monthly AC energy in Year 1",                        "kWh/mo",  "",             "GeoHourly",        "",                         "LENGTH=12",       "" },
-    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy_lifetime",            "Monthly energy before performance adjustments",      "kWh",     "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-
-    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_resource_temperature",      "Resource temperature",                               "C",       "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_test_values",               "Test output values in each time step",               "",        "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-
-    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_pressure",                  "Atmospheric pressure",                               "atm",     "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_dry_bulb",                  "Dry bulb temperature",                               "C",       "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_wet_bulb",                  "Wet bulb temperature",                               "C",       "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-
-    { SSC_OUTPUT,       SSC_NUMBER,      "lifetime_output",                    "Lifetime output",                                    "kWh",     "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "first_year_output",                  "First year output",                                  "kWh",     "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",                      "Annual AC energy in Year 1",                         "kWh",     "",             "GeoHourly",        "ui_calculations_only=0",     "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "monthly_energy_lifetime",            "Monthly energy before performance adjustments",      "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
+                                                                                                                                                                                                                
+    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_resource_temperature",      "Resource temperature",                               "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_test_values",               "Test output values in each time step",               "",        "",             "GeoHourly",        "sim_type=1",               "",                "" },
+                                                                                                                                                                                                                
+    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_pressure",                  "Atmospheric pressure",                               "atm",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_dry_bulb",                  "Dry bulb temperature",                               "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "timestep_wet_bulb",                  "Wet bulb temperature",                               "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+                                                                                                                                                                                                                
+    { SSC_OUTPUT,       SSC_NUMBER,      "lifetime_output",                    "Lifetime output",                                    "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "first_year_output",                  "First year output",                                  "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",                      "Annual AC energy in Year 1",                         "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
 
     { SSC_OUTPUT,       SSC_NUMBER,      "capacity_factor",                    "Capacity factor",                                    "",        "",             "",                 "*",                         "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "kwh_per_kw",                          "First year kWh/kW",                                 "",        "",             "",                 "*",                         "",                "" },
@@ -283,7 +285,12 @@ public:
 
     void exec()
     {
-        int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
+        // Replacing 'ui_calculations_only' with 'sim_typ'
+        //"sim_type", "1 (default): timeseries, 2: design only",
+        int sim_type = as_integer("sim_type");  // "1 (default): timeseries, 2: design only",
+
+        // so if ui_calculations_only = 0 -> sim_type = 1; if ui_calculations_only = 1 -> sim_type = 2
+        //int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
 
 		// set the geothermal model inputs -------------------------------------
 		SGeothermal_Inputs geo_inputs;
@@ -612,7 +619,7 @@ public:
         assign("flash_count", (ssc_number_t)flash_count);
 
 
-		if (iControl == 1) {
+		if (sim_type == 2) {
 			
             return;			
 			

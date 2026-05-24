@@ -200,7 +200,7 @@ struct SGeothermal_Outputs
 	double v_stage_1;					//Vacuum Stage 1 Pump Power
 	double v_stage_2;
 	double v_stage_3;
-	double GF_flowrate;					//GF Flow Rate Total
+	double GF_flowrate;					//[lb/hr] GF Flow Rate Total
 	double qRejectByStage_1;			//Used in NCG Condenser Cost Calculation 
 	double qRejectByStage_2;
 	double qRejectByStage_3;

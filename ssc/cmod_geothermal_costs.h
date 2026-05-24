@@ -73,7 +73,6 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     // name change to match assign statement
  // { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_geotherm.cost.pump_depth","Pump depth",                 "ft",      "",     "GeoHourly", "",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "num_wells_getem",                    "Number of production wells required",                       "",        "",     "GeoHourly", "",                        "",                              "?=3.667" },
     { SSC_INPUT,      SSC_NUMBER,     "pump_size_hp",                       "Production pump power",                                     "hp",      "",     "GeoHourly", "",                        "",                              "?733.646" },
     { SSC_INPUT,      SSC_NUMBER,     "stimulation_type",                   "Which wells are stimulated",                                "0/1/2/3", "",     "GeoHourly", "",                        "",                              "?=0" },
 
@@ -150,6 +149,7 @@ static var_info _cm_vtab_geothermal_costs_upstream[] = {
     { SSC_INPUT,      SSC_NUMBER,     "flash_count",                        "Flash Count",                                                "(1 -2)",  "",     "GeoHourly", "conversion_type=1",       "",                              ""   },
 
     // Drilling
+    { SSC_INPUT,      SSC_NUMBER,     "num_wells_getem",                    "Number of production wells required",                       "",        "",     "GeoHourly", "",                        "",                              "?=3.667" },
     { SSC_INPUT,      SSC_NUMBER,     "num_wells_getem_prod_drilled",       "Number of drilled production wells",                        "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "num_wells_getem_prod_failed",        "Number of failed production wells",                         "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "",                        "",                              ""   },    { SSC_INPUT,      SSC_NUMBER,     "num_wells_getem_inj_drilled",        "Number of drilled injection wells",                         "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "num_wells_getem_inj_drilled",        "Number of drilled injection wells",                         "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "",                        "",                              ""   },

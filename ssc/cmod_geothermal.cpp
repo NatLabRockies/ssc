@@ -73,7 +73,6 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "nameplate",                          "Desired plant output",                         "kW",             "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "analysis_type",                      "Analysis Type",                                "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "num_wells",                          "Number of Wells",                              "",               "",                         "GeoHourly",     "*",                         "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem",                    "Number of Wells GETEM calc'd",                 "",               "",                         "GeoHourly",     "sim_type=1",                "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "conversion_type",                    "Conversion Type",                              "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "plant_efficiency_input",             "Plant efficiency",                             "",               "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "conversion_subtype",                 "Conversion Subtype",                           "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
@@ -173,6 +172,7 @@ static var_info _cm_vtab_geothermal[] = {
 
     // Design outputs should always be defined
     // This first batch of outputs is for calculating UI values                                                                                                     
+    { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem",                    "Number of Wells GETEM calc'd",                      "",        "",              "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_output",             "Number of production wells required",               "",        "",              "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_inj",                "Number of required injection wells calculated by GETEM", "",    "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_prod_drilled",       "Number of production wells drilled",                 "",        "",             "GeoHourly",        "*",      "",                "" },
@@ -412,16 +412,7 @@ public:
 
         // we need to create the SPowerBlockInputs & SPowerBlockParameters and set the inputs
 
-        // Set the power block input values that won't change hourly in geothermal model
-        SPowerBlockInputs pbInputs;
-        pbInputs.mode = 2;
-        if( as_integer("analysis_type") == 0 ) // used number of wells as calculated by GETEM
-            pbInputs.m_dot_htf = as_double("well_flow_rate") * 3600.0 * as_double("num_wells_getem"); // (kg/sec) * (sec/hour) * (# wells) = total flow (kg/hour)
-        else // use number of wells input by user
-            pbInputs.m_dot_htf = as_double("well_flow_rate") * 3600.0 * as_double("num_wells"); // (kg/sec) * (sec/hour) * (# wells) = total flow (kg/hour)
-        pbInputs.demand_var = pbInputs.m_dot_htf;
-        pbInputs.standby_control = 1;
-        pbInputs.rel_humidity = 0.7;
+        
 
         // hybrid dispatch schedule, which will set the value for pbInputs.TOU
         const char* sched = as_string("hybrid_dispatch_schedule");
@@ -490,6 +481,21 @@ public:
 		if (FillOutputsForUI(err_msg, geo_inputs, geo_outputs) != 0)
 			throw general_error("input error: " + err_msg + ".");
 
+
+        // Assign total GF Flow Rate
+        double GF_flowrate = geo_outputs.GF_flowrate;       //[lb/hr]
+        assign("GF_flowrate", (ssc_number_t)GF_flowrate);
+
+        // Update SAM powerblock inputs with brine flow rate
+        // Set the power block input values that won't change hourly in geothermal model
+        SPowerBlockInputs pbInputs;
+        pbInputs.mode = 2;
+        pbInputs.m_dot_htf = GF_flowrate * 3600.0 / 2.20462;        //[kg/s] converted from [lb/hr]
+        pbInputs.demand_var = pbInputs.m_dot_htf;
+        pbInputs.standby_control = 1;
+        pbInputs.rel_humidity = 0.7;
+
+        assign("num_wells_getem", var_data((ssc_number_t)geo_outputs.md_NumberOfWells));
         assign("num_wells_getem_output", var_data((ssc_number_t)geo_outputs.md_NumberOfWells));
         assign("num_wells_getem_prod_drilled", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsProdDrilled));
         assign("num_wells_getem_prod_failed", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsProdFailed));
@@ -530,6 +536,10 @@ public:
         }
         // ***************************************************************
 
+        
+
+
+
         assign("plant_brine_eff", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
         assign("pump_watthr_per_lb", var_data((ssc_number_t)geo_outputs.md_PumpWorkWattHrPerLb));
         assign("pumpwork_prod", var_data((ssc_number_t)geo_outputs.md_pumpwork_prod));
@@ -560,9 +570,7 @@ public:
         double v_stage_3 = geo_outputs.v_stage_3;
         assign("v_stage_3", (ssc_number_t)v_stage_3);
 
-        //Assign total GF Flow Rate: 
-        double GF_flowrate = geo_outputs.GF_flowrate;
-        assign("GF_flowrate", (ssc_number_t)GF_flowrate);
+        
 
         //Assigning Rejected Total Heat from Flash Plant:
         double qRejectTotal = geo_outputs.qRejectedTotal;	//total heat rejected 

@@ -130,7 +130,7 @@ static var_info _cm_vtab_geothermal[] = {
     // power block parameters needed but not on power block SAM input page                                                                                         
   //{ SSC_INPUT,        SSC_NUMBER,      "tech_type",                          "Technology type ID",                                  "(1-4)",   "",             "GeoHourly",        "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "T_htf_cold_ref",                     "Outlet design temp",                                  "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_htf_hot_ref",                      "Inlet design temp",                                   "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
+    //{ SSC_INPUT,        SSC_NUMBER,      "T_htf_hot_ref",                      "Inlet design temp",                                   "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "HTF",                                "Heat trans fluid type ID",                            "(1-27)",  "",             "GeoHourly",        "sim_type=1",                "INTEGER",         "" },
 
     // power block input parameters                                                                                                                                   
@@ -294,7 +294,10 @@ public:
         // so if ui_calculations_only = 0 -> sim_type = 1; if ui_calculations_only = 1 -> sim_type = 2
         //int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
 
+        // --------------------------------------------------------------
         // Get main system paramters
+        double resource_temperature = as_double("resource_temp");    //[C]
+
         int analysis_type = as_integer("analysis_type");
         int conversion_type = as_integer("conversion_type");
         int resource_type = as_integer("resource_type");
@@ -318,6 +321,9 @@ public:
         if( resource_type != 1 && (reservoir_pressure_change_type == 1 || reservoir_pressure_change_type == 3) ) {
             reservoir_pressure_change_type = 0;
         }
+        // --------------------------------------------------------------
+        // --------------------------------------------------------------
+
 
 		// set the geothermal model inputs -------------------------------------
 		SGeothermal_Inputs geo_inputs;
@@ -382,7 +388,7 @@ public:
 
 		//resource characterization
         // Set design temp equal to resource temperature
-        double design_temp = as_double("resource_temp");    //[C]
+        double design_temp = resource_temperature;    //[C]
         assign("design_temp", ssc_number_t(design_temp));
 
 		if ( resource_type == 0 )
@@ -391,7 +397,7 @@ public:
 			geo_inputs.me_rt = EGS;
 
 		geo_inputs.md_ResourceDepthM = as_double("resource_depth");
-		geo_inputs.md_TemperatureResourceC = as_double("resource_temp");
+		geo_inputs.md_TemperatureResourceC = resource_temperature;
 		geo_inputs.me_dc = TEMPERATURE;
 		geo_inputs.md_TemperaturePlantDesignC = design_temp;
 		
@@ -468,7 +474,7 @@ public:
         // the geothermal model is only valid with tech type = 4.  if it's set to any other value, use it as a flag here
         // bool bFlag = (as_integer("tech_type") == 4);
         pbp.T_htf_cold_ref = as_double("T_htf_cold_ref");	// design outlet fluid temp
-        pbp.T_htf_hot_ref = as_double("T_htf_hot_ref");		// design inlet fluid temp
+        pbp.T_htf_hot_ref = resource_temperature;           // [C] design inlet fluid temp
         pbp.HTF = as_integer("HTF");						// heat transfer fluid type - set in interface, but no user input
 
         // power block parameters that ARE on the SAM power block input page

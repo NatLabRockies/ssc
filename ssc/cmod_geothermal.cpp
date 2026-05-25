@@ -224,7 +224,8 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "flash_count",                        "Flash Count",                                        "(1 -2)",  "",             "GeoHourly",        "*",      "",                "" },
 
     // pump work is an output for both the UI call and the model run                                                                                                
-    { SSC_OUTPUT,       SSC_NUMBER,      "pump_work",                          "Pump work calculated by GETEM",                      "MW",      "",             "GeoHourly",        "*",      "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "pump_work",                          "Pump work calculated by GETEM",                      "MWe",      "",             "GeoHourly",        "*",      "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "net_plant_output",                   "Net plant power to grid; net sales in GETEM",        "MWe",      "",             "GeoHourly",        "*",      "",                "" },
 
     // The array outputs are only meaningful when the model is run (not UI calculations)                                                                             
     // User can specify whether the analysis should be done hourly or monthly.  With monthly analysis, there are only monthly results.                                
@@ -539,6 +540,7 @@ public:
 
         // this assignment happens in UI calculations and model run
         assign("pump_work", var_data((ssc_number_t)geo_outputs.md_PumpWorkKW / 1000)); // kW must be converted to MW
+        assign("net_plant_output", ssc_number_t(geo_outputs.md_GrossPlantOutputMW - (geo_outputs.md_PumpWorkKW / 1000.0))); //[MWe]
 
         // W to hp = divide by 745.7; kg to lb = multiply by 2.20462;
         // hr to s = divide by 3600, so kg/s to lb/hr is multiply by 2.20462 and divide by (1/3600) which is multiply by 3600, so total conversion factor is 2.20462 * 3600 = 7936.64

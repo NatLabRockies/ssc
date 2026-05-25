@@ -186,9 +186,9 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "inj_pump_hp",                        "Injection Pump horsepower",                          "hp",      "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "pump_size_hp",                       "Production Pump horsepower",                         "hp",      "",             "GeoHourly",        "*",      "",                "" },
 
-
-    { SSC_OUTPUT,       SSC_NUMBER,      "gross_output",                       "Gross output from GETEM",                            "MW",      "",             "GeoHourly",        "*",      "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "gross_cost_output",                  "Gross output from GETEM for cost",                   "",        "",             "GeoHourly",        "*",      "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "gross_output",                       "Gross output from GETEM",                            "MWe",     "",             "GeoHourly",        "*",      "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "gross_cost_output",                  "Gross output from GETEM for cost",                   "kWe",     "",             "GeoHourly",        "*",      "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "system_capacity",                    "System capacity",                                    "kWe",     "",             "GeoHourly",        "*",      "",                "" },
 
     { SSC_OUTPUT,       SSC_NUMBER,      "pump_depth_ft",                      "Pump depth calculated by GETEM",                     "ft",      "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "pump_hp",                            "Pump hp calculated by GETEM",                        "hp",      "",             "GeoHourly",        "*",      "",                "" },
@@ -543,6 +543,7 @@ public:
 
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
         assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+        assign("system_capacity", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
 
         // this assignment happens in UI calculations and model run
         assign("pump_work", var_data((ssc_number_t)geo_outputs.md_PumpWorkKW / 1000)); // kW must be converted to MW

@@ -227,8 +227,8 @@ struct SGeothermal_Outputs
 	double md_FlashBrineEffectiveness;
     double md_BrineEff;
     double md_PumpWorkWattHrPerLb;
-    double md_pumpwork_prod;
-    double md_pumpwork_inj;
+    double md_pumpwork_prod;        //[W-hr/lb]
+    double md_pumpwork_inj;         //[W-hr/lb]
     double md_InjPump_hp;
 
 	bool mb_FlashPressuresCalculated;

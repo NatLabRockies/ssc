@@ -46,7 +46,6 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     //{ SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MW",      "",     "GeoHourly", "*",                        "",                              ""   },
     //{ SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kW",      "",     "GeoHourly", "*",                        "",                              ""   },
 
-    { SSC_INPUT,      SSC_NUMBER,     "design_temp",                        "Power block design temperature",                            "C",       "",     "GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "dt_prod_well",                       "Temperature loss in production well",                       "C",       "",     "GeoHourly", "*",                        "",                              ""   },
     //{ SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
 
@@ -73,7 +72,6 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     // name change to match assign statement
  // { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_geotherm.cost.pump_depth","Pump depth",                 "ft",      "",     "GeoHourly", "",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "pump_size_hp",                       "Production pump power",                                     "hp",      "",     "GeoHourly", "",                        "",                              "?733.646" },
     { SSC_INPUT,      SSC_NUMBER,     "stimulation_type",                   "Which wells are stimulated",                                "0/1/2/3", "",     "GeoHourly", "",                        "",                              "?=0" },
 
     // Outputs
@@ -117,6 +115,8 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 static var_info _cm_vtab_geothermal_costs_upstream[] = {
     /*   VARTYPE        DATATYPE       NAME                                  LABEL                                                       UNITS     META    GROUP        REQUIRED_IF                 CONSTRAINTS                     UI_HINTS */
 
+    { SSC_INPUT,      SSC_NUMBER,     "design_temp",                        "Power block design temperature",                            "C",       "",     "GeoHourly", "*",                        "",                              ""   },
+
     // Binary Plant Type Inputs:
     { SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MW",      "",     "GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kW",      "",     "GeoHourly", "*",                        "",                              ""   },
@@ -156,6 +156,7 @@ static var_info _cm_vtab_geothermal_costs_upstream[] = {
 
     { SSC_INPUT,      SSC_NUMBER,     "pump_depth_ft",                      "Pump depth",                                                "ft",      "",     "GeoHourly", "",                        "",                              "?=1123120" },
     { SSC_INPUT,      SSC_NUMBER,     "inj_pump_hp",                        "Injection pump power",                                      "hp",      "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "pump_size_hp",                       "Production pump power",                                     "hp",      "",     "GeoHourly", "",                        "",                              "?733.646" },
 
 
     var_info_invalid

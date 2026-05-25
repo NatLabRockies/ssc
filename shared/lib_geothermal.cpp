@@ -708,7 +708,7 @@ double CGeothermalAnalyzer::GetPumpWorkWattHrPerLb(void)
         dInjectionPumpPower = geothermal::pumpWorkInWattHr(1, GetInjectionPumpWorkft(), mo_geo_in.md_GFPumpEfficiency, ms_ErrorString) * dFractionOfInletGFInjected; // ft-lbs/hr
 	}
 
-    double dProductionPumpPower = geothermal::pumpWorkInWattHr(1, GetProductionPumpWorkft(), mo_geo_in.md_GFPumpEfficiency, ms_ErrorString);
+    double dProductionPumpPower = geothermal::pumpWorkInWattHr(1, GetProductionPumpWorkft(), mo_geo_in.md_GFPumpEfficiency, ms_ErrorString); //[W-hr/lb]
     //double dProductionPumpPower = geothermal::pumpWorkInWattHr(1,GetProductionPumpWorkft(GetInjectionPumpWorkft()), mo_geo_in.md_GFPumpEfficiency, ms_ErrorString);
     mp_geo_out->md_pumpwork_prod = dProductionPumpPower;
     mp_geo_out->md_pumpwork_inj = dInjectionPumpPower;

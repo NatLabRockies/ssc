@@ -131,7 +131,7 @@ static var_info _cm_vtab_geothermal[] = {
   //{ SSC_INPUT,        SSC_NUMBER,      "tech_type",                          "Technology type ID",                                  "(1-4)",   "",             "GeoHourly",        "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "T_htf_cold_ref",                     "Outlet design temp",                                  "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
     //{ SSC_INPUT,        SSC_NUMBER,      "T_htf_hot_ref",                      "Inlet design temp",                                   "C",       "",             "GeoHourly",        "sim_type=1",                "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "HTF",                                "Heat trans fluid type ID",                            "(1-27)",  "",             "GeoHourly",        "sim_type=1",                "INTEGER",         "" },
+    //{ SSC_INPUT,        SSC_NUMBER,      "HTF",                                "Heat trans fluid type ID",                            "(1-27)",  "",             "GeoHourly",        "sim_type=1",                "INTEGER",         "" },
 
     // power block input parameters                                                                                                                                   
   //{ SSC_INPUT,        SSC_NUMBER,      "P_ref",                              "Design Output",                                       "MW",      "",             "GeoHourly",        "*",                         "",                "" },
@@ -475,7 +475,7 @@ public:
         // bool bFlag = (as_integer("tech_type") == 4);
         pbp.T_htf_cold_ref = as_double("T_htf_cold_ref");	// design outlet fluid temp
         pbp.T_htf_hot_ref = resource_temperature;           // [C] design inlet fluid temp
-        pbp.HTF = as_integer("HTF");						// heat transfer fluid type - set in interface, but no user input
+        pbp.HTF = 3;    // as_integer("HTF");						// heat transfer fluid type - set in interface, but no user input
 
         // power block parameters that ARE on the SAM power block input page
         pbp.P_ref = as_double("nameplate") / 1000; // P_ref wants MW, 'nameplate' in kW

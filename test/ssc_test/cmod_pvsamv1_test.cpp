@@ -1255,6 +1255,48 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, DistributionClippingMethod) {
     EXPECT_NEAR(distribution_clipping_loss, 139.283444, m_error_tolerance_lo);
 }
 
+/// Test PVSAMv1 with spectral correction model choices 0 (Lee/First Solar),
+/// 1 (King), and 2 (Pelland), driven by the weather file provided in the
+/// default no-financial input data.  The weather file supplies the
+/// precipitable water column (pwp) consumed by models 0 and 2, and the
+/// solar-zenith / elevation data consumed by all three models.
+/// Each model must run without error and produce a positive annual energy
+/// that is within a reasonable band of the baseline (model 0 ≈ default run).
+TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, SpectralCorrectionModelChoices)
+{
+    // Expected annual energy for each model choice (kWh).
+    // Model 0 is the default Lee/First Solar model and should reproduce the
+    // baseline DefaultNoFinancialModel result.  Models 1 and 2 apply
+    // different spectral-correction physics so their values differ slightly.
+    // A tolerance of 100 kWh is used to accommodate future coefficient or
+    // algorithm refinements while still catching gross regressions.
+    const double tolerance_kwh = 1.0;
+    const std::vector<double> annual_energy_expected = { 8651.8, 8828.1, 8917.3 };
+
+    std::map<std::string, double> pairs;
+
+    for (int model_choice = 0; model_choice <= 2; model_choice++)
+    {
+        pairs["spectral_correction_model_choice"] = static_cast<double>(model_choice);
+        int pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
+
+        EXPECT_FALSE(pvsam_errors)
+            << "pvsamv1 reported errors for spectral_correction_model_choice="
+            << model_choice;
+
+        if (!pvsam_errors)
+        {
+            ssc_number_t annual_energy;
+            ssc_data_get_number(data, "annual_energy", &annual_energy);
+
+            EXPECT_NEAR(annual_energy, annual_energy_expected[model_choice],
+                        tolerance_kwh)
+                << "Annual energy out of expected range for "
+                   "spectral_correction_model_choice=" << model_choice;
+        }
+    }
+}
+
 /// Test PVSAMv1 with all defaults and no-financial model- look at MPPT input 1 voltage at night
 TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, InverterNighttime) {
 

@@ -251,19 +251,26 @@ double spectral_correction_lee(double prec_water, double abs_airmass, int cellte
         {
         case 0: //monoSi
             coeff = { 0.85914, -0.020880, -0.0058853, 0.12029, 0.026814, -0.0017810 };
+            break;
         case 1: //multiSi
             coeff = { 0.84090, -0.027539, -0.0079224, 0.13570, 0.038024, -0.0021218 };
+            break;
         case 2: // CdTe
             coeff = { 0.86273, -0.038948, -0.012506, 0.098871, 0.084658, -0.0042948 };
+            break;
         case 3: //CIS??? (Don't see published coefficients)
             coeff = { 0.85914, -0.020880, -0.0058853, 0.12029, 0.026814, -0.0017810 };
+            break;
         case 4: // CIGS
             coeff = { 0.85252, -0.022314, -0.0047216, 0.13666, 0.013342, -0.0008945 };
+            break;
         case 5: // Amorphous
             coeff = { 1.12094, -0.047620, -0.0083627, -0.10443, 0.098382, -0.0033818 };
+            break;
         default:
             //m_err = "Invalid cell technology type provided.";
             coeff = { 0.85914, -0.020880, -0.0058853, 0.12029, 0.026814, -0.0017810 };
+            break;
 
         }
 
@@ -301,19 +308,26 @@ double spectral_correction_pelland(double abs_airmass, double csky_index, int ce
         {
         case 0: //monoSi
             coeff = { 0.9845, -0.05169, 0.03034 };
+            break;
         case 1: //multiSi
             coeff = { 0.9847, -0.05237, 0.03034 };
+            break;
         case 2: // CdTe (First Solar 4-2)
             coeff = { 1.002, -0.07108, 0.02465 };
+            break;
             //First Solar 4-1 (0.9981, -0.05776, 0.02336)
         case 3: //CIS??? (Don't see published coefficients)
             coeff = { 0.9845, -0.05169, 0.03034 };
+            break;
         case 4: // CIGS
             coeff = { 0.9791, -0.03904, 0.03096 };
+            break;
         case 5: // Amorphous
             coeff = { 1.051, -0.1033, 0.009838 };
+            break;
         default:
             coeff = { 0.9845, -0.05169, 0.03034 };
+            break;
             //m_err = "Invalid cell technology type provided.";
         }
 
@@ -355,8 +369,6 @@ double spectral_correction_factor(compute_module* cm, double pwater, double solz
     double max_abs_airmass = cm->as_double("max_abs_airmass");
     std::vector<double> coeff_inputs;
     size_t* coeff_size;
-    //Check if precipitable water exists
-    if(isnan(pwater)) model_type = 1; //King, no precipitation data needed
     if(model_type == 0 && cm->is_assigned("coeff_inputs_lee")) {
         coeff_inputs = cm->as_vector_double("coeff_inputs_lee");
     }

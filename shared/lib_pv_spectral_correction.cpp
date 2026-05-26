@@ -369,10 +369,10 @@ double spectral_correction_factor(compute_module* cm, double pwater, double solz
     double max_abs_airmass = cm->as_double("max_abs_airmass");
     std::vector<double> coeff_inputs;
     size_t* coeff_size;
-    if(model_type == 0 && cm->is_assigned("coeff_inputs_lee")) {
+    if(model_type == 1 && cm->is_assigned("coeff_inputs_lee")) {
         coeff_inputs = cm->as_vector_double("coeff_inputs_lee");
     }
-    else if (model_type == 1 && cm->is_assigned("coeff_inputs_king")) {
+    else if (model_type == 0 && cm->is_assigned("coeff_inputs_king")) {
         coeff_inputs = cm->as_vector_double("coeff_inputs_king");
     }
     else if (model_type == 2 && cm->is_assigned("coeff_inputs_pelland")) {
@@ -384,11 +384,11 @@ double spectral_correction_factor(compute_module* cm, double pwater, double solz
 
     double abs_airmass = sandia_absolute_air_mass(solzen, alt);
     double scf = 0;
-    if (model_type == 0) { //Default First Solar (TODO: rename with author of paper)
+    if (model_type == 1) { //Default First Solar (TODO: rename with author of paper)
         scf = spectral_correction_lee(prec_water, abs_airmass, celltech, coeff_inputs,
             min_prec_water, max_prec_water, min_abs_airmass, max_abs_airmass);
     }
-    else if (model_type == 1) { //King
+    else if (model_type == 0) { //King
         scf = spectral_correction_king(abs_airmass, solzen, alt, coeff_inputs);
     }
     else if (model_type == 2) { //Pelland

@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -121,16 +121,16 @@ void strcpylo(char *t, char *s)
   }
 }
 
-/* Unix library naming utility function */
-MYBOOL so_stdname(char *stdname, char *descname, int buflen)
+/* Unix library naming utility function
+MYBOOL so_stdname(  char *stdname,  char *descname, int buflen)
 {
   char *ptr;
 
-  if((descname == NULL) || (stdname == NULL) || (((int) strlen(descname)) >= buflen - 6))
+  if((descname == nullptr) || (stdname == nullptr) || (((int) strlen(descname)) >= buflen - 6))
     return( FALSE );
 
   strcpy(stdname, descname);
-  if((ptr = strrchr(descname, '/')) == NULL)
+  if((ptr = strrchr(descname, '/')) == nullptr)
     ptr = descname;
   else
     ptr++;
@@ -155,9 +155,9 @@ int gcd(LLONG a, LLONG b, int *c, int *d)
     return( -1 );
 
   /* Use local multiplier instances, if necessary */
-  if(c == NULL)
+  if(c == nullptr)
     c = &cret;
-  if(d == NULL)
+  if(d == nullptr)
     d = &dret;
 
   /* Normalize so that 0 < a <= b */
@@ -381,8 +381,8 @@ int CMP_CALLMODEL compareREAL(const void *current, const void *candidate)
    where interchanges are reflected in a caller-initialized integer "tags" list. */
 void hpsort(void *attributes, int count, int offset, int recsize, MYBOOL descending, findCompare_func findCompare)
 {
-  register int  i, j, k, ir, order;
-  register char *hold, *base;
+  int  i, j, k, ir, order;
+  char *hold, *base;
   char          *save;
 
   if(count < 2)
@@ -443,8 +443,8 @@ void hpsortex(void *attributes, int count, int offset, int recsize, MYBOOL desce
     return;
   }
   else {
-    register int  i, j, k, ir, order;
-    register char *hold, *base;
+    int  i, j, k, ir, order;
+    char *hold, *base;
     char          *save;
     int           savetag;
 
@@ -528,7 +528,7 @@ void qsortex_swap(void *attributes, int l, int r, int recsize,
 int qsortex_sort(void *attributes, int l, int r, int recsize, int sortorder, findCompare_func findCompare,
                         void *tags, int tagsize, char *save, char *savetag)
 {
-  register int i, j, nmove = 0;
+  int i, j, nmove = 0;
   char     *v;
 
   /* Perform the a fast QuickSort */
@@ -667,7 +667,7 @@ void QS_delete(UNIONTYPE QSORTrec a[], int ipos, int epos)
 }
 int QS_sort(UNIONTYPE QSORTrec a[], int l, int r, findCompare_func findCompare)
 {
-  register int i, j, nmove = 0;
+  int i, j, nmove = 0;
   UNIONTYPE QSORTrec v;
 
   /* Perform the a fast QuickSort */
@@ -866,7 +866,7 @@ double timeNow(void)
 /* Miscellaneous reporting functions */
 
 /* List a vector of INT values for the given index range */
-void blockWriteINT(FILE *output, char *label, int *myvector, int first, int last)
+void blockWriteINT(FILE *output, const char *label, int *myvector, int first, int last)
 {
   int i, k = 0;
 
@@ -885,7 +885,7 @@ void blockWriteINT(FILE *output, char *label, int *myvector, int first, int last
 }
 
 /* List a vector of MYBOOL values for the given index range */
-void blockWriteBOOL(FILE *output, char *label, MYBOOL *myvector, int first, int last, MYBOOL asRaw)
+void blockWriteBOOL(FILE *output, const char *label, MYBOOL *myvector, int first, int last, MYBOOL asRaw)
 {
   int i, k = 0;
 
@@ -907,7 +907,7 @@ void blockWriteBOOL(FILE *output, char *label, MYBOOL *myvector, int first, int 
 }
 
 /* List a vector of REAL values for the given index range */
-void blockWriteREAL(FILE *output, char *label, REAL *myvector, int first, int last)
+void blockWriteREAL(FILE *output, const char *label, REAL *myvector, int first, int last)
 {
   int i, k = 0;
 

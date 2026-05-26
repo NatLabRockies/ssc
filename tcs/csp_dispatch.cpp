@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ csp_dispatch_opt::csp_dispatch_opt()
     params.clear();
 }
 
-void csp_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
+void csp_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic)
 {
     set_default_solver_parameters();
 
@@ -93,6 +93,7 @@ void csp_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
     params.q_pb_des = cycle_q_dot_des;
     params.eta_pb_des = cycle_eta_des;
     double w_pb_des = cycle_q_dot_des * params.eta_pb_des;
+    params.sys_par_fixed = fixed_parasitic;
 
     params.eff_table_load.init_linear_cycle_efficiency_table(params.q_pb_min, params.q_pb_des, params.eta_pb_des, pointers.mpc_pc);
     params.eff_table_Tdb.init_efficiency_ambient_temp_table(params.eta_pb_des, w_pb_des, pointers.mpc_pc, &params.wcondcoef_table_Tdb);
@@ -250,7 +251,6 @@ bool csp_dispatch_opt::predict_performance(int step_start, int ntimeints, int di
 
             //get thermal efficiency
             double therm_eff = pointers.col_rec->calculate_thermal_efficiency_approx(pointers.m_weather.ms_outputs, q_inc, simloc);
-            therm_eff *= params.sf_effadj;
             therm_eff_ave += therm_eff * ave_weight;
 
             //C_csp_fresnel_collector_receiver x;
@@ -343,10 +343,6 @@ static void calculate_parameters(csp_dispatch_opt *optinst, unordered_map<std::s
         pars["ycsb0"] = (optinst->params.is_pb_standby0 ? 1 : 0);
         pars["q0"] =  optinst->params.q_pb0;
 
-        pars["qrecmaxobs"] = 1.;
-        for(int i=0; i<(int)optinst->params.q_sfavail_expected.size(); i++)
-            pars["qrecmaxobs"] = optinst->params.q_sfavail_expected.at(i) > pars["qrecmaxobs"] ? optinst->params.q_sfavail_expected.at(i) : pars["qrecmaxobs"];
-
         pars["Qrsb"] = optinst->params.q_rec_standby; // * dq_rsu;
         pars["W_dot_cycle"] = optinst->params.q_pb_des * optinst->params.eta_pb_des;
 
@@ -401,13 +397,6 @@ static void calculate_parameters(csp_dispatch_opt *optinst, unordered_map<std::s
 
 bool csp_dispatch_opt::optimize()
 {
-
-    //First check to see whether we should call the AMPL engine instead. 
-    if( solver_params.is_ampl_engine )
-    {
-        return optimize_ampl();
-    }
-
     /* 
     Formulate the optimization problem for dispatch generation. We are trying to maximize revenue subject to inventory
     constraints.
@@ -1287,7 +1276,7 @@ bool csp_dispatch_opt::optimize()
                         //row[i  ] - P["Ehs"] / P["delta"];	//kWe
                         //col[i++] = O.column("yrsd", t);
 
-                        add_constraintex(lp, i, row, col, LE, params.w_lim.at(t));
+                        add_constraintex(lp, i, row, col, LE, params.w_lim.at(t) + params.sys_par_fixed);
                     }
                     else // Power cycle operation is impossible at current constrained wlim
                     {
@@ -1555,7 +1544,7 @@ bool csp_dispatch_opt::optimize()
 
         setup_solver_presolve_bbrules(lp);
         bool return_ok = problem_scaling_solve_loop(lp);
-        set_lp_solve_outputs(lp);
+        set_solver_outputs(lp);
 
         // Saving problem and solution for DEBUGGING formulation
         //save_problem_solution_debug(lp);
@@ -1589,223 +1578,6 @@ bool csp_dispatch_opt::optimize()
     }
 
     return false;
-}
-
-std::string csp_dispatch_opt::write_ampl()
-{
-    /* 
-    Write the par file for ampl input
-
-    return name of output file, if error, return empty string.
-    */
-
-    std::string sname;
-
-    //write out a data file
-    if(solver_params.is_write_ampl_dat || solver_params.is_ampl_engine)
-    {
-		int day = (int)pointers.siminfo->ms_ts.m_time / 3600 / 24;
-        //char outname[200];
-        //sprintf(outname, "%sdata_%d.dat", solver_params.ampl_data_dir.c_str(), day);
-
-        std::stringstream outname;
-        //outname << solver_params.ampl_data_dir << "data_" << day << ".dat";        
-        outname << solver_params.ampl_data_dir << "sdk_data.dat";
-        
-        sname = outname.str();    //save string
-
-        std::ofstream fout(outname.str().c_str());
-
-        int nt = m_nstep_opt;
-
-        unordered_map<std::string, double> pars;
-        calculate_parameters(this, pars, nt);
-
-        fout << "#data file\n\n";
-        fout << "# --- scalar parameters ----\n";
-        fout << "param day_of_year := " << day << ";\n";
-
-        std::vector<std::string> keys;
-
-        for( unordered_map<std::string, double>::iterator parval = pars.begin(); parval != pars.end(); parval++)
-            keys.push_back( parval->first );
-
-        //TODO: causes compiler error
-        //std::sort( keys.begin(), keys.end(), base_dispatch_opt::strcompare );
-
-        for(size_t k=0; k<keys.size(); k++)
-            fout << "param " << keys.at(k) << " := " << pars[keys.at(k)] << ";\n";
-
-        fout << "# --- indexed parameters ---\n";
-        fout << "param Qin := \n";
-        for(int t=0; t<nt; t++)
-            fout << t+1 << "\t" << params.q_sfavail_expected.at(t) << "\n";
-        fout << ";\n\n";
-
-        fout << "param P := \n";
-        for(int t=0; t<nt; t++)
-            fout << t+1 << "\t" << params.sell_price.at(t) << "\n";
-        fout << ";\n\n";
-
-        fout << "param etaamb := \n";   //power block ambient adjustment
-        for(int t=0; t<nt; t++)
-            fout << t+1 << "\t" << params.eta_pb_expected.at(t) << "\n";
-        fout << ";\n\n";
-
-        //net power limit
-        fout << "param Wdotnet := \n";
-        for(int t=0; t<nt; t++)
-            fout << t+1 << "\t" << params.w_lim.at(t) << "\n";
-        fout << ";\n\n";
-        
-        //condenser parasitic loss coefficient
-        fout << "param etac := \n";
-        for(int t=0; t<nt; t++)
-            fout << t+1 << "\t" << params.w_condf_expected.at(t) << "\n";
-        fout << ";\n\n";
-
-        //cycle net production lower limit
-        fout << "param wnet_lim_min := \n";
-        for(int t=0; t<nt; t++)
-            fout << t+1 << "\t" << params.wnet_lim_min.at(t) << "\n";
-        fout << ";\n\n";
-
-        //cycle net production lower limit
-        fout << "param delta_rs := \n";
-        for(int t=0; t<nt; t++)
-            fout << t+1 << "\t" << params.delta_rs.at(t) << "\n";
-        fout << ";\n\n";
-
-        fout.close();
-    }
-
-    return sname;
-}
-
-bool csp_dispatch_opt::optimize_ampl()
-{
-    /* 
-    handle the process of writing an input file, running ampl, handling results, and loading solution
-
-    writes
-        dat_<day #>.dat
-    runs
-        sdk_dispatch.run
-    expects
-        sdk_solution.txt input file
-    */
-
-    //check whether the ampl parameters have been configured correctly. If not, throw.
-    if(! util::dir_exists( solver_params.ampl_data_dir.c_str() ) )
-        throw C_csp_exception("The specified AMPL data directory is invalid.");
-    
-    std::stringstream tstring;
-
-    std::string datfile = write_ampl();
-    if( datfile.empty() )
-        throw C_csp_exception("An error occured when writing the AMPL input file.");
-    
-    ////call ampl
-    //tstring << "ampl \"" << solver_params.ampl_data_dir << "sdk_dispatch.run\"";
-
-    if( system(NULL) ) puts ("Ok");
-    else exit(EXIT_FAILURE);
-
-    //int sysret = system(tstring.str().c_str());
-    int sysret = system( solver_params.ampl_exec_call.c_str() );
-
-    //read back ampl solution
-    tstring.str(std::string()); //clear
-
-    tstring << solver_params.ampl_data_dir << "sdk_solution.txt";
-    std::ifstream infile(tstring.str().c_str());
-
-    if(! infile.is_open() )
-        return false;
-    
-    std::vector< std::string > F;
-
-    char line[1000];
-    while( true )
-    {
-        infile.getline( line, 1000 );
-
-        if( infile.eof() )
-            break;
-
-        F.push_back( line );
-    }
-
-    /* 
-    expects:
-    1.  objective (1)
-    2.  relaxed objective (1)
-    3.  y_t^{csb} (nt)
-    4.  y_t (nt)
-    5.  energy used for cycle standby (nt)
-    6.  x_t (nt)
-    7.  y_t^r (nt)
-    8.  s_t (nt)
-    9.  energy used for cycle startup (nt)
-    10. energy used for receiver startup (nt)
-    11. x_t^r   solar field energy produced (nt)
-
-    Each item will be on it's own line. Values in arrays are separated by commas.
-    */
-    
-    int nt = m_nstep_opt;
-    outputs.clear();
-    outputs.resize(nt);
-    
-    util::to_double(F.at(0), &lp_outputs.objective);
-    util::to_double(F.at(1), &lp_outputs.objective_relaxed);
-    
-    std::vector< std::string > svals;
-
-    svals = util::split( F.at(2), "," );
-    for(int i=0; i<nt; i++)
-    {
-        int v;
-        util::to_integer(svals.at(i), &v );
-        outputs.pb_standby.at(i) = v == 1;
-    }
-    svals = util::split( F.at(3), "," );
-    for(int i=0; i<nt; i++)
-    {
-        int v;
-        util::to_integer(svals.at(i), &v );
-        outputs.pb_operation.at(i) = v == 1;
-    }
-    svals = util::split( F.at(4), "," );
-    for(int i=0; i<nt; i++)
-        util::to_double( svals.at(i), &outputs.q_pb_standby.at(i) );
-    svals = util::split( F.at(5), "," );
-    for(int i=0; i<nt; i++)
-        util::to_double( svals.at(i), &outputs.q_pb_target.at(i) );
-    svals = util::split( F.at(6), "," );
-    for(int i=0; i<nt; i++)
-    {
-        int v;
-        util::to_integer(svals.at(i), &v );
-        outputs.rec_operation.at(i) = v == 1;
-    }
-    svals = util::split( F.at(7), "," );
-    for(int i=0; i<nt; i++)
-        util::to_double( svals.at(i), &outputs.tes_charge_expected.at(i) );
-    svals = util::split( F.at(8), "," );
-    for(int i=0; i<nt; i++)
-        util::to_double( svals.at(i), &outputs.q_pb_startup.at(i) );
-    svals = util::split( F.at(9), "," );
-    for(int i=0; i<nt; i++)
-        util::to_double( svals.at(i), &outputs.q_rec_startup.at(i) );
-    svals = util::split( F.at(10), "," );
-    for(int i=0; i<nt; i++)
-        util::to_double( svals.at(i), &outputs.q_sf_expected.at(i) );
-    svals = util::split( F.at(11), "," );
-    for(int i=0; i<nt; i++)
-        util::to_double( svals.at(i), &outputs.w_pb_target.at(i) );
-
-    return true;
 }
 
 void csp_dispatch_opt::set_outputs_from_lp_solution(lprec* lp, unordered_map<std::string, double>& model_params)
@@ -1885,23 +1657,23 @@ void csp_dispatch_opt::set_outputs_from_lp_solution(lprec* lp, unordered_map<std
 
 bool csp_dispatch_opt::set_dispatch_outputs()
 {
-    if (lp_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
+    if (solver_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
     {
         //calculate the current read step, account for number of dispatch steps per hour and the simulation time step
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)
             % (solver_params.optimize_frequency * solver_params.steps_per_hour);
 
 
-        disp_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
-        disp_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
-        disp_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || disp_outputs.is_pc_sb_allowed;
+        dispatch_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
+        dispatch_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
+        dispatch_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || dispatch_outputs.is_pc_sb_allowed;
 
-        disp_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
 
-        disp_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
 
-        disp_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
-        disp_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
+        dispatch_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
+        dispatch_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
 
         //quality checks
         /*
@@ -1911,51 +1683,47 @@ bool csp_dispatch_opt::set_dispatch_outputs()
             q_pc_target = dispatch.params.q_pb_standby*1.e-3;
         */
 
-        if (disp_outputs.q_pc_target + 1.e-5 < params.q_pb_min)
-        {
-            disp_outputs.is_pc_su_allowed = false;
-            disp_outputs.q_pc_target = 0.0;
+        if (dispatch_outputs.q_pc_target + 1.e-5 < params.q_pb_min) {
+            dispatch_outputs.is_pc_su_allowed = false;
+            dispatch_outputs.q_pc_target = 0.0;
         }
 
         // Calculate approximate upper limit for power cycle thermal input at current electricity generation limit
-        if (params.w_lim.at(m_current_read_step) < 1.e-6)
-        {
-            disp_outputs.q_dot_pc_max = 0.0;
+        if (params.w_lim.at(m_current_read_step) < 1.e-6) {
+            dispatch_outputs.q_dot_pc_max = 0.0;
         }
-        else
-        {
+        else {
             double wcond;
             double eta_corr = pointers.mpc_pc->get_efficiency_at_TPH(pointers.m_weather.ms_outputs.m_tdry, 1., 30., &wcond) / params.eta_pb_des;
             double eta_calc = params.eta_pb_des * eta_corr;
             double eta_diff = 1.;
             int i = 0;
-            while (eta_diff > 0.001 && i < 20)
-            {
+            while (eta_diff > 0.001 && i < 20) {
                 double q_pc_est = params.w_lim.at(m_current_read_step) * 1.e-3 / eta_calc;			// Estimated power cycle thermal input at w_lim
                 double eta_new = pointers.mpc_pc->get_efficiency_at_load(q_pc_est / params.q_pb_des) * eta_corr;		// Calculated power cycle efficiency
                 eta_diff = std::abs(eta_calc - eta_new);
                 eta_calc = eta_new;
                 i++;
             }
-            disp_outputs.q_dot_pc_max = fmin(disp_outputs.q_dot_pc_max, params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitics)
-            disp_outputs.q_dot_pc_max = fmax(disp_outputs.q_dot_pc_max, disp_outputs.q_pc_target);								  // calculated q_pc_target accounts for parasitics --> can be higher than approximate limit 
+            dispatch_outputs.q_dot_pc_max = fmin(dispatch_outputs.q_dot_pc_max, params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitics)
+            dispatch_outputs.q_dot_pc_max = fmax(dispatch_outputs.q_dot_pc_max, dispatch_outputs.q_pc_target);								  // calculated q_pc_target accounts for parasitics --> can be higher than approximate limit 
         }
 
-        disp_outputs.etasf_expect = params.eta_sf_expected.at(m_current_read_step);
-        disp_outputs.qsf_expect = params.q_sfavail_expected.at(m_current_read_step);
-        disp_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
-        disp_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
-        disp_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
-        disp_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
-        disp_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
-        disp_outputs.rev_expect = disp_outputs.wpb_expect * params.sell_price.at(m_current_read_step);
-        disp_outputs.etapb_expect = disp_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
+        dispatch_outputs.etasf_expect = params.eta_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsf_expect = params.q_sfavail_expected.at(m_current_read_step);
+        dispatch_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
+        dispatch_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
+        dispatch_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
+        dispatch_outputs.rev_expect = dispatch_outputs.wpb_expect * params.sell_price.at(m_current_read_step);
+        dispatch_outputs.etapb_expect = dispatch_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
             * (outputs.pb_operation.at(m_current_read_step) ? 1. : 0.);
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "csp_dispatch");
     }
-    disp_outputs.time_last = pointers.siminfo->ms_ts.m_time;
+    dispatch_outputs.time_last = pointers.siminfo->ms_ts.m_time;
 
     return true;
 }

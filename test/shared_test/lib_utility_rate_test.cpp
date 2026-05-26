@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -261,7 +261,7 @@ TEST(lib_utility_rate_test, test_demand_charges_inaccurate_forecast)
     ASSERT_NEAR(1011.25, cost, 0.02);
 }
 
-// Excel implementation of these results is available at https://github.com/NREL/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/UtilityRateForecast/lib_utility_rate_test_cross_checks.xlsx
+// Excel implementation of these results is available at https://github.com/NatLabRockies/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/UtilityRateForecast/lib_utility_rate_test_cross_checks.xlsx
 TEST(lib_utility_rate_test, test_changing_rates_crossing_months)
 {
 	rate_data data;

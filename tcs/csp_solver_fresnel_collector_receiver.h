@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -597,6 +597,8 @@ public:
     virtual double get_tracking_power();		//MWe
 
     virtual double get_col_startup_power();		//MWe-hr
+
+    virtual double get_design_pumping_power();  //[MWe]
 
     virtual C_csp_collector_receiver::E_csp_cr_modes get_operating_state();
 

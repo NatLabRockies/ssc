@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -51,7 +51,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 
 
 /* MUST MODIFY */
-char * BFP_CALLMODEL bfp_name(void)
+const char * BFP_CALLMODEL bfp_name(void)
 {
   return( "LUSOL v2.2.1.0" );
 }

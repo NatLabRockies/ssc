@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -453,7 +453,7 @@ int mm_write_mtx_crd(char fname[], int M, int N, int nz, int I[], int J[],
 char  *mm_typecode_to_str(MM_typecode matcode)
 {
     static char buffer[MM_MAX_LINE_LENGTH];
-    char *types[4];
+    const char *types[4];
 
     /* check for MTX type */
     if (mm_is_matrix(matcode)) 

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,16 +48,27 @@ void C_csp_solver::reset_time(double step /*s*/)
 
 int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes cr_mode,
     C_csp_power_cycle::E_csp_power_cycle_modes pc_mode, C_csp_collector_receiver::E_csp_cr_modes htr_mode,    //[-]
+    C_csp_power_cycle::E_csp_power_cycles_types pc_target_type_at_operating_mode,
     C_MEQ__m_dot_tes::E_m_dot_solver_modes solver_mode, C_MEQ__timestep::E_timestep_target_modes step_target_mode,
-    double q_dot_pc_target /*MWt*/, bool is_defocus, bool is_rec_outlet_to_hottank,
+    double q_dot_pc_target /*MWt*/, double offtaker_power_max /*MWe*/,
+    bool is_defocus, bool is_rec_outlet_to_hottank,
     double q_dot_elec_to_CR_heat /*MWe*/, double q_dot_elec_to_PAR_HTR /*MWt*/,
-    std::string op_mode_str, double & defocus_solved)
+    std::string op_mode_str, double & defocus_solved,
+    std::string& m_dot_tes_return_message,
+    std::string& T_field_cold_msg,
+    std::string& timestep_return_message,
+    std::string& defocus_return_message)
 {
+    m_dot_tes_return_message = "";
+    T_field_cold_msg = "";
+    timestep_return_message = "";
+    defocus_return_message = "";
+
     double t_ts_initial = mc_kernel.mc_sim_info.ms_ts.m_step;   //[s]
 
     C_MEQ__defocus c_mdot_eq(solver_mode, C_MEQ__defocus::E_M_DOT_BAL, step_target_mode, this,
         q_dot_pc_target,
-        pc_mode, cr_mode, htr_mode,
+        pc_mode, cr_mode, htr_mode, pc_target_type_at_operating_mode,
         q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
         is_rec_outlet_to_hottank,
         t_ts_initial); //, step_tolerance);
@@ -67,14 +78,24 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
     double m_dot_bal = std::numeric_limits<double>::quiet_NaN();
     int m_dot_bal_code = c_mdot_solver.test_member_function(df_full, &m_dot_bal);
 
-    if (m_dot_bal_code != 0)
-    {
+    if (m_dot_bal_code != 0) {
         reset_time(t_ts_initial);
         return -1;
     }
-    
+
+    m_dot_tes_return_message = c_mdot_eq.m_m_dot_tes_return_message;
+    T_field_cold_msg = c_mdot_eq.m_T_field_cold_return_msg;
+    timestep_return_message = c_mdot_eq.m_timestep_return_msg;
+
     defocus_solved = df_full;      //[-]
     bool is_m_dot_bal_converged = false;
+
+    double tol_defocus_mdot_iter_target = 1.E-3;    //[-]
+    double tol_defocus_mdot_iter_max = 0.1;         //[-]
+
+    double tol_defocus_qdot_iter_target = 1.E-3;    //[-]
+    double tol_defocus_qdot_iter_max = 0.1;         //[-]
+
     if (is_defocus)
     {
         if (m_dot_bal > 0.0)
@@ -112,7 +133,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
 
             xy2.y = m_dot_bal2;
 
-            c_mdot_solver.settings(1.E-3, 50, 0.0, 1.0, false);
+            c_mdot_solver.settings(tol_defocus_mdot_iter_target, 50, 0.0, 1.0, false);
 
             // Now solve for the required defocus
             double tol_solved;
@@ -130,18 +151,17 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             }
             if (m_dot_bal_code != C_monotonic_eq_solver::CONVERGED)
             {
-                if (m_dot_bal_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+                if (m_dot_bal_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < tol_defocus_mdot_iter_max)
                 {
-                    std::string msg = util::format("At time = %lg %s "
-                        "iteration to find a defocus resulting in the maximum power cycle mass flow rate only reached a convergence "
+                    defocus_return_message = util::format("iteration on defocus to balance mass flows only reached a convergence "
                         "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
-                        mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, op_mode_str.c_str(), tol_solved);
-                    mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+                        tol_solved);
                 }
                 else
                 {
                     if (htr_mode != C_csp_collector_receiver::ON || !m_is_parallel_heater) {
                         // Weird that controller chose Defocus operating mode, so report message and shut down CR and PC
+                        // 25-11-12 continue to print this message from here. passing messages upstream won't print if timestep doesn't converge
                         error_msg = util::format("At time = %lg the controller chose %s operating mode, but the code"
                             " failed to converge.",
                             mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, op_mode_str.c_str());
@@ -155,7 +175,35 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             is_m_dot_bal_converged = true;
         }
 
-        if ((mc_pc_out_solver.m_q_dot_htf - m_q_dot_pc_max) / m_q_dot_pc_max > 1.E-3)
+        double calc_offtaker_output = std::numeric_limits<double>::quiet_NaN();
+        if (pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            calc_offtaker_output = mc_pc_out_solver.m_q_dot_htf;    //[MWt]
+        }
+        else if (pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            calc_offtaker_output = mc_system_metrics.get_W_dot_net();   //[MWe]
+        }
+
+        // What if calc_offtaker_output = mc_pc_out_solver.m_q_dot_htf = 0?
+        // -- E.g. parallel heater defocus (e.g. because TES is full) when power cycle target = 0
+
+        // Set denominator in diff quotient to value close to zero with the correct sign
+        double offtaker_power_max_denom = offtaker_power_max;
+        if (offtaker_power_max_denom >= 0.0 && offtaker_power_max_denom < 0.001) {
+            offtaker_power_max_denom = 0.001;
+        }
+        else if (offtaker_power_max_denom > -0.001 && offtaker_power_max_denom < 0.0) {
+            offtaker_power_max_denom = -0.001;
+        }
+
+        m_dot_tes_return_message = c_mdot_eq.m_m_dot_tes_return_message;
+        T_field_cold_msg = c_mdot_eq.m_T_field_cold_return_msg;
+        timestep_return_message = c_mdot_eq.m_timestep_return_msg;
+
+        // What if output max and output calc are both negative? E.g. electric heater targeting net system import
+        // -- If system requires "defocus", need to turn down heater, so calc is more negative (e.g. -90) than max (e.g. -70)
+        // ----- so (calc - max) / max = (neg) / (neg) = positive
+
+        if ((calc_offtaker_output - offtaker_power_max) / offtaker_power_max_denom > tol_defocus_qdot_iter_target)
         {
             // Have defocused such that balancing mass flow rates should not result in
             //    a cycle mass flow rate greater than the max
@@ -164,14 +212,14 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             C_MEQ__defocus c_q_dot_eq(C_MEQ__m_dot_tes::E__CR_OUT__CR_OUT_LESS_TES_FULL, C_MEQ__defocus::E_Q_DOT_PC, step_target_mode, 
                 this,
                 q_dot_pc_target,
-                pc_mode, cr_mode, htr_mode,
+                pc_mode, cr_mode, htr_mode, pc_target_type_at_operating_mode,
                 q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
                 is_rec_outlet_to_hottank,
                 t_ts_initial);
             C_monotonic_eq_solver c_q_dot_solver(c_q_dot_eq);
 
             // Set up solver
-            c_q_dot_solver.settings(1.E-3, 50, 0.0, defocus_guess, true);
+            c_q_dot_solver.settings(tol_defocus_qdot_iter_target, 50, 0.0, defocus_guess, true);
 
             double q_dot_pc_1 = std::numeric_limits<double>::quiet_NaN();
             int q_dot_df_code = -1;
@@ -184,6 +232,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
                 if (q_dot_df_code != 0 && defocus_guess < 0.1)
                 {
                     // Weird that controller chose Defocus operating mode, so report message and shut down CR and PC
+                    // 25-11-12 continue to print this message from here. passing messages upstream won't print if timestep doesn't converge
                     error_msg = util::format("At time = %lg the controller chose %s operating mode, but the code"
                         " failed to converge.",
                         mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, op_mode_str.c_str());
@@ -202,13 +251,22 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
 
             C_monotonic_eq_solver::S_xy_pair xy_q_dot_2;
 
-            double defocus_guess_q_dot = (std::max)(0.7 * defocus_guess, (std::min)(0.99 * defocus_guess, defocus_guess * (m_q_dot_pc_max / mc_pc_out_solver.m_q_dot_htf)));
+            calc_offtaker_output = std::numeric_limits<double>::quiet_NaN();
+            if (pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+                calc_offtaker_output = mc_pc_out_solver.m_q_dot_htf;    //[MWt]
+            }
+            else if (pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+                calc_offtaker_output = mc_system_metrics.get_W_dot_net();   //[MWe]
+            }
+
+            double defocus_guess_q_dot = (std::max)(0.7 * defocus_guess, (std::min)(0.99 * defocus_guess, defocus_guess * (offtaker_power_max / calc_offtaker_output)));
             while (true) {
 
                 q_dot_df_code = c_q_dot_solver.test_member_function(defocus_guess_q_dot, &q_dot_pc_1);
 
                 if (q_dot_df_code != 0 || defocus_guess_q_dot < 0.1) {
                     // Weird that controller chose Defocus operating mode, so report message and shut down CR and PC
+                    // 25-11-12 continue to print this message from here. passing messages upstream won't print if timestep doesn't converge
                     error_msg = util::format("At time = %lg the controller chose %s operating mode, but the code"
                         " failed to converge.",
                         mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, op_mode_str.c_str());
@@ -237,7 +295,7 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             int solver_code = 0;
             try
             {
-                solver_code = c_q_dot_solver.solve(xy_q_dot_1, xy_q_dot_2, m_q_dot_pc_max, defocus_solved, tol_solved, iter_solved);
+                solver_code = c_q_dot_solver.solve(xy_q_dot_1, xy_q_dot_2, offtaker_power_max, defocus_solved, tol_solved, iter_solved);
             }
             catch (C_csp_exception)
             {
@@ -247,17 +305,14 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
 
             if (solver_code != C_monotonic_eq_solver::CONVERGED)
             {
-                if (solver_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
-                {
-                    std::string msg = util::format("At time = %lg %s "
-                        "iteration to find a defocus resulting in the maximum power cycle heat input only reached a convergence "
+                if (solver_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < tol_defocus_qdot_iter_max) {
+                    defocus_return_message = util::format("iteration to find a defocus only reached a convergence "
                         "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
-                        mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, op_mode_str.c_str(), tol_solved);
-                    mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+                        tol_solved);
                 }
-                else
-                {
+                else {
                     // Weird that controller chose Defocus operating mode, so report message and shut down CR and PC
+                    // 25-11-12 continue to print this message from here. passing messages upstream won't print if timestep doesn't converge
                     error_msg = util::format("At time = %lg the controller chose %s operating mode, but the code"
                         " failed to solve. Controller will shut-down CR and PC",
                         mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, op_mode_str.c_str());
@@ -267,6 +322,10 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
                     return -7;
                 }
             }
+
+            m_dot_tes_return_message = c_q_dot_eq.m_m_dot_tes_return_message;
+            T_field_cold_msg = c_q_dot_eq.m_T_field_cold_return_msg;
+            timestep_return_message = c_mdot_eq.m_timestep_return_msg;
         }
         else if (defocus_solved == 1.0)
         {
@@ -281,14 +340,14 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
             C_MEQ__defocus c_bal_eq(solver_mode_df1, C_MEQ__defocus::E_Q_DOT_PC, step_target_mode, this,
                 //m_dot_tes, 
                 q_dot_pc_target,
-                pc_mode, cr_mode, htr_mode,
+                pc_mode, cr_mode, htr_mode, pc_target_type_at_operating_mode,
                 q_dot_elec_to_CR_heat, q_dot_elec_to_PAR_HTR,
                 is_rec_outlet_to_hottank,
                 t_ts_initial);  // , step_tolerance);
             C_monotonic_eq_solver c_bal_solver(c_bal_eq);
 
             // Set up solver
-            c_bal_solver.settings(1.E-3, 50, 0.0, defocus_solved, true);
+            c_bal_solver.settings(tol_defocus_mdot_iter_target, 50, 0.0, defocus_solved, true);
 
             double q_dot_pc_bal = std::numeric_limits<double>::quiet_NaN();
             int q_dot_bal_code = c_bal_solver.test_member_function(defocus_solved, &q_dot_pc_bal);
@@ -303,6 +362,10 @@ int C_csp_solver::solve_operating_mode(C_csp_collector_receiver::E_csp_cr_modes 
                 reset_time(t_ts_initial);
                 return -8;
             }
+
+            m_dot_tes_return_message = c_bal_eq.m_m_dot_tes_return_message;
+            T_field_cold_msg = c_bal_eq.m_T_field_cold_return_msg;
+            timestep_return_message = c_mdot_eq.m_timestep_return_msg;
         }
     }
 
@@ -330,12 +393,28 @@ double C_csp_solver::C_MEQ__defocus::calc_meq_target()
     }
     else if (m_df_target_mode == C_MEQ__defocus::E_Q_DOT_PC)
     {
-        return mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf;	//[MWt]
+        if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            return mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf;	//[MWt]
+        }
+        else if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            return mpc_csp_solver->mc_system_metrics.get_W_dot_net();   //[MWe]
+        }
     }
+}
+
+void C_csp_solver::C_MEQ__defocus::init_calc_member_vars(){
+
+    m_m_dot_tes_return_message = "";
+    m_T_field_cold_return_msg = "";
+    m_timestep_return_msg = "";
+
+    return;
 }
 
 int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *target /*-*/)
 {
+    init_calc_member_vars();
+
     double defocus_CR = defocus;
     double defocus_PAR_HTR = 1.0;
 
@@ -347,7 +426,7 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
 
     C_MEQ__timestep c_T_cold_eq(m_solver_mode, m_ts_target_mode, mpc_csp_solver,
         m_q_dot_pc_target,
-        m_pc_mode, m_cr_mode, m_htr_mode,
+        m_pc_mode, m_cr_mode, m_htr_mode, m_pc_target_type_at_operating_mode,
         m_q_dot_elec_to_CR_heat, m_q_dot_elec_to_PAR_HTR,
         m_is_rec_outlet_to_hottank,
         defocus_CR, defocus_PAR_HTR);
@@ -364,7 +443,7 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
         double q_dot_pc_calc = std::numeric_limits<double>::quiet_NaN();
         int test_code = c_T_cold_solver.test_member_function(t_ts_guess, &q_dot_pc_calc);
 
-        if (test_code != 0 || (q_dot_pc_calc - m_q_dot_pc_target) / m_q_dot_pc_target < 1.E-3)
+        if (test_code != 0 || (q_dot_pc_calc - m_q_dot_pc_target) / m_q_dot_pc_target < mpc_csp_solver->m_tol_timestep_qdot_iter_target)
         {
             C_monotonic_eq_solver::S_xy_pair xy1;
             xy1.x = t_ts_guess;     //[s]
@@ -393,7 +472,7 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
                 t_ts_guess = 1.05*xy1.x;
             }
 
-            c_T_cold_solver.settings(1.E-3, 50, 0.1, t_ts_prev, true);
+            c_T_cold_solver.settings(mpc_csp_solver->m_tol_timestep_qdot_iter_target, 50, 0.1, t_ts_prev, true);
 
             double tol_solved = std::numeric_limits<double>::quiet_NaN();  //[s]
             int iter_solved = -1;
@@ -415,13 +494,11 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
             }
             if (t_ts_code != C_monotonic_eq_solver::CONVERGED)
             {
-                if (t_ts_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+                if (t_ts_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < mpc_csp_solver->m_tol_timestep_qdot_iter_max)
                 {
-                    std::string msg = util::format("At time = %lg power cycle startup time iteration "
-                        " only reached a convergence"
+                    m_timestep_return_msg = util::format("The timestep iteration to achieve a target plant output only reached a convergence"
                         "= %lg [s]. Check that results at this timestep are not unreasonably biasing total simulation results",
-                        mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
-                    mpc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+                        tol_solved);                    
                 }
                 else
                 {
@@ -470,6 +547,9 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
             *target = calc_meq_target();
 
             mpc_csp_solver->reset_time(m_t_ts_initial);
+
+            m_m_dot_tes_return_message = c_T_cold_eq.m_m_dot_tes_return_message;
+            m_T_field_cold_return_msg = c_T_cold_eq.m_T_field_cold_return_msg;
 
             return 0;
         }
@@ -557,11 +637,9 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
                     {
                         if (t_ts_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1*m_t_ts_initial)
                         {
-                            std::string msg = util::format("At time = %lg power cycle startup time iteration "
-                                " only reached a convergence"
+                            m_timestep_return_msg = util::format("The timestep iteration on component startup only reached a convergence"
                                 "= %lg [s]. Check that results at this timestep are not unreasonably biasing total simulation results",
-                                mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
-                            mpc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+                                tol_solved);
                         }
                         else
                         {
@@ -585,6 +663,8 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
         }
     }
 
+    m_m_dot_tes_return_message = c_T_cold_eq.m_m_dot_tes_return_message;
+    m_T_field_cold_return_msg = c_T_cold_eq.m_T_field_cold_return_msg;
 
     // Have been mucking with mc_kernel.mc_sim_info.ms_ts.m_time, so need to reset these
     mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_step = t_ts_solved;						//[s]
@@ -595,11 +675,21 @@ int C_csp_solver::C_MEQ__defocus::operator()(double defocus /*-*/, double *targe
     return 0;
 }
 
+void C_csp_solver::C_MEQ__timestep::init_calc_member_vars(){
+
+    m_m_dot_tes_return_message = "";
+    m_T_field_cold_return_msg = "";
+
+    return;
+}
+
 int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *target /*varying*/)
 {
+    init_calc_member_vars();
+
     C_MEQ__T_field_cold c_eq(m_solver_mode, mpc_csp_solver, 
         m_q_dot_pc_target,
-        m_pc_mode, m_cr_mode, m_htr_mode,
+        m_pc_mode, m_cr_mode, m_htr_mode, m_pc_target_type_at_operating_mode,
         m_q_dot_elec_to_CR_heat, m_q_dot_elec_to_PAR_HTR,
         m_is_rec_outlet_to_hottank,
         m_defocus, m_defocus_PAR_HTR, t_ts_guess, 
@@ -627,7 +717,7 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
     }
 
     // Check if iteration is required
-    if (std::abs(diff_T_field_cold) > 1.E-3)
+    if (std::abs(diff_T_field_cold) > mpc_csp_solver->m_tol_T_field_cold_iter_target)
     {
         // Set up solver
         c_solver.settings(1.E-3, 50, mpc_csp_solver->m_T_field_cold_limit, mpc_csp_solver->m_T_field_in_hot_limit, false);
@@ -662,14 +752,11 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
 
         if (T_field_cold_code != C_monotonic_eq_solver::CONVERGED)
         {
-            if (T_field_cold_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+            if (T_field_cold_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < mpc_csp_solver->m_tol_T_field_cold_iter_max)
             {
-                double abc = 1.23;
-                //std::string msg = util::format("At time = %lg C_csp_solver:::solver_pc_fixed__tes_dc failed "
-                //    "iteration to find the cold HTF temperature to balance energy between the TES and PC only reached a convergence "
-                //    "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
-                //    mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
-                //mpc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+                m_T_field_cold_return_msg = util::format("the field inlet temperature iteration only reached a convergence "
+                    "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results.",
+                    tol_solved);
             }
             else
             {
@@ -679,13 +766,20 @@ int C_csp_solver::C_MEQ__timestep::operator()(double t_ts_guess /*s*/, double *t
         }
     }
 
+    m_m_dot_tes_return_message = c_eq.m_m_dot_tes_return_message;
+
     if (m_step_target_mode == E_STEP_FROM_COMPONENT)
     {
         *target = c_eq.m_t_ts_calc - t_ts_guess;   //[s]
     }
     else if (m_step_target_mode == E_STEP_Q_DOT_PC)
     {
-        *target = mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf; //[MWt]
+        if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            *target = mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf; //[MWt]
+        }
+        else if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            return mpc_csp_solver->mc_system_metrics.get_W_dot_net();   //[MWe]
+        }
     }
     else if (m_step_target_mode == E_STEP_FIXED)
     {
@@ -709,6 +803,7 @@ void C_csp_solver::C_MEQ__m_dot_tes::init_calc_member_vars()
 int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double *diff_target /*-*/)
 {
     init_calc_member_vars();
+    mpc_csp_solver->mc_system_metrics.reset_metrics();
 
     // Set timestep
     mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_step = m_t_ts_in;    //[s]
@@ -1185,7 +1280,43 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
     {
         m_t_ts_calc = t_ts_pc_su;       //[s]
     }
-    
+
+    // Calculate system-level parasitics: can happen after controller/solver converges
+    double W_dot_ratio = mpc_csp_solver->mc_pc_out_solver.m_P_cycle / std::max(0.001, mpc_csp_solver->m_cycle_W_dot_des);		//[-]
+
+    double W_dot_bop = mpc_csp_solver->m_cycle_W_dot_des * mpc_csp_solver->ms_system_params.m_bop_par * mpc_csp_solver->ms_system_params.m_bop_par_f *
+        (mpc_csp_solver->ms_system_params.m_bop_par_0 + mpc_csp_solver->ms_system_params.m_bop_par_1 * W_dot_ratio + mpc_csp_solver->ms_system_params.m_bop_par_2 * pow(W_dot_ratio, 2));
+    // [MWe]
+
+    double W_dot_cr_freeze_protection = 0.0;
+    if (mpc_csp_solver->ms_system_params.m_is_field_freeze_protection_electric) {
+        W_dot_cr_freeze_protection = mpc_csp_solver->mc_cr_out_solver.m_q_dot_heater;       //[MWe]
+    }
+
+    double W_dot_tes_pump = 0.0;        //[MWe]
+    if (mpc_csp_solver->m_is_tes) {
+        W_dot_tes_pump = mpc_csp_solver->mc_tes_outputs.m_W_dot_elec_in_tot;    //[MWe]
+    }
+
+    double W_dot_par_htr_elec_load = 0.0;
+    if (mpc_csp_solver->m_is_parallel_heater) {
+        W_dot_par_htr_elec_load = mpc_csp_solver->mc_par_htr_out_solver.m_W_dot_elec_in_tot +
+            mpc_csp_solver->mc_par_htr_out_solver.m_q_dot_heater;       //[MWe]
+    }
+
+    double W_dot_net = mpc_csp_solver->mc_pc_out_solver.m_P_cycle -
+        mpc_csp_solver->mc_cr_out_solver.m_W_dot_elec_in_tot -      // In solar thermal this represents field + pumping; in heaters it includes the heater consumption
+        mpc_csp_solver->mc_pc_out_solver.m_W_dot_elec_parasitics_tot - // Total cycle electricity consumption that doesn't contribute to cycle working fluid
+        W_dot_tes_pump -
+        W_dot_cr_freeze_protection -
+        W_dot_par_htr_elec_load -
+        mpc_csp_solver->mc_tes_outputs.m_q_heater -
+        mpc_csp_solver->m_W_dot_fixed_design -
+        W_dot_bop;	//[MWe]
+
+    mpc_csp_solver->mc_system_metrics.set_W_dot_bop(W_dot_bop);
+    mpc_csp_solver->mc_system_metrics.set_W_dot_net(W_dot_net);
+
     if (m_solver_mode == E__TO_PC_PLUS_TES_FULL__ITER_M_DOT_SU
         || m_solver_mode == E__CR_OUT__ITER_M_DOT_SU_CH_ONLY || m_solver_mode == E__CR_OUT__ITER_M_DOT_SU_DC_ONLY
         || m_solver_mode == E__TO_PC__ITER_M_DOT_SU)
@@ -1194,7 +1325,12 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
     }
     else if (m_solver_mode == E__CR_OUT__ITER_Q_DOT_TARGET_DC_ONLY || m_solver_mode == E__CR_OUT__ITER_Q_DOT_TARGET_CH_ONLY)
     {
-        *diff_target = (mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf - m_q_dot_pc_target) / m_q_dot_pc_target;
+        if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::HEAT) {
+            *diff_target = (mpc_csp_solver->mc_pc_out_solver.m_q_dot_htf - m_q_dot_pc_target) / m_q_dot_pc_target;
+        }
+        else if (m_pc_target_type_at_operating_mode == C_csp_power_cycle::ELEC) {
+            *diff_target = (mpc_csp_solver->mc_system_metrics.get_W_dot_net() - m_q_dot_pc_target) / m_q_dot_pc_target;   //[MWe]
+        }
     }
 
     return 0;
@@ -1203,6 +1339,7 @@ int C_csp_solver::C_MEQ__m_dot_tes::operator()(double f_m_dot_tes /*-*/, double 
 void C_csp_solver::C_MEQ__T_field_cold::init_calc_member_vars()
 {
     m_t_ts_calc = std::numeric_limits<double>::quiet_NaN();
+    m_m_dot_tes_return_message = "";
 }
 
 int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, double *diff_T_field_cold /*-*/)
@@ -1211,7 +1348,7 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
 
     C_MEQ__m_dot_tes c_eq(m_solver_mode, mpc_csp_solver, 
         m_pc_mode, m_cr_mode,
-        m_htr_mode,
+        m_htr_mode, m_pc_target_type_at_operating_mode,
         m_q_dot_elec_to_CR_heat, m_q_dot_elec_to_PAR_HTR,
         m_is_rec_outlet_to_hottank,
         m_q_dot_pc_target,
@@ -1250,12 +1387,12 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
 
             return 0;
         }
-        else if(diff_m_dot < -1.E-3)
+        else if(diff_m_dot < -mpc_csp_solver->m_tol_m_dot_iter_target )
         {
             return -4;
         }
 
-        if (std::abs(diff_m_dot) > 1.E-3)
+        if (std::abs(diff_m_dot) > mpc_csp_solver->m_tol_m_dot_iter_target )
         {
             C_monotonic_eq_solver::S_xy_pair xy1;
             xy1.x = f_m_dot_guess_1;        //[-]
@@ -1264,7 +1401,7 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
             // Use difference from guess 1 to generate a new guess
             double f_m_dot_guess_2 = 1.0 / (1.0 + diff_m_dot);      //[-]
 
-            c_solver.settings(1.E-3, 50, 0.0, 1.0, false);
+            c_solver.settings(mpc_csp_solver->m_tol_m_dot_iter_target, 50, 0.0, 1.0, false);
 
             double f_m_dot_solved, tol_solved;
             f_m_dot_solved = tol_solved = std::numeric_limits<double>::quiet_NaN();
@@ -1287,15 +1424,47 @@ int C_csp_solver::C_MEQ__T_field_cold::operator()(double T_field_cold /*C*/, dou
                 {
                     return -5;
                 }
-                else if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < 0.1)
+                else if (f_m_dot_code > C_monotonic_eq_solver::CONVERGED && std::abs(tol_solved) < mpc_csp_solver->m_tol_m_dot_iter_max )
                 {
+                    // The code below chooses the smallest negative error (as opposed to the smallest absolute overall error)
+                    //    when the solver misses the convergence target
+                    // I tested it by manually forcing the debugger to run this section of code
+                    // To implement, we would need to assign a boolean only in the certain cases where this operation makes sense
+                    //    (e.g. target is maximum so want to miss low)
                     
+                    /*
+                    // If we can only accept missing low, then
+                    if(false && tol_solved > 0.0){
 
-                    std::string msg = util::format("At time = %lg power cycle mass flow for startup "
-                        "iteration to find a defocus resulting in the maximum power cycle mass flow rate only reached a convergence "
-                        "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
-                        mpc_csp_solver->mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
-                    mpc_csp_solver->mc_csp_messages.add_message(C_csp_messages::NOTICE, msg);
+                        // Check that negative error exists; if not
+                        if(c_solver.is_no_negative_error(f_m_dot_code)){
+                            return -6;
+                        }
+
+                        // Get x value at smallest negative error
+                        double x_at_smallest_negative_error, y_err_smallest_negative;
+                        if(!c_solver.get_smallest_neg_diff_no_err(0.0, x_at_smallest_negative_error, y_err_smallest_negative)){
+                            return -7;
+                        }
+
+                        // Check that smallest negative error meets larger tolerance
+                        if(std::abs(y_err_smallest_negative) >= 0.1){
+                            return -8;
+                        }
+
+                        // Solve at x to update models
+                        tol_solved = c_solver.call_mono_eq_calc_y_err(x_at_smallest_negative_error, 0.0);
+                        if( !std::isfinite(tol_solved) || std::abs(tol_solved) >= 0.1 ){
+                            return -9;
+                        }
+                    }
+                    */
+
+                    std::string msg = util::format("the mass flow rate iteration only reached a convergence "
+                        "= %lg. Check that results at this timestep are not unreasonably biasing total simulation results.",
+                        tol_solved);
+
+                    m_m_dot_tes_return_message = msg;
                 }
                 else
                 {

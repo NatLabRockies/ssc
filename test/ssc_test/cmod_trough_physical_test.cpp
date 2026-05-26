@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -34,13 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include "trough_physical_defaults.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
+#include <iomanip> 
 
 namespace csp_trough {}
 using namespace csp_trough;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(csp_trough, PowerTroughCmod, Default_NoFinancial)
+TEST(PowerTroughCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = trough_physical_defaults();
     CmodUnderTest power_trough = CmodUnderTest("trough_physical", defaults);
@@ -68,25 +68,25 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Default_NoFinancial)
         double n_op_modes = power_trough.GetOutputSum("n_op_modes");
         double is_rec_su_allowed = power_trough.GetOutputSum("is_rec_su_allowed");
 
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("annual_energy"), 377677449, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("annual_thermal_consumption"), 872331, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("annual_tes_freeze_protection"), 692200, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("annual_field_freeze_protection"), 180131, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("capacity_factor"), 43.16, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("annual_W_cycle_gross"), 430999201, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("kwh_per_kw"), 3781, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("conversion_factor"), 87.63, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutput("annual_total_water_use"), 82009, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_energy, 377677449, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_thermal_consumption, 882888, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_tes_freeze_protection, 701511, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_field_freeze_protection, 180131, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(capacity_factor, 43.16, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_W_cycle_gross, 430999201, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(kwh_per_kw, 3781, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(conversion_factor, 87.63, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(annual_total_water_use, 82009, kErrorToleranceHi);
 
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("time_hr"), 38373180, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("month"), 57168, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("beam"), 2687889, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("defocus"), 8747, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("q_dc_tes"), 343833, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("P_fixed"), 5348, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("op_mode_1"), 54965, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("n_op_modes"), 9800, kErrorToleranceHi);
-        EXPECT_NEAR_FRAC(power_trough.GetOutputSum("is_rec_su_allowed"), 8759, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(time_hr, 38373180, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(month, 57168, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(beam, 2687889, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(defocus, 8747, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(q_dc_tes, 343833, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(P_fixed, 5348, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(op_mode_1, 54965, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(n_op_modes, 9800, kErrorToleranceHi);
+        EXPECT_NEAR_FRAC(is_rec_su_allowed, 8759, kErrorToleranceHi);
         //EXPECT_NEAR_FRAC(power_trough.GetOutputSum("operating_modes_a"), 35458021, kErrorToleranceHi);
     }
     //ssc_data_t defaults = singleowner_defaults();
@@ -98,7 +98,7 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Default_NoFinancial)
     //}
 }
 
-NAMESPACE_TEST(csp_trough, PowerTroughCmod, Start_Stop_Initialize_Default_NoFinancial)
+TEST(PowerTroughCmod, Start_Stop_Initialize_Default_NoFinancial)
 {
     ssc_data_t defaults = trough_physical_defaults();
     CmodUnderTest power_trough = CmodUnderTest("trough_physical", defaults);
@@ -154,7 +154,7 @@ NAMESPACE_TEST(csp_trough, PowerTroughCmod, Start_Stop_Initialize_Default_NoFina
 }
 
 
-NAMESPACE_TEST(csp_trough, PowerTroughCmod, Dispatch_Targets_Default_NoFinancial) {
+TEST(PowerTroughCmod, Dispatch_Targets_Default_NoFinancial) {
 
     bool print_outputs = false; // True will make test fail to print output!
     int len_window = 24;

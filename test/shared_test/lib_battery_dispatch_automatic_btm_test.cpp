@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -870,7 +870,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutagePeakShavingDai
                                         0, 52.1, 52.1, 52.1, 52.1, 52.1, // 18 - 23
                                         52.1, 52.1, 52.1, 52.1 };
 
-    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NREL/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
+    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NatLabRockies/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0 };
@@ -1520,7 +1520,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutagePeakShavingDC)
                                         -57.6, -57.6, -57.6, -57.6, -1.1, 0,
                                          0, 62.6, 62.6, 62.6, 62.8, 63.0 };
 
-    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 19.6, 49.7, // Fixing https://github.com/NREL/ssc/issues/569 could probably get the crit load unmet in step 4 to zero
+    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 19.6, 49.7, // Fixing https://github.com/NatLabRockies/ssc/issues/569 could probably get the crit load unmet in step 4 to zero
                                                 50, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0 };
@@ -1589,7 +1589,7 @@ TEST_F(AutoBTMTest_lib_battery_dispatch, DispatchAutoBTMGridOutageFuelCellCharge
                                         -48, -48, -48, -48, -38.57, 0,
                                         0, 52.16, 52.16, 52.16, 52.32, 52.42 };
 
-    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NREL/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
+    std::vector<double> expectedCritLoadUnmet = { 0, 0, 0, 0, 12.2, 46.5, // Fixing https://github.com/NatLabRockies/ssc/issues/569 could probably get the crit load unmet in step 5 to zero
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0 };

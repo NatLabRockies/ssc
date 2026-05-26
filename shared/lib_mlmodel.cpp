@@ -2,7 +2,7 @@
 Copyright 2017 - pvyield GmbH / Timo Richert
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 #include <cmath>
+#include <algorithm>
 
 #include "lib_mlmodel.h"
 // #include "mlm_spline.h"
-#include "bsplinebuilder.h"
-#include "datatable.h"
+#include <bspline_builders.h>
+#include <data_table.h>
 
 static const double k = 1.38064852e-23; // Boltzmann constant [J/K]
 static const double q = 1.60217662e-19; // Elemenatry charge [C]
@@ -74,7 +75,6 @@ static const int AM_MODE_LEE_PANCHULA = 4;
 
 mlmodel_module_t::mlmodel_module_t()
           {
-	m_bspline3 = BSpline(1);
 	Width = Length = V_mp_ref = I_mp_ref = V_oc_ref = I_sc_ref = S_ref = T_ref
 		= R_shref = R_sh0 = R_shexp = R_s
 		= alpha_isc = beta_voc_spec = E_g = n_0 = mu_n = D2MuTau = T_c_no_tnoct
@@ -131,9 +131,9 @@ void mlmodel_module_t::initializeManual()
 			*/
 			DataTable samples;
 			for (int i = 0; i <= IAM_c_cs_elements - 1; i = i + 1) {
-				samples.addSample(IAM_c_cs_incAngle[i], IAM_c_cs_iamValue[i]);
+				samples.add_sample(IAM_c_cs_incAngle[i], IAM_c_cs_iamValue[i]);
 			}
-			m_bspline3 = BSpline::Builder(samples).degree(3).build();
+			m_bspline3 = std::make_unique<BSpline>(bspline_interpolator(samples, 3));
 
 			isInitialized = true;
 		}
@@ -170,11 +170,11 @@ bool mlmodel_module_t::operator() (pvinput_t const &input, double T_C, double op
 //			f_IAM_gnd = std::min(iamSpline(theta_gnd), 1.0);
 			DenseVector x(1);
 			x(0) = theta_beam;
-			f_IAM_beam = std::min(m_bspline3.eval(x), 1.0);
+			f_IAM_beam = std::min((*m_bspline3).eval(x)[0], 1.0);
 			x(0) = theta_diff;
-			f_IAM_diff = std::min(m_bspline3.eval(x), 1.0);
+			f_IAM_diff = std::min((*m_bspline3).eval(x)[0], 1.0);
 			x(0) = theta_gnd;
-			f_IAM_gnd = std::min(m_bspline3.eval(x), 1.0);
+			f_IAM_gnd = std::min((*m_bspline3).eval(x)[0], 1.0);
 			break;
 	}
 

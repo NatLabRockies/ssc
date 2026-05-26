@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -57,7 +57,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 
 
 #define presolve_setstatus(one, two)  presolve_setstatusex(one, two, __LINE__, __FILE__)
-STATIC int presolve_setstatusex(presolverec *psdata, int status, int lineno, char *filename)
+STATIC int presolve_setstatusex(presolverec *psdata, int status, int lineno, const char *filename)
 {
   if((status == INFEASIBLE) || (status == UNBOUNDED)) {
     report(psdata->lp,
@@ -466,7 +466,7 @@ STATIC MYBOOL presolve_rowfeasible(presolverec *psdata, int rownr, MYBOOL userow
   return( status );
 }
 
-STATIC MYBOOL presolve_debugmap(presolverec *psdata, char *caption)
+STATIC MYBOOL presolve_debugmap(presolverec *psdata, const char *caption)
 {
   lprec *lp = psdata->lp;
   MATrec *mat = lp->matA;

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -314,6 +314,62 @@ TEST_F(CMWindPowerIntegration, UsingDataArray_cmod_windpower) {
     free_winddata_array(windresourcedata);
 }
 
+// Run the data array in lifetime mode
+TEST_F(CMWindPowerIntegration, UsingDataArray_cmod_windpower_lifetime) {
+    // using hourly data
+    ssc_data_unassign(data, "wind_resource_filename");
+    var_table* vt = static_cast<var_table*>(data);
+    auto windresourcedata = create_winddata_array(1, 1);
+    ssc_data_set_table(data, "wind_resource_data", windresourcedata);
+    ssc_data_set_number(data, "system_use_lifetime_output", 1);
+    ssc_data_set_number(data, "analysis_period", 2);
+    ssc_number_t degradation[1] = { 0 };
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
+
+    compute();
+    double expectedAnnualEnergy = 4219481;
+    double relErr = expectedAnnualEnergy * .001;
+
+
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, expectedAnnualEnergy, relErr);
+
+    ssc_number_t monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 0, relErr / 10.);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 1972735, relErr / 10.);
+
+    int gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 2);
+
+    free_winddata_array(windresourcedata);
+
+    // 15 min data
+    ssc_data_unassign(data, "wind_resource_data");
+    windresourcedata = create_winddata_array(4, 1);
+    vt->assign("wind_resource_data", *windresourcedata);
+
+    compute();
+
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, expectedAnnualEnergy, relErr);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 0, relErr / 10.);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 1972735, relErr / 10.);
+
+    gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 4 * 2);
+
+    free_winddata_array(windresourcedata);
+}
+
 /// Using Weibull Distribution
 TEST_F(CMWindPowerIntegration, Weibull_cmod_windpower) {
     ssc_data_set_number(data, "wind_resource_model_choice", 1);
@@ -328,6 +384,30 @@ TEST_F(CMWindPowerIntegration, Weibull_cmod_windpower) {
 
     monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
     EXPECT_NEAR(monthly_energy, 15326247, e);
+}
+
+// Now in lifetime mode!
+TEST_F(CMWindPowerIntegration, Weibull_cmod_windpower_lifetime) {
+    ssc_data_set_number(data, "wind_resource_model_choice", 1);
+    ssc_data_set_number(data, "system_use_lifetime_output", 1);
+    ssc_data_set_number(data, "analysis_period", 2);
+    ssc_number_t degradation[1] = { 0 };
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
+    compute();
+
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 180453760, e);
+
+    ssc_number_t monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 15326247, e);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 15326247, e);
+
+    int gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 2);
 }
 
 /// Using Wind Resource 2-D Distribution
@@ -352,6 +432,38 @@ TEST_F(CMWindPowerIntegration, WindDist_cmod_windpower) {
 
     monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
     EXPECT_NEAR(monthly_energy, 13573000, e);
+}
+
+// Same as above, in lifetime mode 
+TEST_F(CMWindPowerIntegration, WindDist_cmod_windpower_lifetime) {
+    ssc_data_set_number(data, "wind_resource_model_choice", 2);
+    double dist[18] = { 1.5, 180, .12583,
+                       5, 180, .3933,
+                       8, 180, .18276,
+                       10, 180, .1341,
+                       13.5, 180, .14217,
+                       19, 180, .0211 };
+
+    ssc_data_set_matrix(data, "wind_resource_distribution", dist, 6, 3);
+    ssc_data_set_number(data, "system_use_lifetime_output", 1);
+    ssc_data_set_number(data, "analysis_period", 2);
+    ssc_number_t degradation[1] = { 0 };
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
+    compute();
+
+    ssc_number_t annual_energy;
+    ssc_data_get_number(data, "annual_energy", &annual_energy);
+    EXPECT_NEAR(annual_energy, 159807000, e);
+
+    ssc_number_t monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[0];
+    EXPECT_NEAR(monthly_energy, 13573000, e);
+
+    monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
+    EXPECT_NEAR(monthly_energy, 13573000, e);
+
+    int gen_length = 0;
+    ssc_data_get_array(data, "gen", &gen_length);
+    EXPECT_EQ(gen_length, 8760 * 2);
 }
 
 /// Using Wind Resource 2-D Distribution
@@ -619,246 +731,3 @@ TEST(Turbine_powercurve_cmod_windpower_eqns, Case4) {
     delete vd;
 
 }
-
-bool setup_python() {
-    if (!std::getenv("SAMNTDIR")){
-        std::cerr << "Python not configured.";
-        return false;
-    }
-#ifdef __WINDOWS__
-    auto python_dir = std::string(std::getenv("SAMNTDIR")) + "\\deploy\\runtime\\python\\";
-#else
-    if (!std::getenv("CMAKEBLDDIR")) return false;
-    auto python_dir = std::string(std::getenv("CMAKEBLDDIR")) + "/sam/SAM.app/Contents/runtime/python/";
-
-    if (!util::dir_exists(std::string(python_dir + "Miniconda-4.8.2/").c_str())){
-        std::cerr << "Python not configured.";
-        return false;
-    }
-#endif
-
-    if (!set_python_path(python_dir.c_str()))
-        std::cerr << "set_python_path error for directory " + python_dir;
-    return true;
-}
-
-TEST(windpower_landbosse, SetupPython) {
-	// load python configuration
-	if (!setup_python())
-	    return;
-
-    rapidjson::Document python_config_root;
-    std::string configPath = std::string(get_python_path()) + "python_config.json";
-    if (configPath.empty())
-        return;
-
-	std::ifstream python_config_doc(configPath);
-	if (python_config_doc.fail()) {
-	    printf("Could not open %s", configPath.c_str());
-	    return;
-	}
-
-    std::ostringstream tmp;
-    tmp << python_config_doc.rdbuf();
-    python_config_root.Parse(tmp.str().c_str());
-
-
-	if (!python_config_root.HasMember("miniconda_version"))
-		throw std::runtime_error("Missing key 'miniconda_version' in " + configPath);
-	if (!python_config_root.HasMember("python_version"))
-		throw std::runtime_error("Missing key 'python_version' in " + configPath);
-	if (!python_config_root.HasMember("exec_path"))
-		throw std::runtime_error("Missing key 'exec_path' in " + configPath);
-	if (!python_config_root.HasMember("pip_path"))
-		throw std::runtime_error("Missing key 'pip_path' in " + configPath);
-	if (!python_config_root.HasMember("packages"))
-		throw std::runtime_error("Missing key 'packages' in " + configPath);
-
-	std::vector<std::string> packages;
-    for (auto& i : python_config_root["packages"].GetArray())
-        packages.push_back(i.GetString());
-
-	std::vector<std::string> config = { python_config_root["python_version"].GetString(),
-						   python_config_root["miniconda_version"].GetString(),
-						   python_config_root["exec_path"].GetString(),
-						   python_config_root["pip_path"].GetString()
-						    };
-
-}
-
-bool check_Python_setup() {
-    if (!setup_python())  {
-        std::cerr << "Python not configured.";
-        return false;
-    }
-    std::string configPath = std::string(get_python_path()) + "python_config.json";
-    if (configPath.empty())
-        return false;
-
-    std::ifstream python_config_doc(configPath);
-    rapidjson::Document python_config_root;
-    std::ostringstream tmp;
-    tmp << python_config_doc.rdbuf();
-    python_config_root.Parse(tmp.str().c_str());
-
-    if (!python_config_root["exec_path"].GetString()) {
-        std::cerr << "Python not configured.";
-        return false;
-    }
-    return true;
-}
-
-TEST(windpower_landbosse, RunSuccess) {
-    if (!check_Python_setup())
-        return;
-
-    char file[1024];
-    sprintf(file, "%s/test/input_docs/AR Northwestern-Flat Lands.srw", SSCDIR);
-
-    auto *vd = new var_table;
-    vd->assign("en_landbosse", 1);
-    vd->assign("wind_resource_filename", std::string(file));
-    vd->assign("turbine_rating_MW", 1.5);
-    vd->assign("wind_turbine_rotor_diameter", 45);
-    vd->assign("wind_turbine_hub_ht", 80);
-    vd->assign("num_turbines", 100);
-    vd->assign("wind_resource_shear", 0.2);
-    vd->assign("turbine_spacing_rotor_diameters", 4);
-    vd->assign("row_spacing_rotor_diameters", 10);
-
-    vd->assign("interconnect_voltage_kV", 137);
-    vd->assign("distance_to_interconnect_mi", 10);
-    vd->assign("depth", 2.36);
-    vd->assign("rated_thrust_N", 589000);
-    vd->assign("labor_cost_multiplier", 1);
-    vd->assign("gust_velocity_m_per_s", 59.50);
-
-
-    auto landbosse = ssc_module_create("wind_landbosse");
-    
-    ssc_module_exec(landbosse, vd); // memory leaks
-    ssc_module_free(landbosse);
-
-    if (vd->lookup("errors")) {
-        if (vd->lookup("errors")->str == "0") {
-            EXPECT_NEAR(vd->lookup("total_collection_cost")->num[0], 4202342, 1e2);
-            EXPECT_NEAR(vd->lookup("total_development_cost")->num[0], 150000, 1e2);
-            EXPECT_NEAR(vd->lookup("total_erection_cost")->num[0], 6057403, 1e2);
-            EXPECT_NEAR(vd->lookup("total_foundation_cost")->num[0], 10036157, 1e2);
-            EXPECT_NEAR(vd->lookup("total_gridconnection_cost")->num[0], 5.61774e+06, 1e2);
-            EXPECT_NEAR(vd->lookup("total_management_cost")->num[0], 10516516, 1e2);
-            EXPECT_NEAR(vd->lookup("total_bos_cost")->num[0], 43836161, 1e2);
-            EXPECT_NEAR(vd->lookup("total_sitepreparation_cost")->num[0], 2698209, 1e2);
-            EXPECT_NEAR(vd->lookup("total_substation_cost")->num[0], 4940746, 1e2);
-
-            std::vector<std::string> all_outputs = { "bonding_usd", "collection_equipment_rental_usd", "collection_labor_usd",
-                                                    "collection_material_usd", "collection_mobilization_usd",
-                                                    "construction_permitting_usd", "development_labor_usd",
-                                                    "development_material_usd", "development_mobilization_usd",
-                                                    "engineering_usd", "erection_equipment_rental_usd", "erection_fuel_usd",
-                                                    "erection_labor_usd", "erection_material_usd", "erection_mobilization_usd",
-                                                    "erection_other_usd", "foundation_equipment_rental_usd",
-                                                    "foundation_labor_usd", "foundation_material_usd",
-                                                    "foundation_mobilization_usd", "insurance_usd", "markup_contingency_usd",
-                                                    "project_management_usd", "site_facility_usd",
-                                                    "sitepreparation_equipment_rental_usd", "sitepreparation_labor_usd",
-                                                    "sitepreparation_material_usd", "sitepreparation_mobilization_usd" };
-
-            for (auto& i : all_outputs) {
-                EXPECT_GE(vd->lookup(i)->num[0], 0) << i;
-            }
-            delete vd;
-        }
-        else {
-            std::string str = vd->lookup("errors")->str;
-            delete vd;
-//            FAIL() << str; // memory leak
-//            EXPECT_EQ(str, "0"); // causes reported memory leak
-        }
-    }
-    else {
-        delete vd;
- //       FAIL() << "mem leak"; // causes memory leak
- //       EXPECT_FALSE(0 == 0);
-    }
-    
-}
-
-TEST(windpower_landbosse, SubhourlyFail) {
-    if (!check_Python_setup())
-        return;
-
-    char file[256];
-    sprintf(file, "%s/test/input_docs/AR Northwestern-Flat Lands-15min.srw", SSCDIR);
-
-    auto *vd = new var_table;
-    vd->assign("en_landbosse", 1);
-    vd->assign("wind_resource_filename", std::string(file));
-    vd->assign("turbine_rating_MW", 1.5);
-    vd->assign("wind_turbine_rotor_diameter", 45);
-    vd->assign("wind_turbine_hub_ht", 80);
-    vd->assign("num_turbines", 100);
-    vd->assign("wind_resource_shear", 0.2);
-    vd->assign("turbine_spacing_rotor_diameters", 4);
-    vd->assign("row_spacing_rotor_diameters", 10);
-
-    vd->assign("interconnect_voltage_kV", 137);
-    vd->assign("distance_to_interconnect_mi", 10);
-    vd->assign("depth", 2.36);
-    vd->assign("rated_thrust_N", 589000);
-    vd->assign("labor_cost_multiplier", 1);
-    vd->assign("gust_velocity_m_per_s", 59.50);
-
-    auto landbosse = ssc_module_create("wind_landbosse");
-
-    bool success = ssc_module_exec(landbosse, vd);
-
-    EXPECT_FALSE(success);
-
-    auto err = vd->lookup("errors")->str;
-    EXPECT_EQ(err, "Error in Weather_Data: Length of values does not match length of index");
-
-    ssc_module_free(landbosse);
-    delete vd;
-
-}
-
-TEST(windpower_landbosse, NegativeInputFail) {
-    if (!check_Python_setup())
-        return;
-
-    char file[256];
-    sprintf(file, "%s/test/input_docs/AR Northwestern-Flat Lands.srw", SSCDIR);
-
-    auto *vd = new var_table;
-    vd->assign("en_landbosse", 1);
-    vd->assign("wind_resource_filename", std::string(file));
-    vd->assign("turbine_rating_MW", 1.5);
-    vd->assign("wind_turbine_rotor_diameter", 45);
-    vd->assign("wind_turbine_hub_ht", 80);
-    vd->assign("num_turbines", 100);
-    vd->assign("wind_resource_shear", 0.2);
-    vd->assign("turbine_spacing_rotor_diameters", 4);
-    vd->assign("row_spacing_rotor_diameters", 10);
-
-    vd->assign("interconnect_voltage_kV", 137);
-    vd->assign("distance_to_interconnect_mi", 10);
-    vd->assign("depth", -2.36);
-    vd->assign("rated_thrust_N", 589000);
-    vd->assign("labor_cost_multiplier", 1);
-    vd->assign("gust_velocity_m_per_s", 59.50);
-
-    auto landbosse = ssc_module_create("wind_landbosse");
-
-    bool success = ssc_module_exec(landbosse, vd);
-
-    EXPECT_FALSE(success);
-
-    auto err = vd->lookup("errors")->str;
-    EXPECT_EQ(err, "Error in NegativeInputError: User entered a negative value for depth. This is an invalid entry");
-
-    ssc_module_free(landbosse);
-    delete vd;
-
-}
-

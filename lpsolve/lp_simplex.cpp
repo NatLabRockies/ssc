@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -110,7 +110,7 @@ STATIC void stallMonitor_reset(lprec *lp)
   monitor->countstep = 1;
 }
 
-STATIC MYBOOL stallMonitor_create(lprec *lp, MYBOOL isdual, char *funcname)
+STATIC MYBOOL stallMonitor_create(lprec *lp, MYBOOL isdual,  const char *funcname)
 {
   OBJmonrec *monitor = NULL;
   if(lp->monitor != NULL)

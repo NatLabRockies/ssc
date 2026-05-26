@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
+#include <algorithm>
 #include "cmod_pvsamv1_eqns.h"
 #include "cmod_battery_eqns.h"
 #include "cmod_utilityrate5_eqns.h"
@@ -70,7 +70,7 @@ SSCEXPORT bool Reopt_size_battery_params(ssc_data_t data) {
     // Use existing PV size for economic runs, allow REopt to return PV size for grid outage runs
     if (!size_for_grid_outage) {
         // use existing pv system from SAM, not allowing additional PV
-        // do not specify both 'existing_kw' and 'max_kw' per https://github.com/NREL/SAM/issues/1742#issuecomment-2125878338
+        // do not specify both 'existing_kw' and 'max_kw' per https://github.com/NatLabRockies/SAM/issues/1742#issuecomment-2125878338
         //map_input(vt, "system_capacity", &reopt_pv, "existing_kw");
         map_input(vt, "system_capacity", &reopt_pv, "max_kw");
     }
@@ -234,7 +234,7 @@ SSCEXPORT bool Reopt_size_battery_params(ssc_data_t data) {
         reopt_utility.assign("outage_durations", outage_durations);
     }
 
-    // set net metering limit to system capacity per https://github.com/NREL/SAM/issues/1742
+    // set net metering limit to system capacity per https://github.com/NatLabRockies/SAM/issues/1742
     vd = vt->lookup("ur_metering_option");
     if ((int)vd->num[0] == 0) // net metering
         reopt_utility.assign("net_metering_limit_kw", system_cap);

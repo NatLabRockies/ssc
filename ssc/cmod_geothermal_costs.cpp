@@ -436,6 +436,8 @@ public:
             double prod_total_cost = prod_wells_drilled * prod_well_cost;
             assign("prod_total_cost", prod_total_cost);
             assign("prod_well_cost", prod_well_cost);
+
+            assign("sum_prod_inj_total_cost", ssc_number_t(prod_total_cost + inj_total_cost));
             
             // Stimulation costs
             /*

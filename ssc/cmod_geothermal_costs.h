@@ -110,6 +110,9 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_well_cost",                      "Injection cost per well",                                   "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_total_cost",                     "Total injection well system cost",                          "$",       "",     "GeoHourly", "?",                        "",                              ""   },
 
+    { SSC_OUTPUT,     SSC_NUMBER,     "sum_prod_inj_total_cost",            "Sum of total production and injection well system cost",    "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+
+
     var_info_invalid
 };
 

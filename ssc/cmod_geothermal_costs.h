@@ -96,6 +96,7 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     // Stimulation costs
     { SSC_OUTPUT,     SSC_NUMBER,     "stim_cost_per_well",                 "Stimulation cost per well",                                 "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "stim_cost_non_drill",                "Non-drilling stimulation costs",                            "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+    { SSC_OUTPUT,     SSC_NUMBER,     "stim_total_cost",                    "Stimulation Total costs",                                   "$",       "",     "GeoHourly", "?",                        "",                              ""   },   
 
     // Expl and Confirmation drilling costs
     { SSC_OUTPUT,     SSC_NUMBER,     "expl_total_cost",                    "Exploration total costs",                                   "$",       "",     "GeoHourly", "?",                        "",                              ""   },

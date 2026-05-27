@@ -263,6 +263,7 @@ public:
     virtual double get_max_power_delivery(double T_cold_in);    //MWt
     virtual double get_tracking_power();		//MWe
     virtual double get_col_startup_power();		//MWe-hr
+    virtual double get_design_pumping_power();  //[MWe]
 
     virtual void off(const C_csp_weatherreader::S_outputs& weather,
         const C_csp_solver_htf_1state& htf_state_in,

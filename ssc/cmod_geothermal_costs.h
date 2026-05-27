@@ -56,6 +56,9 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.prod_cost_curve_welldiam","Production well diameter type",                           "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "calc_drill_costs=1", "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.inj_cost_curve",       "Injection well diameter type",                              "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "calc_drill_costs=1", "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.prod_cost_curve",      "Production well diameter type",                             "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "calc_drill_costs=1", "",                              ""   },
+
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.prod_inj_non_drill",   "Non drilling cost for prod and inj well",                   "$",      "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "calc_drill_costs=1", "",                              ""   },
+
     { SSC_INPUT,      SSC_NUMBER,     "resource_depth",                      "Resource Depth",                                           "m",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },
     
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.stim_non_drill",       "Stimulation non drilling costs",                            "$",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=0" },
@@ -111,6 +114,7 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_total_cost",                     "Total injection well system cost",                          "$",       "",     "GeoHourly", "?",                        "",                              ""   },
 
     { SSC_OUTPUT,     SSC_NUMBER,     "sum_prod_inj_total_cost",            "Sum of total production and injection well system cost",    "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+    { SSC_OUTPUT,     SSC_NUMBER,     "prod_inj_total_cost",                "Sum drilling cost plus non-drilling well costs",            "$",       "",     "GeoHourly", "?",                        "",                              ""   },
 
 
     var_info_invalid

@@ -442,6 +442,8 @@ public:
             double prod_inj_non_drill_cost = as_double("geotherm.cost.prod_inj_non_drill");
             double prod_inj_total_cost = prod_total_cost + inj_total_cost + prod_inj_non_drill_cost;
             assign("prod_inj_total_cost", ssc_number_t(prod_inj_total_cost));
+
+            assign("num_wells_getem_prod_inj_sum", ssc_number_t(prod_wells_drilled + inj_wells_drilled));
             
             // Stimulation costs
             /*

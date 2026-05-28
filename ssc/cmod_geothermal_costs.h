@@ -103,6 +103,7 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     // Expl and Confirmation drilling costs
     { SSC_OUTPUT,     SSC_NUMBER,     "expl_total_cost",                    "Exploration total costs",                                   "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+    { SSC_OUTPUT,     SSC_NUMBER,     "expl_per_well_cost",                 "Exploration cost per production well",                      "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "expl_drilling_cost",                 "Exploration drilling costs",                                "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "conf_total_cost",                    "Confirmation total costs",                                  "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "conf_drilling_cost",                 "Confirmation drilling costs",                               "$",       "",     "GeoHourly", "?",                        "",                              ""   },

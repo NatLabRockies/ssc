@@ -499,6 +499,7 @@ public:
             double expl_total_cost = expl_per_well * expl_num_wells + expl_non_drill;
             assign("expl_total_cost", expl_total_cost);
             assign("expl_drilling_cost", expl_per_well* expl_num_wells);
+            assign("expl_cost_per_well", expl_per_well);
 
             double conf_non_drill = as_double("geotherm.cost.conf_non_drill");
             double conf_multiplier = as_double("geotherm.cost.conf_multiplier");

@@ -171,7 +171,7 @@ private:
 	double tg_cost;
 	double current_cost_ref_tg;
 
-	double plant_equip_cost, baseline_cost;
+	double plant_equip_cost;
     double indirect_plant_cost;
 
 
@@ -548,6 +548,9 @@ public:
         double total_expl_cost = total_drilling_cost_nodev + expl_permitting_cost + expl_stimulation_cost + expl_indirect_cost + total_predrilling_cost + total_leasing_cost;
         */
 
+        double baseline_cost = std::numeric_limits<double>::quiet_NaN();
+        double unit_plant = as_double("gross_output") * 1.E3;   //[kWe] convert from MWe
+
 		if (conversion_type == 0) {
 			//geo_inputs.me_ct = BINARY;
 
@@ -555,8 +558,6 @@ public:
 			//double unit_plant = as_double("nameplate");		//Gross plant size
 			double design_temp = as_double("design_temp") - as_double("dt_prod_well");
 			double eff = as_double("eff_secondlaw");	// w-h/lb
-			double unit_plant = as_double("gross_output");
-            unit_plant *= 1000.0; //convert to kW, brought from cmod_geothermal as MW
 
 			//Geofluid Heat Exchangers Equipment Cost Calculations:				
 			size_ratio = unit_plant / ref_plant_size;
@@ -640,16 +641,15 @@ public:
 
             corrected_equip_cost += indirect_plant_cost;
 
+            baseline_cost = corrected_equip_cost;
 
 			// for outputs, to assign, use:
 			//assign("dc_cost_multiplier", var_data(static_cast<ssc_number_t>(dc_cost_multiplier)));
-			assign("baseline_cost", var_data(static_cast<ssc_number_t>(corrected_equip_cost)));
+			assign("baseline_cost", var_data(static_cast<ssc_number_t>(baseline_cost)));
 		}
 
 		else if (conversion_type == 1) {
 			//geo_inputs.me_ct = FLASH;
-			double unit_plant = as_double("gross_output");
-            unit_plant *= 1000.0; //kW, comes from cmod_geothermal as MW
             double gross_cost = as_double("gross_cost_output"); //kW
             double GF_flowrate = as_double("GF_flowrate");
 			double qRejectTotal = (as_double("qRejectTotal")*GF_flowrate / 1000) / 1000000;		// Converting from btu/h to MMBTU/h
@@ -798,6 +798,19 @@ public:
 			assign("baseline_cost", var_data(static_cast<ssc_number_t>(baseline_cost)));
 
 		}
+
+        // Calculate plant cost based on user input for model option
+        bool use_getem_plant_cost = as_boolean("geotherm.cost.plant_auto_estimate");
+        double total_plant_cost = std::numeric_limits<double>::quiet_NaN();
+        if(use_getem_plant_cost){
+            total_plant_cost = baseline_cost * unit_plant;      //[$]
+        }
+        else{
+            double plant_per_kW_input = as_double("geotherm.cost.plant_per_kW_input");  //[$/kWe]
+            total_plant_cost = plant_per_kW_input * unit_plant; //[$]
+        }
+        assign("total_plant_cost", var_data(static_cast<ssc_number_t>(total_plant_cost)));
+
 
        //Pump costs
         double workover_casing_cost = as_double("geotherm.cost.pump_casing_cost");

@@ -50,6 +50,9 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     //{ SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "calc_drill_costs",                   "Calculate drill costs",                                      "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "?=1",         "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_auto_estimate",  "0: use user input cost; 1: use getem calcs",                 "0/1",     "",                                   "GeoHourly", "",         "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_per_kW_input",   "user input for relative plant cost",                         "$/kWe",   "",                                   "GeoHourly", "geotherm.cost.plant_auto_estimate=0",         "",                              ""   },
+
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.inj_cost_curve_welltype","Injection well type",                                       "0/1",     "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.prod_cost_curve_welltype","Production well type",                                     "0/1",     "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.inj_cost_curve_welldiam","Injection well diameter type",                             "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "calc_drill_costs=1", "",                              ""   },
@@ -96,6 +99,9 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_OUTPUT,     SSC_NUMBER,     "piping_cost_per_well",               "Surface piping cost per well",                              "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "field_gathering_num_wells",          "Field gathering system number of wells",                    "wells",   "",     "GeoHourly", "?",                        "",                              ""   },
 
+    // Plant costs
+    { SSC_OUTPUT,     SSC_NUMBER,     "total_plant_cost",                   "Power plant cost",                                          "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+
     // Stimulation costs
     { SSC_OUTPUT,     SSC_NUMBER,     "stim_cost_per_well",                 "Stimulation cost per well",                                 "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "stim_cost_non_drill",                "Non-drilling stimulation costs",                            "$",       "",     "GeoHourly", "?",                        "",                              ""   },
@@ -127,8 +133,8 @@ static var_info _cm_vtab_geothermal_costs_upstream[] = {
     { SSC_INPUT,      SSC_NUMBER,     "design_temp",                        "Power block design temperature",                            "C",       "",     "GeoHourly", "*",                        "",                              ""   },
 
     // Binary Plant Type Inputs:
-    { SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MW",      "",     "GeoHourly", "*",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kW",      "",     "GeoHourly", "*",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MWe",      "",     "GeoHourly", "*",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kWe",      "",     "GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
 
     // Flash Plant Type Inputs:

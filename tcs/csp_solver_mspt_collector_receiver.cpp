@@ -140,6 +140,11 @@ double C_csp_mspt_collector_receiver::get_col_startup_power()
 	return mc_pt_heliostatfield.ms_params.m_p_start * mc_pt_heliostatfield.ms_params.m_N_hel *1.e-3;	//MWe-hr
 }
 
+double C_csp_mspt_collector_receiver::get_design_pumping_power() {
+
+    return mc_pt_receiver.get_design_rec_pumping_power();   //[MWe]
+}
+
 void C_csp_mspt_collector_receiver::call(const C_csp_weatherreader::S_outputs &weather,
 	const C_csp_solver_htf_1state &htf_state_in,
 	const C_csp_collector_receiver::S_csp_cr_inputs &inputs,
@@ -340,6 +345,9 @@ void C_csp_mspt_collector_receiver::estimates(const C_csp_weatherreader::S_outpu
 		est_out.m_m_dot_avail = 0.0;
 		est_out.m_T_htf_hot = 0.0;
 	}
+
+    est_out.m_W_dot_elec_in_tot = cr_out_solver.m_W_dot_elec_in_tot;
+    est_out.m_q_dot_heater = cr_out_solver.m_q_dot_heater;
 }
 
 double C_csp_mspt_collector_receiver::calculate_optical_efficiency( const C_csp_weatherreader::S_outputs &weather, const C_csp_solver_sim_info &sim )

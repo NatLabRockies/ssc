@@ -246,6 +246,11 @@ void C_pt_receiver::get_design_geometry(double& L_tower_piping /*m*/, double& od
     od_tube_calc = m_od_tube;       //[m]
 }
 
+double C_pt_receiver::get_design_rec_pumping_power() {  //[MWe]
+
+    return m_W_dot_rec_pump_des_calc;
+}
+
 void C_pt_receiver::get_design_performance(double& eta_thermal /*-*/,
     double& W_dot_rec_pump /*MWe*/, double& W_dot_pumping_tower_share /*MWe*/, double& W_dot_pumping_rec_share /*MWe*/,
     double& rec_pump_coef /*MWe/MWt*/, double& rec_vel_htf_des /*m/s*/,

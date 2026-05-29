@@ -45,11 +45,13 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
 	csp_info_invalid
 };
 
-C_pc_steam_heat_sink::C_pc_steam_heat_sink()
+C_pc_steam_heat_sink::C_pc_steam_heat_sink() : C_csp_power_cycle(HEAT)
 {
 	mc_reported_outputs.construct(S_output_info);
 
 	m_max_frac = 100.0;
+
+    m_W_dot_pump_heat_sink_portion = std::numeric_limits<double>::quiet_NaN();
 
 	m_is_sensible_htf = false;	//[-] STEAM
 }
@@ -122,8 +124,16 @@ void C_pc_steam_heat_sink::init(C_csp_power_cycle::S_solved_params &solved_param
 		throw(C_csp_exception("C_pc_steam_heat_sink::init(...) Design cold state point property calcs failed"));
 	}
 	double h_cold = mc_water_props.enth;	//[kJ/kg]
+    double rho_cold = mc_water_props.dens;  //[kg/m3]
 
 	double m_dot_steam_des = ms_params.m_q_dot_des*1.E3 / (h_hot - h_cold);		//[kg/s]
+    double V_dot_steam_cold_des = m_dot_steam_des / rho_cold;   //[m3/s]
+
+    double dP_des = ms_params.m_P_hot_des - P_cold_des; //[kPa]
+
+    // In the timeseries simulation, this pumping power will be calculated in the solar field model
+    // But attribute it to the heat sink during design-point calculations
+    m_W_dot_pump_heat_sink_portion = dP_des * V_dot_steam_cold_des * 1.E-3; //[MWe]
 
 	// Set 'solved_params' structure
 	solved_params.m_W_dot_des = 0.0;		//[MWe] Assuming heat sink is not generating electricity FOR THIS MODEL
@@ -201,6 +211,17 @@ double C_pc_steam_heat_sink::get_min_thermal_power()
 double C_pc_steam_heat_sink::get_htf_pumping_parasitic_coef()
 {
 	return 0.0;	// kWe/kWt
+}
+
+double C_pc_steam_heat_sink::get_design_pumping_power() {
+
+    return m_W_dot_pump_heat_sink_portion;   //[MWe]
+}
+
+double C_pc_steam_heat_sink::get_design_cooling_power() {
+
+    // No cooling parasitics for heat sink
+    return 0.0;
 }
 
 void C_pc_steam_heat_sink::get_max_power_output_operation_constraints(double T_amb /*C*/, double & m_dot_HTF_ND_max, double & W_dot_ND_max)

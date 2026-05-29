@@ -72,7 +72,7 @@ C_pc_ptes::C_pc_ptes(double W_dot_thermo /*MWe*/, double eta_therm_mech /*-*/,
     double startup_time /*hr*/, double startup_frac /*-*/,
     double HT_htf_pump_coef /*kW/kg/s*/, double CT_htf_pump_coef /*kW/kg/s*/,
     int HT_htf_code /*-*/, util::matrix_t<double> HT_ud_htf_props,
-    int CT_htf_code /*-*/, util::matrix_t<double> CT_ud_htf_props)
+    int CT_htf_code /*-*/, util::matrix_t<double> CT_ud_htf_props) : C_csp_power_cycle(ELEC)
 {
     m_W_dot_thermo_des = W_dot_thermo;      //[MWe]
     m_eta_therm_mech_des = eta_therm_mech;              //[-]
@@ -310,6 +310,17 @@ double C_pc_ptes::get_htf_pumping_parasitic_coef()		//[kWe/kWt]
     return (m_HT_htf_pump_coef_des*m_m_dot_HT_des + m_CT_htf_pump_coef_des*m_m_dot_CT_des) / (m_q_dot_hot_in_des * 1.E3);   //[kWe/kWt]
 }
 
+double C_pc_ptes::get_design_pumping_power() {
+
+    // Need to include both HTF and CT pumps
+    return m_W_dot_CT_htf_pump_des + m_W_dot_HT_htf_pump_des;   //[MWe]
+}
+
+double C_pc_ptes::get_design_cooling_power() {
+
+    return m_W_dot_elec_parasitic_des;  //[MWe]
+}
+
 // This can vary between timesteps for Type224, depending on remaining startup energy and time
 double C_pc_ptes::get_max_q_pc_startup()		//[MWt]
 {
@@ -425,6 +436,7 @@ void C_pc_ptes::call(const C_csp_weatherreader::S_outputs& weather,
         break;
 
     case ON:
+    case ESTIMATE_ON:
 
         {
             double m_dot_HT_htf_ND = m_dot_HT_htf / m_m_dot_HT_des;     //[-]

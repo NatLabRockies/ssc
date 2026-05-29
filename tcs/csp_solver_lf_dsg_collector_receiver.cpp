@@ -119,6 +119,7 @@ C_csp_lf_dsg_collector_receiver::C_csp_lf_dsg_collector_receiver()
 	m_m_dot_des = std::numeric_limits<double>::quiet_NaN();			//[kg/s]
 
 	m_W_dot_sca_tracking_nom = std::numeric_limits<double>::quiet_NaN();	//[MWe]
+    m_W_dot_pump_des_est = std::numeric_limits<double>::quiet_NaN();        //[MWe]
 	// *******************************************
 	// *******************************************
 
@@ -630,11 +631,26 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	}
 	m_fP_sf_tot = m_fP_hdr_c + m_fP_sf_boil + m_fP_boil_to_sh + m_fP_sf_sh + m_fP_hdr_h;	//[-]
 
+    // Assume field in accounts for pressure drop over solar field
+    // Assumes pressure drop across heat sink or cycle is accounted for somewhere else
+    double P_field_in_des = m_P_turb_des * (1.0 + m_fP_sf_tot); //[bar]
 	if (m_P_turb_des*(1.0 + m_fP_sf_tot) > 220.6)
 	{
 		std::string err_msg = util::format("The design-point pressure at the inlet of the solar field exceeds the critical pressure (220.6 bar). Review your settings for turbine inlet pressure and solar field pressure drop to maintain reasonable design pressure conditions");
 		throw(C_csp_exception(err_msg, "LF DSG init()"));
 	}
+
+    // Field inlet conditions
+    wp_code = water_TP(m_T_field_in_des, P_field_in_des*100.0, &wp);
+    if (wp_code != 0)
+    {
+        throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::init design point state point calcs failed", "water_TP error", wp_code));
+    }
+    if (wp.qual > 0.0)
+    {
+        throw(C_csp_exception("The design inlet to the once thru loop at the design field inlet pressure this is not good"));
+    }
+    double rho_field_in_des = wp.dens;
 
 	check_pressure.set_P_max(m_P_max);
 	double h_field_in = 0.0;	//[kJ/kg]
@@ -999,6 +1015,10 @@ void C_csp_lf_dsg_collector_receiver::init(const C_csp_collector_receiver::S_csp
 	// Calculate the tracking parasitics for when trough is on sun
 	m_W_dot_sca_tracking_nom = m_SCA_drives_elec*m_Ap_tot/1.E6;		//[MWe]
 
+    double V_dot_field_in_des = m_m_dot_des / rho_field_in_des;  //[m3/s]
+    double dP_des = (m_P_turb_des - P_field_in_des) * 100.0;    //[kPa]
+    m_W_dot_pump_des_est = V_dot_field_in_des * dP_des * 1.E-3 / m_eta_pump;      //[MWe] estimate with V_dot instead of using enthalpies
+
 	// Set solved parameters
 	solved_params.m_T_htf_cold_des = m_T_field_in_des;	//[K] Design point inlet temperature
 	solved_params.m_P_cold_des = m_P_turb_des*100.0;	//[kPa] Design point *field outlet* pressure
@@ -1059,14 +1079,18 @@ double C_csp_lf_dsg_collector_receiver::get_max_power_delivery(double T_cold_in)
 
 double C_csp_lf_dsg_collector_receiver::get_tracking_power()
 {
-	throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::get_tracking_power() is not complete"));
-	return std::numeric_limits<double>::quiet_NaN(); //MWe
+	return m_W_dot_sca_tracking_nom; //MWe
 }
 
 double C_csp_lf_dsg_collector_receiver::get_col_startup_power()
 {
 	throw(C_csp_exception("C_csp_lf_dsg_collector_receiver::get_col_startup_power() is not complete"));
 	return std::numeric_limits<double>::quiet_NaN(); //MWe-hr
+}
+
+double C_csp_lf_dsg_collector_receiver::get_design_pumping_power() {
+
+    return m_W_dot_pump_des_est; //[MWe]
 }
 
 int C_csp_lf_dsg_collector_receiver::C_mono_eq_freeze_prot_E_bal::operator()(double T_cold_in /*K*/, double *E_loss_balance /*-*/)

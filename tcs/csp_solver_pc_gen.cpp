@@ -44,7 +44,7 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
 	csp_info_invalid
 };
 
-C_pc_gen::C_pc_gen()
+C_pc_gen::C_pc_gen() : C_csp_power_cycle(ELEC)
 {
 	// *************************************************************
 	// Define temperature and cp values so code interfaces with solver
@@ -242,6 +242,19 @@ double C_pc_gen::get_htf_pumping_parasitic_coef()
 	return std::numeric_limits<double>::quiet_NaN();	//[MWt]	// kWe/kWt
 }
 
+double C_pc_gen::get_design_pumping_power() {
+
+    throw(C_csp_exception("C_pc_gen::get_design_pumping_power() is not complete"));
+
+    return std::numeric_limits<double>::quiet_NaN();	//[MWe]
+}
+
+double C_pc_gen::get_design_cooling_power() {
+
+    throw(C_csp_exception("C_pc_gen::get_design_cooling_power() is not complete"));
+
+    return std::numeric_limits<double>::quiet_NaN();	//[MWe]
+}
 
 void C_pc_gen::call(const C_csp_weatherreader::S_outputs &weather,
 	C_csp_solver_htf_1state &htf_state_in,

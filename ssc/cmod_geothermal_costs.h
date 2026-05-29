@@ -71,6 +71,8 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.conf_multiplier",      "Confirmation cost multiplier",                              "",        "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=1.2" },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.expl_num_wells",       "Number of exploration wells",                               "",        "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=2" },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.conf_num_wells",       "Number of confirmation wells",                              "",        "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=2" },
+
+    
     // need defaults?
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_fixed",           "Fixed pump workover and casing cost",                       "$",       "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_per_foot",        "Pump cost per foot",                                        "$/ft",    "",     "GeoHourly", "",                        "",                              ""   },

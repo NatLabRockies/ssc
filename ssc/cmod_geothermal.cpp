@@ -109,7 +109,10 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "reservoir_pressure_change_type",     "Reservoir pressure change type",               "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "reservoir_pressure_change",          "Pressure change",                              "psi-h/1000lb",   "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "injectivity_index",                  "Injectivity index",                            "lb/hr-psi",      "",                         "GeoHourly",     "*",                         "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "exploration_wells_production",       "Exploration wells used for production",        "",               "",                         "GeoHourly",     "*",                         "",                "" },
+
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.conf_num_wells",          "Number of confirmation wells",                              "",        "",                      "GeoHourly",     "*",                         "",                              "?=2" },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.confirm_wells_percent",   "% of Confirmation Wells Used for Production",               "",        "",                      "GeoHourly",     "*",                         "",                              "?=2" },
+
     { SSC_INPUT,        SSC_NUMBER,      "reservoir_width",                    "Reservoir width",                              "m",              "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "reservoir_height",                   "Reservoir height",                             "m",              "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "reservoir_permeability",             "Reservoir Permeability",                       "darcys",         "",                         "GeoHourly",     "*",                         "",                "" },
@@ -177,6 +180,8 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_prod_drilled",       "Number of production wells drilled",                 "",        "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_prod_failed",        "Number of production wells failed during drilling",  "",        "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_inj_drilled",        "Number of injection wells drilled",                  "",        "",             "GeoHourly",        "*",      "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "num_confirm_wells_to_production",    "Number of confirmation wells used for production",   "$",       "",             "GeoHourly",        "*",      "",                "" },
+
 
     { SSC_OUTPUT,       SSC_NUMBER,      "design_temp",                        "Power block design temperature",                     "C",       "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "plant_brine_eff",                    "Plant Brine Efficiency",                             "",        "",             "GeoHourly",        "*",      "",                "" },
@@ -417,7 +422,12 @@ public:
 		}
 		geo_inputs.md_ReservoirDeltaPressure = as_double("reservoir_pressure_change");
         geo_inputs.md_InjectivityIndex = as_double("injectivity_index");
-        geo_inputs.md_ExplorationWellsProd = as_double("exploration_wells_production");
+
+        double num_conf_wells = as_double("geotherm.cost.conf_num_wells");
+        double perc_conf_wells_production = as_double("geotherm.cost.confirm_wells_percent");
+        double num_conf_wells_prod = num_conf_wells * perc_conf_wells_production / 100.0;
+        geo_inputs.md_ExplorationWellsProd = num_conf_wells_prod;
+
 		geo_inputs.md_ReservoirWidthM = as_double("reservoir_width");
 		geo_inputs.md_ReservoirHeightM = as_double("reservoir_height");
 		geo_inputs.md_ReservoirPermeability = as_double("reservoir_permeability");
@@ -540,6 +550,7 @@ public:
         assign("num_wells_getem_prod_failed", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsProdFailed));
         assign("num_wells_getem_inj", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsInj));
         assign("num_wells_getem_inj_drilled", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsInjDrilled));
+        assign("num_confirm_wells_to_production", var_data((ssc_number_t)num_conf_wells_prod));
 
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
         assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));

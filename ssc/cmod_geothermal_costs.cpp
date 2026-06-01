@@ -801,16 +801,25 @@ public:
 
         // Calculate plant cost based on user input for model option
         bool use_getem_plant_cost = as_boolean("geotherm.cost.plant_auto_estimate");
-        double total_plant_cost = std::numeric_limits<double>::quiet_NaN();
+        double total_plant_cost_calc = std::numeric_limits<double>::quiet_NaN();
         if(use_getem_plant_cost){
-            total_plant_cost = baseline_cost * unit_plant;      //[$]
+            total_plant_cost_calc = baseline_cost * unit_plant;      //[$]
         }
         else{
             double plant_per_kW_input = as_double("geotherm.cost.plant_per_kW_input");  //[$/kWe]
-            total_plant_cost = plant_per_kW_input * unit_plant; //[$]
+            total_plant_cost_calc = plant_per_kW_input * unit_plant; //[$]
         }
-        assign("total_plant_cost", var_data(static_cast<ssc_number_t>(total_plant_cost)));
+        assign("total_plant_cost", var_data(static_cast<ssc_number_t>(total_plant_cost_calc)));
 
+        bool use_calculated_plant_cost = as_boolean("geotherm.cost.plant_total.calc");
+        double total_plant_cost_used = std::numeric_limits<double>::quiet_NaN();
+        if(use_calculated_plant_cost){
+            total_plant_cost_used = total_plant_cost_calc;  //[$]
+        }
+        else{
+            total_plant_cost_used = as_double("geotherm.cost.plant_total.amount_specified");  //[$]
+        }
+        assign("total_plant_cost_used", var_data(static_cast<ssc_number_t>(total_plant_cost_used)));
 
        //Pump costs
         double workover_casing_cost = as_double("geotherm.cost.pump_casing_cost");

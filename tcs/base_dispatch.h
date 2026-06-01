@@ -83,6 +83,7 @@ public:
         C_csp_tes *tes;                      //Pointer to tes class object
 		C_csp_messages *messages;            //Pointer to message structure
         C_csp_collector_receiver* par_htr;   //Pointer to parallel heater if it exist, else NULL
+        C_csp_battery* battery;              //Pointer to battery storage if it exist, else NULL
 
         S_pointers()
         {
@@ -93,6 +94,7 @@ public:
             tes = nullptr;
             messages = nullptr;
             par_htr = nullptr;
+            battery = nullptr;
         }
 
         void set_pointers(C_csp_weatherreader &weather,
@@ -101,7 +103,8 @@ public:
             C_csp_tes *thermal_es,
             C_csp_messages *csp_messages,
             C_csp_solver_sim_info *sim_info,
-            C_csp_collector_receiver *heater)
+            C_csp_collector_receiver *heater = nullptr,
+            C_csp_battery *batt = nullptr)
         {
             m_weather = weather;    // Todo: technically not a pointer
             col_rec = collector_receiver;
@@ -110,6 +113,7 @@ public:
             messages = csp_messages;
             siminfo = sim_info;
             par_htr = heater;
+            battery = batt;
         }
 
     } pointers;
@@ -175,6 +179,7 @@ public:
         double w_dot_target = 0.;               // [MWe] Target power cycle (net) electric output
         double w_dot_max = 0.;                  // [MWe] Maximum power cycle (net) electric output ???
         double sys_parasitic = 0.;              // [MWe] System parasitic power consumption
+        double batt_power_target = 0.;          // [MWe] Target battery discharge (+) or charge (-) power
 
         // Dispatch solution output for reporting
         double qsf_expect = 0.;                 // [MWt] Expected available thermal power from the solar field
@@ -186,7 +191,9 @@ public:
         double qpbsu_expect = 0.;               // [MWht] Power cycle startup energy
         double wpb_expect = 0.;                 // [MWe] Power cycle electric power production
         double rev_expect = 0.;                 // [$] Revenue from electricity sales
-        double pv_expect = 0.;                  // [MWe] Expected PV generation   
+        double pv_expect = 0.;                  // [MWe] Expected PV generation
+        double batt_soc_expected = 0.;          // [%] Expected battery state of charge
+        double sys_power_limit = 0.;            // [MWe] Maximum allowable system power production limit
 
     } dispatch_outputs;
 

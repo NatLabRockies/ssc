@@ -98,7 +98,7 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
     params.w_cycle_pump = pointers.mpc_pc->get_htf_pumping_parasitic_coef();
     params.w_cycle_standby = params.q_pb_standby * params.w_cycle_pump;
 
-    //heater params
+    // Heater parameters
     if (pointers.par_htr != NULL) {
         params.is_parallel_heater = true;
         params.q_eh_min = pointers.par_htr->get_min_power_delivery() * ( 1 + 1e-8 ); // ensures controller doesn't shut down heater at minimum load
@@ -106,10 +106,42 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
         params.e_eh_su = pointers.par_htr->get_startup_energy(); // [MWht]
         params.dt_eh_startup = pointers.par_htr->get_startup_time();
         params.eta_eh = pointers.par_htr->get_design_electric_to_heat_cop();
-        // Add parameters for heater startup power
+        // TODO: Add parameters for heater startup power??
     }
     else {
         params.is_parallel_heater = false;
+    }
+
+    //Battery storage parameters
+    if (pointers.battery != NULL) {
+        params.is_battery_included = true;
+        double min_soc = pointers.battery->battery->SOC_min();
+        double max_soc = pointers.battery->battery->SOC_max();
+        params.batt_soc_min = min_soc / 100.0;      // TODO: We could make these percentages within the dispatch model
+        params.batt_soc_max = max_soc / 100.0;
+        params.batt_capacity = pointers.battery->battery->energy_max(100.0, 0.0) / 1.e3; // [kWh] -> [MWh]
+
+        battery_state state = pointers.battery->battery->get_state();
+        battery_params batt_params = pointers.battery->battery->get_params();
+        double crate = batt_params.voltage->dynamic.C_rate;
+
+        double battery_max = pointers.battery->battery->nominal_energy() * crate;
+        params.batt_charge_power_max = battery_max / 1.e3;
+        params.batt_discharge_power_max = battery_max / 1.e3;
+
+        // TODO: These are not going to work if the initial SOC near the bounds
+        //params.batt_charge_power_max = std::abs(pointers.battery->battery->calculate_max_charge_kw() / 1.e3);   // kW -> MW
+        //params.batt_discharge_power_max = pointers.battery->battery->calculate_max_discharge_kw() / 1.e3; // kW -> MW
+
+        // TODO: update the parameters below.
+        params.batt_charge_efficiency = 1.0;        //0.99; // 0.938;
+        params.batt_discharge_efficiency = 0.978919;//0.99; // 0.938;
+        params.batt_charge_cost = 0.9;
+        params.batt_discharge_cost = 0.9;
+        params.batt_lifecycle_cost = 26.5;
+    }
+    else {
+        params.is_battery_included = false;
     }
 
     double w_pb_des = cycle_q_dot_des * params.eta_pb_des;
@@ -127,6 +159,10 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
     init_conditions.q_pb0 = 0.0;
     init_conditions.wdot_pb0 = 0.0;
 
+    if (params.is_battery_included) {
+        init_conditions.batt_soc0 = pointers.battery->battery->SOC() / 100.0;
+    }
+
     // All constant parameter values must be set before building the model
     build_dispatch_model(); // Built once at the beginning of the simulation
 }
@@ -142,8 +178,7 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
     MPObjective* objective = solver->MutableObjective();                   // OR-Tools objective function
     double tadj = P["disp_time_weighting"];
     for (int t = 0; t < m_nstep_opt; t++) {
-        //TODO: Objective function with costs is slower than without costs using SCIP solver
-        // We could provide various objective functions for the user to select from
+        // TODO: We could provide various objective functions for the user to select from
         objective->SetCoefficient(cont_vars.wdot[t], P["delta"] * ts_params.sell_price.at(t) * tadj * (1. - ts_params.w_condf_expected.at(t)));
         objective->SetCoefficient(cont_vars.xr[t], -P["delta"] * ts_params.sell_price.at(t) * (1. / tadj) * P["Lr"]);      // tadj added to prefer receiver production sooner (i.e. delay dumping)
         objective->SetCoefficient(cont_vars.xrsu[t], -P["delta"] * ts_params.sell_price.at(t) * (1. / tadj) * P["Lr"]);
@@ -166,6 +201,11 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
             objective->SetCoefficient(bin_vars.yhsup[t], -(1. / tadj) * P["hsu_cost"]);
         }
 
+        if (params.is_battery_included) {
+            objective->SetCoefficient(cont_vars.pdis[t], P["delta"] * (ts_params.sell_price.at(t) * tadj - (1. / tadj) * P["discharge_cost"]));
+            objective->SetCoefficient(cont_vars.pchar[t], -P["delta"] * (ts_params.sell_price.at(t) * tadj + (1. / tadj) * P["charge_cost"]));
+        }
+
         if (params.is_pv_included) {
             objective->SetCoefficient(cont_vars.w_pv[t], P["delta"] * ts_params.sell_price.at(t) * tadj);
         }
@@ -174,6 +214,9 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
     }
     // Add the final term to value storage at end of optimization horizon
     objective->SetCoefficient(cont_vars.s[m_nstep_opt - 1], P["delta"] * tadj * pmean * P["eta_cycle"] * params.inventory_incentive);
+
+    // Battery cycle cost
+    if (params.is_battery_included) objective->SetCoefficient(cont_vars.batt_cycle_count, -P["batt_lifecycle_cost"]);
 
     // Set to a maximization problem
     objective->SetMaximization();   
@@ -217,6 +260,15 @@ void csp_dispatch_ortools::build_dispatch_model()
         solver->MakeBoolVarArray(m_nstep_opt, "y_eh",   &bin_vars.yeh);
         solver->MakeBoolVarArray(m_nstep_opt, "y_reh",  &bin_vars.yreh);
         solver->MakeBoolVarArray(m_nstep_opt, "y_hsup", &bin_vars.yhsup);
+    }
+
+    if (params.is_battery_included) {
+        solver->MakeNumVarArray(m_nstep_opt, 0.0, params.batt_charge_power_max, "p_char", &cont_vars.pchar);
+        solver->MakeNumVarArray(m_nstep_opt, 0.0, params.batt_discharge_power_max, "p_dis", &cont_vars.pdis);
+        solver->MakeNumVarArray(m_nstep_opt, params.batt_soc_min, params.batt_soc_max, "soc", &cont_vars.soc);
+        solver->MakeBoolVarArray(m_nstep_opt, "y_bchar", &bin_vars.ybchar);
+        solver->MakeBoolVarArray(m_nstep_opt, "y_bdis", &bin_vars.ybdis);
+        cont_vars.batt_cycle_count = solver->MakeNumVar(0.0, MPSolver::infinity(), "batt_cycle_count");
     }
 
     if (params.is_pv_included) {
@@ -894,6 +946,91 @@ void csp_dispatch_ortools::build_dispatch_model()
         }
     }
 
+    if (params.is_battery_included) {
+
+        // TODO: Do we need lower bounds on battery charge and discharge power?
+        // Battery charging power limit
+        // pchar[t] <= b_pow_max * ybchar[t]
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            std::string name = "battery_charge_limit_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(cont_vars.pchar[t], 1.0);
+            c->SetCoefficient(bin_vars.ybchar[t], -P["b_charge_pow_max"]);
+            c->SetUB(0.0);
+        }
+
+        // Battery discharging power limit
+        // pdis[t] <= b_pow_max * ybdis[t]
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            std::string name = "battery_discharge_limit_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(cont_vars.pdis[t], 1.0);
+            c->SetCoefficient(bin_vars.ybdis[t], -P["b_discharge_pow_max"]);
+            c->SetUB(0.0);
+        }
+        // Battery charge and discharge mutually exclusive
+        // ybchar[t] + ybdis[t] <= 1
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            std::string name = "battery_charge_discharge_coincide_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(bin_vars.ybchar[t], 1.0);
+            c->SetCoefficient(bin_vars.ybdis[t], 1.0);
+            c->SetUB(1);
+        }
+        // Energy in, out, and stored in the Battery must balance.
+        // delta * ( charge_eff * pchar[t] - (1 / discharge_eff) * pdis[t] ) / capacity = soc[t] - soc[t-1]
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            std::string name = "battery_energy_balance_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(cont_vars.pchar[t], P["delta"] * P["b_charge_eff"]);
+            c->SetCoefficient(cont_vars.pdis[t], -(P["delta"] / P["b_discharge_eff"]));
+            c->SetCoefficient(cont_vars.soc[t],  -P["C_bat"]);
+
+            double rhs = 0.;
+            if (t > 0) {
+                c->SetCoefficient(cont_vars.soc[t - 1], P["C_bat"]);
+            }
+            else {
+                rhs += -init_conditions.batt_soc0 * P["C_bat"];  //initial battery charge (MWh)
+                constraints.batt_soc_balance0 = c;
+            }
+            c->SetBounds(rhs, rhs);
+        }
+
+        // Battery cycle count
+        // batt_cycle_count >= delta / capacity * sum ( pdis[t] ) over t
+        {
+            std::string name = "battery_cycle_count";
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(cont_vars.batt_cycle_count, -1.0);
+            for (int t = 0; t < m_nstep_opt; ++t) {
+                c->SetCoefficient(cont_vars.pdis[t], P["delta"] / P["C_bat"]);
+            }
+            c->SetUB(0.0);
+        }
+
+        // Created here because it depends on w_lim, which is a time series input
+        // Battery Charge generation limit -> Assumes no grid charging...
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            std::string name = "battery_charge_generation_limit_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(cont_vars.wdot[t], 1.0 - ts_params.w_condf_expected.at(t));
+            c->SetCoefficient(cont_vars.xr[t], -P["Lr"]);
+            c->SetCoefficient(cont_vars.xrsu[t], -P["Lr"]);
+            c->SetCoefficient(bin_vars.yrsu[t], -(P["Wrsb"] / P["delta"]) - (P["Ehs"] / P["delta"]));   //MWe
+            c->SetCoefficient(bin_vars.yr[t], -P["Wh"]);
+
+            if (params.can_cycle_use_standby) c->SetCoefficient(bin_vars.ycsb[t], -P["Wb"]);
+            c->SetCoefficient(cont_vars.x[t], -P["Lc"]);
+
+            if (params.is_parallel_heater) c->SetCoefficient(cont_vars.qeh[t], -(1 / P["eta_eh"]));
+            if (params.is_pv_included) c->SetCoefficient(cont_vars.w_pv[t], 1.0);
+
+            if (params.is_battery_included) c->SetCoefficient(cont_vars.pchar[t], -1.0);
+            c->SetLB(0.0);
+            constraints.battery_charge_generation_limit[t] = c;
+        }
+    }
 }
 
 bool csp_dispatch_ortools::check_setup(int nstep)
@@ -972,6 +1109,11 @@ void csp_dispatch_ortools::update_initial_conditions(double q_dot_to_pb, double 
         init_conditions.e_tes0 = params.e_tes_min;
     if (init_conditions.e_tes0 > params.e_tes_max)
         init_conditions.e_tes0 = params.e_tes_max;
+
+    if (params.is_battery_included) {
+        // TODO: should we update battery capacity over time as well?
+        init_conditions.batt_soc0 = pointers.battery->battery->SOC() / 100.0;
+    }
 }
 
 bool csp_dispatch_ortools::predict_performance(int step_start, int ntimeints, int divs_per_int)
@@ -1125,6 +1267,19 @@ void csp_dispatch_ortools::s_params::create_parameter_map(unordered_map<std::str
         param_map["Qehl"] = q_eh_min;
         param_map["eta_eh"] = eta_eh;
         param_map["hsu_cost"] = hsu_cost;
+    }
+
+    if (is_battery_included) {
+        param_map["C_bat"] = batt_capacity;
+        param_map["b_soc_min"] = batt_soc_min;
+        param_map["b_soc_max"] = batt_soc_max;
+        param_map["b_charge_pow_max"] = batt_charge_power_max;
+        param_map["b_discharge_pow_max"] = batt_discharge_power_max;
+        param_map["b_charge_eff"] = batt_charge_efficiency;
+        param_map["b_discharge_eff"] = batt_discharge_efficiency;
+        param_map["charge_cost"] = batt_charge_cost;
+        param_map["discharge_cost"] = batt_discharge_cost;
+        param_map["batt_lifecycle_cost"] = batt_lifecycle_cost;
     }
 
     param_map["Qrsb"] = q_rec_standby;
@@ -1384,6 +1539,7 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
         }
         MPConstraint* c = constraints.cycle_maximum_net_power[t];
 
+        // TODO: This might not be true any more because the battery can charge...
         if (ts_params.w_lim.at(t) < 0.) { // Power cycle operation is impossible at current constrained w_lim
             c->SetCoefficient(cont_vars.wdot[t], 1.0);
             c->SetBounds(0.0, 0.0);
@@ -1406,7 +1562,13 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
 
             if (params.is_pv_included) c->SetCoefficient(cont_vars.w_pv[t], 1.0);
 
+            if (params.is_battery_included) {
+                c->SetCoefficient(cont_vars.pdis[t], 1.0);
+                c->SetCoefficient(cont_vars.pchar[t], -1.0);
+            }
+
             c->SetUB(ts_params.w_lim.at(t) + params.sys_par_fixed);     // Add fixed system parasitic power to limit
+
         }
     }
 
@@ -1447,6 +1609,27 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
             constraints.pv_generation_limit[t]->SetUB(ts_params.pv_generation.at(t));
         }
     }
+
+    if (params.is_battery_included) {
+        // ******************* Battery constraints *******************
+        // Battery state of charge balance
+        // delta * ( charge_eff * pchar[t] - (1 / discharge_eff) * pdis[t] ) / capacity = soc[t] - soc[t-1]
+        // Update initial condition
+        constraints.batt_soc_balance0->SetBounds(-init_conditions.batt_soc0 * P["C_bat"], -init_conditions.batt_soc0 * P["C_bat"]);
+        // Battery charge and discharge limits
+        // b_charge[t] <= b_pow_max * y_b_charge[t]
+        // b_discharge[t] <= b_pow_max * y_b_discharge[t]
+        // No update required
+        // Battery can't charge and discharge at the same time
+        // y_b_charge[t] + y_b_discharge[t] <= 1
+        // No update required
+
+        // Battery Charge generation limit
+        // Update cycle condenser losses
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            constraints.battery_charge_generation_limit[t]->SetCoefficient(cont_vars.wdot[t], 1.0 - ts_params.w_condf_expected.at(t));
+        }
+    }
 }
 
 bool csp_dispatch_ortools::optimize()
@@ -1478,7 +1661,7 @@ bool csp_dispatch_ortools::optimize()
 
     // For DEBUGGING Model
     //solver->Write("csp_ortools_dispatch_problem");  // mps format -> works with Xpress
-    //printResultsFile("csp_ortools_solution.txt", false);
+    //printResultsFile("csp_ortools_solution.csv", false);
     //throw C_csp_exception("Setup and ran first dispatch optimization problem for Debugging");
 
     set_outputs_from_solution(P);
@@ -1568,6 +1751,12 @@ void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, 
         // PV target power - that is being sent to the grid
         if (params.is_pv_included)
             outputs.w_pv_target.at(t) = cont_vars.w_pv.at(t)->solution_value();
+
+        // Battery charge and discharge power
+        if (params.is_battery_included) {
+            outputs.batt_power_target.at(t) = cont_vars.pdis.at(t)->solution_value() - cont_vars.pchar.at(t)->solution_value();
+            outputs.batt_soc_expected.at(t) = cont_vars.soc[t]->solution_value() * 100.0;
+        }
     }
 }
 
@@ -1647,6 +1836,9 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
 
         dispatch_outputs.pv_expect = outputs.w_pv_target.at(m_current_read_step);
 
+        dispatch_outputs.batt_power_target = outputs.batt_power_target.at(m_current_read_step);
+        dispatch_outputs.batt_soc_expected = outputs.batt_soc_expected.at(m_current_read_step);
+        dispatch_outputs.sys_power_limit = ts_params.w_lim.at(m_current_read_step);
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "csp_dispatch");
@@ -1674,6 +1866,9 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
         if (params.is_pv_included) {
             var_header += ", w_pv, w_pv_avail";
         }
+        if (params.is_battery_included) {
+            var_header += ", batt_power_target, batt_soc, y_batt_charge, y_batt_discharge, battery_objective";
+        }
         outputfile << var_header << std::endl;
     }
 
@@ -1684,10 +1879,12 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
 
     double obj_wo_weight;  // Objective function value without time weighting
     double coeff_wo_weight;
-    for (int t = 0; t < solver_params.optimize_frequency; ++t) {
+    double battery_objective;
+    for (int t = 0; t < solver_params.optimize_horizon; ++t) {
         // Calculate objective value for time t
         objective_value = 0.0;
         obj_wo_weight = 0.0;
+        battery_objective = 0.0;
 
         common_coeff = params.dt * std::pow(params.time_weighting, t);
         coeff_wo_weight = params.dt;
@@ -1698,6 +1895,12 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
         // TODO: Update this
         if (params.is_pv_included) {
             objective_value += common_coeff * ts_params.sell_price.at(t) * cont_vars.w_pv[t]->solution_value();
+        }
+
+        if (params.is_battery_included) {
+            battery_objective += common_coeff * ts_params.sell_price.at(t) * cont_vars.pdis[t]->solution_value();
+            objective_value += common_coeff * ts_params.sell_price.at(t) * cont_vars.pdis[t]->solution_value();
+            obj_wo_weight += coeff_wo_weight * ts_params.sell_price.at(t) * cont_vars.pdis[t]->solution_value();
         }
 
         // Cost terms
@@ -1745,6 +1948,16 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
 
             objective_value += common_coeff * params.hsu_cost * bin_vars.yhsup[t]->solution_value();
             obj_wo_weight += coeff_wo_weight * params.hsu_cost * bin_vars.yhsup[t]->solution_value();
+        }
+
+        if (params.is_battery_included) {
+            battery_objective += common_coeff * params.dt * params.batt_charge_cost * cont_vars.pchar[t]->solution_value();
+            objective_value += common_coeff * params.dt * params.batt_charge_cost * cont_vars.pchar[t]->solution_value();
+            obj_wo_weight += coeff_wo_weight * params.dt * params.batt_charge_cost * cont_vars.pchar[t]->solution_value();
+
+            battery_objective += common_coeff * params.dt * params.batt_discharge_cost * cont_vars.pdis[t]->solution_value();
+            objective_value += common_coeff * params.dt * params.batt_discharge_cost * cont_vars.pdis[t]->solution_value();
+            obj_wo_weight += coeff_wo_weight * params.dt * params.batt_discharge_cost * cont_vars.pdis[t]->solution_value();
         }
 
         // Add the final term to value storage at end of optimization horizon
@@ -1796,6 +2009,14 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
         if (params.is_pv_included) {
             outputfile << ", " << ((std::abs(cont_vars.w_pv[t]->solution_value()) < tol) ? 0.0 : cont_vars.w_pv[t]->solution_value())
                 << ", " << ts_params.pv_generation.at(t);
+        }
+        if (params.is_battery_included) {
+            double batt_power = cont_vars.pdis[t]->solution_value() - cont_vars.pchar[t]->solution_value();
+            outputfile << ", " << ((std::abs(batt_power) < tol) ? 0.0 : batt_power)
+                << ", " << ((std::abs(cont_vars.soc[t]->solution_value()) < tol) ? 0.0 : cont_vars.soc[t]->solution_value())
+                << ", " << bin_vars.ybchar[t]->solution_value()
+                << ", " << bin_vars.ybdis[t]->solution_value()
+                << ", " << battery_objective;
         }
         outputfile << std::endl;
     }

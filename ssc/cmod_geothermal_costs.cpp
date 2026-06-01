@@ -899,6 +899,14 @@ public:
         double total_pump_gathering_cost = total_pump_cost + gathering_cost_total + indirect_pump_gathering_cost;
         assign("total_pump_gathering_cost", var_data(static_cast<ssc_number_t>(total_pump_gathering_cost)));
 
+        bool use_calculated_pump_gathering_cost = as_boolean("geotherm.cost.pumping.calc");
+        if(use_calculated_pump_gathering_cost){
+            assign("total_pump_gathering_cost_used", var_data(static_cast<ssc_number_t>(total_pump_gathering_cost)));  //[$])
+        }
+        else{
+            assign("total_pump_gathering_cost_used", var_data(static_cast<ssc_number_t>(as_double("geotherm.cost.pumping.amount_specified"))));  //[$])
+        }
+
         //OM Cost calculations
         /*
         double unit_plant = as_double("gross_output");

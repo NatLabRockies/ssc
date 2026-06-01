@@ -76,6 +76,10 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_fixed",           "Fixed pump workover and casing cost",                       "$",       "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_per_foot",        "Pump cost per foot",                                        "$/ft",    "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_casing_cost",     "Pump casing cost per foot",                                 "$/ft",    "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pumping.calc",         "0: user specified absolute pump cost, 1: calculated",       "$",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pumping.amount_specified", "Absolute pump cost input",                              "$",       "",     "GeoHourly", "",                        "",                              ""   },
+
+    
 
     // name change to match assign statement
  // { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_geotherm.cost.pump_depth","Pump depth",                 "ft",      "",     "GeoHourly", "",                        "",                              ""   },
@@ -88,19 +92,22 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     { SSC_OUTPUT,     SSC_NUMBER,     "total_pump_cost",                    "Total pumping cost",                                        "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "total_gathering_cost",               "Total gathering well cost",                                 "$",       "",     "GeoHourly", "?",                        "",                              ""   },
-    { SSC_OUTPUT,     SSC_NUMBER,     "indirect_pump_gathering_cost",       "Indirect pump and field gathering cost",                    "$",       "",     "GeoHourly", "?",                        "",                              ""   },
-    { SSC_OUTPUT,     SSC_NUMBER,     "total_pump_gathering_cost",          "Total pump and field gathering system cost",                "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "pump_only_cost",                     "Production pump cost per well",                             "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "pump_cost_install",                  "Production pump installation cost",                         "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "total_surface_equipment_cost",       "Total surface equipment cost",                              "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "prod_pump_cost_per_well",            "Production pump cost per well",                             "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_pump_cost_per_pump",             "Injection pump cost per pump",                              "$/pump",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_num_pumps",                      "Number of injection pumps",                                 "",        "",     "GeoHourly", "?",                        "",                              ""   },
-    { SSC_OUTPUT,     SSC_NUMBER,     "indirect_pump_cost",                 "Number of injection pumps",                                 "",        "",     "GeoHourly", "?",                        "",                              ""   },
+
     { SSC_OUTPUT,     SSC_NUMBER,     "prod_pump_cost",                     "Production pump system cost",                               "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "inj_pump_cost",                      "Injection pump system cost",                                "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "piping_cost_per_well",               "Surface piping cost per well",                              "$/well",  "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "field_gathering_num_wells",          "Field gathering system number of wells",                    "wells",   "",     "GeoHourly", "?",                        "",                              ""   },
+
+    { SSC_OUTPUT,     SSC_NUMBER,     "indirect_pump_gathering_cost",       "Indirect pump and field gathering cost",                    "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+    { SSC_OUTPUT,     SSC_NUMBER,     "total_pump_gathering_cost",          "Total pump and field gathering system cost",                "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+    { SSC_OUTPUT,     SSC_NUMBER,     "total_pump_gathering_cost_used",     "Total pump and field gathering system cost used in total installed cost", "$", "", "GeoHourly", "?",                    "",                              ""   },
+
 
     // Plant costs
     { SSC_OUTPUT,     SSC_NUMBER,     "total_plant_cost",                   "Power plant cost - calculated",                             "$",       "",     "GeoHourly", "?",                        "",                              ""   },

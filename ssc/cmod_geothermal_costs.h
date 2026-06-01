@@ -83,6 +83,14 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.recap_use_calc",       "0: user specified absolute recap cost, 1: calculated",      "" ,       "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.recap_specified",      "Absolute recap cost input",                                 "$",       "",     "GeoHourly", "",                        "",                              ""   },
 
+    // Total costs
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.contingency_percent",  "Contingency percent",                                       "%",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.epc.percent",          "EPC percent",                                               "%",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.epc.fixed",            "EPC fixed cost",                                            "$",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plm.percent",          "Project-land-misc percent",                                 "%",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plm.fixed",            "Project-land-misc fixed cost",                              "$",       "",     "GeoHourly", "",                        "",                              ""   },
+
+   // geotherm.cost.plm.percent ; geotherm.cost.plm.fixed
     
 
     // name change to match assign statement
@@ -143,6 +151,10 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     // Total costs
     { SSC_OUTPUT,     SSC_NUMBER,     "total_capital_cost",                 "Total capital cost",                                        "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "contingency_cost",                   "Contigency cost calculated from total less well cost",      "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "total_direct_cost",                  "Total direct cost",                                         "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "epc_total_cost",                     "Total EPC cost",                                            "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "plm_total_cost",                     "Total PLM cost",                                            "$",       "",     "GeoHourly", "?",                        "",                              "" },
 
 
     var_info_invalid

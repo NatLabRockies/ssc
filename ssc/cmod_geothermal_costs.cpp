@@ -931,6 +931,28 @@ public:
         double total_capital_cost = total_drilling_cost + total_plant_cost_used + total_pump_gathering_cost_used; //[$]
         assign("total_capital_cost", var_data(static_cast<ssc_number_t>(total_capital_cost)));
 
+        // Contingency
+        double contingency_rate = as_double("geotherm.cost.contingency_percent"); //[%]
+        double contingency_cost = contingency_rate*1.E-2*(total_capital_cost-sum_prod_inj_total_cost);
+        assign("contingency_cost", var_data(static_cast<ssc_number_t>(contingency_cost)));
+
+        // Total direct cost
+        double total_direct_cost = total_capital_cost + contingency_cost; //[$]
+        assign("total_direct_cost", var_data(static_cast<ssc_number_t>(total_direct_cost)));
+
+        // EPC cost
+        double EPC_percent = as_double("geotherm.cost.epc.percent"); //[%]
+        double EPC_fixed_cost = as_double("geotherm.cost.epc.fixed"); //[$]
+        double EPC_cost = EPC_fixed_cost + (EPC_percent * 1.E-2 * total_direct_cost);
+        assign("epc_total_cost", var_data(static_cast<ssc_number_t>(EPC_cost)));
+
+        // PLM cost
+        double PLM_percent = as_double("geotherm.cost.plm.percent"); //[%]
+        double PLM_fixed_cost = as_double("geotherm.cost.plm.fixed"); //[$]
+        double PLM_cost = PLM_fixed_cost + (PLM_percent * 1.E-2 * total_direct_cost);
+        assign("plm_total_cost", var_data(static_cast<ssc_number_t>(PLM_cost)));
+
+
         //OM Cost calculations
         /*
         double unit_plant = as_double("gross_output");

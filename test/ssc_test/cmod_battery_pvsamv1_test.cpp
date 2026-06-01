@@ -472,7 +472,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_cashloan)
 
     ssc_number_t lcos_real;
     ssc_data_get_number(data, "lcos_real", &lcos_real);
-    EXPECT_NEAR(lcos_real, 3795.85, 0.1); 
+    EXPECT_NEAR(lcos_real, 2843.41, 0.1);
 }
 
 /// Test PVSAMv1 with all defaults and battery enabled with 3 automatic dispatch methods

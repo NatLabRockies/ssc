@@ -1842,7 +1842,6 @@ void irrad::setup() {
     pressure = 1013.25;
     tamb = 15;
     pwater = 0;
-    pwater = 0;
 
     globalHorizontal = directNormal = diffuseHorizontal = -999;
 

@@ -147,7 +147,7 @@ bool cec6par_module_t::operator() ( pvinput_t const &input, double TcellC, doubl
 		if (theta_z > 86.0) theta_z = 86.0; // !Zenith angle must be < 90 (?? why 86?)
 		if (theta_z < 0) theta_z = 0; // Zenith angle must be >= 0
 
-		//Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );
+		double Geff_total_test = Geff_total * air_mass_modifier( theta_z, input.Elev, amavec );
         Geff_total *= input.SCF;
 	
 	}

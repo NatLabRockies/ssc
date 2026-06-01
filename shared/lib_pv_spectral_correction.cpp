@@ -290,6 +290,7 @@ double spectral_correction_king(double abs_airmass, double Zenith_deg, double El
     std::vector<double> amavec;
     amavec.resize(5);
     amavec = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };
+    //double amavec[5] = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };
 
     if (a.size() != 5) {
         a = amavec; // Default coefficients from DeSoto paper
@@ -346,13 +347,11 @@ static double sandia_absolute_air_mass(double SolZen, double Altitude)
    C SolZen = solar zenith (deg)
    C Altitude = site altitude (m)
    */
-    if (SolZen < 89.9)
-    {
-        double AM = 1 / (cos(SolZen * 0.01745329) + 0.5057 * pow((96.08 - SolZen), -1.634));
-        return AM * exp(-0.0001184 * Altitude);
-    }
-    else
-        return 999;
+    if (SolZen > 86.0) SolZen = 86.0;
+    if (SolZen < 0.0) SolZen = 0.0;
+    
+    double AM = 1 / (cos(SolZen * M_PI/180.0) + 0.5057 * pow((96.080 - SolZen), -1.634));
+    return AM * exp(-0.0001184 * Altitude);
 }
 
 double spectral_correction_factor(compute_module* cm, double pwater, double solzen = 0.0, double alt = 0.0, double csky_index = 0.0) {
@@ -406,10 +405,10 @@ var_info vtab_spectral_correction[] = {
 { SSC_INPUT, SSC_NUMBER , "celltech",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=0",     "",    ""},
 { SSC_INPUT, SSC_NUMBER , "min_prec_water",                 "Minimum precipitable water",                        "",         "", "Spectral Correction",      "?=0.1",     "",    ""},
 { SSC_INPUT, SSC_NUMBER , "max_prec_water",                 "Maximum precipitable water",                        "",         "", "Spectral Correction",      "?=8",     "",    ""},
-{ SSC_INPUT, SSC_NUMBER , "min_abs_airmass",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=0.58",     "",    ""},
-{ SSC_INPUT, SSC_NUMBER , "max_abs_airmass",                 "Cell technology",                        "",         "", "Spectral Correction",      "?=10",     "",    ""},
-{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_lee",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=6",    ""},
-{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_king",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=5",    ""},
-{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_pelland",                 "Cell technology",                        "",         "", "Spectral Correction",      "?",     "LENGTH=3",    ""},
+{ SSC_INPUT, SSC_NUMBER , "min_abs_airmass",                 "Minimum absolute airmass",                        "",         "", "Spectral Correction",      "?=0.58",     "",    ""},
+{ SSC_INPUT, SSC_NUMBER , "max_abs_airmass",                 "Maximum absolute airmass",                        "",         "", "Spectral Correction",      "?=10",     "",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_lee",                 "Coefficients for Lee spectral correction function",                        "",         "", "Spectral Correction",      "?",     "LENGTH=6",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_king",                 "Coefficients for King spectral correction function",                        "",         "", "Spectral Correction",      "?",     "LENGTH=5",    ""},
+{ SSC_INPUT, SSC_ARRAY , "coeff_inputs_pelland",                 "Coefficients for Pelland spectral correction function",                        "",         "", "Spectral Correction",      "?",     "LENGTH=3",    ""},
 
     var_info_invalid };

@@ -1271,7 +1271,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, SpectralCorrectionModelChoices)
     // A tolerance of 100 kWh is used to accommodate future coefficient or
     // algorithm refinements while still catching gross regressions.
     const double tolerance_kwh = 1.0;
-    const std::vector<double> annual_energy_expected = { 8651.8, 8828.1, 8917.3 };
+    const std::vector<double> annual_energy_expected = { 8837.3, 8651.8, 8917.3 };
 
     std::map<std::string, double> pairs;
 

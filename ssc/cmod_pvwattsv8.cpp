@@ -313,6 +313,7 @@ public:
         add_var_info(_cm_vtab_pvwattsv8);
         add_var_info(vtab_adjustment_factors);
         add_var_info(vtab_technology_outputs);
+        add_var_info(vtab_spectral_correction);
         add_var_info(vtab_hybrid_tech_om_outputs);
 
 
@@ -1241,7 +1242,8 @@ public:
                     // set up inputs to module model for both temperature and subsequent CEC module model calculations
                     // bifaciality is applied to irear on line 885 above for fixed arrays and line 962 for trackers - so, module.bifaciality should not be applied again here - SAM issue 1151
                     //pvinput_t in((f_nonlinear < 1.0 && poa > 0.0) ? ibeam_unselfshaded : ibeam, iskydiff, ignddiff, irear* module.bifaciality, poa_for_power,
-                    double scf = 1.0; //todo replace
+                    double scf = spectral_correction_factor(this, pwater, solzen, elev);
+
                     pvinput_t in((f_nonlinear < 1.0 && poa > 0.0) ? ibeam_unselfshaded : ibeam, iskydiff, ignddiff, irear, poa_for_power,
                         wf.tdry, wf.tdew, wf.wspd, wf.wdir, wf.pres,
                         solzen, aoi, elev,

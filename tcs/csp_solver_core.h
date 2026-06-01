@@ -1184,8 +1184,6 @@ private:
     bool m_is_parallel_heater;
         // True: allows control to consider sending rec exit HTF to cold tank if colder than some threshold
     bool m_is_rec_to_coldtank_allowed;  //[-]
-        // Check if mp_battery is defined. if True, then battery is included in dispatch and solver
-    bool m_is_battery;
         // if 'm_is_rec_to_coldtank_allowed' then T_cr_out < this temp go to cold tank
     double m_T_htf_hot_tank_in_min;     //[C]
         

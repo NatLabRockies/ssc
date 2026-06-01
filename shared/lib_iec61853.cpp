@@ -893,8 +893,8 @@ bool iec61853_module_t::operator() ( pvinput_t const &input, double TcellC, doub
         if( tpoa > poa ) tpoa = poa;
 	
 		// spectral effect via AM modifier
-		//double ama = air_mass_modifier( input.Zenith, input.Elev, AMA );
-        double ama = input.SCF;
+		double ama = air_mass_modifier( input.Zenith, input.Elev, AMA );
+        //double ama = input.SCF;
 		tpoa *= ama;
 		AOIModifier = tpoa/poa;
 	} 

@@ -42,14 +42,11 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "conversion_type",                    "Conversion Type",                                           "",        "",     "GeoHourly", "*",                        "INTEGER",                       ""   },
     { SSC_INPUT,      SSC_NUMBER,     "ppi_base_year",                      "PPI Base Year",                                             "",        "",     "GeoHourly", "?=19",                     "",                              ""   },
 
-    // Binary Plant Type Inputs:
-    //{ SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MW",      "",     "GeoHourly", "*",                        "",                              ""   },
-    //{ SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kW",      "",     "GeoHourly", "*",                        "",                              ""   },
-
     { SSC_INPUT,      SSC_NUMBER,     "dt_prod_well",                       "Temperature loss in production well",                       "C",       "",     "GeoHourly", "*",                        "",                              ""   },
-    //{ SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "resource_depth",                      "Resource Depth",                                           "m",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "calc_drill_costs",                   "Calculate drill costs",                                      "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "?=1",         "",                              ""   },
+
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_auto_estimate",  "0: use user input cost; 1: use getem calcs",                 "0/1",     "",                                   "GeoHourly", "",         "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_per_kW_input",   "user input for relative plant cost",                         "$/kWe",   "",                                   "GeoHourly", "geotherm.cost.plant_auto_estimate=0",         "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_total.calc",     "0: user specificed absolute plant cost, 1: calculated",      "",   "",                                        "GeoHourly", "",         "",                              ""   },
@@ -63,8 +60,6 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.prod_cost_curve",      "Production well diameter type",                             "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "calc_drill_costs=1", "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.prod_inj_non_drill",   "Non drilling cost for prod and inj well",                   "$",      "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "calc_drill_costs=1", "",                              ""   },
-
-    { SSC_INPUT,      SSC_NUMBER,     "resource_depth",                      "Resource Depth",                                           "m",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },
     
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.stim_non_drill",       "Stimulation non drilling costs",                            "$",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=0" },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.expl_non_drill",       "Exploration non drilling costs",                            "$",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=750000" },
@@ -74,6 +69,8 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.expl_num_wells",       "Number of exploration wells",                               "",        "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=2" },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.conf_num_wells",       "Number of confirmation wells",                              "",        "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=2" },
 
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.drilling.calc",        "0: user specified absolute drilling cost, 1: calculated",   "$",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=2" },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.drilling.amount_specified", "Absolute drilling cost input",                         "$",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              "?=2" },
     
     // need defaults?
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_fixed",           "Fixed pump workover and casing cost",                       "$",       "",     "GeoHourly", "",                        "",                              ""   },
@@ -87,6 +84,8 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     // Outputs
     { SSC_OUTPUT,     SSC_NUMBER,     "baseline_cost",                      "Baseline cost",                                             "$/kW",    "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "total_drilling_cost",                "Total drilling cost",                                       "$",       "",     "GeoHourly", "calc_drill_costs=1",       "",                              ""   },
+    { SSC_OUTPUT,     SSC_NUMBER,     "total_drilling_cost_used",           "Total drilling cost used in total installed cost",          "$",       "",     "GeoHourly", "calc_drill_costs=1",       "",                              ""   },
+
     { SSC_OUTPUT,     SSC_NUMBER,     "total_pump_cost",                    "Total pumping cost",                                        "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "total_gathering_cost",               "Total gathering well cost",                                 "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "indirect_pump_gathering_cost",       "Indirect pump and field gathering cost",                    "$",       "",     "GeoHourly", "?",                        "",                              ""   },

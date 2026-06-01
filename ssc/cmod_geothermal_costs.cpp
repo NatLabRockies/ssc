@@ -512,6 +512,14 @@ public:
             double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost;
             assign("total_drilling_cost", total_drilling_cost);
 
+            bool is_calculate_drilling_costs = as_boolean("geotherm.cost.drilling.calc");
+            if( is_calculate_drilling_costs ) {
+                assign("total_drilling_cost_used", total_drilling_cost);    //[$]
+            }
+            else {
+                assign("total_drilling_cost_used", as_double("geotherm.cost.drilling.amount_specified"));    //[$]
+            }
+
         }
 		int conversion_type = as_integer("conversion_type");
 

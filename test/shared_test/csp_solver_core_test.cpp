@@ -250,7 +250,7 @@ protected:
         sim_setup.m_sim_time_start = 0;
         sim_setup.m_sim_time_start = 31536000;
         sim_setup.m_report_step = 3600.0;
-        solver = new C_csp_solver(wr, *cr, *pc, tes, tou, dispatch, system, NULL, nullptr, ssc_cmod_update, (void*)0);
+        solver = new C_csp_solver(wr, *cr, *pc, tes, tou, dispatch, system, NULL, nullptr, nullptr, ssc_cmod_update, (void*)0);
     }
 };
 

@@ -32,15 +32,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "csp_solver_core.h"
 #include "csp_solver_util.h"
+#include "csp_solver_battery.h"
 
 #include "lib_util.h"
-#include "csp_dispatch.h"
-#include "etes_dispatch.h"
+#include "base_dispatch.h"
 
 #include <algorithm>
-
 #include <sstream>
-
 #include <ctime>
 
 #undef min
@@ -233,7 +231,9 @@ static C_csp_reported_outputs::S_output_info S_solver_output_info[] =
     {C_csp_solver::C_solver_outputs::DISPATCH_QEH_EXPECT, C_csp_reported_outputs::TS_1ST},	      //[MWt] Parallel electric heater thermal power in dispatch model
     {C_csp_solver::C_solver_outputs::DISPATCH_REV_EXPECT, C_csp_reported_outputs::TS_1ST},		  //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
     {C_csp_solver::C_solver_outputs::DISPATCH_PV_EXPECT, C_csp_reported_outputs::TS_1ST},		  //[MWe] Expected PV electricity production in dispatch model
-
+    {C_csp_solver::C_solver_outputs::DISPATCH_BATT_TARGET, C_csp_reported_outputs::TS_1ST},		  //[MWe] Battery target set by dispatch model
+    {C_csp_solver::C_solver_outputs::DISPATCH_BATT_SOC_EXPECT, C_csp_reported_outputs::TS_1ST},	  //[MWe] Expected battery state-of-charge in dispatch model
+    {C_csp_solver::C_solver_outputs::DISPATCH_SYS_POWER_LIMIT, C_csp_reported_outputs::TS_1ST},	  //[MWe] System power limit in dispatch model
 
 	// **************************************************************
 	//      Outputs that are reported as weighted averages if 
@@ -280,6 +280,7 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
     base_dispatch_opt &dispatch,
 	S_csp_system_params &system,
     C_csp_collector_receiver* heater,
+    C_csp_battery* battery,
     std::shared_ptr<C_csp_tes> c_CT_tes,
 	bool(*pf_callback)(std::string &log_msg, std::string &progress_msg, void *data, double progress, int out_type),
 	void *p_cmod_active) :
@@ -293,6 +294,7 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
 {
     // Assign remaining member data
     mp_heater = heater;
+    mp_battery = battery;
     mc_CT_tes = c_CT_tes;
     mpf_callback = pf_callback;
     mp_cmod_active = p_cmod_active;
@@ -309,7 +311,7 @@ C_csp_solver::C_csp_solver(C_csp_weatherreader &weather,
 	//reset_hierarchy_logic();
     mc_operating_modes.reset_all_availability();
 
-	// Inititalize non-reference member data
+	// Initialize non-reference member data
 	m_T_htf_cold_des = m_P_cold_des = m_x_cold_des =
 		m_q_dot_rec_des = m_A_aperture = m_CT_to_HT_m_dot_ratio =
         m_PAR_HTR_T_htf_cold_des = m_PAR_HTR_P_cold_des = m_PAR_HTR_x_cold_des = m_PAR_HTR_q_dot_rec_des = m_PAR_HTR_A_aperture =
@@ -556,7 +558,7 @@ void C_csp_solver::init()
         throw(C_csp_exception("Either heuristic, imported dispatch targets, or dispatch optimization must be specified", "CSP Solver"));
     }
     else if (mc_tou.m_dispatch_model_type == C_csp_tou::C_dispatch_model_type::E_dispatch_model_type::DISPATCH_OPTIMIZATION) {
-        mc_dispatch.pointers.set_pointers(mc_weather, &mc_collector_receiver, &mc_power_cycle, &mc_tes, &mc_csp_messages, &mc_kernel.mc_sim_info, mp_heater);
+        mc_dispatch.pointers.set_pointers(mc_weather, &mc_collector_receiver, &mc_power_cycle, &mc_tes, &mc_csp_messages, &mc_kernel.mc_sim_info, mp_heater, mp_battery);
         mc_dispatch.init(m_cycle_q_dot_des, m_cycle_eta_des, m_W_dot_fixed_design);
     }
 
@@ -657,6 +659,9 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
     double pc_heat_prev = 0.;   // [MWt] Heat into power cycle in previous time step
 	double pc_state_persist = 0.;  // Time [hr] that current pc operating state (on/off/standby) has persisted
 	double rec_state_persist = 0.;  // Time [hr] that current receiver operating state (on/off/standby) has persisted
+
+    bool has_battery_run = false;   // Track whether battery has been called within the current time step (reset at the beginning of each time step).
+    // This prevents multiple calls to the battery model within a single time step.
 
     //************************** MAIN TIME-SERIES LOOP **************************
 	//mf_callback(m_cdata, 0.0, 0, 0.0);
@@ -865,10 +870,11 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         bool is_PAR_HTR_allowed = false;
 
         double q_dot_elec_to_CR_heat = std::numeric_limits<double>::quiet_NaN();    //[MWt]
-        double q_dot_pc_max = std::numeric_limits<double>::quiet_NaN();     //[MWt]
+        double q_dot_pc_max = std::numeric_limits<double>::quiet_NaN();             //[MWt]
         double q_dot_elec_to_PAR_HTR = std::numeric_limits<double>::quiet_NaN();
         double W_dot_system_target = std::numeric_limits<double>::quiet_NaN();      //[MWe]
         double W_dot_system_max = std::numeric_limits<double>::quiet_NaN();         //[MWe]
+        double battery_power_target = std::numeric_limits<double>::quiet_NaN();     //[MWe] (positive is discharge, negative is charge)
 
         calc_timestep_plant_control_and_targets(
             W_dot_rec_par_est, pc_eta_est,
@@ -879,7 +885,18 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
             W_dot_system_target, W_dot_system_max,
             q_dot_elec_to_CR_heat,
             is_rec_su_allowed, is_pc_su_allowed, is_pc_sb_allowed,
-            q_dot_elec_to_PAR_HTR, is_PAR_HTR_allowed);
+            q_dot_elec_to_PAR_HTR, is_PAR_HTR_allowed, battery_power_target);
+
+        if (mp_battery != nullptr) {
+            if (!has_battery_run) {
+                // Battery target set and respond here, then update PC targets
+                mp_battery->call(battery_power_target * 1.e3);    // MWe to kWe
+                has_battery_run = true;
+                double battery_power_actual = mp_battery->battery->get_state().P * 1.e-3;   // kWe to MWe
+                W_dot_system_target += (battery_power_target - battery_power_actual);
+            }
+            else mp_battery->write_outputs();
+        }
 
         // Avoid setting member data in method, so set here
         m_q_dot_pc_max = q_dot_pc_max;
@@ -1250,6 +1267,9 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
         mc_reported_outputs.value(C_solver_outputs::DISPATCH_QEH_EXPECT, mc_dispatch.dispatch_outputs.q_eh_target);
 		mc_reported_outputs.value(C_solver_outputs::DISPATCH_REV_EXPECT, mc_dispatch.dispatch_outputs.rev_expect);
         mc_reported_outputs.value(C_solver_outputs::DISPATCH_PV_EXPECT, mc_dispatch.dispatch_outputs.pv_expect);
+        mc_reported_outputs.value(C_solver_outputs::DISPATCH_BATT_TARGET, mc_dispatch.dispatch_outputs.batt_power_target);
+        mc_reported_outputs.value(C_solver_outputs::DISPATCH_BATT_SOC_EXPECT, mc_dispatch.dispatch_outputs.batt_soc_expected);
+        mc_reported_outputs.value(C_solver_outputs::DISPATCH_SYS_POWER_LIMIT, mc_dispatch.dispatch_outputs.sys_power_limit);
 
 
 		// Report series of operating modes attempted during the timestep as a 'double' so can see in hourly outputs
@@ -1300,6 +1320,10 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
                 }
                 if (m_is_CT_tes) {
                     mc_CT_tes->write_output_intervals(m_report_time_start, mv_time_local, m_report_time_end);
+                }
+                if (mp_battery != nullptr) {
+                    mp_battery->write_output_intervals(m_report_time_start, mv_time_local, m_report_time_end);
+                    has_battery_run = false;
                 }
 
 				// Overwrite TIME_FINAL
@@ -1398,8 +1422,10 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
     double& W_dot_system_target /*MWe*/, double& W_dot_system_max /*MWe*/,
     double& q_dot_elec_to_CR_heat /*MWt*/,
     bool& is_rec_su_allowed, bool& is_pc_su_allowed, bool& is_pc_sb_allowed,
-    double& q_dot_elec_to_PAR_HTR /*MWt*/, bool& is_PAR_HTR_allowed)
+    double& q_dot_elec_to_PAR_HTR /*MWt*/, bool& is_PAR_HTR_allowed,
+    double& batt_power_target /*MWe*/)
 {
+    batt_power_target = 0.0;
     // Optional rules for TOD Block Plant Control
     if (mc_tou.m_dispatch_model_type == C_csp_tou::C_dispatch_model_type::E_dispatch_model_type::HEURISTIC)
     {
@@ -1568,7 +1594,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
             if (hour_now >= (8760. - opt_horizon))
                 mc_dispatch.solver_params.optimize_horizon = (int)std::min((double)opt_horizon, (double)(8761. - hour_now));
 
-            // Optimizing message
+            // Optimizing message - Removed to clean up console output, but could be added back in if desired
             //std::stringstream ss;
             //ss << "Optimizing thermal energy dispatch profile for time window "
             //    << (int)(mc_kernel.mc_sim_info.ms_ts.m_time / 3600.) << " - "
@@ -1595,7 +1621,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
                 // initial condition parameters
                 mc_dispatch.update_initial_conditions(pc_heat_prev, m_T_htf_cold_des, pc_state_persist);
 
-                //call the optimize method
+                // call the optimize method
                 bool opt_complete = mc_dispatch.solver_outputs.last_opt_successful = mc_dispatch.optimize();
 
                 if (mc_dispatch.solver_params.disp_reporting && (!mc_dispatch.solver_params.log_message.empty()))
@@ -1624,15 +1650,14 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         is_pc_su_allowed = mc_dispatch.dispatch_outputs.is_pc_su_allowed;
         double q_dot_pc_target_disp = mc_dispatch.dispatch_outputs.q_pc_target;
         q_dot_elec_to_CR_heat = mc_dispatch.dispatch_outputs.q_dot_elec_to_CR_heat;
-        double q_dot_pc_max_disp = mc_dispatch.dispatch_outputs.q_dot_pc_max;      // Not used?
+        double q_dot_pc_max_disp = mc_dispatch.dispatch_outputs.q_dot_pc_max;           // Not used?
         is_PAR_HTR_allowed = mc_dispatch.dispatch_outputs.is_eh_su_allowed;
         double q_dot_elec_to_PAR_HTR_disp = mc_dispatch.dispatch_outputs.q_eh_target;
-
-        // Add fixed parasitics to the system target and max
-        double W_dot_system_target_disp = mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design;
-        double W_dot_system_max_disp = (mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design) * 1.2;  // Not used?
+        double W_dot_system_target_disp = mc_dispatch.dispatch_outputs.w_dot_target;
+        double W_dot_system_max_disp = mc_dispatch.dispatch_outputs.w_dot_target * 1.2; // Not used?
         
-        q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
+        q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		            //[MWt]
+        batt_power_target = mc_dispatch.dispatch_outputs.batt_power_target;     //[MWe]
         
         // If system electric target
         if( ms_system_params.m_is_control_target_elec ) {

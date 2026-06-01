@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lib_weatherfile.h"
 #include "csp_solver_util.h"
+#include "csp_solver_battery.h"
 
 #include "numeric_solvers.h"
 #include "lib_util.h"
@@ -587,7 +588,6 @@ public:
     virtual double get_collector_area() = 0;
 };
 
-
 class C_csp_power_cycle
 {
 public:
@@ -943,6 +943,9 @@ public:
             DISPATCH_QEH_EXPECT,        //[MWt] Parallel electric heater thermal consumption in dispatch model
 			DISPATCH_REV_EXPECT,        //[MWe*fact] Power cycle electricity production times revenue factor in dispatch model
             DISPATCH_PV_EXPECT,         //[MWe] PV electricity production in dispatch model
+            DISPATCH_BATT_TARGET,       //[MWe] Battery target set by dispatch model
+            DISPATCH_BATT_SOC_EXPECT,   //[%] Battery state of charge expected in dispatch model
+            DISPATCH_SYS_POWER_LIMIT,   //[MWe] System power limit in dispatch model
 
 			// **************************************************************
 			//      Outputs that are reported as weighted averages if 
@@ -1111,6 +1114,8 @@ private:
 	C_csp_tou &mc_tou;
     base_dispatch_opt &mc_dispatch;
     C_csp_collector_receiver* mp_heater;
+
+    C_csp_battery* mp_battery;
     std::shared_ptr<C_csp_tes> mc_CT_tes;
 
 	S_csp_system_params & ms_system_params;
@@ -1178,9 +1183,11 @@ private:
         // Checks if mp_heater is defined. if True, then solves system for CSP+ETES
     bool m_is_parallel_heater;
         // True: allows control to consider sending rec exit HTF to cold tank if colder than some threshold
-    bool m_is_rec_to_coldtank_allowed;  //[-] 
+    bool m_is_rec_to_coldtank_allowed;  //[-]
+        // Check if mp_battery is defined. if True, then battery is included in dispatch and solver
+    bool m_is_battery;
         // if 'm_is_rec_to_coldtank_allowed' then T_cr_out < this temp go to cold tank
-    double m_T_htf_hot_tank_in_min;     //[C] 
+    double m_T_htf_hot_tank_in_min;     //[C]
         
         // System design
     double m_W_dot_bop_design;      //[MWe]
@@ -1244,7 +1251,8 @@ private:
         double& W_dot_system_target /*MWe*/, double& W_dot_system_max /*MWe*/,
         double& q_dot_elec_to_CR_heat /*MWt*/,
         bool& is_rec_su_allowed, bool& is_pc_su_allowed, bool& is_pc_sb_allowed,
-        double& q_dot_elec_to_PAR_HTR /*MWt*/, bool& is_PAR_HTR_allowed);
+        double& q_dot_elec_to_PAR_HTR /*MWt*/, bool& is_PAR_HTR_allowed,
+        double& batt_power_target /*MWe*/);
 
     C_csp_power_cycle::E_csp_power_cycles_types get_system_offtaker_type() {
 
@@ -1272,6 +1280,7 @@ public:
         base_dispatch_opt &dispatch,
 		S_csp_system_params &system,
         C_csp_collector_receiver* heater,
+        C_csp_battery* battery,
         std::shared_ptr<C_csp_tes> c_CT_tes,
 		bool(*pf_callback)(std::string &log_msg, std::string &progress_msg, void *data, double progress, int out_type) = 0,
 		void *p_cmod_active = 0);

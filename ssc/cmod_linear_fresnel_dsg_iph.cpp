@@ -538,6 +538,7 @@ public:
 								system,
                                 NULL,
                                 nullptr,
+                                nullptr,
 								ssc_cmod_update,
 								(void*)(this));
 

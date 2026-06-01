@@ -1815,6 +1815,7 @@ public:
                                 system,
                                 p_heater,
                                 nullptr,
+                                nullptr,
                                 ssc_cmod_update,
                                 (void*)(this));
 

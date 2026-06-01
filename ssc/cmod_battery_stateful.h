@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core.h"
 #include "lib_battery.h"
 
+extern var_info vtab_battery_stateful_inputs[];
+
+
 std::shared_ptr<battery_params> create_battery_params(var_table *vt, double dt_hr);
 
 void write_battery_state(const battery_state& state, var_table* vt);

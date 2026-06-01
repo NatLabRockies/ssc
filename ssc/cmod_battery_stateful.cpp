@@ -38,13 +38,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core.h"
 #include "cmod_battery_stateful.h"
 
-var_info vtab_battery_stateful_inputs[] = {
+var_info vtab_battery_stateful_control_inputs[]{
     /*   VARTYPE           DATATYPE         NAME                                            LABEL                                                   UNITS      META                   GROUP           REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
     { SSC_INPUT,        SSC_NUMBER,      "control_mode",                               "Control using current (0) or power (1)",                  "0/1",      "",   "Controls",       "*",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "dt_hr",                                      "Time step in hours",                                      "hr",      "",   "Controls",       "*",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "input_current",                              "Current at which to run battery",                         "A",       "",   "Controls",       "control_mode=0",              "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "input_power",                                "Power at which to run battery",                           "kW",      "",   "Controls",       "control_mode=1",              "",                              "" },
+    var_info_invalid
+};
 
+var_info vtab_battery_stateful_inputs[] = {
+    /*   VARTYPE           DATATYPE         NAME                                            LABEL                                                   UNITS      META                   GROUP           REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
     { SSC_INPUT,        SSC_NUMBER,      "chem",                                       "Lead Acid (0), Li Ion (1), Vanadium Redox (2), Iron Flow (3)","0/1/2/3","",   "ParamsCell",       "*",                           "",                              "" },
     { SSC_INOUT,        SSC_NUMBER,      "nominal_energy",                             "Nominal installed energy",                                "kWh",     "",                     "ParamsPack",       "*",                           "",                              "" },
     { SSC_INOUT,        SSC_NUMBER,      "nominal_voltage",                            "Nominal DC voltage",                                      "V",       "",                     "ParamsPack",       "*",                           "",                              "" },
@@ -52,9 +56,9 @@ var_info vtab_battery_stateful_inputs[] = {
     // capacity
     { SSC_INPUT,        SSC_NUMBER,      "initial_SOC",		                          "Initial state-of-charge",                                 "%",       "",                     "ParamsCell",       "*",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "minimum_SOC",		                          "Minimum allowed state-of-charge",                         "%",       "",                     "ParamsCell",       "*",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "maximum_SOC",                                "Maximum allowed state-of-charge",                         "%",       "",                     "ParamsCell",       "*",                           "",                              "" },
-    { SSC_INPUT,		SSC_NUMBER,		 "leadacid_q20",	                              "Capacity at 20-hour discharge rate",                      "Ah",       "",                     "ParamsCell",       "chem=0",                           "",                             "" },
-    { SSC_INPUT,		SSC_NUMBER,		 "leadacid_q10",	                              "Capacity at 10-hour discharge rate",                      "Ah",       "",                     "ParamsCell",       "chem=0",                           "",                             "" },
+    { SSC_INPUT,        SSC_NUMBER,      "maximum_SOC",                               "Maximum allowed state-of-charge",                         "%",       "",                     "ParamsCell",       "*",                           "",                              "" },
+    { SSC_INPUT,		SSC_NUMBER,		 "leadacid_q20",	                          "Capacity at 20-hour discharge rate",                      "Ah",       "",                     "ParamsCell",       "chem=0",                           "",                             "" },
+    { SSC_INPUT,		SSC_NUMBER,		 "leadacid_q10",	                          "Capacity at 10-hour discharge rate",                      "Ah",       "",                     "ParamsCell",       "chem=0",                           "",                             "" },
     { SSC_INPUT,		SSC_NUMBER,		 "leadacid_qn",	                              "Capacity at discharge rate for n-hour rate",              "Ah",       "",                     "ParamsCell",       "chem=0",                           "",                             "" },
     { SSC_INPUT,		SSC_NUMBER,		 "leadacid_tn",	                              "Hours to discharge for qn rate",                          "h",        "",                     "ParamsCell",       "chem=0",                           "",                             "" },
 
@@ -98,7 +102,6 @@ var_info vtab_battery_stateful_inputs[] = {
     { SSC_INPUT,        SSC_ARRAY,       "monthly_idle_loss",                          "Battery system losses when idle",                         "[kW]",       "",                     "ParamsPack",       "?=0",                        "",                             "" },
     { SSC_INPUT,        SSC_ARRAY,       "schedule_loss",                              "Battery system losses at each timestep",                  "[kW]",       "",                     "ParamsPack",       "?=0",                        "",                             "" },
     { SSC_INPUT,        SSC_ARRAY,       "availabilty_loss",                           "Battery availability losses at each timestep",            "[%]",       "",                      "ParamsPack",       "?=0",                        "",                             "" },
-
 
     // replacement inputs
     { SSC_INPUT,        SSC_NUMBER,      "replacement_option",                         "Replacements: none (0), by capacity (1), or schedule (2)", "0=none,1=capacity limit,2=yearly schedule", "", "ParamsPack", "?=0",                  "INTEGER,MIN=0,MAX=2",          "" },
@@ -488,7 +491,6 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
 
     // lifetime
     auto lifetime = params->lifetime;
-    vt_get_number(vt, "dt_hr", &lifetime->dt_hr);
     vt_get_int(vt, "life_model", &choice);
     lifetime->model_choice = static_cast<lifetime_params::MODEL_CHOICE>(choice);
 
@@ -566,6 +568,7 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
 cm_battery_stateful::cm_battery_stateful() :
     dt_hr(0),
     control_mode(0) {
+    add_var_info(vtab_battery_stateful_control_inputs);
     add_var_info(vtab_battery_stateful_inputs);
     add_var_info(vtab_battery_state);
 }

@@ -255,6 +255,9 @@ public:
 	{
 		SGeothermal_Inputs geo_inputs;
 
+        double conf_drilling_cost = std::numeric_limits<double>::quiet_NaN();
+        double sum_prod_inj_total_cost = std::numeric_limits<double>::quiet_NaN();
+
         int calc_drill_costs = as_integer("calc_drill_costs");
         if (calc_drill_costs == 1) {
             int inj_cost_curve_welldiam = as_integer("geotherm.cost.inj_cost_curve_welldiam");
@@ -283,6 +286,7 @@ public:
                 //Drilling cost calculations
             double resource_depth = as_double("resource_depth");
             double inj_well_cost = 0;
+
             if (inj_cost_curve_welldiam == 0) {
                 if (inj_cost_curve_welltype == 0) {
                     switch (inj_cost_curve) {
@@ -437,7 +441,8 @@ public:
             assign("prod_total_cost", prod_total_cost);
             assign("prod_well_cost", prod_well_cost);
 
-            assign("sum_prod_inj_total_cost", ssc_number_t(prod_total_cost + inj_total_cost));
+            sum_prod_inj_total_cost = prod_total_cost + inj_total_cost;
+            assign("sum_prod_inj_total_cost", ssc_number_t(sum_prod_inj_total_cost));
 
             double prod_inj_non_drill_cost = as_double("geotherm.cost.prod_inj_non_drill");
             double prod_inj_total_cost = prod_total_cost + inj_total_cost + prod_inj_non_drill_cost;
@@ -507,7 +512,8 @@ public:
             double conf_per_well = conf_multiplier * prod_well_cost;
             double conf_total_cost = conf_per_well * conf_num_wells + conf_non_drill;
             assign("conf_total_cost", conf_total_cost);
-            assign("conf_drilling_cost", conf_per_well* conf_num_wells);
+            conf_drilling_cost = conf_per_well * conf_num_wells;
+            assign("conf_drilling_cost", conf_drilling_cost);
 
             double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost;
             assign("total_drilling_cost", total_drilling_cost);
@@ -905,6 +911,16 @@ public:
         }
         else{
             assign("total_pump_gathering_cost_used", var_data(static_cast<ssc_number_t>(as_double("geotherm.cost.pumping.amount_specified"))));  //[$])
+        }
+
+        // Recapitalization costs
+        bool use_calculated_recapitalization_cost = as_boolean("geotherm.cost.recap_use_calc");
+        if(use_calculated_recapitalization_cost){
+            double recap_cost_calc = conf_drilling_cost + sum_prod_inj_total_cost + gathering_cost_total + total_pump_cost;
+            assign("recap_cost_used", recap_cost_calc);
+        }
+        else{
+            assign("recap_cost_used", var_data(static_cast<ssc_number_t>(as_double("geotherm.cost.recap_specified")))); //[$]
         }
 
         //OM Cost calculations

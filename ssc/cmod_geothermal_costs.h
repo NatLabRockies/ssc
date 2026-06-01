@@ -76,8 +76,12 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_fixed",           "Fixed pump workover and casing cost",                       "$",       "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_per_foot",        "Pump cost per foot",                                        "$/ft",    "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_casing_cost",     "Pump casing cost per foot",                                 "$/ft",    "",     "GeoHourly", "",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pumping.calc",         "0: user specified absolute pump cost, 1: calculated",       "$",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pumping.calc",         "0: user specified absolute pump cost, 1: calculated",       "" ,       "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pumping.amount_specified", "Absolute pump cost input",                              "$",       "",     "GeoHourly", "",                        "",                              ""   },
+
+    // Recapitalization costs
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.recap_use_calc",       "0: user specified absolute recap cost, 1: calculated",      "" ,       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.recap_specified",      "Absolute recap cost input",                                 "$",       "",     "GeoHourly", "",                        "",                              ""   },
 
     
 
@@ -133,6 +137,9 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     { SSC_OUTPUT,     SSC_NUMBER,     "sum_prod_inj_total_cost",            "Sum of total production and injection well system cost",    "$",       "",     "GeoHourly", "?",                        "",                              ""   },
     { SSC_OUTPUT,     SSC_NUMBER,     "prod_inj_total_cost",                "Sum drilling cost plus non-drilling well costs",            "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+
+    // Recapitalization costs
+    { SSC_OUTPUT,     SSC_NUMBER,     "recap_cost_used",                    "Recapitalization cost used in downstream fin calcs",        "$",       "",     "GeoHourly", "?",                        "",                              "" },
 
 
     var_info_invalid

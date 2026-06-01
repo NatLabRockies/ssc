@@ -141,96 +141,96 @@ void C_csp_battery::write_outputs() {
     battery_state state = battery->get_state();
     last_idx = (int)state.last_idx;
     // set all outputs here
-    mc_reported_outputs.value(C_csp_battery::Voltage, state.V);             // [V] Battery voltage
-    mc_reported_outputs.value(C_csp_battery::Power, state.P);               // [kW] Battery power (positive for discharge, negative for charge)
-    mc_reported_outputs.value(C_csp_battery::Capacity, state.Q);            // [Ah] Battery capacity
-    mc_reported_outputs.value(C_csp_battery::MaxCapacity, state.Q_max);     // [Ah] Maximum battery capacity
-    mc_reported_outputs.value(Current, state.I);                            // [A] Battery current
-    mc_reported_outputs.value(I_dischargeable, state.I_dischargeable);      // [A] Estimated max dischargeable current
-    mc_reported_outputs.value(I_chargeable, state.I_chargeable);            // [A] Estimated max chargeable current
-    mc_reported_outputs.value(P_dischargeable, state.P_dischargeable);      // [kW] Estimated max dischargeable power
-    mc_reported_outputs.value(P_chargeable, state.P_chargeable);            // [kW] Estimated max chargeable power
+    mc_reported_outputs.value(C_csp_battery::Voltage, state.V);                            // [V] Battery voltage
+    mc_reported_outputs.value(C_csp_battery::Power, state.P);                              // [kW] Battery power (positive for discharge, negative for charge)
+    mc_reported_outputs.value(C_csp_battery::Capacity, state.Q);                           // [Ah] Battery capacity
+    mc_reported_outputs.value(C_csp_battery::MaxCapacity, state.Q_max);                    // [Ah] Maximum battery capacity
+    mc_reported_outputs.value(C_csp_battery::Current, state.I);                            // [A] Battery current
+    mc_reported_outputs.value(C_csp_battery::I_dischargeable, state.I_dischargeable);      // [A] Estimated max dischargeable current
+    mc_reported_outputs.value(C_csp_battery::I_chargeable, state.I_chargeable);            // [A] Estimated max chargeable current
+    mc_reported_outputs.value(C_csp_battery::P_dischargeable, state.P_dischargeable);      // [kW] Estimated max dischargeable power
+    mc_reported_outputs.value(C_csp_battery::P_chargeable, state.P_chargeable);            // [kW] Estimated max chargeable power
 
     auto cap = state.capacity;
-    mc_reported_outputs.value(SOC, cap->SOC);                               // [%] State of Charge
-    mc_reported_outputs.value(q0, cap->q0);                                 // [Ah] Cell capacity at timestep
-    mc_reported_outputs.value(qmax_lifetime, cap->qmax_lifetime);           // [Ah] Maximum possible cell capacity
-    mc_reported_outputs.value(qmax_thermal, cap->qmax_thermal);             // [Ah] Maximum cell capacity adjusted for temperature effects
-    mc_reported_outputs.value(cell_current, cap->cell_current);             // [A] Cell current
-    mc_reported_outputs.value(I_loss, cap->I_loss);                         // [A] Current lost to lifetime and thermal losses
-    mc_reported_outputs.value(charge_mode, cap->charge_mode);               // [0/1/2] 0 = Charge, 1 = Idle, 2 = Discharge
-    //mc_reported_outputs.value(SOC_prev, cap->SOC_prev);                     // [%] State of Charge of last time step
-    //mc_reported_outputs.value(prev_charge, cap->prev_charge);               // [0/1/2] Charge mode of last time step
-    mc_reported_outputs.value(percent_unavailable, cap->percent_unavailable);               // [%] Percent of system that is down
-    //mc_reported_outputs.value(percent_unavailable_prev, cap->percent_unavailable_prev);     // [%] Percent of system that was down last step
-    //mc_reported_outputs.value(chargeChange, cap->chargeChange);             // [0/1] Whether charge mode changed since last step
+    mc_reported_outputs.value(C_csp_battery::SOC, cap->SOC);                               // [%] State of Charge
+    mc_reported_outputs.value(C_csp_battery::q0, cap->q0);                                 // [Ah] Cell capacity at timestep
+    mc_reported_outputs.value(C_csp_battery::qmax_lifetime, cap->qmax_lifetime);           // [Ah] Maximum possible cell capacity
+    mc_reported_outputs.value(C_csp_battery::qmax_thermal, cap->qmax_thermal);             // [Ah] Maximum cell capacity adjusted for temperature effects
+    mc_reported_outputs.value(C_csp_battery::cell_current, cap->cell_current);             // [A] Cell current
+    mc_reported_outputs.value(C_csp_battery::I_loss, cap->I_loss);                         // [A] Current lost to lifetime and thermal losses
+    mc_reported_outputs.value(C_csp_battery::charge_mode, cap->charge_mode);               // [0/1/2] 0 = Charge, 1 = Idle, 2 = Discharge
+    //mc_reported_outputs.value(C_csp_battery::SOC_prev, cap->SOC_prev);                     // [%] State of Charge of last time step
+    //mc_reported_outputs.value(C_csp_battery::prev_charge, cap->prev_charge);               // [0/1/2] Charge mode of last time step
+    mc_reported_outputs.value(C_csp_battery::percent_unavailable, cap->percent_unavailable);               // [%] Percent of system that is down
+    //mc_reported_outputs.value(C_csp_battery::percent_unavailable_prev, cap->percent_unavailable_prev);     // [%] Percent of system that was down last step
+    //mc_reported_outputs.value(C_csp_battery::chargeChange, cap->chargeChange);             // [0/1] Whether charge mode changed since last step
 
     if (params->chem == battery_params::CHEM::LEAD_ACID) {
-        mc_reported_outputs.value(q1_0, cap->leadacid.q1_0);                // [Ah] Lead acid - Cell charge available
-        mc_reported_outputs.value(q2_0, cap->leadacid.q2_0);                // [Ah] Lead acid - Cell charge bound
-        mc_reported_outputs.value(qn, cap->leadacid.q1);                    // [Ah] Lead acid - Cell capacity at n-hr discharge rate
-        mc_reported_outputs.value(q2, cap->leadacid.q2);                    // [Ah] Lead acid - Cell capacity at 10-hr discharge rate
+        mc_reported_outputs.value(C_csp_battery::q1_0, cap->leadacid.q1_0);                // [Ah] Lead acid - Cell charge available
+        mc_reported_outputs.value(C_csp_battery::q2_0, cap->leadacid.q2_0);                // [Ah] Lead acid - Cell charge bound
+        mc_reported_outputs.value(C_csp_battery::qn, cap->leadacid.q1);                    // [Ah] Lead acid - Cell capacity at n-hr discharge rate
+        mc_reported_outputs.value(C_csp_battery::q2, cap->leadacid.q2);                    // [Ah] Lead acid - Cell capacity at 10-hr discharge rate
     }
 
-    mc_reported_outputs.value(cell_voltage, state.voltage->cell_voltage);   // [V] Cell voltage
+    mc_reported_outputs.value(C_csp_battery::cell_voltage, state.voltage->cell_voltage);   // [V] Cell voltage
 
     auto thermal = state.thermal;
-    mc_reported_outputs.value(q_relative_thermal, thermal->q_relative_thermal);     // [%] Relative capacity due to thermal effects
-    mc_reported_outputs.value(T_batt, thermal->T_batt);                             // [C] Battery temperature averaged over time step
-    mc_reported_outputs.value(T_room, thermal->T_room);                             // [C] Room temperature
-    mc_reported_outputs.value(heat_dissipated, thermal->heat_dissipated);           // [kW] Heat dissipated due to flux
-    mc_reported_outputs.value(T_batt_prev, thermal->T_batt_prev);                   // [C] Battery temperature at end of last time step
+    mc_reported_outputs.value(C_csp_battery::q_relative_thermal, thermal->q_relative_thermal);     // [%] Relative capacity due to thermal effects
+    mc_reported_outputs.value(C_csp_battery::T_batt, thermal->T_batt);                             // [C] Battery temperature averaged over time step
+    mc_reported_outputs.value(C_csp_battery::T_room, thermal->T_room);                             // [C] Room temperature
+    mc_reported_outputs.value(C_csp_battery::heat_dissipated, thermal->heat_dissipated);           // [kW] Heat dissipated due to flux
+    mc_reported_outputs.value(C_csp_battery::T_batt_prev, thermal->T_batt_prev);                   // [C] Battery temperature at end of last time step
 
     auto lifetime = state.lifetime;
-    mc_reported_outputs.value(q_relative, lifetime->q_relative);                    // [%] Overall relative capacity due to lifetime effects
-    mc_reported_outputs.value(q_relative_cycle, lifetime->cycle->q_relative_cycle); // [%] Relative capacity due to cycling effects
-    mc_reported_outputs.value(n_cycles, lifetime->n_cycles);                        // [1] Number of cycles
-    mc_reported_outputs.value(cycle_range, lifetime->cycle_range);                  // [%] Range of last cycle
-    mc_reported_outputs.value(cycle_DOD, lifetime->cycle_DOD);                      // [%] Depth of Discharge of last cycle
-    mc_reported_outputs.value(day_age_of_battery, lifetime->day_age_of_battery);    // [day] Day age of battery
+    mc_reported_outputs.value(C_csp_battery::q_relative, lifetime->q_relative);                    // [%] Overall relative capacity due to lifetime effects
+    mc_reported_outputs.value(C_csp_battery::q_relative_cycle, lifetime->cycle->q_relative_cycle); // [%] Relative capacity due to cycling effects
+    mc_reported_outputs.value(C_csp_battery::n_cycles, lifetime->n_cycles);                        // [1] Number of cycles
+    mc_reported_outputs.value(C_csp_battery::cycle_range, lifetime->cycle_range);                  // [%] Range of last cycle
+    mc_reported_outputs.value(C_csp_battery::cycle_DOD, lifetime->cycle_DOD);                      // [%] Depth of Discharge of last cycle
+    mc_reported_outputs.value(C_csp_battery::day_age_of_battery, lifetime->day_age_of_battery);    // [day] Day age of battery
 
     //mc_reported_outputs.value(cycle_counts,               // [%, cycle] Counts of cycles by DOD
-    mc_reported_outputs.value(average_range, lifetime->average_range);              // [%] Average cycle range
-    mc_reported_outputs.value(rainflow_Xlt, lifetime->cycle->rainflow_Xlt);         // [%] Rainflow cycle range of second to last half cycle
-    mc_reported_outputs.value(rainflow_Ylt, lifetime->cycle->rainflow_Ylt);         // [%] Rainflow cycle range of last half cycle
-    mc_reported_outputs.value(rainflow_jlt, lifetime->cycle->rainflow_jlt);         // [1] Rainflow number of turning points
+    mc_reported_outputs.value(C_csp_battery::average_range, lifetime->average_range);              // [%] Average cycle range
+    mc_reported_outputs.value(C_csp_battery::rainflow_Xlt, lifetime->cycle->rainflow_Xlt);         // [%] Rainflow cycle range of second to last half cycle
+    mc_reported_outputs.value(C_csp_battery::rainflow_Ylt, lifetime->cycle->rainflow_Ylt);         // [%] Rainflow cycle range of last half cycle
+    mc_reported_outputs.value(C_csp_battery::rainflow_jlt, lifetime->cycle->rainflow_jlt);         // [1] Rainflow number of turning points
     //mc_reported_outputs.value(rainflow_peaks,             // [%] Rainflow peaks of cycle_DOD
     if (params->lifetime->model_choice == lifetime_params::CALCYC) {
-        mc_reported_outputs.value(q_relative_calendar, lifetime->calendar->q_relative_calendar);            // [%] Relative capacity due to calendar effects
-        mc_reported_outputs.value(dq_relative_calendar_old, lifetime->calendar->dq_relative_calendar_old);  // [%] Change in capacity of last time step
+        mc_reported_outputs.value(C_csp_battery::q_relative_calendar, lifetime->calendar->q_relative_calendar);            // [%] Relative capacity due to calendar effects
+        mc_reported_outputs.value(C_csp_battery::dq_relative_calendar_old, lifetime->calendar->dq_relative_calendar_old);  // [%] Change in capacity of last time step
     }
     else {
-        mc_reported_outputs.value(DOD_max, lifetime->cycle->cum_dt);                // [%] Max DOD of battery for current day
-        mc_reported_outputs.value(DOD_min, lifetime->cycle->DOD_min);               // [%] Min DOD of battery for current day
-        //mc_reported_outputs.value(cycle_DOD_max, lifetime->cycle->cycle_DOD_max);   // [%] Max DODs of cycles concluded in current day
-        mc_reported_outputs.value(cum_dt, lifetime->cycle->cum_dt);                 // [day] Elapsed time for current day
+        mc_reported_outputs.value(C_csp_battery::DOD_max, lifetime->cycle->cum_dt);                // [%] Max DOD of battery for current day
+        mc_reported_outputs.value(C_csp_battery::DOD_min, lifetime->cycle->DOD_min);               // [%] Min DOD of battery for current day
+        //mc_reported_outputs.value(C_csp_battery::cycle_DOD_max, lifetime->cycle->cycle_DOD_max);   // [%] Max DODs of cycles concluded in current day
+        mc_reported_outputs.value(C_csp_battery::cum_dt, lifetime->cycle->cum_dt);                 // [day] Elapsed time for current day
     }
 
     if (params->lifetime->model_choice == lifetime_params::NMC) {
-        mc_reported_outputs.value(q_relative_li, lifetime->nmc_li_neg->q_relative_li);      // [%] Relative capacity due to loss of lithium inventory
-        mc_reported_outputs.value(q_relative_neg, lifetime->nmc_li_neg->q_relative_neg);    // [%] Relative capacity due to loss of anode material
-        mc_reported_outputs.value(dq_relative_li1, lifetime->nmc_li_neg->dq_relative_li1);  // [1] Cumulative capacity change from time-dependent Li loss
-        mc_reported_outputs.value(dq_relative_li2, lifetime->nmc_li_neg->dq_relative_li2);  // [1] Cumulative capacity change from cycle-dependent Li loss
-        mc_reported_outputs.value(dq_relative_li3, lifetime->nmc_li_neg->dq_relative_li3);  // [1] Cumulative capacity change from BOL Li loss
-        mc_reported_outputs.value(dq_relative_neg, lifetime->nmc_li_neg->dq_relative_neg);  // [1] Cumulative capacity change from negative electrode
-        mc_reported_outputs.value(b1_dt, lifetime->nmc_li_neg->b1_dt);                      // [day^-0.5] b1 coefficient cumulated for current day
-        mc_reported_outputs.value(b2_dt, lifetime->nmc_li_neg->b2_dt);                      // [1/cycle] b2 coefficient cumulated for current day
-        mc_reported_outputs.value(b3_dt, lifetime->nmc_li_neg->b3_dt);                      // [1] b3 coefficient cumulated for current day
-        mc_reported_outputs.value(c0_dt, lifetime->nmc_li_neg->c0_dt);                      // [Ah] c0 coefficient cumulated for current day
-        mc_reported_outputs.value(c2_dt, lifetime->nmc_li_neg->c2_dt);                      // [1/cycle] c2 coefficient cumulated for current day
-        mc_reported_outputs.value(temp_dt, lifetime->nmc_li_neg->temp_dt);                  // [K] Temperature cumulated for current day
+        mc_reported_outputs.value(C_csp_battery::q_relative_li, lifetime->nmc_li_neg->q_relative_li);      // [%] Relative capacity due to loss of lithium inventory
+        mc_reported_outputs.value(C_csp_battery::q_relative_neg, lifetime->nmc_li_neg->q_relative_neg);    // [%] Relative capacity due to loss of anode material
+        mc_reported_outputs.value(C_csp_battery::dq_relative_li1, lifetime->nmc_li_neg->dq_relative_li1);  // [1] Cumulative capacity change from time-dependent Li loss
+        mc_reported_outputs.value(C_csp_battery::dq_relative_li2, lifetime->nmc_li_neg->dq_relative_li2);  // [1] Cumulative capacity change from cycle-dependent Li loss
+        mc_reported_outputs.value(C_csp_battery::dq_relative_li3, lifetime->nmc_li_neg->dq_relative_li3);  // [1] Cumulative capacity change from BOL Li loss
+        mc_reported_outputs.value(C_csp_battery::dq_relative_neg, lifetime->nmc_li_neg->dq_relative_neg);  // [1] Cumulative capacity change from negative electrode
+        mc_reported_outputs.value(C_csp_battery::b1_dt, lifetime->nmc_li_neg->b1_dt);                      // [day^-0.5] b1 coefficient cumulated for current day
+        mc_reported_outputs.value(C_csp_battery::b2_dt, lifetime->nmc_li_neg->b2_dt);                      // [1/cycle] b2 coefficient cumulated for current day
+        mc_reported_outputs.value(C_csp_battery::b3_dt, lifetime->nmc_li_neg->b3_dt);                      // [1] b3 coefficient cumulated for current day
+        mc_reported_outputs.value(C_csp_battery::c0_dt, lifetime->nmc_li_neg->c0_dt);                      // [Ah] c0 coefficient cumulated for current day
+        mc_reported_outputs.value(C_csp_battery::c2_dt, lifetime->nmc_li_neg->c2_dt);                      // [1/cycle] c2 coefficient cumulated for current day
+        mc_reported_outputs.value(C_csp_battery::temp_dt, lifetime->nmc_li_neg->temp_dt);                  // [K] Temperature cumulated for current day
     }
     //else {
-    //    mc_reported_outputs.value(dq_relative_cal, lifetime->lmo_lto->dq_relative_cal);     // [%] Cumulative capacity change from calendar degradation
-    //    mc_reported_outputs.value(dq_relative_cyc, lifetime->lmo_lto->dq_relative_cyc);     // [%] Cumulative capacity change from cycling degradation
-    //    mc_reported_outputs.value(EFC, lifetime->lmo_lto->EFC);                             // [1] Total Equivalent Full Cycles
-    //    mc_reported_outputs.value(EFC_dt, lifetime->lmo_lto->EFC_dt);                       // [1] Equivalent Full Cycles cumulated for current day
-    //    mc_reported_outputs.value(temp_avg, lifetime->lmo_lto->temp_avg);                   // [K] Average temperature for current day
+    //    mc_reported_outputs.value(C_csp_battery::dq_relative_cal, lifetime->lmo_lto->dq_relative_cal);     // [%] Cumulative capacity change from calendar degradation
+    //    mc_reported_outputs.value(C_csp_battery::dq_relative_cyc, lifetime->lmo_lto->dq_relative_cyc);     // [%] Cumulative capacity change from cycling degradation
+    //    mc_reported_outputs.value(C_csp_battery::EFC, lifetime->lmo_lto->EFC);                             // [1] Total Equivalent Full Cycles
+    //    mc_reported_outputs.value(C_csp_battery::EFC_dt, lifetime->lmo_lto->EFC_dt);                       // [1] Equivalent Full Cycles cumulated for current day
+    //    mc_reported_outputs.value(C_csp_battery::temp_avg, lifetime->lmo_lto->temp_avg);                   // [K] Average temperature for current day
     //}
 
-    mc_reported_outputs.value(loss_kw, state.losses->ancillary_loss_kw);                    // [kW] Ancillary power loss (kW DC for DC connected, AC for AC connected)
-    mc_reported_outputs.value(n_replacements, state.replacement->n_replacements);           // [1] Number of replacements at current year
-    //mc_reported_outputs.value(indices_replaced, state.replacement->indices_replaced);       // [1] Lifetime indices of replacement occurrences
+    mc_reported_outputs.value(C_csp_battery::loss_kw, state.losses->ancillary_loss_kw);                    // [kW] Ancillary power loss (kW DC for DC connected, AC for AC connected)
+    mc_reported_outputs.value(C_csp_battery::n_replacements, state.replacement->n_replacements);           // [1] Number of replacements at current year
+    //mc_reported_outputs.value(C_csp_battery::indices_replaced, state.replacement->indices_replaced);       // [1] Lifetime indices of replacement occurrences
 
     mc_reported_outputs.set_timestep_outputs();
 

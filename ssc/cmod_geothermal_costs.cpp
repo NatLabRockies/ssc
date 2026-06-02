@@ -952,6 +952,34 @@ public:
         double PLM_cost = PLM_fixed_cost + (PLM_percent * 1.E-2 * total_direct_cost);
         assign("plm_total_cost", var_data(static_cast<ssc_number_t>(PLM_cost)));
 
+        int geo_fin_model = as_integer("geo_financial_model");
+        double sales_tax_rate = std::numeric_limits<double>::quiet_NaN();
+        if(geo_fin_model < 7){
+            sales_tax_rate = as_double("geotherm.cost.sales_tax.percent"); //[%]
+        }
+        else{
+            sales_tax_rate = 0.0;
+        }
+        double perc_of_direct_applied_to_sales_tax = as_double("geotherm.cost.sales_tax.value");    //[%]
+        double sales_tax_cost = perc_of_direct_applied_to_sales_tax * 1.E-2 * sales_tax_rate * 1.E-2 * total_direct_cost;   //[%]
+        assign("sales_tax_cost", var_data(static_cast<ssc_number_t>(sales_tax_cost)));  //[$]
+
+        // Indirect cost
+        bool use_calculated_indirect_cost = as_boolean("geotherm.cost.indirect.calc");
+        double indirect_cost_calc = std::numeric_limits<double>::quiet_NaN();
+        if(use_calculated_indirect_cost){
+            indirect_cost_calc = EPC_cost + PLM_cost + sales_tax_cost;    //[$]
+        }
+        else{
+            indirect_cost_calc = as_double("geotherm.cost.indirect.amount_specified");
+        }
+        assign("indirect_cost", var_data(static_cast<ssc_number_t>(indirect_cost_calc)));  //[$]
+
+        // Total installed cost
+        double total_installed_cost = total_direct_cost + indirect_cost_calc;    //[$]
+        assign("total_installed_cost", var_data(static_cast<ssc_number_t>(total_installed_cost)));
+
+
 
         //OM Cost calculations
         /*

@@ -42,6 +42,8 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "conversion_type",                    "Conversion Type",                                           "",        "",     "GeoHourly", "*",                        "INTEGER",                       ""   },
     { SSC_INPUT,      SSC_NUMBER,     "ppi_base_year",                      "PPI Base Year",                                             "",        "",     "GeoHourly", "?=19",                     "",                              ""   },
 
+    { SSC_INPUT,      SSC_NUMBER,     "geo_financial_model",                "",                                                          "1-8",     "",     "Financial Model", "?=1",                "INTEGER,MIN=0",                 ""},
+
     { SSC_INPUT,      SSC_NUMBER,     "dt_prod_well",                       "Temperature loss in production well",                       "C",       "",     "GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "resource_depth",                      "Resource Depth",                                           "m",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },
 
@@ -89,9 +91,14 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.epc.fixed",            "EPC fixed cost",                                            "$",       "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plm.percent",          "Project-land-misc percent",                                 "%",       "",     "GeoHourly", "",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plm.fixed",            "Project-land-misc fixed cost",                              "$",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.indirect.calc",        "0: user specified absolute indirect cost, 1: calculated",   "" ,       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.indirect.amount_specified", "Absolute indirect cost input",                         "$",       "",     "GeoHourly", "",                        "",                              ""   },
 
-   // geotherm.cost.plm.percent ; geotherm.cost.plm.fixed
-    
+    // Sales tax
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.sales_tax.percent",    "Sales tax rate",                                            "%",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.sales_tax.value",      "Percent of direct cost to which sales tax is applied",      "%",       "",     "GeoHourly", "",                        "",                              ""   },
+
+   
 
     // name change to match assign statement
  // { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.pump_geotherm.cost.pump_depth","Pump depth",                 "ft",      "",     "GeoHourly", "",                        "",                              ""   },
@@ -155,6 +162,9 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_OUTPUT,     SSC_NUMBER,     "total_direct_cost",                  "Total direct cost",                                         "$",       "",     "GeoHourly", "?",                        "",                              "" },
     { SSC_OUTPUT,     SSC_NUMBER,     "epc_total_cost",                     "Total EPC cost",                                            "$",       "",     "GeoHourly", "?",                        "",                              "" },
     { SSC_OUTPUT,     SSC_NUMBER,     "plm_total_cost",                     "Total PLM cost",                                            "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "sales_tax_cost",                     "Total sales tax cost",                                      "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "indirect_cost",                      "Total indirect cost",                                       "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "total_installed_cost",               "Total indirect cost",                                       "$",       "",     "GeoHourly", "?",                        "",                              "" },
 
 
     var_info_invalid

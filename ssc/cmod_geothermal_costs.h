@@ -43,6 +43,8 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "ppi_base_year",                      "PPI Base Year",                                             "",        "",     "GeoHourly", "?=19",                     "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "geo_financial_model",                "",                                                          "1-8",     "",     "Financial Model", "?=1",                "INTEGER,MIN=0",                 ""},
+    { SSC_INPUT,      SSC_ARRAY,      "degradation",                        "Annual energy degradation",                                 "",        "",     "System Output", "system_use_lifetime_output=0", "",                      "" },
+
 
     { SSC_INPUT,      SSC_NUMBER,     "dt_prod_well",                       "Temperature loss in production well",                       "C",       "",     "GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "resource_depth",                      "Resource Depth",                                           "m",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },

@@ -979,7 +979,9 @@ public:
         double total_installed_cost = total_direct_cost + indirect_cost_calc;    //[$]
         assign("total_installed_cost", var_data(static_cast<ssc_number_t>(total_installed_cost)));
 
-
+        double net_plant_output = as_double("net_plant_output");    //[MWe]
+        double installed_cost_per_kW = total_installed_cost / (net_plant_output*1.E3);    //[$/kW]
+        assign("installed_cost_per_kW", var_data(static_cast<ssc_number_t>(installed_cost_per_kW)));
 
         //OM Cost calculations
         /*

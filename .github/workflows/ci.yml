@@ -7,7 +7,8 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
+  ORTOOLS_VER: "9.14"
+  ORTOOLS_RELEASE: "6206"
 
 jobs:
   build-on-ubuntu:
@@ -27,7 +28,17 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools_x86_64_Ubuntu-24.04_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE
+        echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
     
+    - name: Download OR-Tools
+      if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools_amd64_ubuntu-24.04_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE.tar.gz -o or-tools-$ORTOOLS_VER.tar.gz
+        tar xvzf or-tools-$ORTOOLS_VER.tar.gz
+
+
     - name: Get cached GTest
       uses: actions/cache@v4
       id: cachedgtest
@@ -41,7 +52,6 @@ jobs:
       with:
         repository: google/googletest
         path: googletest
-        ref: ${{env.GTEST_REF}}
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
@@ -49,33 +59,30 @@ jobs:
           export 
           mkdir ${GTEST}/build
           cd ${GTEST}/build
-          cmake -DCMAKE_CXX_FLAGS=-std=c++11 ..
+          cmake -DCMAKE_CXX_FLAGS=-std=c++17 ..
           make          
-    
+
     - name: Checkout SSC
       uses: actions/checkout@v4
       with:
          path: ssc
 
-    - name: Configure CMake
-      # Configure cmake to build ssc tests but not tools
+    - name: Build SSC
+      shell: bash
       run: |
-        mkdir ${SSCDIR}/build
-        cd ${SSCDIR}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DSAM_SKIP_TOOLS=1
-
-    - name: Build
-      # Build your program with the given configuration
-      run: |
-        cd ${SSCDIR}/build
+        # Downloaded OR-Tools has CoinOR enabled
+        mkdir $SSCDIR/build
+        cd $SSCDIR/build
+        cmake -DCMAKE_CONFIGURATION_TYPES="Release" -DENABLE_COVERAGE=1 -DSAM_SKIP_AUTOGEN=0 -DSAMAPI_EXPORT=1 -DSAM_SKIP_TOOLS=1  -DSAMPRIVATE=1 -DUSE_XPRESS=0 -DUSE_COINOR=1 -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_PREFIX_PATH=${ORTOOLSDIR} -Dabsl_DIR=${ORTOOLSDIR}\lib\cmake\absl" -Dutf8_range_DIR=${ORTOOLSDIR}\lib\cmake\utf8_range"  ..
         make -j4
-
+  
     - name: Test
       # Turn off fast fail for when the landbosse tests write to cerr
       run: |
         set -e
         exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
         ${SSCDIR}/build/test/Test | tee /dev/fd/3
+        exit ${PIPESTATUS[0]}
         
     - name: Compare Test Times
       run: |
@@ -101,7 +108,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-14-large, macos-latest]
+        os: [macos-14-large]
 
     steps:
     - name: Setup cmake
@@ -117,20 +124,28 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools_x86_64_macOS-15.5_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE
+        echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
     
+    - name: Download OR-Tools
+      if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools_x86_64_macOS-15.5_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE.tar.gz -o or-tools-$ORTOOLS_VER.tar.gz
+        tar xvzf or-tools-$ORTOOLS_VER.tar.gz
+ 
     - name: Get cached GTest
       uses: actions/cache@v4
       id: cachedgtest
       with:
         path: ${{env.GTEST}}/
-        key: gtest-${{ matrix.os }}
+        key: ortools-${{ matrix.os }}
     - name: Clone Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
       with:
         repository: google/googletest
         path: googletest
-        ref: ${{env.GTEST_REF}}
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
@@ -138,7 +153,7 @@ jobs:
           export 
           mkdir ${GTEST}/build
           cd ${GTEST}/build
-          cmake -DCMAKE_CXX_FLAGS=-std=c++11 ..
+          cmake -DCMAKE_CXX_FLAGS=-std=c++17 ..
           make          
     
     - name: Checkout SSC
@@ -151,7 +166,7 @@ jobs:
       run: |
         mkdir ${SSCDIR}/build
         cd ${SSCDIR}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DSAM_SKIP_TOOLS=1 -DSAMAPI_EXPORT=0 
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DSAM_SKIP_TOOLS=1 -DSAMAPI_EXPORT=0 -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
 
     - name: Build
       # Build your program with the given configuration
@@ -165,7 +180,8 @@ jobs:
         set -e
         exec 3>&1 1>> ${SSCDIR}/build/test/gtest.log 2>&1
         ${SSCDIR}/build/test/Test | tee /dev/fd/3
-        
+        exit ${PIPESTATUS[0]}
+    
     - name: Compare Test Times
       run: |
         pip install pandas requests
@@ -206,9 +222,11 @@ jobs:
             ${{env.SSCDIR}}/build/ssc/ssc.dylib 
 
   build-on-windows:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
+    - uses: actions/checkout@v4
+
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
       with:
@@ -223,7 +241,17 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
-    
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools_x64_VisualStudio2022_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE
+        echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
+
+
+    - name: Download OR-Tools
+      if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools_x64_VisualStudio2022_cpp_v$ORTOOLS_VER.$ORTOOLS_RELEASE.zip -o or-tools-$ORTOOLS_VER.zip
+        7z x or-tools-$ORTOOLS_VER.zip
+
     - name: Get cached GTest
       uses: actions/cache@v4
       id: cachedgtest
@@ -237,13 +265,11 @@ jobs:
       with:
         repository: google/googletest
         path: googletest
-        ref: ${{env.GTEST_REF}}
     
     - name: build Gtest
       if: steps.cachedgtest.outputs.cache-hit != 'true'
       shell: bash
       run: | 
-          export 
           mkdir ${GTEST}/build
           cd ${GTEST}/build
           cmake -Dgtest_force_shared_crt=ON ..
@@ -254,19 +280,18 @@ jobs:
       with:
           path: ssc
 
-    - name: Configure CMake
+    - name: Build SSC
       shell: bash
-      # Configure cmake to build ssc tests but not tools
       run: |
-        mkdir ${SSCDIR}/build
-        cd ${SSCDIR}/build
-        cmake .. -DSAM_SKIP_TOOLS=1 -DCMAKE_CONFIGURATION_TYPES="Release"
-        cmake --build . --config Release -j4
+        # Downloaded OR-Tools has CoinOR enabled
+        mkdir $SSCDIR/build
+        cd $SSCDIR/build
+        cmake -G "Visual Studio 17 2022" -DCMAKE_CONFIGURATION_TYPES="Release"  -DSAM_SKIP_AUTOGEN=0 -DSAMAPI_EXPORT=1 -DSAM_SKIP_TOOLS=1  -DSAMPRIVATE=1 -DUSE_XPRESS=0 -DUSE_COINOR=1 -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_PREFIX_PATH=${ORTOOLSDIR} -Dabsl_DIR=${ORTOOLSDIR}\lib\cmake\absl" -Dutf8_range_DIR=${ORTOOLSDIR}\lib\cmake\utf8_range"  ..
+        cmake --build . --config Release -j4 --target Test
         cp ssc/Release/* test/Release
 
     - name: Test
       shell: bash
-      # Turn off fast fail for when the landbosse tests write to cerr
       run: |
         cd ${SSCDIR}/build/test/Release
         LOG_FILE=${SSCDIR}/build/test/gtest.log

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -131,6 +131,8 @@ public:
         E_E_DOT_INTERNAL_ENERGY,   //[MWt]
         E_Q_DOT_HTF_OUT,		   //[MWt]
         E_Q_DOT_FREEZE_PROT,       //[MWt]
+
+        E_TIME_IN_STARTUP,          //[min]
 
         E_M_DOT_LOOP,				//[kg/s]
         E_IS_RECIRCULATING,         //[-]
@@ -316,6 +318,11 @@ private:
     double m_q_dot_htf_to_sink_fullts;		            // [MWt] SYSTEM thermal power to sink (or artificially added to system in recirculation...)
     double m_q_dot_freeze_protection;		            // [MWt] SYSTEM thermal freeze protection
 
+    double m_q_dot_thermal_reported;        //[MWt] HTF thermal power reported back to controller - should be 0 for recirculating startup and off
+
+    double m_time_at_off;                   //[s]
+    double m_time_at_startup;               //[s]
+    double m_time_at_on;                    //[s]
 
     // Private Methods
 private:
@@ -590,6 +597,8 @@ public:
     virtual double get_tracking_power();		//MWe
 
     virtual double get_col_startup_power();		//MWe-hr
+
+    virtual double get_design_pumping_power();  //[MWe]
 
     virtual C_csp_collector_receiver::E_csp_cr_modes get_operating_state();
 

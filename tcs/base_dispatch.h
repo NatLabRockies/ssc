@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,21 +29,11 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-//#pragma once
-//#pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
 
 #ifndef __base_dispatch_
 #define __base_dispatch_
 
-#include "dispatch_builder.h"
 #include "csp_solver_core.h"
-
-/* Suboptimal dispatch flags */
-#define INTERATION              1
-#define TIMELIMIT               2
-#define MIPGAP                  3
-#define MIPGAPLPSOLVE           4
-#define FAILED                  5
 
 class base_dispatch_opt
 {
@@ -53,13 +43,36 @@ protected:
     
     void clear_output();
 
-private:
     void not_implemented_function(std::string function_name);
 
 public:
     int m_current_read_step;           //current step to read from optimization results
 
-    s_solver_params solver_params;
+    struct s_solver_params
+    {
+        bool is_abort_flag;         //optimization flagged for abort
+        std::string log_message;
+        double obj_relaxed;
+
+        //user settings
+        int steps_per_hour;         //[-] Number of time steps per hour
+        int optimize_frequency;
+        int optimize_horizon;
+
+        int max_bb_iter;            //Maximum allowable iterations for B&B algorithm
+        double mip_gap;             //convergence tolerance - gap between relaxed MIP solution and current best solution
+        double solution_timeout;    //[s] Max solve time for each solution
+        int presolve_type;
+        int bb_type;
+        int disp_reporting;
+        int scaling_type;
+
+        s_solver_params();
+        void set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
+            int disp_max_iter, double disp_mip_gap, double disp_timeout,
+            int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting);
+        void reset();
+    } solver_params;
 
     struct S_pointers
     {
@@ -101,71 +114,86 @@ public:
 
     } pointers;
 
-    struct s_lp_outputs
+    enum termination_flags {
+        optimal,
+        iteration,
+        timelimit,
+        mipgap,
+        mipgap_lpsolve,
+        failed
+    };
+
+    // Common structure across all dispatch models used to pass solver infromation for reporting.
+    struct s_solver_outputs
     {
-        bool last_opt_successful;     //last optimization run was successful?
+        bool last_opt_successful;       //last optimization run was successful?
         double objective;
         double objective_relaxed;
         double rel_mip_gap;
         int solve_iter;                 //Number of iterations required to solve
-        int solve_state;
-        int subopt_flag;                //Flag specifing information about LPSolve suboptimal result
+        int solve_state;                // TODO: Set this to NOTRUN or NOT_SOLVED depending on solver
+        termination_flags termination_flag;                //Flag specifying information about termination result
         double solve_time;
         int presolve_nconstr;
         int presolve_nvar;
 
-        s_lp_outputs() {
+        s_solver_outputs() {
             last_opt_successful = false;
             objective = std::numeric_limits<double>::quiet_NaN();
             objective_relaxed = std::numeric_limits<double>::quiet_NaN();
             rel_mip_gap = std::numeric_limits<double>::quiet_NaN();
             solve_iter = 0;
-            solve_state = NOTRUN;
-            subopt_flag = OPTIMAL;
+            solve_state = -1;
+            termination_flag = termination_flags::failed;
             presolve_nconstr = 0;
             solve_time = 0.;
             presolve_nvar = 0;
         }
 
         void clear_output() {
-            s_lp_outputs();
+            s_solver_outputs();
         }
 
-    } lp_outputs;
+    } solver_outputs;
 
-    struct s_disp_outputs
+    // Common structure across all dispatch models used to pass dispatch solutions to the csp solver core for control and reporting.
+    struct s_dispatch_outputs
     {
-        double time_last = -9999.;
+        double time_last = -9999.;              // [s] Time at the last dispatch reporting call -> stops the controller from re-optimizing at the same time step
 
-        bool is_rec_su_allowed = false;
-        bool is_pc_sb_allowed = false;
-        bool is_pc_su_allowed = false;
+        // Boolean operation indicators
+        bool is_eh_su_allowed = false;          // [-] Is electric heater startup allowed?
+        bool is_rec_su_allowed = false;         // [-] Is receiver startup allowed?
+        bool is_pc_sb_allowed = false;          // [-] Is power cycle standby allowed? 
+        bool is_pc_su_allowed = false;          // [-] Is power cycle startup allowed?
 
-        double q_pc_target = 0.;
-        double q_dot_pc_max = 0.;
-        double q_dot_elec_to_CR_heat = 0.;
-        double qsf_expect = 0.;
-        double qsfprod_expect = 0.;
-        double qsfsu_expect = 0.;
-        double tes_expect = 0.;
-        double etasf_expect = 0.;
-        double etapb_expect = 0.;
-        double qpbsu_expect = 0.;
-        double wpb_expect = 0.;
-        double rev_expect = 0.;
+        // Targets and limits sent to the controller
+        double q_pc_target = 0.;                // [MWt] Target power cycle thermal input
+        double q_dot_pc_max = 0.;               // [MWt] Maximum power cycle thermal input
+        double q_dot_elec_to_CR_heat = 0.;      // [MWt] Heat production from converting electricity to heat for ETES and PTES case (TODO: this is awkwardly implemented can could be improved)
+        double q_eh_target = 0.;                // [MWt] Target electric heater thermal output
+        double w_dot_target = 0.;               // [MWe] Target power cycle (net) electric output
+        double w_dot_max = 0.;                  // [MWe] Maximum power cycle (net) electric output ???
+        double sys_parasitic = 0.;              // [MWe] System parasitic power consumption
 
-        bool is_eh_su_allowed = false;
-        double q_eh_target = 0.;
+        // Dispatch solution output for reporting
+        double qsf_expect = 0.;                 // [MWt] Expected available thermal power from the solar field
+        double qsfprod_expect = 0.;             // [MWt] Thermal power production from the solar field
+        double qsfsu_expect = 0.;               // [MWt] Receiver startup thermal energy
+        double tes_expect = 0.;                 // [MWht] Thermal energy storage state of charge
+        double etasf_expect = 0.;               // [-] Solar field thermal efficiency
+        double etapb_expect = 0.;               // [-] Power cycle efficiency
+        double qpbsu_expect = 0.;               // [MWht] Power cycle startup energy
+        double wpb_expect = 0.;                 // [MWe] Power cycle electric power production
+        double rev_expect = 0.;                 // [$] Revenue from electricity sales
+        double pv_expect = 0.;                  // [MWe] Expected PV generation   
 
-    } disp_outputs;
+    } dispatch_outputs;
 
     //----- public member functions ----
     base_dispatch_opt();
 
-    virtual void init(double cycle_q_dot_des, double cycle_eta_des);
-
-    // Set default solver parameters if user did not set them
-    virtual void set_default_solver_parameters();
+    virtual void init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic = 0.0);
 
     //check parameters and inputs to make sure everything has been set up correctly
     bool check_setup();
@@ -182,43 +210,17 @@ public:
     //declare dispatch function
     virtual bool optimize();
 
-    //Functions to write AMPL data files and solve AMPL model
-    virtual std::string write_ampl();
-
-    virtual bool optimize_ampl();
-
     //Populated dispatch outputs for csp solver core
     virtual bool set_dispatch_outputs();
 
-    //Constructs lp model
-    lprec* construct_lp_model(optimization_vars* opt_vars);
-
-    //Set LPsolve solver presolve settings and bb rules
-    void setup_solver_presolve_bbrules(lprec* lp);
-
-    //Problem scaling loop algorithm
-    bool problem_scaling_solve_loop(lprec* lp);
-
-    //Set LPsolve outputs
-    void set_lp_solve_outputs(lprec* lp);
-
     //Used by cmod to get dispatch annual stats on solves
-    void count_solutions_by_type(std::vector<int>& flag, int dispatch_freq, std::string& log_msg);
+    virtual void count_solutions_by_type(std::vector<int>& flag, int dispatch_freq, std::string& log_msg);
 
     //Calculates average relative mip gap of suboptimal solutions
-    double calc_avg_subopt_gap(std::vector<double>& gap, std::vector<int>& flag, int dispatch_freq);
-
-    // Saving problem and solution for debugging
-    void save_problem_solution_debug(lprec* lp);
+    virtual double calc_avg_subopt_gap(std::vector<double>& gap, std::vector<int>& flag, int dispatch_freq);
 
     //Dispatch update and result print to screen
-    void print_dispatch_update();
-
-    // Parse column name to get variable name (root) and index (ind)
-    bool parse_column_name(char* colname, char* root, char* ind);
-
-    // simple string compare
-    bool strcompare(std::string a, std::string b);
+    virtual void print_dispatch_update();
 
     // Print dispatch solver log to file for debugging solver
     void print_log_to_file();

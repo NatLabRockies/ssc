@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -46,11 +46,11 @@ typedef void (__WINAPI fn_REAL_set_function)(lprec *lp, REAL value);
 
 struct _values {
   int value;
-  char *svalue;
+  const char *svalue;
 };
 
 struct _functions {
-  char *par;                                    /* name of parameter in ini file */
+  const char *par;                                    /* name of parameter in ini file */
   union {
     fn_int_get_function *int_get_function;         /* set via setintfunction */
     fn_long_get_function *long_get_function;       /* set via setlongfunction */

@@ -2,7 +2,7 @@
 Copyright 2017 - pvyield GmbH / Timo Richert
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 #include <cmath>
+#include <algorithm>
 
 #include "lib_mlmodel.h"
 // #include "mlm_spline.h"
-#include "bsplinebuilder.h"
-#include "datatable.h"
+#include <bspline_builders.h>
+#include <data_table.h>
 
 static const double k = 1.38064852e-23; // Boltzmann constant [J/K]
 static const double q = 1.60217662e-19; // Elemenatry charge [C]
@@ -74,7 +75,6 @@ static const int AM_MODE_LEE_PANCHULA = 4;
 
 mlmodel_module_t::mlmodel_module_t()
           {
-	m_bspline3 = BSpline(1);
 	Width = Length = V_mp_ref = I_mp_ref = V_oc_ref = I_sc_ref = S_ref = T_ref
 		= R_shref = R_sh0 = R_shexp = R_s
 		= alpha_isc = beta_voc_spec = E_g = n_0 = mu_n = D2MuTau = T_c_no_tnoct
@@ -92,7 +92,7 @@ double IAMvalue_ASHRAE(double b0, double theta)
 {
 	return (1 - b0 * (1 / cos(theta) - 1));
 }
-double IAMvalue_SANDIA(double coeff[], double theta)
+double IAMvalue_SANDIA(double const coeff[], double const theta)
 {
 	return coeff[0] + coeff[1] * theta + coeff[2] * pow(theta, 2) + coeff[3] * pow(theta, 3) + coeff[4] * pow(theta, 4) + coeff[5] * pow(theta, 5);
 }
@@ -131,9 +131,9 @@ void mlmodel_module_t::initializeManual()
 			*/
 			DataTable samples;
 			for (int i = 0; i <= IAM_c_cs_elements - 1; i = i + 1) {
-				samples.addSample(IAM_c_cs_incAngle[i], IAM_c_cs_iamValue[i]);
+				samples.add_sample(IAM_c_cs_incAngle[i], IAM_c_cs_iamValue[i]);
 			}
-			m_bspline3 = BSpline::Builder(samples).degree(3).build();
+			m_bspline3 = std::make_unique<BSpline>(bspline_interpolator(samples, 3));
 
 			isInitialized = true;
 		}
@@ -141,7 +141,7 @@ void mlmodel_module_t::initializeManual()
 }
 
 // Main module model
-bool mlmodel_module_t::operator() (pvinput_t &input, double T_C, double opvoltage, pvoutput_t &out)
+bool mlmodel_module_t::operator() (pvinput_t const &input, double T_C, double opvoltage, pvoutput_t &out) const
 {
 	// initialize output first
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;
@@ -170,11 +170,11 @@ bool mlmodel_module_t::operator() (pvinput_t &input, double T_C, double opvoltag
 //			f_IAM_gnd = std::min(iamSpline(theta_gnd), 1.0);
 			DenseVector x(1);
 			x(0) = theta_beam;
-			f_IAM_beam = std::min(m_bspline3.eval(x), 1.0);
+			f_IAM_beam = std::min((*m_bspline3).eval(x)[0], 1.0);
 			x(0) = theta_diff;
-			f_IAM_diff = std::min(m_bspline3.eval(x), 1.0);
+			f_IAM_diff = std::min((*m_bspline3).eval(x)[0], 1.0);
 			x(0) = theta_gnd;
-			f_IAM_gnd = std::min(m_bspline3.eval(x), 1.0);
+			f_IAM_gnd = std::min((*m_bspline3).eval(x)[0], 1.0);
 			break;
 	}
 
@@ -283,7 +283,7 @@ bool mlmodel_module_t::operator() (pvinput_t &input, double T_C, double opvoltag
 
 // mockup cell temperature model
 // to be used in cases when Tcell is calculated within the module model
-bool mock_celltemp_t::operator() (pvinput_t &, pvmodule_t &, double, double &Tcell)
+bool mock_celltemp_t::operator() (pvinput_t const &, pvmodule_t const &, double, double &Tcell) const
 {
 	Tcell = -999;
 	return true;

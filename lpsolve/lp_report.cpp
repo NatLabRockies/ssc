@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -51,7 +51,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 /* ------------------------------------------------------------------------- */
 
 /* First define general utilties for reporting and output */
-char * __VACALL explain(lprec *lp, char *format, ...)
+const char * __VACALL explain(lprec *lp, const char *format, ...)
 {
   char buff[DEF_STRBUFSIZE+1];
   va_list ap;
@@ -63,7 +63,7 @@ char * __VACALL explain(lprec *lp, char *format, ...)
   strcpy(lp->ex_status, buff);
   return( lp->ex_status );
 }
-void __VACALL report(lprec *lp, int level, char *format, ...)
+void __VACALL report(lprec *lp, int level, const char *format, ...)
 {
   char buff[DEF_STRBUFSIZE+1];
   va_list ap;
@@ -107,7 +107,7 @@ STATIC void print_indent(lprec *lp)
   report(lp, NEUTRAL, "> ");
 } /* print_indent */
 
-STATIC void debug_print(lprec *lp, char *format, ...)
+STATIC void debug_print(lprec *lp, const char *format, ...)
 {
   va_list ap;
 
@@ -668,7 +668,7 @@ MYBOOL REPORT_tableau(lprec *lp)
   return(TRUE);
 }
 
-void REPORT_constraintinfo(lprec *lp, char *datainfo)
+void REPORT_constraintinfo(lprec *lp, const char *datainfo)
 {
   int i, tally[ROWCLASS_MAX+1];
 
@@ -684,7 +684,7 @@ void REPORT_constraintinfo(lprec *lp, char *datainfo)
       report(lp, NORMAL, "%-15s %4d\n", get_str_constr_class(lp, i), tally[i]);
 }
 
-void REPORT_modelinfo(lprec *lp, MYBOOL doName, char *datainfo)
+void REPORT_modelinfo(lprec *lp, MYBOOL doName, const char *datainfo)
 {
   if(doName) {
     report(lp, NORMAL, "\nModel name:  '%s' - run #%-5d\n",

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -496,7 +496,8 @@ public:
         double eta_t /*-*/, double N_turbine /*rpm*/,
         double frac_fan_power /*-*/, double eta_fan /*-*/, double deltaP_cooler_frac /*-*/,
         int N_nodes_pass /*-*/,
-        double T_amb_des /*K*/, double elevation /*m*/) :
+        double T_amb_des /*K*/, double elevation /*m*/,
+        double m_yr_inflation /*yr*/) :
         C_sco2_cycle_core(turbo_gen_motor_config,
             eta_generator,
             T_mc_in,
@@ -510,7 +511,8 @@ public:
             eta_t, N_turbine,
             frac_fan_power, eta_fan, deltaP_cooler_frac,
             N_nodes_pass,
-            T_amb_des, elevation)
+            T_amb_des, elevation,
+            m_yr_inflation)
 	{
 		m_temp_last.resize(END_SCO2_STATES);
 		std::fill(m_temp_last.begin(), m_temp_last.end(), std::numeric_limits<double>::quiet_NaN());
@@ -554,7 +556,7 @@ public:
 
 	void design(S_design_parameters & des_par_in, int & error_code);
 
-	void opt_design(S_opt_design_parameters & opt_des_par_in, int & error_code);
+	int opt_design(S_opt_design_parameters & opt_des_par_in, int & error_code);
 
 	//void od_turbo_bal_csp(const S_od_turbo_bal_csp_par & par_in);
 

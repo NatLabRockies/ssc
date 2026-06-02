@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -215,6 +215,8 @@ var_info vtab_battery_inputs[] = {
     // Powerflow calculation inputs
     { SSC_INPUT,       SSC_ARRAY,       "fuelcell_power",                              "Electricity from fuel cell AC",                           "kW",     "", "FuelCell",              "",                           "",                         "" },
 
+    // Start day of week for manual dispatch arrays
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "BatteryDispatch", "?=0", "", "" },
 
     var_info_invalid
 };
@@ -751,6 +753,8 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                 }
             }
 
+            batt_vars->start_day_of_year = vt.as_number("start_day_of_year");
+
             // Common to automated methods
             batt_vars->batt_dispatch_auto_can_charge = true;
             batt_vars->batt_dispatch_auto_can_clipcharge = false;
@@ -1236,33 +1240,33 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
     {
         /*! Generic manual dispatch model inputs */
         if (batt_vars->batt_can_charge.size() != 6 || batt_vars->batt_can_discharge.size() != 6 || batt_vars->batt_can_gridcharge.size() != 6)
-            throw exec_error("battery", "Invalid manual dispatch control vector length, must be length 6.");
+            throw exec_error("battery", "Invalid battery manual dispatch control vector length, must be length 6.");
 
         if (batt_vars->batt_discharge_schedule_weekday.nrows() != 12 || batt_vars->batt_discharge_schedule_weekday.ncols() != 24)
-            throw exec_error("battery", "Invalid manual dispatch schedule matrix batt_discharge_schedule dimensions, must be 12 x 24.");
+            throw exec_error("battery", "Invalid battery manual dispatch schedule matrix batt_discharge_schedule dimensions, must be 12 x 24.");
 
         size_t max_period = 6;
         size_t* discharge_schedule_vec = batt_vars->batt_discharge_schedule_weekday.data();
         size_t* period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + batt_vars->batt_discharge_schedule_weekday.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
         if (*period_num > max_period)
-            throw exec_error("battery", "Invalid manual dispatch period in weekday schedule. Period numbers must be less than or equal to 6.");
+            throw exec_error("battery", "Invalid battery manual dispatch period in weekday schedule. Period numbers must be less than or equal to 6.");
 
         if (batt_vars->batt_discharge_schedule_weekend.nrows() != 12 || batt_vars->batt_discharge_schedule_weekend.ncols() != 24)
-            throw exec_error("battery", "Invalid weekend manual dispatch schedule matrix dimensions, must be 12 x 24.");
+            throw exec_error("battery", "Invalid weekend battery manual dispatch schedule matrix dimensions, must be 12 x 24.");
 
         discharge_schedule_vec = batt_vars->batt_discharge_schedule_weekend.data();
         period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + batt_vars->batt_discharge_schedule_weekend.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
         if (*period_num > max_period)
-            throw exec_error("battery", "Invalid manual dispatch period in weekend schedule. Period numbers must be less than or equal to 6.");
+            throw exec_error("battery", "Invalid battery manual dispatch period in weekend schedule. Period numbers must be less than or equal to 6.");
 
         if (batt_vars->en_fuelcell) {
             if (batt_vars->batt_can_fuelcellcharge.size() != 6)
-                throw exec_error("fuelcell", "Invalid manual dispatch control vector lengths, must be length 6.");
+                throw exec_error("fuelcell", "Invalid battery manual dispatch control vector lengths, must be length 6.");
         }
 
         if (batt_vars->batt_meter_position == dispatch_t::BEHIND) {
             if (batt_vars->batt_btm_can_discharge_to_grid.size() != 6) {
-                throw exec_error("Battery", "Invalid manual dispatch control vector lenghts, must be length 6.");
+                throw exec_error("Battery", "Invalid battery manual dispatch control vector lenghts, must be length 6.");
             }
 
             if (batt_vars->batt_dispatch_batt_system_charge_first && batt_vars->batt_dispatch_charge_only_system_exceeds_load) {
@@ -1295,6 +1299,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
                 batt_vars->batt_discharge_schedule_weekday, batt_vars->batt_discharge_schedule_weekend,
                 batt_vars->batt_can_charge, batt_vars->batt_can_discharge, batt_vars->batt_can_gridcharge, batt_vars->batt_can_fuelcellcharge, batt_vars->batt_btm_can_discharge_to_grid,
                 dm_percent_discharge, dm_percent_gridcharge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_curtailcharge, batt_vars->grid_interconnection_limit_kW,
+                batt_vars->start_day_of_year,
                 batt_vars->batt_dispatch_charge_only_system_exceeds_load,
                 batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
                 batt_vars->batt_minimum_outage_SOC,
@@ -1315,7 +1320,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
 
         // Create UtilityRate object only if utility rate is defined
         if (batt_vars->ec_rate_defined) {
-            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
+            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->start_day_of_year, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
         }
 
         // PV Smoothing dispatch model

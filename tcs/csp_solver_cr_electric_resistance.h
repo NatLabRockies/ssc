@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -85,6 +85,8 @@ private:
     double m_t_su_des;              //[hr]
     double m_W_dot_heater_des;      //[MWe]
 
+    double m_W_dot_pump_des;        //[MWe]
+
     // ********************************
     // ********************************
 
@@ -129,6 +131,7 @@ public:
     virtual double get_max_power_delivery(double T_cold_in);    //MWt
     virtual double get_tracking_power();		//MWe
     virtual double get_col_startup_power();		//MWe-hr
+    virtual double get_design_pumping_power();  //[MWe]
 
     virtual void off(const C_csp_weatherreader::S_outputs& weather,
         const C_csp_solver_htf_1state& htf_state_in,

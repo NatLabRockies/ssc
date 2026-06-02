@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,8 +51,8 @@ int v1 = sprintf(ac_power_path, "%s/test/input_cases/battwatts_data/ac_power.csv
 void pvwatts_pv_defaults(ssc_data_t& data) {
 	ssc_data_set_string(data, "solar_resource_file", solar_resource_path);
 	ssc_data_set_number(data, "system_use_lifetime_output", 0);
-	ssc_data_set_number(data, "analysis_period", 25);
-	ssc_data_set_number(data, "system_capacity", 4.6928700000000001);
+    ssc_data_set_number(data, "analysis_period", 2); 
+    ssc_data_set_number(data, "system_capacity", 4.6928700000000001);
 	ssc_data_set_number(data, "module_type", 0);
 	ssc_data_set_number(data, "dc_ac_ratio", 1.2);
 	ssc_data_set_number(data, "array_type", 0);

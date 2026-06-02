@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,52 +29,14 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-#pragma once
-#pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
+#ifndef __dispatch_builder_
+#define __dispatch_builder_
 
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include "../lpsolve/lp_lib.h"
 #include <limits>
-
-void __WINAPI opt_logfunction(lprec* lp, void* userhandle, char* buf);
-int __WINAPI opt_abortfunction(lprec* lp, void* userhandle);
-void __WINAPI opt_iter_function(lprec* lp, void* userhandle, int msg);
-
-struct s_solver_params
-{
-    bool is_abort_flag;         //optimization flagged for abort
-    std::string log_message;
-    double obj_relaxed;
-
-    //user settings
-    int steps_per_hour;         //[-] Number of time steps per hour
-    int optimize_frequency;
-    int optimize_horizon;
-
-    int max_bb_iter;            //Maximum allowable iterations for B&B algorithm
-    double mip_gap;             //convergence tolerance - gap between relaxed MIP solution and current best solution
-    double solution_timeout;    //[s] Max solve time for each solution
-    int presolve_type;
-    int bb_type;
-    int disp_reporting;
-    int scaling_type;
-
-    bool is_write_ampl_dat;     //write ampl data files?
-    bool is_ampl_engine;        //run with external AMPL engine
-    std::string ampl_data_dir;  //directory to write ampl data files
-    std::string ampl_exec_call; //system call for running ampl
-
-    s_solver_params();
-    void set_user_inputs(int disp_steps_per_hour, int disp_frequency, int disp_horizon,
-        int disp_max_iter, double disp_mip_gap, double disp_timeout,
-        int disp_spec_presolve, int disp_spec_bb, int disp_spec_scaling, int disp_spec_reporting);
-    void set_ampl_inputs(bool is_write_ampl_dat_spec, bool is_ampl_engine_spec, std::string ampl_data_dir_spec, std::string ampl_exec_call_spec);
-    void reset();
-};
 
 class optimization_vars
 {
@@ -131,3 +93,5 @@ public:
     opt_var* get_var(const std::string& varname);
     opt_var* get_var(int varindex);
 };
+
+#endif //__dispatch_builder_

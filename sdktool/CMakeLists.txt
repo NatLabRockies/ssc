@@ -22,13 +22,54 @@ set(SDKTOOL_SRC
 
 if (UNIX)
 	set(wxWidgets_CONFIG_EXECUTABLE /usr/local/bin/wx-config-3)
-	find_package(wxWidgets COMPONENTS qa aui richtext html propgrid adv net stc core xml base REQUIRED)
+	find_package(wxWidgets QUIET  COMPONENTS qa aui richtext html propgrid adv net stc core xml base REQUIRED)
 else()
-	set(wxWidgets_ROOT_DIR $ENV{WXMSW3})
-	find_package(wxWidgets COMPONENTS qa webview aui richtext html propgrid adv net stc core xml base scintilla REQUIRED)
+#	set(wxWidgets_ROOT_DIR $ENV{WXMSW3})
+#	find_package(wxWidgets  QUIET COMPONENTS qa webview aui richtext html propgrid adv net stc core xml base scintilla REQUIRED)
+
+    set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Debug and Release Builds Configured" FORCE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++20")
+    # for linking to Release build of ortools 
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    # Get the current debug flags and remove the /D_DEBUG option.
+    string(REPLACE "/D_DEBUG" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+    # following does not force release libraries for wxWidgets using find_package
+    #set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG RELEASE)
+
+    set(wxWidgets_ROOT_DIR $ENV{WXMSW3})
+    find_package(wxWidgets QUIET  REQUIRED xrc webview stc richtext ribbon propgrid aui gl html qa adv core xml net base scintilla)
+
+ #   message("All wxWidgets: " ${wxWidgets_LIBRARIES})
+    set(FOUND "false")
+    foreach(lib ${wxWidgets_LIBRARIES})
+        string(FIND ${lib} "optimized" INDEX)
+        string(FIND ${lib} "debug" INDEX2)
+        string(FIND ${lib} "wxWidgets" INDEX3)
+        if (INDEX GREATER_EQUAL 0) # skip once
+            set(FOUND "true")
+            continue()
+        elseif((INDEX2 LESS 0) AND (INDEX3 LESS 0))
+            set(FOUND "true")
+        endif()
+        if (${FOUND} STREQUAL "true")
+            set(FOUND "false")
+            message("lib: ${lib}")
+            list(APPEND WX_LIBS_LIST ${lib})
+        endif()
+    endforeach()
+
+    list(JOIN WX_LIBS_LIST ";" wxWidgets_LIBRARIES)
+#    message("Link Libraries for wxWidgets: ${wxWidgets_LIBRARIES}")
+
+
 endif()
 
-include(${wxWidgets_USE_FILE})
+if (wxWidgets_FOUND)
+    include(${wxWidgets_USE_FILE})
+endif ()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${wxWidgets_CXX_FLAGS}")
+
+
 
 
 #####################################################################################################################
@@ -39,8 +80,8 @@ include(${wxWidgets_USE_FILE})
 
 # Setup Application
 if (APPLE)
-	set(MACOSX_BUNDLE_ICON_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../build_resources/SDKTool.icns)
-	set(SDKTOOL_ICON ${CMAKE_CURRENT_SOURCE_DIR}/../build_resources/SDKTool.icns)
+	set(MACOSX_BUNDLE_ICON_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../build_resources/SDKtool.icns)
+	set(SDKTOOL_ICON ${CMAKE_CURRENT_SOURCE_DIR}/../build_resources/SDKtool.icns)
 	set_source_files_properties(${SDKTOOL_ICON} PROPERTIES
 		MACOSX_PACKAGE_LOCATION "Resources")
 elseif(WIN32)
@@ -64,7 +105,7 @@ set_tools_compile_options(SDKtool)
 
 if (APPLE)
 	set_target_properties(SDKtool PROPERTIES
-		MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/../build_resources/Info-SDKTool.plist
+		MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/../build_resources/Info-SDKtool.plist
 	)
 endif()
 

@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -34,7 +34,7 @@ The original version of lp_solve can be found at https://sourceforge.net/project
 /* Input and output of lp format model files for lp_solve                    */
 /* ------------------------------------------------------------------------- */
 
-static int write_data(void *userhandle, write_modeldata_func write_modeldata, char *format, ...)
+static int write_data(void *userhandle, write_modeldata_func write_modeldata, const char *format, ...)
 {
   char buff[DEF_STRBUFSIZE+1];
   va_list ap;
@@ -47,7 +47,7 @@ static int write_data(void *userhandle, write_modeldata_func write_modeldata, ch
   return(n);
 }
 
-STATIC void write_lpcomment(void *userhandle, write_modeldata_func write_modeldata, char *string, MYBOOL newlinebefore)
+STATIC void write_lpcomment(void *userhandle, write_modeldata_func write_modeldata, const char *string, MYBOOL newlinebefore)
 {
   write_data(userhandle, write_modeldata, "%s/* %s */\n", (newlinebefore) ? "\n" : "", string);
 }

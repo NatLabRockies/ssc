@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -161,6 +161,9 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_STRING,      "hybrid_dispatch_schedule",           "Daily dispatch schedule",                             "",        "",             "GeoHourly",        "ui_calculations_only=0",    "TOUSCHED",        "" },
 
     { SSC_INPUT,        SSC_NUMBER,      "allow_reservoir_replacements",           "Allow reservoir replacements",                             "",        "",             "GeoHourly",        "?=0",    "",        "" },
+
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "GeoHourly", "?=0", "", "" },
+
 
 	// OUTPUTS
 	// VARTYPE           DATATYPE         NAME                                   LABEL                                               UNITS      META            GROUP             REQUIRED_IF                    CONSTRAINTS      UI_HINTS
@@ -456,7 +459,8 @@ public:
 			// hybrid dispatch schedule, which will set the value for pbInputs.TOU
 			const char *sched = as_string("hybrid_dispatch_schedule");
 			int tou[8760];
-			if (!util::translate_schedule(tou, sched, sched, 0, 8))
+            int start_day = as_number("start_day_of_year");
+			if (!util::translate_schedule(tou, sched, sched, 0, 8, start_day))
 				throw general_error("could not translate schedule for time-of-use rate");
 
 			// weather file and time-of-use data

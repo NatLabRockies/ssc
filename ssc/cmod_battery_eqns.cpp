@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -266,7 +266,7 @@ bool Reopt_size_standalone_battery_params(ssc_data_t data) {
     }
 
     reopt_settings.assign_match_case("time_steps_per_hour", var_data((int)(sim_len / 8760)));
-    //reopt_settings.assign("solver_name", var_data("SCIP")); // "HiGHS" option does not work with large numbers like 1e38 for tier max values per https://github.com/NREL/SAM/issues/1742
+    //reopt_settings.assign("solver_name", var_data("SCIP")); // "HiGHS" option does not work with large numbers like 1e38 for tier max values per https://github.com/NatLabRockies/SAM/issues/1742
 
     // assign the reopt parameter table and log messages
     reopt_table->assign_match_case("Settings", reopt_settings);

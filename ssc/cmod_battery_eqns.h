@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ static const char* Reopt_size_standalone_battery_params_doc =
 "REopt inputs not used in this function will be REopt's defaults.\\n"
 "The post produced here is not a complete submission. Additional variables uch as lon and lat are required.\\n"
 "Function PVSamV1.Reopt_size_battery_params provides a valid post, or users can provide additional inputs via Python or LK.\\n"
-"See https ://nrel.github.io/REopt.jl/dev/reopt/inputs/ for a full set of inputs\\n\\n"
+"See https ://natlabrockies.github.io/REopt.jl/dev/reopt/inputs/ for a full set of inputs\\n\\n"
 "Input: var_table with key-value pairs:  \\n"
 "     ++ Battery inputs ++\\n"
 "         'batt_dc_ac_efficiency': optional double [%], Battery DC to AC efficiency, 0-100\\n"

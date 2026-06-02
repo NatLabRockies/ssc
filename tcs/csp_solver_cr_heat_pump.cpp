@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -258,12 +258,19 @@ double C_csp_cr_heat_pump::get_max_power_delivery(double T_cold_in)   //MWt
 
 double C_csp_cr_heat_pump::get_tracking_power()		//MWe
 {
-    throw(C_csp_exception("C_csp_cr_heat_pump::get_tracking_power() is not complete"));
+    return 0.0;
 }
 
 double C_csp_cr_heat_pump::get_col_startup_power()		//MWe-hr
 {
     throw(C_csp_exception("C_csp_cr_heat_pump::get_col_startup_power() is not complete"));
+}
+
+double C_csp_cr_heat_pump::get_design_pumping_power() {
+
+    // This method returns the pumping power at the design case where the system is generating power
+    // Assume that for PTES, the charging unit is off when discharging unit is on, so return 0.
+    return 0.0;
 }
 
 void C_csp_cr_heat_pump::off(const C_csp_weatherreader::S_outputs& weather,

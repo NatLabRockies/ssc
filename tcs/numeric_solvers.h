@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -195,10 +195,13 @@ public:
     int solve(std::vector<double> x_solved_vector, std::vector<double> y_solved_vector, double y_target,
         double &x_solved, double &tol_solved, int &iter_solved);
 
-    bool is_last_x_best(double & x_at_lowest, double y_target);
+    bool is_a_prior_x_best(double & x_at_lowest, double y_target);
 
     bool get_min_abs_diff_no_err(C_monotonic_eq_solver::S_eq_chars & s_eq_chars_min_abs_diff,
         double y_target);
+
+    bool get_smallest_neg_diff_no_err(double y_target,
+        double& x_at_smallest_negative_error, double& y_err_smallest_negative);
 
 	int call_mono_eq(double x, double *y);
 

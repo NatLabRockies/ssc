@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -864,7 +864,7 @@ bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, i
 	return true;
 }
 
-bool iec61853_module_t::operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &out )
+bool iec61853_module_t::operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &out ) const
 {
 	/* initialize output first */
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;

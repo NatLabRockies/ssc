@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -356,6 +356,7 @@ void dispatch_automatic_behind_the_meter_t::sort_grid(size_t idx, FILE *p, const
 			count++;
 		}
 	}
+
 	std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
 }
 
@@ -617,7 +618,6 @@ void dispatch_automatic_behind_the_meter_t::cost_based_target_power(size_t idx, 
 void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan& plan, size_t idx, double E_max, double startingEnergy)
 {
     size_t i = 0, index = 0;
-
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byCost());
     // Iterating over sorted grid
     double costDuringDispatchHours = 0.0;
@@ -679,6 +679,7 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
     }
 
     if (m_batteryPower->canDischargeToGrid) {
+        
         std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byExportPerKWh());
         for (i = 0; i < sorted_grid.size(); i++)
         {
@@ -727,11 +728,12 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
             }
         }
     }
-    // Get max grid use during charging. Choose highest percentile < 25% where we aren't planning on discharging
+    // Get max grid use during charging.
+    
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byGrid());
     bool lookingForGridUse = true;
     double peakDesiredGridUse = 0.0;
-    i = _num_steps / 4;
+    i = 0;
     while (lookingForGridUse && i < _num_steps)
     {
         index = sorted_grid[i].Hour() * _steps_per_hour + sorted_grid[i].Step();
@@ -775,7 +777,15 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
     }
 
     // Iterating over sorted grid
+#ifdef __MACOSX__
+    #if __clang_major__ >= 17
+        std::sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+    #else
+        std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+    #endif
+#else
     std::stable_sort(sorted_grid.begin(), sorted_grid.end(), byLowestMarginalCost());
+#endif
     // Find m hours to get required energy - hope we got today's energy yesterday (for morning peaks). Apportion between hrs of lowest marginal cost
     i = 0;
     while (requiredEnergy > 0 && i < _num_steps)
@@ -785,7 +795,7 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
         if (plan.plannedDispatch[index] <= 0.0)
         {
             double requiredPower = 0.0;
-
+            
             if (m_batteryPower->canGridCharge)
             {
                 // If can grid charge, plan to take as much energy as needed
@@ -818,7 +828,7 @@ void dispatch_automatic_behind_the_meter_t::plan_dispatch_for_cost(dispatch_plan
             if (requiredPower < 0)
             {
                 check_power_restrictions(requiredPower);
-                // Restrict to up to 25th percentile grid use to avoid creating new peaks
+                // Restrict to up to max grid use pre-dispatch to avoid creating new peaks
                 double projectedGrid = sorted_grid[i].Grid() - requiredPower;
                 if (projectedGrid > peakDesiredGridUse)
                 {

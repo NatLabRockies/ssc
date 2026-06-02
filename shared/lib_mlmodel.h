@@ -2,7 +2,7 @@
 Copyright 2017 - pvyield GmbH / Timo Richert
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __mlmodel_h
 #define __mlmodel_h
 
-
+#include <memory>
 #include "lib_pvmodel.h"
 //#include "mlm_spline.h"
 #include "bspline.h"
@@ -94,12 +94,12 @@ public:
 
 	mlmodel_module_t();
 
-	virtual double AreaRef() { return (Width * Length); }
-	virtual double VmpRef() { return V_mp_ref; }
-	virtual double ImpRef() { return I_mp_ref; }
-	virtual double VocRef() { return V_oc_ref; }
-	virtual double IscRef() { return I_sc_ref; }
-	virtual bool operator() (pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &output);
+	virtual double AreaRef() const { return (Width * Length); }
+	virtual double VmpRef() const { return V_mp_ref; }
+	virtual double ImpRef() const { return I_mp_ref; }
+	virtual double VocRef() const { return V_oc_ref; }
+	virtual double IscRef() const { return I_sc_ref; }
+	virtual bool operator() (pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &output) const;
 	virtual void initializeManual();
 
 private:
@@ -108,15 +108,14 @@ private:
 	double I_0ref;
 	double I_Lref;
 	double Vbi;
-//	tk::spline iamSpline;
-	BSpline m_bspline3;
+	std::unique_ptr<BSpline> m_bspline3;
 
 };
 
 class mock_celltemp_t : public pvcelltemp_t
 {
 public:
-	virtual bool operator() (pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell);
+	virtual bool operator() (pvinput_t const &input, pvmodule_t const &module, double opvoltage, double &Tcell) const;
 };
 
 #endif

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -151,6 +151,9 @@ static var_info _cm_vtab_biomass[] = {
 	{ SSC_INPUT,       SSC_NUMBER,       "biopwr.plant.ramp_rate",                    "",                                               "",              "",      "biopower",          "*",               "",                    "" },
 	{ SSC_INPUT,       SSC_STRING,       "biopwr.plant.tou_grid",                     "",                                               "",              "",      "biopower",          "*",               "",                    "" },
 	{ SSC_INPUT,       SSC_NUMBER,       "biopwr.plant.boiler.steam_pressure",        "",                                               "",              "",      "biopower",          "*",               "",                    "" },
+
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "biopower", "?=0", "", "" },
+
 
 	/*
 	{ SSC_INPUT,       SSC_NUMBER,       "biopwr.feedstockcost.biomass_fuel_used",     "Annual biomass used",                           "dry tons/year", "",      "biopower",          "*",               "",                    "" },
@@ -402,7 +405,8 @@ public:
 			}
 
 			char *sched = (char*)as_string("biopwr.plant.tou_grid");
-			if (!util::translate_schedule(tou, sched, sched, 0, 8))
+            size_t start_day = as_number("start_day_of_year"); 
+			if (!util::translate_schedule(tou, sched, sched, 0, 8, start_day))
 				throw exec_error("biopower", "could not translate schedule for time-of-use rate");
 
 		}

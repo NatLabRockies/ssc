@@ -155,6 +155,7 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     // Recapitalization costs
     { SSC_OUTPUT,     SSC_NUMBER,     "system_recapitalization_cost",       "Recapitalization cost used in downstream fin calcs",        "$",       "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "system_use_recapitalization",        "Apply recapitalization in financial models?",               "0/1",     "",     "GeoHourly", "?",                        "",                              "" },
 
     // Total costs
     { SSC_OUTPUT,     SSC_NUMBER,     "total_capital_cost",                 "Total capital cost",                                        "$",       "",     "GeoHourly", "?",                        "",                              "" },

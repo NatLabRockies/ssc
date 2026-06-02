@@ -921,10 +921,10 @@ public:
         bool use_calculated_recapitalization_cost = as_boolean("geotherm.cost.recap_use_calc");
         if(use_calculated_recapitalization_cost){
             double recap_cost_calc = conf_drilling_cost + sum_prod_inj_total_cost + gathering_cost_total + total_pump_cost;
-            assign("recap_cost_used", recap_cost_calc);
+            assign("system_recapitalization_cost", recap_cost_calc);
         }
         else{
-            assign("recap_cost_used", var_data(static_cast<ssc_number_t>(as_double("geotherm.cost.recap_specified")))); //[$]
+            assign("system_recapitalization_cost", var_data(static_cast<ssc_number_t>(as_double("geotherm.cost.recap_specified")))); //[$]
         }
 
         // Total capital cost

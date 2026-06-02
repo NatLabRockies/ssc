@@ -1629,8 +1629,8 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
         double q_dot_elec_to_PAR_HTR_disp = mc_dispatch.dispatch_outputs.q_eh_target;
 
         // Add fixed parasitics to the system target and max
-        double W_dot_system_target_disp = mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design;
-        double W_dot_system_max_disp = (mc_dispatch.dispatch_outputs.w_dot_target - m_W_dot_fixed_design) * 1.2;  // Not used?
+        double W_dot_system_target_disp = mc_dispatch.dispatch_outputs.w_dot_target;
+        double W_dot_system_max_disp = mc_dispatch.dispatch_outputs.w_dot_target * 1.2;  // Not used?
         
         q_dot_pc_max = m_cycle_max_frac * m_cycle_q_dot_des;		        //[MWt]
         

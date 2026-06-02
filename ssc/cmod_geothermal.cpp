@@ -47,6 +47,10 @@ static var_info _cm_vtab_geothermal[] = {
     //{ SSC_INPUT,        SSC_NUMBER,      "ui_calculations_only",               "If = 1, only run UI calculations",             "",               "",                         "GeoHourly",     "*",                         "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "sim_type",                           "1 (default): timeseries, 2: design only",      "",               "",                         "System Control",  "?=1",                    "",      "SIMULATION_PARAMETER"},
 
+    { SSC_INPUT,      SSC_NUMBER,        "geo_financial_model",                "",                                             "1-8",            "",                         "Financial Model",                           "?=1",     "INTEGER,MIN=0",         ""},
+    { SSC_INPUT,      SSC_NUMBER,        "analysis_period",                    "Analyis period",                               "years",          "",                         "Financial Parameters",                      "",        "INTEGER,MIN=0,MAX=100", ""},
+
+
     { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",         "Geothermal lifetime simulation",               "0/1",            "0=SingleYearRepeated,1=RunEveryYear", "GeoHourly",     "?=0",                      "BOOLEAN",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_prod_well_ratio",  "Ratio of injection wells to production wells", "",               "",                         "GeoHourly",     "",                          "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "drilling_success_rate",              "Drilling success rate",                        "%",              "",                         "GeoHourly",     "",                          "",                "" },
@@ -64,7 +68,6 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "resource_depth",                     "Resource Depth",                               "m",              "",                         "GeoHourly",     "*",                         "",                "" },
 
     // Other inputs                                                                                                                                                 
-    { SSC_INPUT,        SSC_NUMBER,      "geothermal_analysis_period",         "Analysis Lifetime",                            "years",          "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "model_choice",                       "Which model to run (0,1,2)",                   "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_MATRIX,      "reservoir_model_inputs",             "Reservoir temperatures over time",             "",               "",                         "GeoHourly",     "reservoir_pressure_change_type=3", "",            "" },
 
@@ -181,6 +184,8 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_prod_failed",        "Number of production wells failed during drilling",  "",        "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_inj_drilled",        "Number of injection wells drilled",                  "",        "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "num_confirm_wells_to_production",    "Number of confirmation wells used for production",   "$",       "",             "GeoHourly",        "*",      "",                "" },
+
+    { SSC_OUTPUT,       SSC_NUMBER,      "geothermal_analysis_period",         "Analysis Lifetime",                                  "years",   "",             "GeoHourly",        "*",      "INTEGER",         "" },
 
 
     { SSC_OUTPUT,       SSC_NUMBER,      "design_temp",                        "Power block design temperature",                     "C",       "",             "GeoHourly",        "*",      "",                "" },
@@ -306,6 +311,8 @@ public:
         int analysis_type = as_integer("analysis_type");
         int conversion_type = as_integer("conversion_type");
         int resource_type = as_integer("resource_type");
+
+        int geo_fin_model = as_integer("geo_financial_model");
 
         int decline_type_in = as_integer("decline_type");
         int decline_type = decline_type_in;
@@ -446,11 +453,22 @@ public:
 		geo_inputs.mi_ModelChoice = as_integer("model_choice");		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
         if (is_assigned("reservoir_model_inputs")) 
             geo_inputs.md_ReservoirInputs = as_matrix("reservoir_model_inputs");
-		// set geothermal inputs RE how analysis is done and for how long
-		geo_inputs.mi_ProjectLifeYears = 1;
+
+        // set geothermal inputs RE how analysis is done and for how long
+        int analysis_period_years = 1;              // geo_inputs.mi_ProjectLifeYears = 1;
 		if (as_boolean("system_use_lifetime_output")) {
-			geo_inputs.mi_ProjectLifeYears = as_integer("geothermal_analysis_period");
+
+            if( geo_fin_model > 6 ) {
+                analysis_period_years = 30;
+            }
+            else {
+                analysis_period_years = as_integer("analysis_period");
+            }
+
 		}
+        geo_inputs.mi_ProjectLifeYears = analysis_period_years; // as_integer("geothermal_analysis_period");
+        assign("geothermal_analysis_period", (ssc_number_t)analysis_period_years);
+
 		if ( geo_inputs.mi_ProjectLifeYears == 0)
 			throw general_error("invalid analysis period specified in the geothermal hourly model");
 

@@ -55,7 +55,7 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,      SSC_NUMBER,        "analysis_period",                    "Analyis period",                               "years",          "",                         "Financial Parameters",                      "",        "INTEGER,MIN=0,MAX=100", ""},
 
 
-    { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",         "Geothermal lifetime simulation",               "0/1",            "0=SingleYearRepeated,1=RunEveryYear", "GeoHourly",     "?=0",                      "BOOLEAN",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",         "Geothermal lifetime simulation",               "0/1",            "0=SingleYearRepeated,1=RunEveryYear", "GeoHourly",     "?=1",                      "BOOLEAN",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_prod_well_ratio",  "Ratio of injection wells to production wells", "",               "",                         "GeoHourly",     "",                          "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "drilling_success_rate",              "Drilling success rate",                        "%",              "",                         "GeoHourly",     "",                          "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "stim_success_rate",                  "Stimulation success rate",                     "%",              "",                         "GeoHourly",     "",                          "",                "" },

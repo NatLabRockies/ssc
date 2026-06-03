@@ -247,9 +247,9 @@ public:
 		assign("annual_snow", var_data((ssc_number_t)snow_max));
 		assign("annual_albedo", var_data((ssc_number_t)(albedo_sum / records)));
         assign("annual_precipitation", var_data((ssc_number_t)(pwater_sum)));
-        assign("annual_csky_glob", var_data((ssc_number_t)(0.001 * gh_sum / 365)));
-        assign("annual_csky_beam", var_data((ssc_number_t)(0.001 * dn_sum / 365)));
-        assign("annual_csky_diff", var_data((ssc_number_t)(0.001 * df_sum / 365)));
+        assign("annual_csky_glob", var_data((ssc_number_t)(0.001 * csky_gh_sum / 365)));
+        assign("annual_csky_beam", var_data((ssc_number_t)(0.001 * csky_dn_sum / 365)));
+        assign("annual_csky_diff", var_data((ssc_number_t)(0.001 * csky_df_sum / 365)));
 	}
 };
 

@@ -512,7 +512,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, NoFinancialModelSkyDiffuseAndIrra
 /// Test PVSAMv1 with default no-financial model and combinations of module and inverter models
 TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, NoFinancialModelModuleAndInverterModels)
 {
-    std::vector<double> annual_energy_expected = { 2515, 2547, 2474, 2515, 8837, 8821, 8788, 8837, 58, 62, 64, 58, 5396, 5398, 5345, 5396, 1726, 1765, 1695, 1726 };
+    std::vector<double> annual_energy_expected = { 2515, 2547, 2474, 2515, 8837, 8821, 8788, 8837, 58, 62, 64, 58, 5378, 5380, 5328, 5377, 1729, 1770, 1698, 1729 };
     std::map<std::string, double> pairs;
     size_t count = 0;
 

@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmod_geothermal_costs_eqns.h"
 
+#include "cmod_cb_construction_financing.h"
+
 
 static var_info _cm_vtab_geothermal[] = {
     //   VARTYPE           DATATYPE         NAME                                   LABEL                                           UNITS             META                        GROUP           REQUIRED_IF                  CONSTRAINTS        UI_HINTS
@@ -295,7 +297,11 @@ public:
 		// performance adjustment factors
 		add_var_info(vtab_adjustment_factors);
         add_var_info(_cm_vtab_geothermal_om_costs);
+
+        add_var_info(_cm_vtab_cb_construction_financing_independent);
+
 //		add_var_info(vtab_technology_outputs);
+
 	}
 
     void exec()
@@ -700,6 +706,12 @@ public:
             // *************************************************************
             // *************************************************************
 
+            std:string construction_financing_module_name = "cb_construction_financing";
+            ssc_module_t construction_financing_module = ssc_module_create(construction_financing_module_name.c_str());
+
+            ssc_module_exec(construction_financing_module, geo_cmod_inputs);
+            
+            // *****************************************************
             assign("drilling_cost", as_double("total_drilling_cost_used"));
             assign("field_gathering_system_cost", as_double("total_surface_equipment_cost"));
             assign("water_loss", as_double("subsurface_water_loss"));
@@ -708,18 +720,8 @@ public:
 
             geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
             getem_om_cost_calc(geo_cmod_inputs);
-
-            double total_getem_om_cost = as_double("total_getem_om_cost"); //[$]
-
-            double badfad = 1.23;
-
         }
         // ***************************************************************
-
-
-
-
-
 
 		if (sim_type == 2) {
 			

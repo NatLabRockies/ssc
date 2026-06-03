@@ -25,6 +25,7 @@ set(SSC_SRC
 		cmod_cashloan.cpp
 		cmod_cashloan_heat.cpp
 		cmod_cb_construction_financing.cpp
+        cmod_cb_construction_financing.h
 		cmod_cb_empirical_hce_heat_loss.cpp
 		cmod_csp_dsg_lf_ui.cpp
         cmod_csp_heatsink.cpp

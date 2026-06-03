@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmod_geothermal_costs.h"
 
+#include "cmod_geothermal_costs_eqns.h"
+
 
 static var_info _cm_vtab_geothermal[] = {
     //   VARTYPE           DATATYPE         NAME                                   LABEL                                           UNITS             META                        GROUP           REQUIRED_IF                  CONSTRAINTS        UI_HINTS
@@ -292,6 +294,7 @@ public:
 
 		// performance adjustment factors
 		add_var_info(vtab_adjustment_factors);
+        add_var_info(_cm_vtab_geothermal_om_costs);
 //		add_var_info(vtab_technology_outputs);
 	}
 
@@ -593,30 +596,6 @@ public:
         assign("pump_depth_ft", var_data((ssc_number_t)geo_outputs.md_PumpDepthFt));
         assign("inj_pump_hp", var_data((ssc_number_t)geo_outputs.md_InjPump_hp));
 
-
-        //***********************************************************
-        // Call cost models
-
-        if( m_is_include_geo_costs ) {
-
-            // Update geothermal costs by running the geothermal costs cmod
-            std::string geo_cost_module_name = "geothermal_costs";
-            ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
-            var_table* geo_cost_vtab = this->get_var_table();
-
-            ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
-
-            ssc_module_exec(geo_cost_module, geo_cmod_inputs);
-            // *************************************************************
-            // *************************************************************
-
-        }
-        // ***************************************************************
-
-        
-
-
-
         assign("plant_brine_eff", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
         assign("pump_watthr_per_lb", var_data((ssc_number_t)geo_outputs.md_PumpWorkWattHrPerLb));
         assign("pumpwork_prod", var_data((ssc_number_t)geo_outputs.md_pumpwork_prod));      //[W-hr/lb]
@@ -702,6 +681,44 @@ public:
         //Assign Flash Count: 
         double flash_count = geo_outputs.flash_count;
         assign("flash_count", (ssc_number_t)flash_count);
+
+
+
+        //***********************************************************
+        // Call cost models
+
+        if( m_is_include_geo_costs ) {
+
+            // Update geothermal costs by running the geothermal costs cmod
+            std::string geo_cost_module_name = "geothermal_costs";
+            ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
+            var_table* geo_cost_vtab = this->get_var_table();
+
+            ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
+
+            ssc_module_exec(geo_cost_module, geo_cmod_inputs);
+            // *************************************************************
+            // *************************************************************
+
+            assign("drilling_cost", as_double("total_drilling_cost_used"));
+            assign("field_gathering_system_cost", as_double("total_surface_equipment_cost"));
+            assign("water_loss", as_double("subsurface_water_loss"));
+            assign("pump_depth", as_double("pump_depth_ft"));
+            assign("pump_type", 0);
+
+            geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
+            getem_om_cost_calc(geo_cmod_inputs);
+
+            double total_getem_om_cost = as_double("total_getem_om_cost"); //[$]
+
+            double badfad = 1.23;
+
+        }
+        // ***************************************************************
+
+
+
+
 
 
 		if (sim_type == 2) {

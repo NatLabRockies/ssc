@@ -226,4 +226,15 @@ static var_info _cm_vtab_geothermal_costs_upstream[] = {
     var_info_invalid
 };
 
+
+static var_info _cm_vtab_geothermal_om_costs[] = {
+    /*   VARTYPE        DATATYPE       NAME                                  LABEL                                                       UNITS     META    GROUP        REQUIRED_IF                 CONSTRAINTS                     UI_HINTS */
+
+    { SSC_OUTPUT,      SSC_NUMBER,     "total_getem_om_cost",                 "OM costs",                            "$",       "",     "GeoHourly", "?",                        "",                              ""   },
+
+    var_info_invalid
+};
+
+
+
 #endif

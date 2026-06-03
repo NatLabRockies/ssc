@@ -960,12 +960,12 @@ public:
         int geo_fin_model = as_integer("geo_financial_model");
         double sales_tax_rate = std::numeric_limits<double>::quiet_NaN();
         if(geo_fin_model < 7){
-            sales_tax_rate = as_double("geotherm.cost.sales_tax.percent"); //[%]
+            sales_tax_rate = as_double("sales_tax_rate"); //[%]
         }
         else{
             sales_tax_rate = 0.0;
         }
-        double perc_of_direct_applied_to_sales_tax = as_double("geotherm.cost.sales_tax.value");    //[%]
+        double perc_of_direct_applied_to_sales_tax = as_double("geotherm.cost.sales_tax.percent");    //[%]
         double sales_tax_cost = perc_of_direct_applied_to_sales_tax * 1.E-2 * sales_tax_rate * 1.E-2 * total_direct_cost;   //[%]
         assign("sales_tax_cost", var_data(static_cast<ssc_number_t>(sales_tax_cost)));  //[$]
 

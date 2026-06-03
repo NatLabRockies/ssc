@@ -97,8 +97,8 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.indirect.amount_specified", "Absolute indirect cost input",                         "$",       "",     "GeoHourly", "",                        "",                              ""   },
 
     // Sales tax
-    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.sales_tax.percent",    "Sales tax rate",                                            "%",       "",     "GeoHourly", "",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.sales_tax.value",      "Percent of direct cost to which sales tax is applied",      "%",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.sales_tax.percent",    "Percent of direct cost to which sales tax is applied",      "%",       "",     "GeoHourly", "",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "sales_tax_rate",                     "Sales tax rate",                                            "%",       "",     "GeoHourly", "",                        "",                              ""   },
 
    
 

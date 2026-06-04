@@ -141,6 +141,66 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 
     ssc_data_set_number(data, "adjust_constant", 0.0);
 
+    // ------------------------------------------
+    // 6/4/24 - add missing inputs after moving UI equations to geo cmods
+    ssc_data_set_number(data, "geotherm.cost.conf_num_wells", 3);   // use sam default value
+    ssc_data_set_number(data, "geotherm.cost.confirm_wells_percent", 50);   // use sam default value
+    ssc_data_set_number(data, "geotherm.cost.plant_auto_estimate", 1);   // use sam default value
+    ssc_data_set_number(data, "geotherm.cost.inj_cost_curve", 0);   // use sam default value
+    ssc_data_set_number(data, "geotherm.cost.prod_cost_curve", 0);   // use sam default value
+    ssc_data_set_number(data, "geotherm.cost.prod_inj_non_drill", 150000);   // use sam default value
+    ssc_data_set_number(data, "geotherm.cost.stim_non_drill", 0);   // use sam default value    
+
+
+    ssc_data_set_number(data, "geotherm.cost.expl_non_drill", 750000);
+    ssc_data_set_number(data, "geotherm.cost.conf_non_drill", 250000);
+    ssc_data_set_number(data, "geotherm.cost.expl_multiplier", 0.5);
+    ssc_data_set_number(data, "geotherm.cost.conf_multiplier", 1.2);
+    ssc_data_set_number(data, "geotherm.cost.expl_num_wells" , 1);
+    ssc_data_set_number(data, "geotherm.cost.drilling.calc" , 1);
+    ssc_data_set_number(data, "geotherm.cost.drilling.amount_specified" , 0);
+    ssc_data_set_number(data, "geotherm.cost.pump_fixed" , 0);
+    ssc_data_set_number(data, "geotherm.cost.pump_per_foot" , 50);
+    ssc_data_set_number(data, "geotherm.cost.pump_casing_cost" , 0);
+    ssc_data_set_number(data, "geotherm.cost.pumping.calc" , 1);
+    ssc_data_set_number(data, "geotherm.cost.pumping.amount_specified" , 0);
+    ssc_data_set_number(data, "geotherm.cost.recap_use_calc" , 1);
+    ssc_data_set_number(data, "geotherm.cost.recap_specified" , 23000000);
+    ssc_data_set_number(data, "geotherm.cost.contingency_percent" , 10);
+    ssc_data_set_number(data, "geotherm.cost.epc.percent" , 12);
+    ssc_data_set_number(data, "geotherm.cost.epc.fixed" , 0);
+    ssc_data_set_number(data, "geotherm.cost.plm.percent" , 3.5);
+    ssc_data_set_number(data, "geotherm.cost.plm.fixed" , 0);
+    ssc_data_set_number(data, "geotherm.cost.indirect.calc" , 1);
+    ssc_data_set_number(data, "geotherm.cost.indirect.amount_specified" , 0);
+    ssc_data_set_number(data, "geotherm.cost.sales_tax.percent" , 80);
+    ssc_data_set_number(data, "geotherm.cost.sales_tax.value" , 5);
+    ssc_data_set_number(data, "geotherm.cost.plant_total.calc", 1);
+    ssc_data_set_number(data, "sales_tax_rate", 5);
+
+    ssc_data_set_number(data, "const_per_interest_rate1", 6.5);
+    ssc_data_set_number(data, "const_per_interest_rate2" , 7);
+    ssc_data_set_number(data, "const_per_interest_rate3" , 0);
+    ssc_data_set_number(data, "const_per_interest_rate4" , 0);
+    ssc_data_set_number(data, "const_per_interest_rate5" , 0);
+    ssc_data_set_number(data, "const_per_months1" , 60);
+    ssc_data_set_number(data, "const_per_months2" , 24);
+    ssc_data_set_number(data, "const_per_months3" , 0);
+    ssc_data_set_number(data, "const_per_months4" , 0);
+    ssc_data_set_number(data, "const_per_months5" , 0);
+    ssc_data_set_number(data, "const_per_percent1" , 40);
+    ssc_data_set_number(data, "const_per_percent2" , 60);
+    ssc_data_set_number(data, "const_per_percent3" , 0);
+    ssc_data_set_number(data, "const_per_percent4" , 0);
+    ssc_data_set_number(data, "const_per_percent5" , 0);
+    ssc_data_set_number(data, "const_per_upfront_rate1" , 1);
+    ssc_data_set_number(data, "const_per_upfront_rate2" , 2);
+    ssc_data_set_number(data, "const_per_upfront_rate3" , 0);
+    ssc_data_set_number(data, "const_per_upfront_rate4" , 0);
+    ssc_data_set_number(data, "const_per_upfront_rate5" , 0);
+
+    // ------------------------------------------
+
 	ssc_data_set_number(data, "enable_interconnection_limit", 0);
 	set_array(data, "grid_curtailment", geothermal_curtailment_path, 8760);
 	ssc_data_set_number(data, "grid_interconnection_limit_kwac", 100000);

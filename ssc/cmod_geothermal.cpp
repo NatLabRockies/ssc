@@ -711,14 +711,40 @@ public:
 
             ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
 
-            ssc_module_exec(geo_cost_module, geo_cmod_inputs);
+            if( !ssc_module_exec(geo_cost_module, geo_cmod_inputs)){
+                std::string str = geo_cost_module_name + " execution error. ";
+                int idx = 0;
+                int type = -1;
+                while( const char* msg = ssc_module_log(geo_cost_module, idx++, &type, nullptr) )
+                {
+                    if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
+                        str += std::string(msg);
+                        str += "\t";
+                    }
+                }
+                ssc_module_free(geo_cost_module);
+                throw std::runtime_error(str);
+            }
             // *************************************************************
             // *************************************************************
 
             std:string construction_financing_module_name = "cb_construction_financing";
             ssc_module_t construction_financing_module = ssc_module_create(construction_financing_module_name.c_str());
 
-            ssc_module_exec(construction_financing_module, geo_cmod_inputs);
+            if( !ssc_module_exec(construction_financing_module, geo_cmod_inputs)){
+                std::string str = construction_financing_module_name + " execution error. ";
+                int idx = 0;
+                int type = -1;
+                while( const char* msg = ssc_module_log(construction_financing_module, idx++, &type, nullptr) )
+                {
+                    if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
+                        str += std::string(msg);
+                        str += "\t";
+                    }
+                }
+                ssc_module_free(construction_financing_module);
+                throw std::runtime_error(str);
+            }
             
             // *****************************************************
             assign("drilling_cost", as_double("total_drilling_cost_used"));

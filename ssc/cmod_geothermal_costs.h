@@ -43,8 +43,6 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "ppi_base_year",                      "PPI Base Year",                                             "",        "",     "GeoHourly", "?=19",                     "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "geo_financial_model",                "",                                                          "1-8",     "",     "Financial Model", "?=1",                "INTEGER,MIN=0",                 ""},
-    { SSC_INPUT,      SSC_ARRAY,      "degradation",                        "Annual energy degradation",                                 "",        "",     "System Output", "system_use_lifetime_output=0", "",                      "" },
-
 
     { SSC_INPUT,      SSC_NUMBER,     "dt_prod_well",                       "Temperature loss in production well",                       "C",       "",     "GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "resource_depth",                      "Resource Depth",                                           "m",       "",     "GeoHourly", "calc_drill_costs=1",      "",                              ""   },
@@ -157,7 +155,6 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
 
     // Recapitalization costs
     { SSC_OUTPUT,     SSC_NUMBER,     "system_recapitalization_cost",       "Recapitalization cost used in downstream fin calcs",        "$",       "",     "GeoHourly", "?",                        "",                              "" },
-    { SSC_OUTPUT,     SSC_NUMBER,     "system_use_recapitalization",        "Apply recapitalization in financial models?",               "0/1",     "",     "GeoHourly", "?",                        "",                              "" },
 
     // Total costs
     { SSC_OUTPUT,     SSC_NUMBER,     "total_capital_cost",                 "Total capital cost",                                        "$",       "",     "GeoHourly", "?",                        "",                              "" },
@@ -169,6 +166,7 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_OUTPUT,     SSC_NUMBER,     "indirect_cost",                      "Total indirect cost",                                       "$",       "",     "GeoHourly", "?",                        "",                              "" },
     { SSC_OUTPUT,     SSC_NUMBER,     "total_installed_cost",               "Total installed cost",                                      "$",       "",     "GeoHourly", "?",                        "",                              "" },
     { SSC_OUTPUT,     SSC_NUMBER,     "installed_cost_per_kW",              "Total installed cost per kW of net plant output",           "$/kWe",   "",     "GeoHourly", "?",                        "",                              "" },
+
 
 
     var_info_invalid

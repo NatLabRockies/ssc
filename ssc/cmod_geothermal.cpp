@@ -244,6 +244,11 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "pump_work",                          "Pump work calculated by GETEM",                      "MWe",      "",             "GeoHourly",        "*",      "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "net_plant_output",                   "Net plant power to grid; net sales in GETEM",        "MWe",      "",             "GeoHourly",        "*",      "",                "" },
 
+    // Hardcoded outputs
+    { SSC_OUTPUT,     SSC_ARRAY,      "degradation",                        "Annual energy degradation",                                 "",        "",     "System Output", "system_use_lifetime_output=0", "",                      "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "system_use_recapitalization",        "Apply recapitalization in financial models?",               "0/1",     "",     "GeoHourly", "?",                        "",                              "" },
+
+
     // The array outputs are only meaningful when the model is run (not UI calculations)                                                                             
     // User can specify whether the analysis should be done hourly or monthly.  With monthly analysis, there are only monthly results.                                
     // With hourly analysis, there are still monthly results, but there are hourly (over the whole lifetime of the project) results as well.                           
@@ -757,6 +762,15 @@ public:
             getem_om_cost_calc(geo_cmod_inputs);
         }
         // ***************************************************************
+
+        // Hardcoded outputs
+        // Always use recapitalization for geothermal
+        assign("system_use_recapitalization", 1);
+
+        // Hardcode degradation to 0
+        ssc_number_t* p_deg = allocate("degradation", 1);
+        p_deg[0] = 0.0;
+        //assign("degradation", 0);
 
 		if (sim_type == 2) {
 			

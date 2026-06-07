@@ -926,11 +926,6 @@ public:
         else{
             assign("system_recapitalization_cost", var_data(static_cast<ssc_number_t>(as_double("geotherm.cost.recap_specified")))); //[$]
         }
-        // Always use recapitalization for geothermal
-        assign("system_use_recapitalization", 1);
-
-        // Hardcode degradation to 0
-        assign("degradation", 0);
 
         // Total capital cost
         double total_capital_cost = total_drilling_cost + total_plant_cost_used + total_pump_gathering_cost_used; //[$]

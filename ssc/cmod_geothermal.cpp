@@ -52,10 +52,12 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "sim_type",                           "1 (default): timeseries, 2: design only",      "",               "",                         "System Control",  "?=1",                    "",      "SIMULATION_PARAMETER"},
 
     { SSC_INPUT,      SSC_NUMBER,        "geo_financial_model",                "",                                             "1-8",            "",                         "Financial Model",                           "?=1",     "INTEGER,MIN=0",         ""},
-    { SSC_INPUT,      SSC_NUMBER,        "analysis_period",                    "Analyis period",                               "years",          "",                         "Financial Parameters",                      "",        "INTEGER,MIN=0,MAX=100", ""},
 
 
-    { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",         "Geothermal lifetime simulation",               "0/1",            "0=SingleYearRepeated,1=RunEveryYear", "GeoHourly",     "?=1",                      "BOOLEAN",         "" },
+    // If financial model is lcoe of none, then need to reset this to 1 in cmod for downstream grid cmod
+    { SSC_INOUT,      SSC_NUMBER,        "analysis_period",                    "Analyis period",                               "years",          "",                         "Financial Parameters",                      "",        "INTEGER,MIN=0,MAX=100", ""},
+
+
     { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_prod_well_ratio",  "Ratio of injection wells to production wells", "",               "",                         "GeoHourly",     "",                          "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "drilling_success_rate",              "Drilling success rate",                        "%",              "",                         "GeoHourly",     "",                          "",                "" },
     { SSC_INPUT,        SSC_NUMBER,      "stim_success_rate",                  "Stimulation success rate",                     "%",              "",                         "GeoHourly",     "",                          "",                "" },
@@ -190,6 +192,7 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "num_confirm_wells_to_production",    "Number of confirmation wells used for production",   "$",       "",             "GeoHourly",        "*",      "",                "" },
 
     { SSC_OUTPUT,       SSC_NUMBER,      "geothermal_analysis_period",         "Analysis Lifetime",                                  "years",   "",             "GeoHourly",        "*",      "INTEGER",         "" },
+    { SSC_OUTPUT,       SSC_NUMBER,      "system_use_lifetime_output",         "Geothermal lifetime simulation",               "0/1",            "0=SingleYearRepeated,1=RunEveryYear", "GeoHourly",     "?=1",                      "BOOLEAN",         "" },
 
 
     { SSC_OUTPUT,       SSC_NUMBER,      "design_temp",                        "Power block design temperature",                     "C",       "",             "GeoHourly",        "*",      "",                "" },
@@ -245,8 +248,8 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "net_plant_output",                   "Net plant power to grid; net sales in GETEM",        "MWe",      "",             "GeoHourly",        "*",      "",                "" },
 
     // Hardcoded outputs
-    { SSC_OUTPUT,     SSC_ARRAY,      "degradation",                        "Annual energy degradation",                                 "",        "",     "System Output", "system_use_lifetime_output=0", "",                      "" },
-    { SSC_OUTPUT,     SSC_NUMBER,     "system_use_recapitalization",        "Apply recapitalization in financial models?",               "0/1",     "",     "GeoHourly", "?",                        "",                              "" },
+    { SSC_OUTPUT,     SSC_ARRAY,      "degradation",                        "Annual energy degradation",                                 "",        "",     "System Output",         "", "",                      "" },
+    { SSC_OUTPUT,     SSC_NUMBER,     "system_use_recapitalization",        "Apply recapitalization in financial models?",               "0/1",     "",     "GeoHourly",             "?",        "",                              "" },
 
 
     // The array outputs are only meaningful when the model is run (not UI calculations)                                                                             
@@ -292,21 +295,19 @@ class cm_geothermal : public compute_module
 private:
 public:
 
-    bool m_is_include_geo_costs = true;
-
 	cm_geothermal()
 	{
 		add_var_info( _cm_vtab_geothermal );
 
-        if( m_is_include_geo_costs ) {
-            add_var_info(_cm_vtab_geothermal_costs_unique);
-        }
-
 		// performance adjustment factors
 		add_var_info(vtab_adjustment_factors);
-        add_var_info(_cm_vtab_geothermal_om_costs);
 
+
+        add_var_info(_cm_vtab_geothermal_costs_unique);
+        add_var_info(_cm_vtab_geothermal_om_costs);
         add_var_info(_cm_vtab_cb_construction_financing_independent);
+
+
 
 //		add_var_info(vtab_technology_outputs);
 
@@ -471,18 +472,17 @@ public:
         if (is_assigned("reservoir_model_inputs")) 
             geo_inputs.md_ReservoirInputs = as_matrix("reservoir_model_inputs");
 
-        // set geothermal inputs RE how analysis is done and for how long
+        bool system_use_lifetime_output = false;
         int analysis_period_years = 1;              // geo_inputs.mi_ProjectLifeYears = 1;
-		if (as_boolean("system_use_lifetime_output")) {
+        if( geo_fin_model <= 6 ) {
+            system_use_lifetime_output = true;
+            analysis_period_years = as_integer("analysis_period");
+        }
+        else {
+            assign("analysis_period", (ssc_number_t)analysis_period_years);
+        }
+        assign("system_use_lifetime_output", (ssc_number_t)system_use_lifetime_output);
 
-            if( geo_fin_model > 6 ) {
-                analysis_period_years = 30;
-            }
-            else {
-                analysis_period_years = as_integer("analysis_period");
-            }
-
-		}
         geo_inputs.mi_ProjectLifeYears = analysis_period_years; // as_integer("geothermal_analysis_period");
         assign("geothermal_analysis_period", (ssc_number_t)analysis_period_years);
 
@@ -707,36 +707,35 @@ public:
         //***********************************************************
         // Call cost models
 
-        if( m_is_include_geo_costs ) {
+        // Update geothermal costs by running the geothermal costs cmod
+        std::string geo_cost_module_name = "geothermal_costs";
+        ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
+        var_table* geo_cost_vtab = this->get_var_table();
 
-            // Update geothermal costs by running the geothermal costs cmod
-            std::string geo_cost_module_name = "geothermal_costs";
-            ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
-            var_table* geo_cost_vtab = this->get_var_table();
+        ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
 
-            ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
-
-            if( !ssc_module_exec(geo_cost_module, geo_cmod_inputs)){
-                std::string str = geo_cost_module_name + " execution error. ";
-                int idx = 0;
-                int type = -1;
-                while( const char* msg = ssc_module_log(geo_cost_module, idx++, &type, nullptr) )
-                {
-                    if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
-                        str += std::string(msg);
-                        str += "\t";
-                    }
+        if( !ssc_module_exec(geo_cost_module, geo_cmod_inputs)){
+            std::string str = geo_cost_module_name + " execution error. ";
+            int idx = 0;
+            int type = -1;
+            while( const char* msg = ssc_module_log(geo_cost_module, idx++, &type, nullptr) )
+            {
+                if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
+                    str += std::string(msg);
+                    str += "\t";
                 }
-                ssc_module_free(geo_cost_module);
-                throw std::runtime_error(str);
             }
-            // *************************************************************
-            // *************************************************************
+            ssc_module_free(geo_cost_module);
+            throw std::runtime_error(str);
+        }
+        // *************************************************************
+        // *************************************************************
 
+        if( geo_fin_model < 7 ) {
             std:string construction_financing_module_name = "cb_construction_financing";
             ssc_module_t construction_financing_module = ssc_module_create(construction_financing_module_name.c_str());
 
-            if( !ssc_module_exec(construction_financing_module, geo_cmod_inputs)){
+            if( !ssc_module_exec(construction_financing_module, geo_cmod_inputs) ) {
                 std::string str = construction_financing_module_name + " execution error. ";
                 int idx = 0;
                 int type = -1;
@@ -750,7 +749,7 @@ public:
                 ssc_module_free(construction_financing_module);
                 throw std::runtime_error(str);
             }
-            
+
             // *****************************************************
             assign("drilling_cost", as_double("total_drilling_cost_used"));
             assign("field_gathering_system_cost", as_double("total_surface_equipment_cost"));
@@ -761,6 +760,7 @@ public:
             geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
             getem_om_cost_calc(geo_cmod_inputs);
         }
+        
         // ***************************************************************
 
         // Hardcoded outputs

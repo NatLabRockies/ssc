@@ -59,6 +59,7 @@ set(SSC_SRC
 		cmod_irradproc.cpp
 		cmod_layoutarea.cpp
 		cmod_lcoefcr.cpp
+        cmod_lcoefcr.h
 		cmod_levpartflip.cpp
 		cmod_linear_fresnel_dsg_iph.cpp
 		cmod_merchantplant.cpp

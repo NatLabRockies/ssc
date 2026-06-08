@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core.h"
 #include "lib_financial.h"
+#include "cmod_lcoefcr.h"
 
 #include <numeric>
 
@@ -81,51 +82,54 @@ public:
 DEFINE_MODULE_ENTRY( lcoefcr, "Calculate levelized cost of energy using fixed charge rate method.", 1 )
 
 
-static var_info vtab_lcoefcr_design[] =
+
+class cm_lcoefcr_electricity : public compute_module
 {
-    /*   VARTYPE            DATATYPE         NAME                        LABEL                                     UNITS     META      GROUP                   REQUIRED_IF             CONSTRAINTS UI_HINTS*/
-    { SSC_INPUT,        SSC_NUMBER,      "sim_type",                 "1 (default): timeseries, 2: design only",    "",       "",       "System Control",       "?=1",                  "",         "SIMULATION_PARAMETER"},
-                                                                                                                                                                                       
-    { SSC_INPUT,        SSC_NUMBER,      "ui_fcr_input_option",         "0: fixed charge rate; 1: calculate",         "",       "",       "Simple LCOE",          "*",                    "",         ""},
+public:
 
-        // FCR Input Option = 0: Fixed fixed charge rate
-    { SSC_INPUT,        SSC_NUMBER,      "ui_fixed_charge_rate",     "Input fixed charge rate",                    "",       "",       "Simple LCOE",          "ui_fcr_input_option=0",   "",         ""},
+    cm_lcoefcr_electricity() {
+        add_var_info(vtab_lcoefcr_design);
+    }
 
-        // FCR Input Option = 1: Calculated fixed charge rate
-    { SSC_INPUT,        SSC_NUMBER,      "c_inflation",              "Input fixed charge rate",                    "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_NUMBER,      "c_equity_return",          "IRR (nominal)",                              "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_NUMBER,      "c_debt_percent",           "Project term debt (% of capital)",           "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_NUMBER,      "c_nominal_interest_rate",  "Nominal debt interest rate",                 "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_NUMBER,      "c_tax_rate",               "Effective tax rate",                         "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_NUMBER,      "c_lifetime",               "Analysis period",                            "years",  "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_ARRAY,       "c_depreciation_schedule",  "Depreciation schedule",                      "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_NUMBER,      "c_construction_interest",  "Nominal construction interest rate",         "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
-    { SSC_INPUT,        SSC_ARRAY,       "c_construction_cost",      "Construction cost schedule",                 "%",      "",       "Simple LCOE",          "ui_fcr_input_option=1",   "",         ""},
+    void exec() {
 
-        // General Inputs
+        // the following inputs are only when lcoe is calculating heat
+        // so set to zero so they don't add to the fixed cost
+        assign("annual_electricity_consumption", var_data((ssc_number_t)0.0));
+        assign("electricity_rate", var_data((ssc_number_t)0.0));
+        // ---------------------------------------------------------
 
-        // "Performance" Inputs
-    { SSC_INPUT,        SSC_NUMBER,      "total_installed_cost",     "Total installed cost",                                        "$",       "",       "System Costs",  "sim_type=1",     "",        "SIMULATION_PARAMETER" },
-                                                                                                                                                                                           
-    { SSC_INPUT,        SSC_NUMBER,      "annual_electricity_consumption","Annual electricity consumption with avail derate",       "kWe-hr",  "",       "IPH LCOH",      "sim_type=1",     "",        "SIMULATION_PARAMETER" },
-    { SSC_INPUT,        SSC_NUMBER,      "electricity_rate",              "Cost of electricity used to operate pumps and trackers", "$/kWe-hr","",       "IPH LCOH",      "sim_type=1",     "",        "SIMULATION_PARAMETER" },
-    { SSC_INPUT,        SSC_NUMBER,      "fixed_operating_cost",     "Annual fixed operating cost",                                 "$",       "",       "Simple LCOE",   "sim_type=1",     "",        "SIMULATION_PARAMETER" },
+        // call lcoe cmod
+        std::string lcoe_cmod_name = "lcoefcr_design";
+        ssc_module_t lcoe_cmod = ssc_module_create(lcoe_cmod_name.c_str());
+        var_table* lcoe_vtab = this->get_var_table();
 
-    { SSC_INPUT,        SSC_NUMBER,      "variable_operating_cost",  "Annual variable operating cost",             "$/kWh",  "",       "Simple LCOE",          "sim_type=1",               "",         "SIMULATION_PARAMETER" },
-    { SSC_INPUT,        SSC_NUMBER,      "annual_energy",            "Annual energy production",                   "kWh",    "",       "Simple LCOE",          "sim_type=1",               "",         "SIMULATION_PARAMETER" },
+        ssc_data_t lcoe_cmod_inputs = static_cast<ssc_data_t>(lcoe_vtab);
 
-    // "Design" outputs
-    { SSC_OUTPUT,       SSC_NUMBER,      "crf",                      "Capital recovery factor",                    "",       "",	   "Simple LCOE",          "*",                        "",         "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "pfin",                     "Project financing factor",                   "",       "",	   "Simple LCOE",          "*",                        "",         "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "cfin",                     "Construction financing factor",              "",       "",	   "Simple LCOE",          "*",                        "",         "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "wacc",                     "WACC",                                       "",       "",	   "Simple LCOE",          "*",                        "",         "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "fixed_charge_rate_calc",   "Calculated fixed charge rate",               "",       "",	   "Simple LCOE",          "*",                        "",         "" },
+        if( !ssc_module_exec(lcoe_cmod, lcoe_cmod_inputs) ) {
+            std::string str = lcoe_cmod_name + " execution error. ";
+            int idx = 0;
+            int type = -1;
+            while( const char* msg = ssc_module_log(lcoe_cmod, idx++, &type, nullptr) )
+            {
+                if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
+                    str += std::string(msg);
+                    str += "\t";
+                }
+            }
+            ssc_module_free(lcoe_cmod);
+            throw std::runtime_error(str);
+        }
+        // *************************************************************
+        // *************************************************************
 
-    { SSC_OUTPUT,       SSC_NUMBER,      "lcoe_fcr",                 "LCOE Levelized cost of energy",              "$/kWh",  "",	   "Simple LCOE",          "sim_type=1",               "",         "" },
+    }
 
-    // "Performance" outputs
+};
 
-    var_info_invalid };
+DEFINE_MODULE_ENTRY(lcoefcr_electricity, "Calculate levelized cost of energy using fixed charge rate method.", 1)
+
+
 
 class cm_lcoefcr_design : public compute_module
 {
@@ -134,6 +138,7 @@ public:
     cm_lcoefcr_design()
     {
         add_var_info(vtab_lcoefcr_design);
+        add_var_info(vtab_lcoefcr_elec_consumption_inputs);
     }
 
     void exec()

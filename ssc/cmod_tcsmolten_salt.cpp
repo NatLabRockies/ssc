@@ -77,7 +77,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     //Hybrid setup (gen from PV)
     { SSC_INPUT,    SSC_ARRAY,  "anc_elec_output",                     "Ancillary electrical generation (PV)",                                                                                                    "kWe",          "",                                  "System Control",                           "?",                                                                "",              "" },
     { SSC_INPUT,    SSC_NUMBER,  "is_hybrid",                          "Is the system hybrid",                                                                                                                    "0-1",          "",                                  "System Control",                           "?=0",                                                              "",              "" },
-    { SSC_INPUT,    SSC_NUMBER,  "is_battery_storage",                 "Is there battery storage?",                                                                                                               "0/1",          "",                                  "System Design",                            "?=0",                                                              "",              "" },
+    { SSC_INPUT,    SSC_NUMBER,  "includes_battery",                   "Whether battery is included in simulation",                                                                                               "0/1",          "",                                  "System Design",                            "?=0",                                                              "",              "" },
 
     // Simulation parameters
     { SSC_INPUT,     SSC_NUMBER, "is_dispatch",                        "Allow dispatch optimization?",                                                                                                            "",             "",                                  "System Control",                           "?=0",                                                              "",              ""},
@@ -2185,7 +2185,7 @@ public:
         // Battery storage (if included)
         // *************************************************************************
 
-        bool is_battery_included = as_boolean("is_battery_storage");
+        bool is_battery_included = as_boolean("includes_battery");
         std::unique_ptr<C_csp_battery> battery = nullptr;
         if (is_battery_included) {
             auto battery_params = create_battery_params(this->get_var_table(), 1.0 / steps_per_hour);
@@ -3269,8 +3269,9 @@ public:
         if( !haf.setup(n_steps_full) )
             throw exec_error("tcsmolten_salt", "failed to setup adjustment factors: " + haf.error());
 
+        std::vector<double> disp_pv_expected;
+        if (is_assigned("disp_pv_expected")) disp_pv_expected = as_vector_double("disp_pv_expected");
 
-        std::vector<double> disp_pv_expected = as_vector_double("disp_pv_expected");
         ssc_number_t *p_gen = allocate("gen", count);
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
         for( size_t i = 0; i < count; i++ ) {

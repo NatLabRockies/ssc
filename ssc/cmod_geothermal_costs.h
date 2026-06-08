@@ -50,7 +50,7 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     { SSC_INPUT,      SSC_NUMBER,     "calc_drill_costs",                   "Calculate drill costs",                                      "0/1",     "0=LargerDiameter,1=SmallerDiameter", "GeoHourly", "?=1",         "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_auto_estimate",  "0: use user input cost; 1: use getem calcs",                 "0/1",     "",                                   "GeoHourly", "",         "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_per_kW_input",   "user input for relative plant cost",                         "$/kWe",   "",                                   "GeoHourly", "geotherm.cost.plant_auto_estimate=0",         "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_per_kW_input",   "user input for relative plant cost",                         "$/kWe",   "",                                   "GeoHourly", "",         "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_total.calc",     "0: user specificed absolute plant cost, 1: calculated",      "",   "",                                        "GeoHourly", "",         "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "geotherm.cost.plant_total.amount_specified", "Absolute plant cost input",                          "$"   "",                                        "GeoHourly", "",         "",                              ""   },
 

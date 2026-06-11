@@ -1518,7 +1518,7 @@ double CGeothermalAnalyzer::flowRateTotal(void) {
 
 void CGeothermalAnalyzer::WellCountDecisionTable(void)
 {
-    int well_stim = mo_geo_in.md_WellsStimulated; //0 - injection only, 1 - production only, 2 - both
+    int well_stim = mo_geo_in.md_WellsStimulated; //0 - injection only, 1 - production only, 2 - both, 3 - neither
     double production_stim_well = 0; //Column A
     double injection_stim_well = 0; //Column B
     double stim_well = 0; //Column C
@@ -1596,21 +1596,24 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
     if (mo_geo_in.me_cb == NUMBER_OF_WELLS) {
 
         mp_geo_out->md_NumberOfWells = mo_geo_in.md_NumberOfWells;
+        mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / mo_geo_in.md_DrillSuccessRate;
+
         mp_geo_out->md_NumberOfWellsInj = mo_geo_in.md_NumberOfWells / mo_geo_in.md_RatioInjectionToProduction;
+        mp_geo_out->md_NumberOfWellsInjDrilled = mp_geo_out->md_NumberOfWellsInj / mo_geo_in.md_DrillSuccessRate;
     }
-	else
-	{
-		double netBrineEffectiveness = GetPlantBrineEffectiveness() - GetPumpWorkWattHrPerLb();
-		double netCapacityPerWell = flowRatePerWell() * netBrineEffectiveness / 1000.0;			// after pumping losses
+    else
+    {
+        double netBrineEffectiveness = GetPlantBrineEffectiveness() - GetPumpWorkWattHrPerLb();
+        double netCapacityPerWell = flowRatePerWell() * netBrineEffectiveness / 1000.0;			// after pumping losses
         double flowPerWellInj = flowRatePerWell() / mo_geo_in.md_RatioInjectionToProduction;
-		if (netCapacityPerWell == 0)
-		{
-			ms_ErrorString = "The well capacity was calculated to be zero.  Could not continue analysis.";
-			mp_geo_out->md_NumberOfWells = 0;
-		}
+        if (netCapacityPerWell == 0)
+        {
+            ms_ErrorString = "The well capacity was calculated to be zero.  Could not continue analysis.";
+            mp_geo_out->md_NumberOfWells = 0;
+        }
         mp_geo_out->md_BrineEff = GetPlantBrineEffectiveness();
         mp_geo_out->md_PumpWorkWattHrPerLb = GetPumpWorkWattHrPerLb();
-		mp_geo_out->md_NumberOfWells = mo_geo_in.md_DesiredSalesCapacityKW / netCapacityPerWell;
+        mp_geo_out->md_NumberOfWells = mo_geo_in.md_DesiredSalesCapacityKW / netCapacityPerWell;
         if (mp_geo_out->md_NumberOfWells < 0) mp_geo_out->md_NumberOfWells = 0;
         mp_geo_out->md_NumberOfWellsProdExp = (mp_geo_out->md_NumberOfWells > mp_geo_out->ProdWellsExploration) ? mp_geo_out->md_NumberOfWells - mp_geo_out->ProdWellsExploration : 0.0;
         double prod_well_stim_success_rate = (prod_wells_stimulated) ? mo_geo_in.md_StimSuccessRate : 0.0;
@@ -1648,6 +1651,7 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
         //mp_geo_out->md_NumberOfWellsInj = (mo_geo_in.md_DesiredSalesCapacityKW / (netBrineEffectiveness / 1000)) * (mp_geo_out->md_FractionGFInjected) / flowPerWellInj;
         double pump_inj_hp = (GetInjectionPumpWorkft() * (inj_flow) / (60 * 33000)) / mo_geo_in.md_GFPumpEfficiency;
         mp_geo_out->md_InjPump_hp = pump_inj_hp;
+
         if (mo_geo_in.me_rt == EGS) {
             //mp_geo_out->md_NumberOfWellsProdExp = mp_geo_out->md_NumberOfWells - 8;
             if (mo_geo_in.md_WellsStimulated != 1) mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / (mo_geo_in.md_DrillSuccessRate);
@@ -1674,6 +1678,8 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
             }
             mp_geo_out->md_NumberOfWellsInj = inj_flow / inj_rate_successful_inj_wells - successful_inj_wells_exploration;
             mp_geo_out->md_NumberOfWellsInjDrilled = inj_wells_drilled;
+            pump_inj_hp = (GetInjectionPumpWorkft() * (inj_flow) / (60 * 33000)) / mo_geo_in.md_GFPumpEfficiency;
+            mp_geo_out->md_InjPump_hp = pump_inj_hp;
             //mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / mo_geo_in.md_DrillSuccessRate;
             /*
             num_prod_wells_failed = mp_geo_out->md_NumberOfWellsProdExp / mo_geo_in.md_DrillSuccessRate * (1 - mo_geo_in.md_DrillSuccessRate);

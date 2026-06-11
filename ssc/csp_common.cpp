@@ -629,10 +629,18 @@ bool solarpilot_invoke::run(std::shared_ptr<weather_data_provider> wdata)
 		fluxtab.delta_flux_hrs = m_cmod->as_integer("delta_flux_hrs");
 		
         string aim_method_save = flux.aim_method.val;
-        flux.aim_method.combo_select("Simple aim points");
+        int aim_pt_method = m_cmod->as_integer("aim_point_method");   // 0 = simple, 1 = image size priority
+        if (aim_pt_method == 1)
+            flux.aim_method.combo_select("Image size priority");
+        else
+            flux.aim_method.combo_select("Simple aim points");
+
+        flux.sigma_limit_x.val = m_cmod->as_double("sigma_limit_x");
+        flux.sigma_limit_y.val = m_cmod->as_double("sigma_limit_y");    
+
         if (rec_type == var_receiver::REC_TYPE::FALLING_PARTICLE) {
-            m_sapi->SimulateAimPointsAtDesign();                // Required to set the aimpoints at design conditions
-            flux.aim_method.combo_select("Keep existing");    // Fix aimpoints for simulation points
+            m_sapi->SimulateAimPointsAtDesign();
+            flux.aim_method.combo_select("Keep existing");
         }
 
 		int nflux_x = m_cmod->as_integer("n_flux_x");

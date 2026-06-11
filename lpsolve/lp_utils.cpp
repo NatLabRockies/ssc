@@ -966,7 +966,7 @@ STATIC MYBOOL verifyLink(LLrec *linkmap, int itemnr, MYBOOL doappend)
 STATIC PVrec *createPackedVector(int size, REAL *values, int *workvector)
 {
   int      i, k;
-  REGISTER REAL  ref;
+  REAL  ref;
   PVrec    *newPV = NULL;
   MYBOOL   localWV = (MYBOOL) (workvector == NULL);
 
@@ -1013,7 +1013,7 @@ STATIC PVrec *createPackedVector(int size, REAL *values, int *workvector)
 STATIC MYBOOL unpackPackedVector(PVrec *PV, REAL **target)
 {
   int      i, ii, k;
-  REGISTER REAL ref;
+  REAL ref;
 
   /* Test for validity of the target and create it if necessary */
   if(target == NULL)

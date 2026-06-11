@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -206,6 +206,7 @@ public:
                 value = "";
                 if (!values[i].empty())
                     value = trimboth(values[i]);
+                if (value == "") continue;
 
                 // required metadata (see checks below)
                 if (name == "lat" || name == "latitude")

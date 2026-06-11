@@ -110,7 +110,7 @@ STATIC void stallMonitor_reset(lprec *lp)
   monitor->countstep = 1;
 }
 
-STATIC MYBOOL stallMonitor_create(lprec *lp, MYBOOL isdual, char *funcname)
+STATIC MYBOOL stallMonitor_create(lprec *lp, MYBOOL isdual,  const char *funcname)
 {
   OBJmonrec *monitor = NULL;
   if(lp->monitor != NULL)

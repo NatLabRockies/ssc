@@ -37,9 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Ambient.h"
 #include "definitions.h"
 
-#include "../splinter/QR"
-
-
 C_falling_particle_receiver::C_falling_particle_receiver(double h_tower /*m*/, 
     double T_htf_hot_des /*C*/, double T_htf_cold_des /*C*/,
     double f_rec_min /*-*/, double q_dot_rec_des /*MWt*/,

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -1081,7 +1081,11 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, UserArraySnowModel)
     // pull the wf snow data and put it into an array
     int l = 8760;
     ssc_number_t* snowdepth = ssc_data_get_array(data, "snowdepth", &l);
-    ssc_data_set_array(data, "snow_array", snowdepth, 8760);
+    // Copy into a local vector immediately: the raw pointer points into var_table
+    // internal storage and becomes dangling after the next simulation reallocates
+    // the "snowdepth" output array.
+    std::vector<ssc_number_t> snowdepth_vec(snowdepth, snowdepth + l);
+    ssc_data_set_array(data, "snow_array", snowdepth_vec.data(), 8760);
     // Use the snow data from the snow depth array
     pairs["use_snow_weather_file"] = 0;
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
@@ -1094,8 +1098,8 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, UserArraySnowModel)
     std::vector<ssc_number_t> upsampled;
     upsampled.reserve(8760 * 2);
     for (size_t i = 0; i < 8760; i++) {
-        upsampled.push_back(snowdepth[i]);
-        upsampled.push_back(snowdepth[i]);
+        upsampled.push_back(snowdepth_vec[i]);
+        upsampled.push_back(snowdepth_vec[i]);
     }
     ssc_data_set_array(data, "snow_array", upsampled.data(), 8760*2);
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
@@ -1108,7 +1112,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, UserArraySnowModel)
     std::vector<ssc_number_t> downsampled;
     downsampled.reserve(8760 / 2);
     for (size_t i = 0; i < 8760/2; i++) {
-        downsampled.push_back(snowdepth[2*i]);
+        downsampled.push_back(snowdepth_vec[2*i]);
     }
     ssc_data_set_array(data, "snow_array", downsampled.data(), 8760 / 2);
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);

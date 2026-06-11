@@ -1,3 +1,5 @@
+#define _HAS_STD_BYTE 0
+
 #include <gtest/gtest.h>
 #include <cmath>
 #include <string>

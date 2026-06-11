@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -35,13 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "trough_physical_iph_defaults.h"
 #include "cmod_trough_physical_iph.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 namespace csp_trough {}
 using namespace csp_trough;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(csp_trough, HeatTroughCmod, Default_NoFinancial)
+TEST(HeatTroughCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = trough_physical_iph_defaults();
     CmodUnderTest heat_trough = CmodUnderTest("trough_physical_iph", defaults);

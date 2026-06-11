@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -250,7 +250,6 @@ bool csp_dispatch_opt::predict_performance(int step_start, int ntimeints, int di
 
             //get thermal efficiency
             double therm_eff = pointers.col_rec->calculate_thermal_efficiency_approx(pointers.m_weather.ms_outputs, q_inc, simloc);
-            therm_eff *= params.sf_effadj;
             therm_eff_ave += therm_eff * ave_weight;
 
             //C_csp_fresnel_collector_receiver x;
@@ -342,10 +341,6 @@ static void calculate_parameters(csp_dispatch_opt *optinst, unordered_map<std::s
         pars["y0"] = (optinst->params.is_pb_operating0 ? 1 : 0);
         pars["ycsb0"] = (optinst->params.is_pb_standby0 ? 1 : 0);
         pars["q0"] =  optinst->params.q_pb0;
-
-        pars["qrecmaxobs"] = 1.;
-        for(int i=0; i<(int)optinst->params.q_sfavail_expected.size(); i++)
-            pars["qrecmaxobs"] = optinst->params.q_sfavail_expected.at(i) > pars["qrecmaxobs"] ? optinst->params.q_sfavail_expected.at(i) : pars["qrecmaxobs"];
 
         pars["Qrsb"] = optinst->params.q_rec_standby; // * dq_rsu;
         pars["W_dot_cycle"] = optinst->params.q_pb_des * optinst->params.eta_pb_des;
@@ -1555,7 +1550,7 @@ bool csp_dispatch_opt::optimize()
 
         setup_solver_presolve_bbrules(lp);
         bool return_ok = problem_scaling_solve_loop(lp);
-        set_lp_solve_outputs(lp);
+        set_solver_outputs(lp);
 
         // Saving problem and solution for DEBUGGING formulation
         //save_problem_solution_debug(lp);
@@ -1757,8 +1752,8 @@ bool csp_dispatch_opt::optimize_ampl()
     outputs.clear();
     outputs.resize(nt);
     
-    util::to_double(F.at(0), &lp_outputs.objective);
-    util::to_double(F.at(1), &lp_outputs.objective_relaxed);
+    util::to_double(F.at(0), &solver_outputs.objective);
+    util::to_double(F.at(1), &solver_outputs.objective_relaxed);
     
     std::vector< std::string > svals;
 
@@ -1885,7 +1880,7 @@ void csp_dispatch_opt::set_outputs_from_lp_solution(lprec* lp, unordered_map<std
 
 bool csp_dispatch_opt::set_dispatch_outputs()
 {
-    if (lp_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
+    if (solver_outputs.last_opt_successful && m_current_read_step < (int)outputs.q_pb_target.size())
     {
         //calculate the current read step, account for number of dispatch steps per hour and the simulation time step
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)

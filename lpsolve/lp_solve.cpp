@@ -276,7 +276,7 @@ static MYBOOL isNum(char *val)
   return(*pointer == 0);
 }
 
-static void DoReport(lprec *lp, char *str)
+static void DoReport(lprec *lp, const char *str)
 {
   fprintf(stderr, "%s %6.1fsec %8g\n", str, time_elapsed(lp), get_working_objective(lp));
 }
@@ -402,7 +402,7 @@ static void printminmax(lprec *lp, char *s, REAL *minima, REAL *maxima, int nmin
 }
 */
 
-static void printminmax(lprec *lp, char *s, REAL *minima, REAL *maxima, int nminima, int nmaxima, int *rowmin, int *rowmax, int *colmin, int *colmax)
+static void printminmax(lprec *lp, const char *s, REAL *minima, REAL *maxima, int nminima, int nmaxima, int *rowmin, int *rowmax, int *colmin, int *colmax)
 {
   int i, nminmax, n;
 

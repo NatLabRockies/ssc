@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,7 +89,7 @@ void solarpos(int year, int month, int day, int hour, double minute, double lat,
 /** @defgroup solarpos_spa Solar Position Algorithm group/
 *   The functions in this group are used to calculate the sun's position at any given timestep
 *   based on the Solar Position Algorithm reported by Reda and Andreas in NREL/TP-560-34302, 2008.
-*   The functions used in this implementation were taken from a C code implementation provided at https://midcdmz.nrel.gov/spa/
+*   The functions used in this implementation were taken from a C code implementation provided at https://midcdmz.nlr.gov/spa/
 *   @{
 */
 /**

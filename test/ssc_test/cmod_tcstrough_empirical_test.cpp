@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -34,13 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include "tcstrough_empirical_defaults.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
 
 namespace csp_trough {}
 using namespace csp_trough;
 
 //========Tests===================================================================================
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, Default_NoFinancial)
+TEST(EmpiricalTroughCmod, Default_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);
@@ -59,7 +58,7 @@ NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, Default_NoFinancial)
 }
 
 // Alternative solar field HTF type: Hitec Solar Salt
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, SolarSaltHtf_NoFinancial)
+TEST(EmpiricalTroughCmod, SolarSaltHtf_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);
@@ -82,7 +81,7 @@ NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, SolarSaltHtf_NoFinancial)
 }
 
 // Alternative solar collector assembly (SCA): EuroTrough ET150
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, EuroTrough_NoFinancial)
+TEST(EmpiricalTroughCmod, EuroTrough_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);
@@ -113,7 +112,7 @@ NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, EuroTrough_NoFinancial)
 }
 
 // Alternative heat collection element (HCE): Luz Cermet Vacuum, Luz Cermet Hydrogren, and Luz Cermet Broken Glass
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, LuzCermetHce_NoFinancial)
+TEST(EmpiricalTroughCmod, LuzCermetHce_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);
@@ -148,7 +147,7 @@ NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, LuzCermetHce_NoFinancial)
 }
 
 // Alternative power cycle: APS Ormat 1MWe 300C
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, PowerCycle_NoFinancial)
+TEST(EmpiricalTroughCmod, PowerCycle_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);
@@ -192,7 +191,7 @@ NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, PowerCycle_NoFinancial)
 }
 
 // Alternative thermal stoage fluid type: Therminol VP-1
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, TherminolHtf_NoFinancial)
+TEST(EmpiricalTroughCmod, TherminolHtf_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);
@@ -214,7 +213,7 @@ NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, TherminolHtf_NoFinancial)
 }
 
 // Alternative parasitic electric energy use
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, ParasiticElectric_NoFinancial)
+TEST(EmpiricalTroughCmod, ParasiticElectric_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);
@@ -241,7 +240,7 @@ NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, ParasiticElectric_NoFinancial)
 }
 
 // Alternative location: Phoenix, AZ
-NAMESPACE_TEST(csp_trough, EmpiricalTroughCmod, Phoenix_NoFinancial)
+TEST(EmpiricalTroughCmod, Phoenix_NoFinancial)
 {
     ssc_data_t defaults = tcstrough_empirical_defaults();
     CmodUnderTest empirical_trough = CmodUnderTest("tcstrough_empirical", defaults);

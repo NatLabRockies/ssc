@@ -33,6 +33,8 @@ bld/
 build/
 cmake-build-debug/
 cmake-build-release/
+CMakeFiles
+CMakeCache.txt
 test/Test
 
 # Visual Studio 2015 cache/options directory
@@ -344,6 +346,7 @@ build_osx/Test
 build_linux/Test
 build_linux/config.status
 linux_test\.txt
+build2
 
 nlopt/config.h
 nlopt/config.status
@@ -360,3 +363,5 @@ ssc/ssc\.exp
 ssc/sscd\.exp
 
 build_android/lib_oldssc.zip
+
+or-tools

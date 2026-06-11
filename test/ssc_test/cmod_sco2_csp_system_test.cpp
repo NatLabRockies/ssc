@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 //#include "tcsmolten_salt_defaults.h"
 #include "csp_common_test.h"
-#include "vs_google_test_explorer_namespace.h"
 #include <unordered_map>
 
 //#include "../input_cases/code_generator_utilities.h"
@@ -132,7 +131,7 @@ void check_result_vals(CmodUnderTest& sco2, std::unordered_map<std::string, doub
 }
 
 //========Tests===================================================================================
-NAMESPACE_TEST(sco2_tests, SCO2Cycle, Parametrics)
+TEST(SCO2Cycle, Parametrics)
 {
     
     ssc_data_t data = ssc_data_create();
@@ -226,7 +225,7 @@ NAMESPACE_TEST(sco2_tests, SCO2Cycle, Parametrics)
 
 
 // Design method 2 (optimize with fixed total UA)
-NAMESPACE_TEST(sco2_design_tests, SCO2Design, recompression_default)
+TEST(SCO2Design, recompression_default)
 {
     // This test is design method 2, maximizing efficiency using a fixed total UA,
     // optimizing min pressure, UA split, and flow fractions.
@@ -246,9 +245,17 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, recompression_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
-NAMESPACE_TEST(sco2_design_tests, SCO2Design, simple_default)
+TEST(SCO2Design, simple_default)
 {
     // This test is design method 2, maximizing efficiency using a fixed total UA,
     // optimizing min pressure, UA split, and flow fractions.
@@ -274,9 +281,17 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, simple_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
-NAMESPACE_TEST(sco2_design_tests, SCO2Design, partial_default)
+TEST(SCO2Design, partial_default)
 {
     // This test is design method 2, maximizing efficiency using a fixed total UA,
     // optimizing min pressure, UA split, and flow fractions.
@@ -302,9 +317,17 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, partial_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot") + sco2.GetOutput("pc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
-NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_default)
+TEST(SCO2Design, htrbp_default)
 {
     // This test is design method 2, maximizing efficiency using a fixed total UA,
     // optimizing min pressure, UA split, and flow fractions.
@@ -336,9 +359,17 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
-NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_default)
+TEST(SCO2Design, tsf_default)
 {
     // This test is design method 2, maximizing efficiency using a fixed total UA,
     // optimizing min pressure, UA split, and flow fractions.
@@ -366,10 +397,18 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_default)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot") + sco2.GetOutput("t2_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 // Design method 1 (hit target eta by varying total UA)
-NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_des1)
+TEST(SCO2Design, htrbp_des1)
 {
     // Design method 2, vary total UA to hit target eta,
     // AND vary bypass frac to hit target outlet temp
@@ -402,11 +441,19 @@ NAMESPACE_TEST(sco2_design_tests, SCO2Design, htrbp_des1)
 
     // Check expected vs actual results
     check_result_vals(sco2, result_dict);
+
+    // Validate back work ratio calculation
+    double comp_W_dot = sco2.GetOutput("mc_W_dot") + sco2.GetOutput("rc_W_dot");
+    double t_W_dot = sco2.GetOutput("t_W_dot");
+    double back_work_ratio = comp_W_dot / t_W_dot;
+
+    double back_work_actual = sco2.GetOutput("back_work_ratio");
+    ASSERT_NEAR(back_work_ratio, back_work_actual, kTol);
 }
 
 
 // Fail tests
-NAMESPACE_TEST(sco2_design_tests, SCO2Design, tsf_des1_fail)
+TEST(SCO2Design, tsf_des1_fail)
 {
     // This test purposefully fails, by trying to run TSF with design method 1
 

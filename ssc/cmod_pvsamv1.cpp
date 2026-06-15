@@ -1708,6 +1708,12 @@ void cm_pvsamv1::exec()
                 if (isnan(wf.gh)) ghi = Irradiance->p_IrradianceCalculated[0][idx];
                 else ghi = wf.gh;
                 double csky_index = ghi / ghi_cs; //TODO, check if no wf.gh
+                if (isnan(pwater) && as_integer("spectral_correction_model_choice") == 1)
+                {
+                    throw exec_error("pvsamv1", util::format("Precipitable water is NaN at time [y:%d m:%d d:%d h:%d minute:%lg], the chosen spectral correction model does not have the data required.",
+                        wf.year, wf.month, wf.day, wf.hour, wf.minute));
+                    
+                }
                 scf = spectral_correction_factor(this, pwater, solzen, elev, csky_index);
                 /* scf = spectral_correction_factor(model_type, celltech, pwater, solzen, elev, coeff_inputs,
                      min_prec_water, max_prec_water, min_abs_airmass, max_abs_airmass, csky_index);*/

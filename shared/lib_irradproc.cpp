@@ -1841,7 +1841,7 @@ void irrad::setup() {
     elevation = 0;
     pressure = 1013.25;
     tamb = 15;
-    pwater = 0;
+    pwater = std::numeric_limits<double>::quiet_NaN();
 
     globalHorizontal = directNormal = diffuseHorizontal = -999;
 

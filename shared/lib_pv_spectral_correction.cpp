@@ -384,6 +384,9 @@ double spectral_correction_factor(compute_module* cm, double pwater, double solz
     double abs_airmass = sandia_absolute_air_mass(solzen, alt);
     double scf = 0;
     if (model_type == 1) { //Default First Solar (TODO: rename with author of paper)
+        if (isnan(prec_water)) {
+            return -1;
+        }
         scf = spectral_correction_lee(prec_water, abs_airmass, celltech, coeff_inputs,
             min_prec_water, max_prec_water, min_abs_airmass, max_abs_airmass);
     }

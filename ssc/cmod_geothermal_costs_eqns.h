@@ -59,6 +59,11 @@ static const char* getem_om_cost_calc_doc =
     "     'pump_type': double [-] \\n"
     "     'pump_depth': double [m] \\n"
     "Output: key-value pairs added to var_table\\n"
+    "     'labor_om_cost': double [$]"
+    "     'plant_maintenance_om_cost': double [$]"
+    "     'well_maintenance_om_cost': double [$]"
+    "     'gathering_system_maintenance_om_cost': double [$]"
+    "     'water_makeup_om_cost': double [$]"
     "     'total_getem_om_cost': double [$]";
 
 SSCEXPORT bool getem_om_cost_calc(ssc_data_t data);

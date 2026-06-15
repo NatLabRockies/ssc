@@ -1,5 +1,5 @@
 # SSC (SAM Simulation Core)
-![Build](https://github.com/NREL/ssc/actions/workflows/ci.yml/badge.svg)[![Coverage Status](https://coveralls.io/repos/github/NREL/ssc/badge.svg)](https://coveralls.io/github/NREL/ssc?branch=patch)
+![Build](https://github.com/NatLabRockies/ssc/actions/workflows/ci.yml/badge.svg)[![Coverage Status](https://coveralls.io/repos/github/NatLabRockies/ssc/badge.svg)](https://coveralls.io/github/NatLabRockies/ssc?branch=patch)
 
 The SSC Open Source Project repository contains the source code for the technology and financial models contained within the National Laboratory of the Rockies' System Advisor Model™ (SAM™). For more details about SAM's capabilities, see the SAM website at [https://sam.nrel.gov/](https://sam.nrel.gov).
 
@@ -13,7 +13,7 @@ SSC requires building four other open-source projects:
 - [WEX](https://github.com/nrel/wex)
 - [jsoncpp](https://github.com/open-source-parsers/jsoncpp)
 
-However, if you remove SDKtool and TCSconsole from your SSC project, you can build SSC without any other software dependencies. Please see the main [SAM project wiki](https://github.com/NREL/SAM/wiki) for complete build instructions and software dependencies.
+However, if you remove SDKtool and TCSconsole from your SSC project, you can build SSC without any other software dependencies. Please see the main [SAM project wiki](https://github.com/NatLabRockies/SAM/wiki) for complete build instructions and software dependencies.
 
 SSC directly includes source code from three other open-source projects, and builds them as part of its build process.  These projects and their respective licenses are:
 - [NLopt](https://nlopt.readthedocs.io/en/latest/) - code located [here](https://github.com/NREL/ssc/tree/develop/nlopt), [LGPL license](https://nlopt.readthedocs.io/en/latest/NLopt_License_and_Copyright/)
@@ -25,7 +25,7 @@ To explore the code and understand the algorithms used in SSC, start by looking 
 
 # Contributing
 
-Please see the contribution guidelines in the main [SAM project readme](https://github.com/NREL/SAM/blob/develop/README.md).
+Please see the contribution guidelines in the main [SAM project readme](https://github.com/NatLabRockies/SAM/blob/develop/README.md).
 
 # License
 

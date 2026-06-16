@@ -46,21 +46,35 @@ bool Size_battery(ssc_data_t data) {
     }
     int chem;
 
-    double desired_power, desired_capacity,  batt_Qfull, batt_Vnom_default, desired_voltage, batt_dc_ac_efficiency, batt_dc_dc_efficency, inverter_eff, tol;
-    bool ac_connected, size_by_ac_not_dc;
+    double desired_power, desired_capacity,  batt_Qfull, batt_Vnom_default, desired_voltage, batt_dc_ac_efficiency, batt_dc_dc_efficency, inverter_eff, original_capacity;
+    bool ac_connected;
 
+    double tol = 0.05;
+    bool size_by_ac_not_dc = false;
+
+    // cmod_battery params
     vt_get_int(vt, "batt_chem", &chem);
-
-    vt_get_number(vt, "desired_power", &desired_power);
-    vt_get_number(vt, "desired_capacity", &desired_capacity);
-    vt_get_bool(vt, "batt_ac_or_dc", &ac_connected);
-    vt_get_bool(vt, "size_by_ac_not_dc", &size_by_ac_not_dc);
     vt_get_number(vt, "batt_Qfull", &batt_Qfull);
     vt_get_number(vt, "batt_Vnom_default", &batt_Vnom_default);
-    vt_get_number(vt, "desired_voltage", &desired_voltage);
+    vt_get_bool(vt, "batt_ac_or_dc", &ac_connected);
     vt_get_number(vt, "batt_dc_ac_efficiency", &batt_dc_ac_efficiency);
     vt_get_number(vt, "batt_dc_dc_efficiency", &batt_dc_dc_efficency);
-    vt_get_number(vt, "tol", &tol);
+    vt_get_number(vt, "batt_computed_bank_capacity", &original_capacity);
+
+    // Required sizing parameters
+    vt_get_number(vt, "desired_power", &desired_power);
+    vt_get_number(vt, "desired_capacity", &desired_capacity);
+    vt_get_number(vt, "desired_voltage", &desired_voltage);
+
+    // Optional inputs
+    if (vt->is_assigned("size_by_ac_not_dc")) {
+        vt_get_bool(vt, "size_by_ac_not_dc", &size_by_ac_not_dc);
+    }
+    if (vt->is_assigned("tol")) {
+        vt_get_number(vt, "tol", &tol);
+    }
+
+    // Optional inputs "module_capacity" and "module_surface_area" used in the thermal sizing function
 
     double leadacid_q10, leadacid_q20, leadacid_qn, leadacid_tn = 0.0;
     if (chem == 0) {
@@ -149,10 +163,11 @@ bool Size_battery(ssc_data_t data) {
 
     // TODO update lead acid outputs
 
-    vt->assign("voltage", computed_voltage);
+    vt->assign("original_capacity", original_capacity);
+
+    vt->assign("batt_voltage", computed_voltage);
     vt->assign("batt_computed_series", num_series);
     vt->assign("batt_computed_strings", num_strings);
-    vt->assign("power", computed_capacity * max_rate);
     vt->assign("batt_computed_bank_capacity", computed_capacity);
     vt->assign("time_capacity", computed_capacity / computed_power);
 
@@ -212,8 +227,18 @@ bool Calculate_thermal_params(ssc_data_t data) {
 
     double mass, surface_area, original_capacity, desired_capacity, module_capacity, module_surface_area;
 
-    vt_get_number(vt, "mass", &mass);
-    vt_get_number(vt, "surface_area", &surface_area);
+    bool is_stateful;
+    if (vt->is_assigned("mass") && vt->is_assigned("surface_area")) {
+        vt_get_number(vt, "mass", &mass);
+        vt_get_number(vt, "surface_area", &surface_area);
+        is_stateful = true;
+    }
+    else {
+        vt_get_number(vt, "batt_mass", &mass);
+        vt_get_number(vt, "batt_surface_area", &surface_area);
+        is_stateful = false;
+    }
+
     vt_get_number(vt, "original_capacity", &original_capacity);
     vt_get_number(vt, "desired_capacity", &desired_capacity);
 
@@ -233,8 +258,15 @@ bool Calculate_thermal_params(ssc_data_t data) {
         surface_area = module_surface_area * desired_capacity / module_capacity;
     }
 
-    vt->assign("mass", mass);
-    vt->assign("surface_area", surface_area);
+    if (is_stateful) {
+        vt->assign("mass", mass);
+        vt->assign("surface_area", surface_area);
+    }
+    else {
+        vt->assign("batt_mass", mass);
+        vt->assign("batt_surface_area", surface_area);
+    }
+
 
     return true;
 }

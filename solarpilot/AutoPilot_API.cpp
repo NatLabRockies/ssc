@@ -1224,6 +1224,11 @@ bool AutoPilot_S::SimulateAimPointsAtDesign()
     Sets the aimpoints based on the design point conditions (for multi-receiver cases).
     */
     var_map* vars = _SF->getVarMap();
+    // Shape each receiver's flux grid to the simulation resolution BEFORE aiming.
+    // Otherwise the grid is a single cell here, so image-size-priority aiming has only
+    // one candidate node (the receiver center) and collapses to the simple aim point.
+    for (size_t i = 0; i < _SF->getReceivers()->size(); i++)
+        _SF->getReceivers()->at(i)->DefineReceiverGeometry(vars->flux.x_res.val, vars->flux.y_res.val);
 
     sim_result result;
     double azzen[2];

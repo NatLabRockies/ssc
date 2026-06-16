@@ -167,7 +167,7 @@ struct SGeothermal_Outputs
 	SGeothermal_Outputs()
 	{
 		md_PumpWorkKW = md_NumberOfWells = md_NumberOfWellsInj = md_FlashBrineEffectiveness = md_PressureHPFlashPSI = md_PressureLPFlashPSI = 0.0;
-		md_GrossPlantOutputMW = md_GrossPowerkW = md_PlantBrineEffectiveness = md_PressureChangeAcrossReservoir = md_AverageReservoirTemperatureF = 0;
+		md_GrossPlantOutputMW = md_GrossPowerkW = md_PlantBrineEffectiveness = md_dtRockWellHead = md_PressureChangeAcrossReservoir = md_AverageReservoirTemperatureF = md_MaxBrineEffectiveness = 0;
 		md_PumpDepthFt = md_PumpHorsePower = md_BottomHolePressure = 0;
 		maf_ReplacementsByYear = maf_monthly_resource_temp = maf_monthly_power = maf_monthly_energy = maf_timestep_resource_temp = NULL;
 		maf_timestep_power = maf_timestep_test_values = maf_timestep_pressure = maf_timestep_dry_bulb = maf_timestep_wet_bulb = NULL;
@@ -236,6 +236,9 @@ struct SGeothermal_Outputs
 	double md_PressureLPFlashPSI; // D30, D65
 
 	// only for use in the interface to show 'calculated' values
+    double md_dtRockWellHead;            // degrees C, temperature loss in production well - input or calculated
+    double md_MaxBrineEffectiveness; // maximum brine effectiveness, used to calculate plant efficiency
+
 	double md_PlantBrineEffectiveness;
 	double md_GrossPlantOutputMW;	//double GetGrossPlantOutputMW(void) { return this->PlantOutputKW()/1000; }
     double md_GrossPowerkW;

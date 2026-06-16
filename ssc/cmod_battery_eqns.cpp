@@ -164,6 +164,8 @@ bool Size_battery(ssc_data_t data) {
     vt->assign("batt_current_discharge_max", batt_bank_power_discharge_dc / computed_voltage * 1000.0);
 
     Calculate_thermal_params(data);
+
+    return true;
 }
 
 bool Size_batterystateful(ssc_data_t data) {

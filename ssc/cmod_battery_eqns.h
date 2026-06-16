@@ -43,7 +43,6 @@ extern "C" {
 static const char* size_battery_doc =
     "Resizes the battery for a battery data object \\n\\n"
     "Input: var_table with key-value pairs\\n"
-    "     'nominal_energy': double [kWh]\\n"
     "     'desired_capacity': double [kWh]\\n"
     "     'desired_voltage': double [V]\\n"
     "     'mass': double [kg] \\n"

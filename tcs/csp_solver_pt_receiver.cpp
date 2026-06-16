@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -256,6 +256,11 @@ void C_pt_receiver::get_design_geometry(double& L_tower_piping /*m*/, double& od
 {
     L_tower_piping = m_L_piping;    //[m]
     od_tube_calc = m_od_tube;       //[m]
+}
+
+double C_pt_receiver::get_design_rec_pumping_power() {  //[MWe]
+
+    return m_W_dot_rec_pump_des_calc;
 }
 
 void C_pt_receiver::get_design_performance(double& eta_thermal /*-*/,

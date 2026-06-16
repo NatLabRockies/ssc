@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -1162,7 +1162,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, SubhourlyClippingCorrectionModel)
         0.95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
     };
-    
+
     ssc_data_set_matrix(data, "subhourly_clipping_matrix", Subhourly_Clipping_Matrix, 21, 21);
     //pairs["subhourly_clipping_matrix"] = sub_clipping_matrix;
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
@@ -1177,7 +1177,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, SubhourlyClippingCorrectionModel)
         for (int j = 0; j < 17; j++) {
             Subhourly_Clipping_Matrix_Short[i * 17 + j] = Subhourly_Clipping_Matrix[i * 21 + j];
         }
-    }
+        }
     ssc_data_set_matrix(data, "subhourly_clipping_matrix", Subhourly_Clipping_Matrix_Short, 16, 17);
     pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
     EXPECT_FALSE(pvsam_errors);
@@ -1188,7 +1188,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, SubhourlyClippingCorrectionModel)
     EXPECT_NEAR(subhourly_clipping_loss_short, 24.746267, m_error_tolerance_lo);
     ssc_data_get_number(data, "annual_subhourly_clipping_loss_percent", &subhourly_clipping_loss_percent);
     EXPECT_NEAR(subhourly_clipping_loss_percent, 0.271086, m_error_tolerance_lo);
-}
+    }
 
 TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, useCustomCellTemp) {
 
@@ -1214,7 +1214,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, useCustomCellTemp) {
 
 
 
-}
+    }
 
 TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, UseCustomAngles) {
 
@@ -1460,7 +1460,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, NonAnnual)
 
     //run the tests
     EXPECT_FALSE(run_module(data, "pvsamv1"));
-
+    
     ssc_number_t dc_net, gen;
     dc_net = ssc_data_get_array(data, "dc_net", nullptr)[12];
     EXPECT_NEAR(dc_net, 3.213, 0.01) << "DC Net Energy at noon";
@@ -1470,7 +1470,7 @@ TEST_F(CMPvsamv1PowerIntegration_cmod_pvsamv1, NonAnnual)
 
     //free the weather data
     free_weatherdata_array(weather_data);
-}
+        }
 
 
 //test non-annual run that includes Feb 29

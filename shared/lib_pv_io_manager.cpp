@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -140,7 +140,7 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
         if (weatherDataProvider->has_message()) cm->log(weatherDataProvider->message(), SSC_WARNING);
     }
     else {
-        throw exec_error(cmName, "No weather data supplied");
+        throw exec_error(cmName, "No weather data supplied.");
     }
 
     // assumes instantaneous values, unless hourly file with no minute column specified
@@ -166,7 +166,7 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
         tsShiftHours = 0.5;
     }
     else
-        throw exec_error(cmName, "subhourly and non-annual weather files must specify the minute for each record");
+        throw exec_error(cmName, "Subhourly and non-annual weather files must specify the minute for each record.");
 
     weatherDataProvider->header(&weatherHeader);
 
@@ -182,7 +182,7 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
     }
 
     if (weatherDataProvider->annualSimulation() && numberOfWeatherFileRecords % 8760 != 0)
-        throw exec_error(cmName, util::format("invalid number of data records (%zu): must be an integer multiple of 8760", numberOfWeatherFileRecords));
+        throw exec_error(cmName, util::format("Invalid number of data records (%zu): must be an integer multiple of 8760.", numberOfWeatherFileRecords));
     if (weatherDataProvider->annualSimulation() && (stepsPerHour < 1 || stepsPerHour > 60))
         throw exec_error(cmName, util::format("%d timesteps per hour found. Weather data should be single year.", stepsPerHour));
 
@@ -251,36 +251,36 @@ void Irradiance_IO::checkWeatherFile(compute_module* cm, std::string cmName)
     for (size_t idx = 0; idx < numberOfWeatherFileRecords; idx++)
     {
         if (!weatherDataProvider->read(&weatherRecord))
-            throw exec_error(cmName, "could not read data line " + util::to_string((int)(idx + 1)) + " in weather file");
+            throw exec_error(cmName, "Could not read data line " + util::to_string((int)(idx + 1)) + " in weather file.");
 
         // Check for missing data
         if ((weatherRecord.gh != weatherRecord.gh) && (radiationMode == irrad::DN_GH || radiationMode == irrad::GH_DF)) {
-            cm->log(util::format("missing global irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting",
+            cm->log(util::format("Missing global irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting.",
                 weatherRecord.gh, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_ERROR, (float)idx);
             return;
         }
         if ((weatherRecord.dn != weatherRecord.dn) && (radiationMode == irrad::DN_DF || radiationMode == irrad::DN_GH)) {
-            cm->log(util::format("missing beam irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting",
+            cm->log(util::format("Missing beam irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting.",
                 weatherRecord.dn, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_ERROR, (float)idx);
             return;
         }
         if ((weatherRecord.df != weatherRecord.df) && (radiationMode == irrad::DN_DF || radiationMode == irrad::GH_DF)) {
-            cm->log(util::format("missing diffuse irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting",
+            cm->log(util::format("Missing diffuse irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting.",
                 weatherRecord.df, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_ERROR, (float)idx);
             return;
         }
         if ((weatherRecord.poa != weatherRecord.poa) && (radiationMode == irrad::POA_R || radiationMode == irrad::POA_P)) {
-            cm->log(util::format("missing POA irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting",
+            cm->log(util::format("Missing POA irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting.",
                 weatherRecord.poa, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_ERROR, (float)idx);
             return;
         }
         if (weatherRecord.tdry != weatherRecord.tdry) {
-            cm->log(util::format("missing temperature %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting",
+            cm->log(util::format("Missing temperature %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting.",
                 weatherRecord.tdry, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_ERROR, (float)idx);
             return;
         }
         if (weatherRecord.wspd != weatherRecord.wspd) {
-            cm->log(util::format("missing wind speed %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting",
+            cm->log(util::format("Missing wind speed %lg W/m2 at time [y:%d m:%d d:%d h:%d, minute:%lg], exiting.",
                 weatherRecord.wspd, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_ERROR, (float)idx);
             return;
         }
@@ -288,36 +288,41 @@ void Irradiance_IO::checkWeatherFile(compute_module* cm, std::string cmName)
         // Check for bad data
         if ((weatherRecord.gh < 0 || weatherRecord.gh >  irrad::irradiationMax) && (radiationMode == irrad::DN_GH || radiationMode == irrad::GH_DF))
         {
-            cm->log(util::format("Out of range global irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero",
+            cm->log(util::format("Out of range global irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero.",
                 weatherRecord.gh, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_WARNING, (float)idx);
             weatherRecord.gh = 0;
         }
         if ((weatherRecord.dn < 0 || weatherRecord.dn >  irrad::irradiationMax) && (radiationMode == irrad::DN_DF || radiationMode == irrad::DN_GH))
         {
-            cm->log(util::format("Out of range beam irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero",
+            cm->log(util::format("Out of range beam irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero.",
                 weatherRecord.dn, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_WARNING, (float)idx);
             weatherRecord.dn = 0;
         }
         if ((weatherRecord.df < 0 || weatherRecord.df >  irrad::irradiationMax) && (radiationMode == irrad::DN_DF || radiationMode == irrad::GH_DF))
         {
-            cm->log(util::format("Out of range diffuse irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero",
+            cm->log(util::format("Out of range diffuse irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero.",
                 weatherRecord.df, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_WARNING, (float)idx);
             weatherRecord.df = 0;
         }
         if ((weatherRecord.poa < 0 || weatherRecord.poa >  irrad::irradiationMax) && (radiationMode == irrad::POA_R || radiationMode == irrad::POA_P))
         {
-            cm->log(util::format("Out of range POA irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero",
+            cm->log(util::format("Out of range POA irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d minute:%lg], set to zero.",
                 weatherRecord.poa, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_WARNING, (float)idx);
             weatherRecord.poa = 0;
         }
         if (useWeatherFileAlbedo && (weatherRecord.alb <= 0 || weatherRecord.alb >= 1))
         {
+            if (num_alb_errors < 5)
+            {
+                cm->log(util::format("Out of range albedo %lg at time [y:%d m:%d d:%d h:%d minute:%lg]. This warning only appears for the first five instances of this error.",
+                    weatherRecord.alb, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour, weatherRecord.minute), SSC_WARNING, (float)idx);
+            }
             num_alb_errors++;
             weatherRecord.alb = 0;
         }
     }
     if (num_alb_errors > 0)
-        cm->log(util::format("Weather file albedo has %d invalid values, using monthly value", (int)num_alb_errors), SSC_WARNING);
+        cm->log(util::format("Weather file albedo has %d invalid values, using user-defined or default values for these time steps. See albedo output variable.", (int)num_alb_errors), SSC_WARNING);
 
     weatherDataProvider->rewind();
 }
@@ -381,7 +386,7 @@ Subarray_IO::Subarray_IO(compute_module* cm, const std::string& cmName, size_t s
     {
         int n = cm->as_integer(prefix + "nstrings");
         if (n < 0) {
-            throw exec_error(cmName, "invalid string allocation between subarrays.  all subarrays must have zero or positive number of strings.");
+            throw exec_error(cmName, "Invalid string allocation between subarrays. All subarrays must have zero or positive number of strings.");
         }
 
         nStrings = n;
@@ -486,11 +491,11 @@ Subarray_IO::Subarray_IO(compute_module* cm, const std::string& cmName, size_t s
             (1 - nameplateLossPercent));
 
         if (groundCoverageRatio < 0.01)
-            throw exec_error(cmName, "array ground coverage ratio must obey 0.01 < gcr");
+            throw exec_error(cmName, "Array ground coverage ratio must obey 0.01 < gcr.");
 
 
         monthlySoiling = cm->as_vector_double(prefix + "soiling");
-        if (monthlySoiling.size() != 12) throw exec_error(cmName, "soiling loss array must have 12 values: subarray " + util::to_string((int)(subarrayNumber)));
+        if (monthlySoiling.size() != 12) throw exec_error(cmName, "Soiling loss array must have 12 values: subarray " + util::to_string((int)(subarrayNumber)) + ".");
 
         //convert from % to derate
         for (size_t m = 0; m < monthlySoiling.size(); m++)
@@ -603,7 +608,7 @@ void PVSystem_IO::SetupPOAInput()
             for (size_t ii = 0; ii < Irradiance->numberOfWeatherFileRecords; ii++) {
 
                 if (!wdprov->read(&wf)) {
-                    throw exec_error("pvsamv1", "could not read data line " + util::to_string((int)(ii + 1)) + " in weather file while loading POA data");
+                    throw exec_error("pvsamv1", "Could not read data line " + util::to_string((int)(ii + 1)) + " in weather file while loading POA data.");
                 }
                 int month_idx = wf.month - 1;
 
@@ -807,20 +812,20 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO* 
         if (enableDCLifetimeLosses)
         {
             if (!Simulation->annualSimulation)
-                throw exec_error(cmName, "Lifetime daily losses cannot be entered with non-annual weather data");
+                throw exec_error(cmName, "Lifetime daily losses cannot be entered with non-annual weather data.");
 
             dcLifetimeLosses = cm->as_vector_double("dc_lifetime_losses");
             if (dcLifetimeLosses.size() != Simulation->numberOfYears * 365)
-                throw exec_error(cmName, "Length of the lifetime daily DC losses array must be equal to the analysis period * 365 days/year");
+                throw exec_error(cmName, "Length of the lifetime daily DC losses array must be equal to the analysis period * 365 days/year.");
         }
         if (enableACLifetimeLosses)
         {
             if (!Simulation->annualSimulation)
-                throw exec_error(cmName, "Lifetime daily losses cannot be entered with non-annual weather data");
+                throw exec_error(cmName, "Lifetime daily losses cannot be entered with non-annual weather data.");
 
             acLifetimeLosses = cm->as_vector_double("ac_lifetime_losses");
             if (acLifetimeLosses.size() != Simulation->numberOfYears * 365)
-                throw exec_error(cmName, "Length of the lifetime daily AC losses array must be equal to the analysis period * 365 days/year");
+                throw exec_error(cmName, "Length of the lifetime daily AC losses array must be equal to the analysis period * 365 days/year.");
         }
     }
 
@@ -1052,7 +1057,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
             simpleEfficiencyModel.Rad[i] = cm->as_double(util::format("spe_rad%d", i));
             simpleEfficiencyModel.Eff[i] = 0.01 * cm->as_double(util::format("spe_eff%d", i));
             if (i > 0 && simpleEfficiencyModel.Rad[i] <= simpleEfficiencyModel.Rad[i - 1])
-                throw exec_error(cmName, "simpleEfficiencyModel model radiation levels must increase monotonically");
+                throw exec_error(cmName, "Simple Efficiency Model model radiation levels must increase monotonically.");
         }
 
         simpleEfficiencyModel.Gamma = cm->as_double("spe_temp_coeff");
@@ -1091,7 +1096,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
             sandiaCellTemp.DT0 = cm->as_double("spe_dT");
             break;
         default:
-            throw exec_error(cmName, "invalid simpleEfficiencyModel module structure and mounting");
+            throw exec_error(cmName, "Invalid Simple Efficiency Model module structure and mounting.");
         }
 
         simpleEfficiencyModel.fd = cm->as_double("spe_fd");
@@ -1479,7 +1484,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
             cellTempModel = &mockCellTemp;
         }
         else {
-            throw exec_error(cmName, "invalid temperature model type");
+            throw exec_error(cmName, "Invalid temperature model type.");
         }
 
         mlModuleModel.initializeManual();
@@ -1495,7 +1500,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
     }
     else
     {
-        throw exec_error(cmName, "invalid pv module model type");
+        throw exec_error(cmName, "Invalid pv module model type.");
     }
 
     // TODO: reimplement, but fix issues that this causes with some tests
@@ -1669,7 +1674,7 @@ Inverter_IO::Inverter_IO(compute_module* cm, std::string cmName)
     }
     else
     {
-        throw exec_error("pvsamv1", "invalid inverter model type");
+        throw exec_error("pvsamv1", "Invalid inverter model type.");
     }
 }
 

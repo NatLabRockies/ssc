@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ etes_dispatch_opt::etes_dispatch_opt()
     params.clear();
 }
 
-void etes_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des)
+void etes_dispatch_opt::init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic)
 {
     set_default_solver_parameters();
 
@@ -295,13 +295,6 @@ static void calculate_parameters(etes_dispatch_opt *optinst, unordered_map<std::
 
 bool etes_dispatch_opt::optimize()
 {
-
-    //First check to see whether we should call the AMPL engine instead. 
-    if( solver_params.is_ampl_engine )
-    {
-        return optimize_ampl();
-    }
-
     /* 
     Formulate the optimization problem for dispatch generation. We are trying to maximize revenue subject to inventory
     constraints.
@@ -1223,38 +1216,37 @@ bool etes_dispatch_opt::set_dispatch_outputs()
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)
             % (solver_params.optimize_frequency * solver_params.steps_per_hour);
 
-        disp_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
-        disp_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
-        disp_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || disp_outputs.is_pc_sb_allowed;
+        dispatch_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
+        dispatch_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
+        dispatch_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || dispatch_outputs.is_pc_sb_allowed;
 
-        disp_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step);
+        dispatch_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step);
 #ifndef ALT_ETES_FORM
-        disp_outputs.q_pc_target += outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.q_pc_target += outputs.q_pb_startup.at(m_current_read_step);
 #endif
-        disp_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
 
-        if (disp_outputs.q_pc_target + 1.e-5 < params.q_pb_min)
-        {
-            disp_outputs.is_pc_su_allowed = false;
-            disp_outputs.q_pc_target = 0.0;
+        if (dispatch_outputs.q_pc_target + 1.e-5 < params.q_pb_min) {
+            dispatch_outputs.is_pc_su_allowed = false;
+            dispatch_outputs.q_pc_target = 0.0;
         }
 
-        disp_outputs.q_dot_pc_max = params.q_pb_max;
-        disp_outputs.etasf_expect = 0.0;
-        disp_outputs.qsf_expect = 0.0;
-        disp_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
-        disp_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
-        disp_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
-        disp_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
-        disp_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
-        disp_outputs.rev_expect = disp_outputs.wpb_expect * params.sell_price.at(m_current_read_step);
-        disp_outputs.etapb_expect = disp_outputs.wpb_expect / std::max(1.e-6, disp_outputs.q_pc_target)
+        dispatch_outputs.q_dot_pc_max = params.q_pb_max;
+        dispatch_outputs.etasf_expect = 0.0;
+        dispatch_outputs.qsf_expect = 0.0;
+        dispatch_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
+        dispatch_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
+        dispatch_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
+        dispatch_outputs.rev_expect = dispatch_outputs.wpb_expect * params.sell_price.at(m_current_read_step);
+        dispatch_outputs.etapb_expect = dispatch_outputs.wpb_expect / std::max(1.e-6, dispatch_outputs.q_pc_target)
             * (outputs.pb_operation.at(m_current_read_step) ? 1. : 0.);
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "etes_dispatch");
     }
-    disp_outputs.time_last = pointers.siminfo->ms_ts.m_time;
+    dispatch_outputs.time_last = pointers.siminfo->ms_ts.m_time;
 
     return true;
 }

@@ -629,26 +629,35 @@ bool solarpilot_invoke::run(std::shared_ptr<weather_data_provider> wdata)
 		fluxtab.delta_flux_hrs = m_cmod->as_integer("delta_flux_hrs");
 		
         string aim_method_save = flux.aim_method.val;
-        int aim_pt_method = m_cmod->as_integer("aim_point_method");   // 0 = simple, 1 = image size priority
-        if (aim_pt_method == 1)
-            flux.aim_method.combo_select("Image size priority");
-        else
-            flux.aim_method.combo_select("Simple aim points");
-
-        flux.sigma_limit_x.val = m_cmod->as_double("sigma_limit_x");
-        flux.sigma_limit_y.val = m_cmod->as_double("sigma_limit_y");    
-
-        if (rec_type == var_receiver::REC_TYPE::FALLING_PARTICLE) {
-            m_sapi->SimulateAimPointsAtDesign();
-            flux.aim_method.combo_select("Keep existing");
+        if (m_cmod->is_assigned("aim_method")) {
+            int aim_method = m_cmod->as_integer("aim_method");   // 0 = simple, 3 = image size priority (Consistent with SolarPILOT cmod)
+            if (aim_method == var_fluxsim::AIM_METHOD::SIMPLE_AIM_POINTS
+                || aim_method == var_fluxsim::AIM_METHOD::IMAGE_SIZE_PRIORITY) {
+                flux.aim_method.combo_select_by_mapval(aim_method);
+                flux.sigma_limit_x.val = m_cmod->as_double("sigma_limit_x");
+                flux.sigma_limit_y.val = m_cmod->as_double("sigma_limit_y");
+            }
+            else
+                throw exec_error("SolarPILOT cmod", "Invalid aim point method. Method must be 0 (simple) or 3 (image size priority).");
         }
 
-		int nflux_x = m_cmod->as_integer("n_flux_x");
-		int nflux_y = m_cmod->as_integer("n_flux_y");
+        int nflux_x = m_cmod->as_integer("n_flux_x");
+        int nflux_y = m_cmod->as_integer("n_flux_y");
 
         if (nflux_x < 1 || nflux_y < 1)
             throw exec_error("SolarPILOT", "flux map resolution must be a positive integer");
 
+        if (rec_type == var_receiver::REC_TYPE::FALLING_PARTICLE) {
+            // Set aim points at design point, then fix them for flux map calculations.
+            // Update flux map resolution to be at least 25x25 to ensure a reasonable aim point options.
+            flux.x_res.val = std::max(25, nflux_x);
+            flux.y_res.val = std::max(25, nflux_y);
+
+            m_sapi->SimulateAimPointsAtDesign();
+            flux.aim_method.combo_select_by_mapval(var_fluxsim::AIM_METHOD::KEEP_EXISTING);
+        }
+
+        // Flux map resolution is set to user-specified value when caluclating flux maps
     	if(! m_sapi->CalculateFluxMaps(fluxtab, nflux_x, nflux_y, true) )
         {
             flux.aim_method.combo_select( aim_method_save );

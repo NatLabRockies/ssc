@@ -104,13 +104,14 @@ TEST_F(CMBatteryEqns_cmod_battery_eqns, TestCmodBatterySizeModifications) {
 
     EXPECT_TRUE(ssc_module_exec(mod, data));
 
-    ssc_number_t new_voltage, new_capacity, new_mass, new_surface_area;
-    ssc_data_get_number(data, "batt_voltage", &new_voltage);
+    ssc_number_t new_voltage, new_series, new_vnom, new_capacity, new_mass, new_surface_area;
+    ssc_data_get_number(data, "batt_Vnom_default", &new_vnom);
+    ssc_data_get_number(data, "batt_computed_series", &new_series);
     ssc_data_get_number(data, "batt_computed_bank_capacity", &new_capacity);
     ssc_data_get_number(data, "batt_mass", &new_mass);
     ssc_data_get_number(data, "batt_surface_area", &new_surface_area);
 
-    EXPECT_NEAR(600.0, new_voltage, 2.0); // 4 V cells, assume we can get within half of that
+    EXPECT_NEAR(600.0, new_series * new_vnom, 2.0); // 4 V cells, assume we can get within half of that
     EXPECT_NEAR(20.0, new_capacity, 0.5);
     EXPECT_NEAR(101.35, new_mass, m_error_tolerance_hi);
     EXPECT_NEAR(0.6953, new_surface_area, m_error_tolerance_lo);

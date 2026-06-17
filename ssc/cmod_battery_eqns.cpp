@@ -165,7 +165,6 @@ bool Size_battery(ssc_data_t data) {
 
     vt->assign("original_capacity", original_capacity);
 
-    vt->assign("batt_voltage", computed_voltage);
     vt->assign("batt_computed_series", num_series);
     vt->assign("batt_computed_strings", num_strings);
     vt->assign("batt_computed_bank_capacity", computed_capacity);

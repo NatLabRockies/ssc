@@ -40,7 +40,7 @@ static var_info _cm_vtab_geothermal_costs_unique[] = {
     /*   VARTYPE        DATATYPE       NAME                                  LABEL                                                       UNITS     META    GROUP        REQUIRED_IF                 CONSTRAINTS                     UI_HINTS */
 
     { SSC_INPUT,      SSC_NUMBER,     "conversion_type",                    "Conversion Type",                                           "",        "",     "GeoHourly", "*",                        "INTEGER",                       ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "ppi_base_year",                      "PPI Base Year",                                             "",        "",     "GeoHourly", "*",                     "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "ppi_base_year",                      "PPI Base Year",                                             "",        "",     "GeoHourly",  "",                        "",                              ""   },
 
     { SSC_INPUT,      SSC_NUMBER,     "geo_financial_model",                "",                                                          "1-8",     "",     "Financial Model", "?=1",                "INTEGER,MIN=0",                 ""},
 

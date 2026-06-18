@@ -51,20 +51,33 @@ static int n3 = sprintf(geothermal_curtailment_path, "%s/test/input_cases/genera
 */
 static void geothermal_singleowner_default(ssc_data_t &data)
 {
-	ssc_data_set_number(data, "ui_calculations_only", 0);
+	//ssc_data_set_number(data, "ui_calculations_only", 0);
+    //ssc_data_set_number(data, "geothermal_analysis_period", 2);
+    //ssc_data_set_number(data, "num_wells_getem", 4.3197474479675293);
+    //ssc_data_set_number(data, "design_temp", 200);
+    //ssc_data_set_number(data, "exploration_wells_production", 0);
+    //ssc_data_set_number(data, "system_capacity", 34788.67578125);
+    //ssc_data_set_number(data, "system_use_recapitalization", 1);
+    //ssc_data_set_number(data, "system_recapitalization_cost", 18771578);
+    //ssc_data_set_number(data, "total_installed_cost", 115551088);
+    //ssc_data_set_number(data, "cp_system_nameplate", 0);
+    //ssc_data_set_number(data, "cp_battery_nameplate", 0);
+    //ssc_data_set_number(data, "construction_financing_cost", 6701963.5);
+
+
+    ssc_data_set_number(data, "ppi_base_year", 19);     // ppi base year wasn't set in prior test and was defaulting to 19 in the var table
+
 	ssc_data_set_string(data, "file_name", geothermal_weather_path);
 	ssc_data_set_number(data, "resource_potential", 210);
 	ssc_data_set_number(data, "resource_type", 0);
 	ssc_data_set_number(data, "resource_temp", 200);
 	ssc_data_set_number(data, "resource_depth", 2000);
     ssc_data_set_number(data, "geotherm.cost.inj_prod_well_ratio", 50);
-	ssc_data_set_number(data, "geothermal_analysis_period", 2);
 	ssc_data_set_number(data, "model_choice", 0);
 	ssc_data_set_number(data, "specified_pump_work_amount", 0);
 	ssc_data_set_number(data, "nameplate", 30000);
 	ssc_data_set_number(data, "analysis_type", 0);
 	ssc_data_set_number(data, "num_wells", 3);
-	ssc_data_set_number(data, "num_wells_getem", 4.3197474479675293);
 	ssc_data_set_number(data, "conversion_type", 0);
 	ssc_data_set_number(data, "plant_efficiency_input", 80);
 	ssc_data_set_number(data, "conversion_subtype", 0);
@@ -88,7 +101,6 @@ static void geothermal_singleowner_default(ssc_data_t &data)
     ssc_data_set_number(data, "geotherm.cost.prod_cost_curve_welltype", 0);
     ssc_data_set_number(data, "geotherm.cost.inj_cost_curve_welldiam", 0);
     ssc_data_set_number(data, "geotherm.cost.prod_cost_curve_welldiam", 0);
-	ssc_data_set_number(data, "design_temp", 200);
 	ssc_data_set_number(data, "specify_pump_work", 0);
 	ssc_data_set_number(data, "rock_thermal_conductivity", 259200);
 	ssc_data_set_number(data, "rock_specific_heat", 950);
@@ -96,7 +108,6 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	ssc_data_set_number(data, "reservoir_pressure_change_type", 0);
 	ssc_data_set_number(data, "reservoir_pressure_change", 1000.0 / 0.40000000596046448);
     ssc_data_set_number(data, "injectivity_index", 3000);
-    ssc_data_set_number(data, "exploration_wells_production", 0);
     ssc_data_set_number(data, "drilling_success_rate", 75);
     ssc_data_set_number(data, "stim_success_rate", 0);
     ssc_data_set_number(data, "failed_prod_flow_ratio", 0.3);
@@ -217,7 +228,6 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	ssc_data_set_number(data, "real_discount_rate", 6.4000000953674316);
 	ssc_data_set_number(data, "inflation_rate", 2.5);
 	ssc_data_set_number(data, "insurance_rate", 0.5);
-	ssc_data_set_number(data, "system_capacity", 34788.67578125);
 	ssc_number_t p_om_fixed[1] = { 0 };
 	ssc_data_set_array(data, "om_fixed", p_om_fixed, 1);
 	ssc_data_set_number(data, "om_fixed_escal", 0);
@@ -353,8 +363,6 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	ssc_number_t p_degradation[1] = { 0 };
 	ssc_data_set_array(data, "degradation", p_degradation, 1);
 	ssc_data_set_number(data, "loan_moratorium", 0);
-	ssc_data_set_number(data, "system_use_recapitalization", 1);
-	ssc_data_set_number(data, "system_recapitalization_cost", 18771578);
 	ssc_data_set_number(data, "system_use_lifetime_output", 1);
 	ssc_data_set_number(data, "ppa_multiplier_model", 0);
 	set_array(data, "dispatch_factors_ts", geothermal_dispatch_path, 8760);
@@ -364,7 +372,6 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	ssc_data_set_matrix(data, "dispatch_sched_weekday", p_dispatch_sched_weekday, 12, 24);
 	ssc_number_t p_dispatch_sched_weekend[288] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 	ssc_data_set_matrix(data, "dispatch_sched_weekend", p_dispatch_sched_weekend, 12, 24);
-	ssc_data_set_number(data, "total_installed_cost", 115551088);
 	ssc_data_set_number(data, "reserves_interest", 1.75);
 	ssc_data_set_number(data, "equip1_reserve_cost", 0.25);
 	ssc_data_set_number(data, "equip1_reserve_freq", 12);
@@ -380,12 +387,9 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	ssc_data_set_array(data, "ppa_price_input", p_ppa_price_input, 1);
 	ssc_data_set_number(data, "cp_capacity_payment_esc", 0);
 	ssc_data_set_number(data, "cp_capacity_payment_type", 0);
-	ssc_data_set_number(data, "cp_system_nameplate", 0);
-	ssc_data_set_number(data, "cp_battery_nameplate", 0);
 	ssc_data_set_array(data, "cp_capacity_credit_percent", p_ppa_price_input, 1);
 	ssc_data_set_array(data, "cp_capacity_payment_amount", p_ppa_price_input, 1);
 	ssc_data_set_number(data, "ppa_escalation", 1);
-	ssc_data_set_number(data, "construction_financing_cost", 6701963.5);
 	ssc_data_set_number(data, "term_tenor", 18);
 	ssc_data_set_number(data, "term_int_rate", 7);
 	ssc_data_set_number(data, "dscr", 1.2999999523162842);

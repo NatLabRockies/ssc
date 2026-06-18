@@ -1920,7 +1920,6 @@ public:
         assign("tshours_heater", tshours_heater);
 
         // *************************
-  
         // Power Cycle (heat sink)
         // === IPH MOD 9: heat-sink design HTF flow. Rankine used to return this; here it is the receiver
         // design flow scaled down by the solar multiple (same fluid, same dT). Used for lift cost below. ===

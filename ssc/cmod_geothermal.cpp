@@ -402,7 +402,7 @@ public:
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
         assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
 
-        assign("system_capacity", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+        assign("system_capacity", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW*1.E3));
         assign("cp_system_nameplate", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
 
         // Hardcode battery nameplate to 0

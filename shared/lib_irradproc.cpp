@@ -2245,7 +2245,7 @@ void irrad::set_from_weather_record(weather_record wf, weather_header hdr, int t
         bool useWeatherFileAlbedo, std::vector<double>& userSpecifiedAlbedo, poaDecompReq *poaAllIn, bool useSpatialAlbedos, const util::matrix_t<double>* userSpecifiedSpatialAlbedos, 
         bool useCustomRotAngles, double customRotAngle) {
     set_time(wf.year, wf.month, wf.day, wf.hour, wf.minute, delt);
-    set_optional(hdr.elev, wf.pres, wf.tdry);
+    set_optional(hdr.elev, wf.pres, wf.tdry, wf.pwater);
     if (radiationMode == irrad::DN_DF) set_beam_diffuse(wf.dn, wf.df);
     else if (radiationMode == irrad::DN_GH) set_global_beam(wf.gh, wf.dn);
     else if (radiationMode == irrad::GH_DF) set_global_diffuse(wf.gh, wf.df);

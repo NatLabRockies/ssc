@@ -48,6 +48,7 @@ bool Size_battery(ssc_data_t data) {
 
     double desired_power, desired_capacity,  batt_Qfull, batt_Vnom_default, desired_voltage, batt_dc_ac_efficiency, batt_dc_dc_efficency, inverter_eff, original_capacity;
     bool ac_connected;
+    double batt_cell_power_discharge_max, batt_cell_power_charge_max, batt_cell_current_discharge_max, batt_cell_current_charge_max;
 
     double tol = 0.05;
     bool size_by_ac_not_dc = false;
@@ -72,6 +73,20 @@ bool Size_battery(ssc_data_t data) {
     }
     if (vt->is_assigned("tol")) {
         vt_get_number(vt, "tol", &tol);
+    }
+
+    // Optional flow battery inputs
+    if (vt->is_assigned("batt_cell_power_discharge_max")) {
+        vt_get_number(vt, "batt_cell_power_discharge_max", &batt_cell_power_discharge_max);
+    }
+    if (vt->is_assigned("batt_cell_power_charge_max")) {
+        vt_get_number(vt, "batt_cell_power_charge_max", &batt_cell_power_charge_max);
+    }
+    if (vt->is_assigned("batt_cell_current_discharge_max")) {
+        vt_get_number(vt, "batt_cell_current_discharge_max", &batt_cell_current_discharge_max);
+    }
+    if (vt->is_assigned("batt_cell_current_charge_max")) {
+        vt_get_number(vt, "batt_cell_current_charge_max", &batt_cell_current_charge_max);
     }
 
     // Optional inputs "module_capacity" and "module_surface_area" used in the thermal sizing function
@@ -173,8 +188,6 @@ bool Size_battery(ssc_data_t data) {
             vt->assign("LeadAcid_qn_computed", leadacid_qn_computed);
         }
 
-        vt->assign("original_capacity", original_capacity);
-
         vt->assign("batt_computed_series", num_series);
         vt->assign("batt_computed_strings", num_strings);
         vt->assign("batt_computed_bank_capacity", computed_capacity);
@@ -190,8 +203,8 @@ bool Size_battery(ssc_data_t data) {
     else {
         int batt_current_choice = 0;
         vt_get_int(vt, "batt_current_choice", &batt_current_choice);
-        bool power_limited = batt_current_choice == 0;
-        bool current_limited = !power_limited;
+        bool power_limited = batt_current_choice == 0 || batt_current_choice == 2;
+        bool current_limited = batt_current_choice == 1 || batt_current_choice == 2;
         int num_series = 0;
         int num_stacks_parallel = 0;
         int num_stacks_series = 1;
@@ -222,39 +235,31 @@ bool Size_battery(ssc_data_t data) {
 
         if (power_limited)
         {
-            bank_power_discharge = ${ batt_cell_power_discharge_max } *0.001 * num_series * num_stacks_series * num_stacks_parallel;
-            bank_power_charge = ${ batt_cell_power_charge_max } *0.001 * num_series * num_stacks_series * num_stacks_parallel;
+            bank_power_discharge = batt_cell_power_discharge_max *0.001 * num_series * num_stacks_series * num_stacks_parallel;
+            bank_power_charge = batt_cell_power_charge_max *0.001 * num_series * num_stacks_series * num_stacks_parallel;
             bank_current_discharge = bank_power_discharge * 1000 / batt_computed_voltage;
             bank_current_charge = bank_power_charge * 1000 / batt_computed_voltage;
         }
         else if (current_limited)
         {
-            bank_current_discharge = num_stacks_parallel * ${ batt_cell_current_discharge_max };
-            bank_current_charge = num_stacks_parallel * ${ batt_cell_current_charge_max };
+            bank_current_discharge = num_stacks_parallel * batt_cell_current_discharge_max;
+            bank_current_charge = num_stacks_parallel * batt_cell_current_charge_max;
             bank_power_discharge = batt_computed_voltage * bank_current_discharge * 0.001;
             bank_power_charge = batt_computed_voltage * bank_current_charge * 0.001;
         }
 
-        // C-rates are derived.  Flow battery power/energy is fully decoupled
-        batt_C_rate_max_discharge = bank_power_charge / bank_capacity;
-        batt_C_rate_max_charge = bank_power_discharge / bank_capacity;
-
-        ${ batt_current_charge_max } = bank_current_charge;
-        ${ batt_current_discharge_max } = bank_current_discharge;
-        ${ batt_computed_voltage } = batt_computed_voltage;
-        ${ batt_computed_series } = num_series;
-        ${ batt_computed_strings } = num_stacks_parallel;
-        ${ batt_computed_stacks_series } = num_stacks_series;
-        ${ batt_num_cells } = num_series * num_stacks_series * num_stacks_parallel;
-        ${ batt_computed_bank_capacity } = bank_capacity;
-        ${ batt_power_discharge_max_kwdc } = bank_power_discharge;
-        ${ batt_power_charge_max_kwdc } = bank_power_charge;
-        ${ batt_time_capacity } = bank_capacity / bank_power_discharge;
-        ${ batt_C_rate_max_charge } = batt_C_rate_max_charge;
-        ${ batt_C_rate_max_discharge } = batt_C_rate_max_discharge;
-
-        // TODO flow batteries
+        vt->assign("batt_computed_series", num_series);
+        vt->assign("batt_computed_strings", num_stacks_parallel);
+        vt->assign("batt_current_charge_max", bank_current_charge);
+        vt->assign("batt_current_discharge_max", bank_current_discharge);
+        vt->assign("batt_computed_stacks_series", num_stacks_series);
+        vt->assign("batt_num_cells", num_series * num_stacks_series * num_stacks_parallel);
+        vt->assign("batt_computed_bank_capacity", bank_capacity);
+        vt->assign("batt_power_discharge_max_kwdc", bank_power_discharge);
+        vt->assign("batt_power_charge_max_kwdc", bank_power_charge);
     }
+
+    vt->assign("original_capacity", original_capacity);
 
     Calculate_thermal_params(data);
 

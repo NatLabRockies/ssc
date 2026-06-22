@@ -49,6 +49,11 @@ static const char* size_battery_doc =
     "     'surface_area': double [m^2],\\n"
     "     'module_capacity': double [kWh], optional\\n"
     "     'module_surface_area': double [m^2], optional\\n"
+    "     'tol': double [%], optional\\n"
+    "     'batt_cell_power_discharge_max': double [Wdc], optional\\n"
+    "     'batt_cell_power_charge_max': double [Wdc], optional\\n"
+    "     'batt_cell_current_discharge_max': double [A], optional\\n"
+    "     'batt_cell_current_charge_max': double [A], optional\\n"
     "Output: key-value pairs added to var_table, mass, surface_area, and nominal_energy will be modified\\n"
     "     'original_capacity': kWh [kWh]\\n";
 

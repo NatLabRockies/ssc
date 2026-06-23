@@ -141,7 +141,7 @@ bool Size_battery(ssc_data_t data) {
             vt->assign("error", std::string(errmsg));
             return false;
         }
-        conv_eff *= batt_dc_dc_efficency;
+        conv_eff *= batt_dc_dc_efficency * 0.01;
     }
 
     if (size_by_ac_not_dc) {
@@ -149,10 +149,11 @@ bool Size_battery(ssc_data_t data) {
         desired_power /= conv_eff;
     }
 
+    double computed_voltage = 0;
     if (!is_flow) {
         double num_series = std::ceil(desired_voltage / batt_Vnom_default);
         double num_strings = std::ceil(desired_capacity * 1000 / (batt_Qfull * batt_Vnom_default * num_series));
-        double computed_voltage = batt_Vnom_default * num_series;
+        computed_voltage = batt_Vnom_default * num_series;
         double computed_capacity = batt_Qfull * computed_voltage * num_strings * 0.001;
         double max_rate = desired_power / desired_capacity;
         double computed_power = computed_capacity * max_rate;
@@ -191,7 +192,7 @@ bool Size_battery(ssc_data_t data) {
         vt->assign("batt_computed_series", num_series);
         vt->assign("batt_computed_strings", num_strings);
         vt->assign("batt_computed_bank_capacity", computed_capacity);
-        vt->assign("time_capacity", computed_capacity / computed_power);
+
 
         vt->assign("batt_power_discharge_max_kwdc", batt_bank_power_discharge_dc);
         vt->assign("batt_power_discharge_max_kwac", batt_bank_power_discharge_ac);
@@ -199,6 +200,7 @@ bool Size_battery(ssc_data_t data) {
         vt->assign("batt_power_charge_max_kwac", batt_bank_power_charge_ac);
         vt->assign("batt_current_charge_max", batt_bank_power_charge_dc / computed_voltage * 1000.0);
         vt->assign("batt_current_discharge_max", batt_bank_power_discharge_dc / computed_voltage * 1000.0);
+
     }
     else {
         int batt_current_choice = 0;
@@ -208,44 +210,42 @@ bool Size_battery(ssc_data_t data) {
         int num_series = 0;
         int num_stacks_parallel = 0;
         int num_stacks_series = 1;
-        double batt_computed_voltage = 0;
         double bank_capacity = 0;
         double bank_current_discharge = 0;
         double bank_current_charge = 0;
         double bank_power_discharge = 0;
         double bank_power_charge = 0;
 
-        double batt_cell_power_discharge_max = 0;
-        double batt_cell_current_discharge_max = 0;
-
-        vt_get_number(vt, "batt_cell_power_discharge_max", &batt_cell_power_discharge_max);
-        vt_get_number(vt, "batt_cell_current_discharge_max", &batt_cell_current_discharge_max);
-
-
         // flow battery capacity is always exactly defined by electrolyte in tank
         bank_capacity = desired_capacity;
         num_series = ceil(desired_voltage / (num_stacks_series *  batt_Vnom_default));
-        batt_computed_voltage = batt_Vnom_default * num_series * num_stacks_series;
+        computed_voltage = batt_Vnom_default * num_series * num_stacks_series;
 
         if (power_limited)
             num_stacks_parallel = ceil(desired_power / (batt_cell_power_discharge_max * num_series * num_stacks_series * 0.001));
-        else if (current_limited)
-            num_stacks_parallel = ceil(desired_power / (batt_computed_voltage * batt_cell_current_discharge_max *0.001));
+        if (current_limited)
+            num_stacks_parallel = fmax(ceil(desired_power / (computed_voltage * batt_cell_current_discharge_max *0.001)), num_stacks_parallel);
 
 
         if (power_limited)
         {
             bank_power_discharge = batt_cell_power_discharge_max *0.001 * num_series * num_stacks_series * num_stacks_parallel;
             bank_power_charge = batt_cell_power_charge_max *0.001 * num_series * num_stacks_series * num_stacks_parallel;
-            bank_current_discharge = bank_power_discharge * 1000 / batt_computed_voltage;
-            bank_current_charge = bank_power_charge * 1000 / batt_computed_voltage;
+            if (!current_limited) {
+                bank_current_discharge = bank_power_discharge * 1000 / computed_voltage;
+                bank_current_charge = bank_power_charge * 1000 / computed_voltage;
+            }
         }
-        else if (current_limited)
+        if (current_limited)
         {
             bank_current_discharge = num_stacks_parallel * batt_cell_current_discharge_max;
             bank_current_charge = num_stacks_parallel * batt_cell_current_charge_max;
-            bank_power_discharge = batt_computed_voltage * bank_current_discharge * 0.001;
-            bank_power_charge = batt_computed_voltage * bank_current_charge * 0.001;
+            if (!power_limited) {
+                bank_power_discharge = computed_voltage * bank_current_discharge * 0.001;
+                bank_power_charge = computed_voltage * bank_current_charge * 0.001;
+            }
+            bank_power_discharge = computed_voltage * bank_current_discharge * 0.001;
+            bank_power_charge = computed_voltage * bank_current_charge * 0.001;
         }
 
         vt->assign("batt_computed_series", num_series);

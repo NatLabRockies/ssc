@@ -342,7 +342,7 @@ public:
 
     C_timeseries_schedule_inputs mc_offtaker_schedule;
     C_timeseries_schedule_inputs mc_elec_pricing_schedule;
-    C_timeseries_schedule_inputs mc_pv_generation_profile;
+    C_timeseries_schedule_inputs mc_anc_generation_profile; // Ancillary generation profile (e.g., PV)
 
     C_timeseries_schedule_inputs mc_heat_pricing_schedule;
 
@@ -350,13 +350,13 @@ public:
         C_timeseries_schedule_inputs c_elec_pricing_schedule,
         C_csp_tou::C_dispatch_model_type::E_dispatch_model_type dispatch_model_type,
         bool is_offtaker_frac_also_max,
-        C_timeseries_schedule_inputs c_pv_generation_profile)
+        C_timeseries_schedule_inputs c_anc_generation_profile)
     {
         mc_offtaker_schedule = c_offtaker_schedule;
         mc_elec_pricing_schedule = c_elec_pricing_schedule;
         m_dispatch_model_type = dispatch_model_type;
         m_is_tod_pc_target_also_pc_max = is_offtaker_frac_also_max;
-        mc_pv_generation_profile = c_pv_generation_profile;
+        mc_anc_generation_profile = c_anc_generation_profile;
 
         mc_heat_pricing_schedule = C_timeseries_schedule_inputs(std::numeric_limits<double>::quiet_NaN(),
             std::numeric_limits<double>::quiet_NaN());

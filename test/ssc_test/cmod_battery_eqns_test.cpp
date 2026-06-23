@@ -116,3 +116,19 @@ TEST_F(CMBatteryEqns_cmod_battery_eqns, TestCmodBatterySizeModifications) {
     EXPECT_NEAR(101.35, new_mass, m_error_tolerance_hi);
     EXPECT_NEAR(0.6953, new_surface_area, m_error_tolerance_lo);
 }
+
+TEST_F(CMBatteryEqns_cmod_battery_eqns, TestCmodBatterySizeModificationsErrorHandling) {
+    data = ssc_data_create();
+    battery_data_default(data);
+    utility_rate5_default(data);
+    cashloan_default(data);
+
+    ssc_data_set_number(data, "desired_voltage", 240.0); // Increase voltage from 500 V
+    ssc_data_set_number(data, "desired_capacity", 4.0); // Increase capacity from 10 kWh
+    ssc_data_set_number(data, "desired_power", 1.0); // Increase power from 5 kW
+
+    Size_battery(data);
+    
+    std::string error = ssc_data_get_string(data, "error");
+    ASSERT_EQ("Could not meet desired battery capacity. Consider adjusting the desired voltage, or battery cell properties.", error);
+}

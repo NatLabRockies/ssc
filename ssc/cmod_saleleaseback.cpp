@@ -929,9 +929,10 @@ public:
 	{
 		int i = 0;
 
-        if (is_assigned("en_electricity_rates") && as_number("en_electricity_rates") == 0 && as_number("ppa_soln_mode") == 0)
-            throw exec_error("saleleaseback", "PPA price from which to calculate parasitic load costs is not specified. Check inputs for Revenue and Electricity Purchases.");
-
+        if (is_assigned("en_electricity_rates")) {
+            if (as_number("en_electricity_rates") == 0 && as_number("ppa_soln_mode") == 0)
+                throw exec_error("singleowner", "PPA price from which to calculate parasitic load costs is not specified. Check inputs for Revenue and Electricity Purchases.");
+        }
 		// cash flow initialization
 		int nyears = as_integer("analysis_period");
 		cf.resize_fill( CF_max, nyears+1, 0.0 );

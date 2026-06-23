@@ -92,6 +92,8 @@ static var_info _cm_vtab_geothermal_costs[] = {
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_non_drill",                      "Exploration non drilling costs",                      "$",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=750000" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_non_drill",                      "Confirmation non drilling costs",                      "$",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=250000" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_multiplier",                      "Exploration cost multiplier",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=0.5" },
+        // added per email from Dayo 8/6/2025
+        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_lump_sum",                      "Exploration cost lump sum",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=0" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_multiplier",                      "Confirmation cost multiplier",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=1.2" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_num_wells",                      "Number of exploration wells",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=2" },
         { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_num_wells",                      "Number of confirmation wells",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=2" },
@@ -110,7 +112,8 @@ static var_info _cm_vtab_geothermal_costs[] = {
 
 
         // Outputs	
-		{ SSC_OUTPUT,       SSC_NUMBER,     "baseline_cost",					"Baseline cost",											"$/kW",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "baseline_cost",					"Baseline cost",											"$/kW",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "engineering_cost",					"Engineering cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "total_drilling_cost",					"Total drilling cost",											"$",		"",                     "GeoHourly",				"calc_drill_costs=1",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "total_pump_cost",					"Total pumping cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "total_gathering_cost",					"Total gathering well cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
@@ -131,16 +134,22 @@ static var_info _cm_vtab_geothermal_costs[] = {
         //Stimulation costs
         { SSC_OUTPUT,       SSC_NUMBER,     "stim_cost_per_well",					"Stimulation cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "stim_cost_non_drill",					"Non-drilling stimulation costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        //Expl and Confirmation drilling costs
+       { SSC_OUTPUT,       SSC_NUMBER,     "stim_total_cost",					"Stimulation Total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
+       //Expl and Confirmation drilling costs
+        { SSC_OUTPUT,       SSC_NUMBER,     "total_expl_permitting",			"Exploration permitting total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "expl_total_cost",					"Exploration total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "expl_drilling_cost",					"Exploration drilling costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "conf_total_cost",					"Confirmation total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "conf_drilling_cost",					"Confirmation drilling costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         //Drilling costs
         { SSC_OUTPUT,       SSC_NUMBER,     "prod_well_cost",					"Production cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "total_drilling_permitting",			"Drilling permitting total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "prod_total_cost",					"Total production well system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "inj_well_cost",					"Injection cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
         { SSC_OUTPUT,       SSC_NUMBER,     "inj_total_cost",					"Total injection well system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "atb_exploration_cost",					"Exploration cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "atb_drilling_cost",					"Drilling cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
+        { SSC_OUTPUT,       SSC_NUMBER,     "atb_plant_cost",					"Plant cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
 
         var_info_invalid };
 
@@ -151,19 +160,20 @@ class cm_geothermal_costs : public compute_module
 private:
     // note that ppi_base_year bounds (currently 0 through 27) should be updated when these vectors are updated and should always have the same number of elements
 	//Inputs for Binary Type Plant (Note: Some variables might be common to both plant types - Binary and Flash)
-	std::vector<double> hx_ppi{ 0.89055794,0.919504053,0.938721984,0.956747735,0.963614688,0.972293753,0.983166428,1,0.998426323,1.066285169,1.226514068,1.332856462,1.377682403,1.438149738,1.414735336,1.423366714,1.463996185,1.512970911,1.534763948,1.554792561,1.604464797,1.643961076,1.657698912,1.742987979,1.797,1.831855031,1.997587983,2.272575844};		//HX Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-	std::vector<double> steel_ppi{ 1.129319793,1.103090524,1.1087163,1.074084898,0.999853876,1.022283919,0.961569372,1,1.06517133,1.423905896,1.500474903,1.63534741,1.76276759,2.160444217,1.613209615,1.959815884,2.220208957,2.110396727,1.984949222,2.03492365,1.714285714,1.638913234,1.858019281,2.084136722,1.947,1.825966245,3.12752612,3.334864154};	//Steel Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-    std::vector<double> pipe_ppi{ 0.939,0.964,0.986,0.978,0.952,0.985,0.995,1.000,1.015,1.220,1.341,1.414,1.395,1.500,1.578,1.748,1.862,1.934,1.955,1.986,1.988,1.969,1.985,2.064,2.092,2.087,2.456,2.917 }; // only 26 values - all assumed to have 27 (add 26th value twice)
-    std::vector<double> process_equip_ppi{ 0.884018929,0.907470403,0.926181264,0.942518082,0.956851458,0.967823396,0.985395348,1,1.014829443,1.077774928,1.155295495,1.222766901,1.304818202,1.382893406,1.40355926,1.411450935,1.455548144,1.509649784,1.533757048,1.639031617,1.656479161,1.65317208,1.679672296,1.740780754,1.794,1.832151402,1.899909387,2.184450409}; //Process Equipment Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-	std::vector<double> engineering_ppi{ 0.77985529,0.810695609,0.859015689,0.888566516,0.913317573,0.954043986,0.975857869,1,1.048105165,1.081631922,1.102335411,1.135826349,1.209434773,1.274983881,1.329751415,1.39193352,1.362346873,1.364746758,1.388351601,1.433483774,1.486242476,1.503869304,1.558039553,1.602,1.611,1.646034816,1.700479977,1.780739467}; // Engineering Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-	std::vector<double> pump_ppi{ 0.853374525,0.872338403,0.899382129,0.92404943,0.936264259,0.9503327,0.975903042,1,1.010646388,1.039876426,1.093203422,1.14168251,1.212975285,1.277851711,1.31411597,1.324192015,1.324572243,1.34871673,1.339163498,1.366539924,1.391899601,1.411294923,1.438106104,1.489446663,1.553,1.553,1.553,1.553}; //Pump Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-	std::vector<double> turbine_ppi{ 0.882749597,0.895883655,0.917874396,0.93458132,0.960396538,0.969303543,0.980072464,1,1.013285024,1.018820451,1.017562399,1.050221417,1.10668277,1.24511876,1.350392512,1.3403281,1.359752415,1.349889291,1.376811594,1.411835749,1.399154589,1.403046162,1.346947738,1.332125604,1.408,1.452294686,1.49086252,1.540966184}; //Turbine-Generator Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-	std::vector<double> construction_ppi{ 0.788589981,0.814564007,0.840955473,0.870640074,0.907606679,0.932560297,0.956864564,1,1.038450835,1.066280148,1.086827458,1.1283859,1.1682282,1.222402597,1.278710575,1.319851577,1.357374768,1.362152134,1.376994434,1.429313544,1.475,1.528333333,1.594444444,1.653,1.676,1.709230056,1.752272727,1.858333333};
-    std::vector<double> drilling_ppi{ 0.319286373,0.352814519,0.44078745,0.474007998,0.408182098,0.425099969,0.540449093,0.471239619,0.470624423,0.517379268,0.807751461,1.179637035,1.120885881,1.141802522,1.014764688,1,1.11319594,1.207320824,1.343586589,1.402952938,1.151953245,0.959704706,0.988926484,1.016302676,1.03,0.959092657,0.976696655,1.154758536};
-    std::vector<double> legal_services_ppi{ 0.0 ,0.547045952,0.560722101,0.580415755,0.59463895,0.615426696,0.644967177,0.665754923,0.687089716,0.721006565,0.757658643,0.794310722,0.840262582,0.884026258,0.909190372,0.940371991,0.973194748,1,1.027899344,1.061269147,1.091356674,1.113238512,1.154266958,1.182713348,1.225,1.282294469,1.330897816,1.396991247}; //Process Equipment Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-    std::vector<double> og_support_ppi{ 0.62254627,0.6068424,0.632080763,0.637128435,0.633202468,0.691531127,0.798653954,0.770611329,0.760515984,0.795288839,0.904655076,1.052159282,1.089736399,1.104318564,1.01794728,1,1.067302299,1.102075154,1.117779024,1.117218172,1.103757712,1.081323612,1.088614694,1.103196859,1.108,1.041828294,1.050913679,1.157150869}; //Process Equipment Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-    std::vector<double> labor_ppi{ 0.807138965,0.833514986,0.858855586,0.879455041,0.905667575,0.93640327,0.965395095,1,1.029373297,1.055640327,1.082561308,1.099237057,1.128828338,1.160817439,1.192752044,1.216730245,1.237765668,1.247629428,1.261743869,1.279291553,1.302158273,1.336821452,1.366252453,1.409,1.449,1.490190736,1.556294278,1.639633748}; //Process Equipment Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
-    std::vector<double> chemical_ppi{ 0.567132867,0.559624586,0.558446816,0.536290026,0.525174825,0.570040486,0.567316894,0.562237762,0.625947736,0.718917924,0.832719912,0.937909459,1,1.212661023,1.033860876,1.188847994,1.434155318,1.355612808,1.330364372,1.276223776,1.069787986,1.007508834,1.121908127,1.21024735,1.116,0.999484726,1.366118881,1.56194788}; //Process Equipment Cost Index Normalized to 2001, 2002, 2007, 2010 and 2012; Beginning Year = 1995; Final Year = 2016;
+    std::vector<double> labor_ppi{ 0.807138965,0.833514986,0.858855586,0.879455041,0.905667575,0.93640327,0.965395095,1,1.029373297,1.055640327,1.082561308,1.099237057,1.128828338,1.160817439,1.192752044,1.216730245,1.237765668,1.247629428,1.261743869,1.279291553,1.302158273,1.336821452,1.366252453,1.409,1.449,1.490190736,1.556294278,1.639633748,1.725310661,1.817527796 };
+    std::vector<double> construction_ppi{ 0.788589981,0.814564007,0.840955473,0.870640074,0.907606679,0.932560297,0.956864564,1,1.038450835,1.066280148,1.086827458,1.1283859,1.1682282,1.222402597,1.278710575,1.319851577,1.357374768,1.362152134,1.376994434,1.429313544,1.475,1.528333333,1.594444444,1.653,1.676,1.709230056,1.752272727,1.858333333,2.003333333,2.093888889 };
+    std::vector<double> engineering_ppi{ 0.77985529,0.810695609,0.859015689,0.888566516,0.913317573,0.954043986,0.975857869,1,1.048105165,1.081631922,1.102335411,1.135826349,1.209434773,1.274983881,1.329751415,1.39193352,1.362346873,1.364746758,1.388351601,1.433483774,1.486242476,1.503869304,1.558039553,1.602,1.611,1.646034816,1.700479977,1.780739467,1.851246776,1.922184007 };
+    std::vector<double> steel_ppi{ 1.129319793,1.103090524,1.1087163,1.074084898,0.999853876,1.022283919,0.961569372,1,1.06517133,1.423905896,1.500474903,1.63534741,1.76276759,2.160444217,1.613209615,1.959815884,2.220208957,2.110396727,1.984949222,2.03492365,1.714285714,1.638913234,1.858019281,2.084136722,1.947,1.825966245,3.12752612,3.334864154,2.919009641,2.70942156 };
+    std::vector<double> turbine_ppi{ 0.882749597,0.895883655,0.917874396,0.93458132,0.960396538,0.969303543,0.980072464,1,1.013285024,1.018820451,1.017562399,1.050221417,1.10668277,1.24511876,1.350392512,1.3403281,1.359752415,1.349889291,1.376811594,1.411835749,1.399154589,1.403046162,1.346947738,1.332125604,1.408,1.452294686,1.49086252,1.540966184,1.611654589,1.686461353 };
+    std::vector<double> hx_ppi{ 0.89055794,0.919504053,0.938721984,0.956747735,0.963614688,0.972293753,0.983166428,1,0.998426323,1.066285169,1.226514068,1.332856462,1.377682403,1.438149738,1.414735336,1.423366714,1.463996185,1.512970911,1.534763948,1.554792561,1.604464797,1.643961076,1.657698912,1.742987979,1.797,1.831855031,1.997587983,2.272575844,2.416319405,2.589564969 };
+    std::vector<double> pump_ppi{ 0.853374525,0.872338403,0.899382129,0.92404943,0.936264259,0.9503327,0.975903042,1,1.010646388,1.039876426,1.093203422,1.14168251,1.212975285,1.277851711,1.31411597,1.324192015,1.324572243,1.34871673,1.339163498,1.366539924,1.391899601,1.411294923,1.438106104,1.489446663,1.553,1.553,1.553,1.553,1.553,1.553 };
+    std::vector<double> process_equip_ppi{ 0.884018929,0.907470403,0.926181264,0.942518082,0.956851458,0.967823396,0.985395348,1,1.014829443,1.077774928,1.155295495,1.222766901,1.304818202,1.382893406,1.40355926,1.411450935,1.455548144,1.509649784,1.533757048,1.639031617,1.656479161,1.65317208,1.679672296,1.740780754,1.794,1.832151402,1.899909387,2.184450409,2.368629761,2.433393545 };
+    std::vector<double> drilling_ppi{ 0.319286373,0.352814519,0.44078745,0.474007998,0.408182098,0.425099969,0.540449093,0.471239619,0.470624423,0.517379268,0.807751461,1.179637035,1.120885881,1.141802522,1.014764688,1,1.11319594,1.207320824,1.343586589,1.402952938,1.151953245,0.959704706,0.988926484,1.016302676,1.03,0.959092657,0.976696655,1.154758536,1.230655183,1.232054752 };
+    std::vector<double> legal_services_ppi{ 0.0,0.547045952,0.560722101,0.580415755,0.59463895,0.615426696,0.644967177,0.665754923,0.687089716,0.721006565,0.757658643,0.794310722,0.840262582,0.884026258,0.909190372,0.940371991,0.973194748,1,1.027899344,1.061269147,1.091356674,1.113238512,1.154266958,1.182713348,1.225,1.282294469,1.330897816,1.396991247,1.482910284,1.597007659 };
+    std::vector<double> og_support_ppi{ 0.62254627,0.6068424,0.632080763,0.637128435,0.633202468,0.691531127,0.798653954,0.770611329,0.760515984,0.795288839,0.904655076,1.052159282,1.089736399,1.104318564,1.01794728,1,1.067302299,1.102075154,1.117779024,1.117218172,1.103757712,1.081323612,1.088614694,1.103196859,1.108,1.041828294,1.050913679,1.157150869,1.205479529,1.234346607 };
+    std::vector<double> chemical_ppi{ 0.567132867,0.559624586,0.558446816,0.536290026,0.525174825,0.570040486,0.567316894,0.562237762,0.625947736,0.718917924,0.832719912,0.937909459,1,1.212661023,1.033860876,1.188847994,1.434155318,1.355612808,1.330364372,1.276223776,1.069787986,1.007508834,1.121908127,1.21024735,1.116,0.999484726,1.366118881,1.56194788,1.406086572,1.332530919 };
+    std::vector<double> petroleum_ppi{ 1.010135135,1.258445946,1.050675676,0.712837838,1.244932432,1.547297297,1,1.371621622,1.567567568,2.040540541,2.907094595,2.959459459,4.033783784,2.195945946,3.440878378,4.148648649,4.849662162,4.785472973,4.743243243,3.447635135,2.063305979,1.685814771,2.044548652,2.504,2.278,1.689008305,2.823254519,4.262063306,3.513071512,3.145017585 };
+    std::vector<double> pipe_ppi{ 0.939489237,0.963997181,0.9863905,0.978040449,0.951634767,0.984546983,0.994523668,1,1.014531258,1.219812395,1.340888142,1.41381554,1.394729708,1.500135553,1.577997072,1.748034485,1.861573497,1.933904462,1.95521336,1.986444722,1.988288874,1.96942095,1.985035784,2.064411191,2.092,2.086753782,2.455679662,2.824255042,2.917143787,2.964567339 };
 
     double user_adjust = 1; //User Adjustment (Constant)
 	double size_ratio;
@@ -394,7 +404,9 @@ public:
                 if (inj_cost_curve_welltype == 0) {
                     switch (inj_cost_curve) {
                     case 0:
-                        inj_well_cost = 0.281801107 * pow(resource_depth, 2) + 1275.521301 * resource_depth + 632315.1264;
+                        inj_well_cost = 0.248457765459742
+                            * pow(resource_depth, 2) + 935.898545379353
+                            * resource_depth + 626586.677702712;
                         break;
                     case 1:
                         inj_well_cost = 0.189267288 * pow(resource_depth, 2) + 293.4517365 * resource_depth + 1326526.313;
@@ -410,7 +422,7 @@ public:
                 else {
                     switch (inj_cost_curve) {
                     case 0:
-                        inj_well_cost = 0.2528 * pow(resource_depth, 2) + 1716.72 * resource_depth + 500866.89;
+                        inj_well_cost = 0.258496158261865 * pow(resource_depth, 2) + 357.967014645581 * resource_depth + 738531.584416961;
                         break;
                     case 1:
                         inj_well_cost = 0.19950 * pow(resource_depth, 2) + 296.13 * resource_depth + 1697867.71;
@@ -429,7 +441,9 @@ public:
                 if (inj_cost_curve_welltype == 0) {
                     switch (inj_cost_curve) {
                     case 0:
-                        inj_well_cost = 0.30212 * pow(resource_depth, 2) + 584.91 * resource_depth + 751368.47;
+                        inj_well_cost = 0.217332939638545
+                            * pow(resource_depth, 2) + 1362.92533583303
+                            * resource_depth + 301066.162433109;
                         break;
                     case 1:
                         inj_well_cost = 0.13710 * pow(resource_depth, 2) + 129.61 * resource_depth + 1205587.57;
@@ -446,7 +460,9 @@ public:
                 else {
                     switch (inj_cost_curve) {
                     case 0:
-                        inj_well_cost = 0.28977 * pow(resource_depth, 2) + 882.15 * resource_depth + 680562.50;
+                        inj_well_cost = 0.240623775815507
+                            * pow(resource_depth, 2) + 646.162123654017
+                            * resource_depth + 503625.0643356;
                         break;
                     case 1:
                         inj_well_cost = 0.15340 * pow(resource_depth, 2) + 120.32 * resource_depth + 1431801.54;
@@ -471,8 +487,9 @@ public:
                 if (prod_cost_curve_welltype == 0) {
                     switch (prod_cost_curve) {
                     case 0:
-                        prod_well_cost = 0.281801107 * pow(resource_depth, 2) + 1275.521301 * resource_depth + 632315.1264;
-                        break;
+                        prod_well_cost = 0.248457765459742
+                            * pow(resource_depth, 2) + 935.898545379353
+                            * resource_depth + 626586.677702712;                        break;
                     case 1:
                         prod_well_cost = 0.189267288 * pow(resource_depth, 2) + 293.4517365 * resource_depth + 1326526.313;
                         break;
@@ -487,7 +504,7 @@ public:
                 else {
                     switch (prod_cost_curve) {
                     case 0:
-                        prod_well_cost = 0.2528 * pow(resource_depth, 2) + 1716.72 * resource_depth + 500866.89;
+                        prod_well_cost = 0.258496158261865 * pow(resource_depth, 2) + 357.967014645581 * resource_depth + 738531.584416961;
                         break;
                     case 1:
                         prod_well_cost = 0.19950 * pow(resource_depth, 2) + 296.13 * resource_depth + 1697867.71;
@@ -506,7 +523,9 @@ public:
                 if (prod_cost_curve_welltype == 0) {
                     switch (prod_cost_curve) {
                     case 0:
-                        prod_well_cost = 0.30212 * pow(resource_depth, 2) + 584.91 * resource_depth + 751368.47;
+                        prod_well_cost = 0.217332939638545
+                            * pow(resource_depth, 2) + 1362.92533583303
+                            * resource_depth + 301066.162433109;
                         break;
                     case 1:
                         prod_well_cost = 0.13710 * pow(resource_depth, 2) + 129.61 * resource_depth + 1205587.57;
@@ -523,7 +542,9 @@ public:
                 else {
                     switch (prod_cost_curve) {
                     case 0:
-                        prod_well_cost = 0.28977 * pow(resource_depth, 2) + 882.15 * resource_depth + 680562.50;
+                        prod_well_cost = 0.240623775815507
+                            * pow(resource_depth, 2) + 646.162123654017
+                            * resource_depth + 503625.0643356;
                         break;
                     case 1:
                         prod_well_cost = 0.15340 * pow(resource_depth, 2) + 120.32 * resource_depth + 1431801.54;
@@ -563,6 +584,8 @@ public:
             if (ppi_base_year < 0) ppi_base_year = 0;
             else if (ppi_base_year >= (int)MAX_PPI_SIZE) ppi_base_year = (int)(MAX_PPI_SIZE-1); // TODO 1995 through 2022 - ppi values should be updated
 
+
+
             double stim_non_drill = as_double("geotherm.cost.stim_non_drill");
             double stim_per_well = 1250000 * drilling_ppi[ppi_base_year];
             int stim_type = as_integer("stimulation_type");
@@ -577,74 +600,72 @@ public:
             assign("stim_cost_non_drill", stim_non_drill);
 
 
-            // Exploraion and confirmation costs
-            /*
-            equations{ 'geotherm.cost.expl_total' } = define() {
-    return  ${geotherm.cost.expl_drill} + ${geotherm.cost.expl_non_drill}; };
-
-
-            equations{ 'geotherm.cost.expl_drill' } = define() {
-    return  ${geotherm.cost.expl_per_well} * ${geotherm.cost.expl_num_wells}; };
-
-        equations{ 'geotherm.cost.expl_per_well' } = define() {
-    return  ${geotherm.cost.expl_multiplier} * ${geotherm.cost.prod_per_well}; };
-
-
-            */
             double expl_non_drill = as_double("geotherm.cost.expl_non_drill");
             double expl_multiplier = as_double("geotherm.cost.expl_multiplier");
             double expl_num_wells = as_double("geotherm.cost.expl_num_wells");
-            double expl_per_well = expl_multiplier * prod_well_cost;
-            double expl_total_cost = expl_per_well * expl_num_wells + expl_non_drill;
+
+            // expl_multiplier is the Oil and Gas PPI for the base year per Dayo's email 8/6/2025
+            //expl_multiplier = og_support_ppi[ppi_base_year]; values do not match with Dayo's pptx hard code for 2023 ATB in GETEM_ATB.py
+
+            // update per email from Dayo 8/6/2025
+            //double expl_per_well = expl_multiplier * prod_well_cost;
+            double expl_lump_sum = as_double("geotherm.cost.expl_lump_sum"); // TODO will need to add this input to the UI
+            double expl_per_well = expl_multiplier * expl_lump_sum;
+
+            int resource_type = as_integer("resource_type");
+            double percent_ind_cost = 0.04;
+            if (resource_type == 1) percent_ind_cost = 0.05;
+            double expl_indirect_cost = (prod_well_cost * expl_num_wells) * (1 / (1 - percent_ind_cost) - 1); //num_wells different here
+
+
+            double total_predrilling_permitting_cost = 60000 * legal_services_ppi[ppi_base_year];// Sheet2:I48 in GETEM Parameter Equation Breakout.xlsx
+//            double total_predrilling_expl_cost = (resource_type == 0) ? 300000 : 250000 * og_support_ppi[ppi_base_year];
+            double expl_permitting_cost = 250000 * legal_services_ppi[ppi_base_year]; // Sheet2:I54 in GETEM Parameter Equation Breakout.xlsx
+            double total_expl_permitting = total_predrilling_permitting_cost + expl_permitting_cost;
+            assign("total_expl_permitting", total_expl_permitting);
+            /*
+            double lease_cost = as_double("lease_cost"); //todo add lease cost input
+            double total_leasing_cost = expl_num_wells * 2600 * lease_cost; //number of wells different here again (# of full sized expl well
+            */
+            // update per email from Dayo 8/6/2025
+            double expl_total_cost = expl_per_well * expl_num_wells; // +expl_non_drill + total_expl_permitting + expl_indirect_cost;
             assign("expl_total_cost", expl_total_cost);
             assign("expl_drilling_cost", expl_per_well* expl_num_wells);
 
             double conf_non_drill = as_double("geotherm.cost.conf_non_drill");
             double conf_multiplier = as_double("geotherm.cost.conf_multiplier");
+            // update per email from Dayo 8/6/2025
             double conf_num_wells = as_double("geotherm.cost.conf_num_wells");
             double conf_per_well = conf_multiplier * prod_well_cost;
-            double conf_total_cost = conf_per_well * conf_num_wells + conf_non_drill;
+            // update per email from Dayo 8/6/2025
+            double conf_total_cost = conf_per_well * conf_num_wells;// +conf_non_drill;
             assign("conf_total_cost", conf_total_cost);
             assign("conf_drilling_cost", conf_per_well* conf_num_wells);
 
-            double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost;
+            // update per email from Dayo 6/24/2025
+            assign("atb_exploration_cost", expl_per_well* expl_num_wells + conf_per_well * conf_num_wells);
+            // + expl_non_drilling which is in the NonDrillingCosts.py file in the GETEM-SAM repo
+
+
+            double total_drilling_permitting = 1000000 * legal_services_ppi[ppi_base_year]; // Sheet2:I73 in GETEM Parameter Equation Breakout.xlsx
+            assign("total_drilling_permitting", total_drilling_permitting);
+
+            // update per email from Dayo 8/6/2025
+            double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost;// +total_drilling_permitting;
             assign("total_drilling_cost", total_drilling_cost);
 
+            // update per email from Dayo 6/24/2025
+            assign("atb_drilling_cost", prod_wells_drilled* prod_well_cost + inj_wells_drilled * inj_well_cost + stim_per_well * stim_num_wells);//  +dev_non_drilling in nondrillingcostdev function in NonDrillingCosts.py in the GETEM-SAM repo
+            
         }
 		int conversion_type = as_integer("conversion_type");
 
         int ppi_base_year = as_integer("ppi_base_year");
 
-        //int resource_type = as_integer("resource_type");
+        int resource_type = as_integer("resource_type");
 
 
-
-        //Exploration costs
-        /*
-        double prod_well_cost = as_double("prod_well_cost"); //todo provide input
-        double num_expl_wells = as_double("num_expl_wells"); //todo provide input
-        double expl_cost_multiplier = as_double("expl_cost_multiplier"); //todo provide input
-        double total_drilling_cost_nodev = prod_well_cost * expl_cost_multiplier * num_expl_wells;
-
-        double expl_permitting_cost = 250000 * legal_services_ppi[ppi_base_year];
-
-        double num_wells_stimulated = as_double("num_wells_stimulated"); //todo provide input
-        double expl_stimulation_cost = num_wells_stimulated * 1250000 * drilling_ppi[ppi_base_year];
-
-        double percent_ind_cost = 0.04;
-        if (resource_type == 1) percent_ind_cost = 0.05;
-        double expl_indirect_cost = (prod_well_cost * num_expl_wells) * (1 / (1 - percent_ind_cost) - 1); //num_wells different here
-
-        double total_predrilling_expl_cost = (resource_type == 0) ? 300000 : 250000 * og_support_ppi[ppi_base_year];
-        double total_predrilling_permitting_cost = 60000 * legal_services_ppi[ppi_base_year];
-        double total_predrilling_cost = total_predrilling_expl_cost + total_predrilling_permitting_cost;
-
-        double lease_cost = as_double("lease_cost"); //todo add lease cost input
-        double total_leasing_cost = num_expl_wells * 2600 * lease_cost; //number of wells different here again (# of full sized expl wells drilled + totals wells drilled in drilling phase)
-        //2600 acres per well always
-
-        double total_expl_cost = total_drilling_cost_nodev + expl_permitting_cost + expl_stimulation_cost + expl_indirect_cost + total_predrilling_cost + total_leasing_cost;
-        */
+        
 
 		if (conversion_type == 0) {
 			//geo_inputs.me_ct = BINARY;
@@ -729,7 +750,7 @@ public:
 			dc_cost_multiplier = (sales_tax + freight)*((corrected_total_material_mult + corrected_construct_malts)*plant_size_adjustment) + direct_installation_multiplier;
 
 
-			//Total Plant Cost: 
+			//Total Plant Cost ($/kW): 
 			plant_equip_cost = hx_cost + condenser_cost + wf_pump_cost + turbine_cost;
 			corrected_equip_cost = dc_cost_multiplier * plant_equip_cost;
 
@@ -739,10 +760,15 @@ public:
             corrected_equip_cost += indirect_plant_cost;
 
 
-			// for outputs, to assign, use:
+			// for outputs, to assign, use: ($/kW)
 			//assign("dc_cost_multiplier", var_data(static_cast<ssc_number_t>(dc_cost_multiplier)));
 			assign("baseline_cost", var_data(static_cast<ssc_number_t>(corrected_equip_cost)));
-		}
+
+            double engineering_costs = corrected_equip_cost * unit_plant * 0.5; // $/kW to $ * engineering multiplier per Sheet2:E238 in GETEM Parameter Equation Breakout.xlsx
+            assign("engineering_cost", engineering_costs);
+
+            assign("atb_plant_cost", corrected_equip_cost * unit_plant);
+        }
 
 		else if (conversion_type == 1) {
 			//geo_inputs.me_ct = FLASH;
@@ -895,6 +921,10 @@ public:
 
 			assign("baseline_cost", var_data(static_cast<ssc_number_t>(baseline_cost)));
 
+            double engineering_costs = baseline_cost * unit_plant * 0.5; // $/kW to $ * engineering multiplier per Sheet2:E238 in GETEM Parameter Equation Breakout.xlsx
+            assign("engineering_cost", engineering_costs);
+
+            assign("atb_plant_cost", baseline_cost* unit_plant);
 		}
 
        //Pump costs
@@ -950,7 +980,7 @@ public:
         double pipe_cost_per_foot = 0.4249 * pow(pipe_outer_diam, 2) - 0.0472 * pipe_outer_diam + 40.683;
         double pipe_cost_per_foot_adj = pipe_cost_per_foot * pipe_ppi[ppi_base_year];
         double distance_plant_to_well = 1640.4;
-        int resource_type = as_integer("resource_type");
+//        int resource_type = as_integer("resource_type");
         if (resource_type == 0) distance_plant_to_well = 2460.63;
         double piping_cost_per_well = pipe_cost_per_foot_adj * distance_plant_to_well; //average distance from well to plant (ft)?
         double prod_wells_drilled = as_double("num_wells_getem_prod_drilled");

@@ -1672,7 +1672,7 @@ void C_csp_solver::calc_timestep_plant_control_and_targets(
             // and use system-level q_dot_pc_max
             // (although dispatch estimate should have a decent q_dot_pc estimate that includes parasitic estimates)
             if( W_dot_system_target > 0.0 ) {
-                double W_dot_pc_gross_est = (W_dot_system_target - W_dot_rec_par_est - m_W_dot_fixed_design) /
+                double W_dot_pc_gross_est = (W_dot_system_target + W_dot_rec_par_est + m_W_dot_fixed_design) /
                     (1.0 - m_ratio_cycle_dep_par_design);
                 q_dot_pc_target = std::min(W_dot_pc_gross_est / pc_eta_est, q_dot_pc_max);
                 q_dot_elec_to_PAR_HTR = 0.0;

@@ -73,8 +73,12 @@ static void geothermal_singleowner_default(ssc_data_t &data)
 	ssc_data_set_number(data, "resource_temp", 200);
 	ssc_data_set_number(data, "resource_depth", 2000);
     ssc_data_set_number(data, "geotherm.cost.inj_prod_well_ratio", 50);
-	ssc_data_set_number(data, "model_choice", 0);
-	ssc_data_set_number(data, "specified_pump_work_amount", 0);
+
+    //ssc_data_set_number(data, "model_choice", 0);
+    ssc_data_set_number(data, "geo_cycle_model_type", 0);
+    ssc_data_set_number(data, "simulation_timestep_type", 0);
+
+    ssc_data_set_number(data, "specified_pump_work_amount", 0);
 	ssc_data_set_number(data, "nameplate", 30000);
 	ssc_data_set_number(data, "analysis_type", 0);
 	ssc_data_set_number(data, "num_wells", 3);

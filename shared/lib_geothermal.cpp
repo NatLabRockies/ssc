@@ -520,7 +520,7 @@ void CGeothermalAnalyzer::init()
 	md_TimeOfLastReservoirReplacement = 0.0;
 }
 
-bool CGeothermalAnalyzer::IsHourly() { return (mo_geo_in.mi_MakeupCalculationsPerYear == 8760) ? true : false; }
+//bool CGeothermalAnalyzer::IsHourly() { return (mo_geo_in.mi_MakeupCalculationsPerYear == 8760) ? true : false; }
 
 double CGeothermalAnalyzer::PlantGrossPowerkW(void)
 {
@@ -2366,7 +2366,7 @@ bool CGeothermalAnalyzer::inputErrorsForUICalculations(void)
 	}
 
 	double dTemperatureRatio = physics::CelciusToKelvin(GetResourceTemperatureC()) / physics::CelciusToKelvin(GetTemperaturePlantDesignC()); // max valid value is MAX_TEMP_RATIO
-	if ((dTemperatureRatio > geothermal::MAX_TEMP_RATIO) && (mo_geo_in.mi_ModelChoice == 0))
+	if ((dTemperatureRatio > geothermal::MAX_TEMP_RATIO) && (mo_geo_in.mi_cycle_model_type == 0))
 	{
 		ms_ErrorString = ("Plant design temperature is too low for resource temperature.  GETEM equations will return invalid results."); return true;
 	}
@@ -2393,7 +2393,7 @@ bool CGeothermalAnalyzer::inputErrorsForAnalysis(void)
 	if (inputErrorsForUICalculations()) return true;
 
 	if (mo_geo_in.mi_ProjectLifeYears == 0) { ms_ErrorString = ("Project life was zero."); return true; }
-	if (mo_geo_in.mi_ModelChoice < 0) { ms_ErrorString = ("The model choice was not set."); return true; }
+	if (mo_geo_in.mi_cycle_model_type < 0) { ms_ErrorString = ("The model choice was not set."); return true; }
 
 	if (!(NumberOfReservoirs() > 0)) { ms_ErrorString = ("Resource potential must be greater than the gross plant output."); return true; }
 	if (mo_pb_p.P_ref == 0) { ms_ErrorString = ("The power block parameters were not initialized."); return true; }
@@ -2424,7 +2424,7 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 {
 	if (!ReadyToAnalyze()) return false;   // open weather file m_wf
 
-	if ((mo_geo_in.mi_ModelChoice != 0) && (!mo_PowerBlock.InitializeForParameters(mo_pb_p)))
+	if ((mo_geo_in.mi_cycle_model_type == 2) && (!mo_PowerBlock.InitializeForParameters(mo_pb_p)))
 	{
 		ms_ErrorString = "There was an error initializing the power block with the input parameters: " + mo_PowerBlock.GetLastError();
 		return false;
@@ -2462,7 +2462,7 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 			fMonthlyPowerTotal = 0;
 			for (unsigned int hour = 0; hour < (unsigned int)util::hours_in_month(month); hour++)
 			{
-				if (IsHourly() || (hour == 0))
+				if (mo_geo_in.mi_simulation_timestep_type == 1 || (hour == 0))
 				{
 					// Error check
 					if (iElapsedTimeSteps >= mo_geo_in.mi_TotalMakeupCalculations)
@@ -2473,7 +2473,7 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 
 					// Read weather file info (function is smart enough to average for month if tis is a monthly analysis)
 					// The call to ReadWeatherForTimeStep increments the hour counter (over whole life), and file read counter [0 to 8760(=# lines in weather file]
-					if (!ReadWeatherForTimeStep(IsHourly(), iElapsedTimeSteps)) return false;
+					if (!ReadWeatherForTimeStep(mo_geo_in.mi_simulation_timestep_type == 1, iElapsedTimeSteps)) return false;
 
 					// Set inputs that change for each timestep, weather data into power block inputs
 					mo_pb_in.T_htf_hot = md_WorkingTemperatureC;
@@ -2489,7 +2489,7 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 					mp_geo_out->maf_timestep_wet_bulb[iElapsedTimeSteps] = (float)mo_pb_in.T_wb;
 
 					// record outputs based on current inputs
-					if (mo_geo_in.mi_ModelChoice == 0) // model choice 0 = GETEM
+					if (mo_geo_in.mi_cycle_model_type == 0) // model choice 0 = GETEM
 						mp_geo_out->maf_timestep_power[iElapsedTimeSteps] = (float)MAX(PlantGrossPowerkW() - mp_geo_out->md_PumpWorkKW, 0) * mo_geo_in.haf[iElapsedHours];
 					else
 					{	// run power block model
@@ -2510,7 +2510,7 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 					//md_ElapsedTimeInYears = year + util::percent_of_year(month,hour);
 					if (!ms_ErrorString.empty()) { return false; }
 					iElapsedTimeSteps++;
-					dElapsedTimeInYears = iElapsedTimeSteps * (1.0 / mo_geo_in.mi_MakeupCalculationsPerYear);  //moved to be after iElapsedTimeSteps++;
+					dElapsedTimeInYears = iElapsedTimeSteps * (1.0 / mo_geo_in.mi_performance_simulations_per_year);  //moved to be after iElapsedTimeSteps++;
 				}
 				else
 					mp_geo_out->maf_hourly_power[iElapsedHours] = fMonthlyPowerTotal;
@@ -2520,7 +2520,7 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 			}//hours
 
 			mp_geo_out->maf_monthly_resource_temp[iElapsedMonths] = (float)md_WorkingTemperatureC;	// resource temperature for this month
-			iEvaluationsInMonth = (IsHourly()) ? (unsigned int)util::hours_in_month(month) : 1;
+			iEvaluationsInMonth = (mo_geo_in.mi_simulation_timestep_type == 1) ? (unsigned int)util::hours_in_month(month) : 1;
 			mp_geo_out->maf_monthly_power[iElapsedMonths] = fMonthlyPowerTotal / iEvaluationsInMonth;		// avg monthly power
 			mp_geo_out->maf_monthly_energy[iElapsedMonths] = fMonthlyPowerTotal * util::hours_in_month(month) / iEvaluationsInMonth;		// energy output in month (kWh)
 

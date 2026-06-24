@@ -70,7 +70,11 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "resource_depth",                     "Resource Depth",                               "m",              "",                         "GeoHourly",     "*",                         "",                "" },
 
     // Other inputs                                                                                                                                                 
-    { SSC_INPUT,        SSC_NUMBER,      "model_choice",                       "Which model to run (0,1,2)",                   "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
+    //{ SSC_INPUT,        SSC_NUMBER,      "model_choice",                       "Cycle performance model (0 = GETEM; 1 = SAM monthly, 2 = SAM hourly)",  "", "",              "GeoHourly",     "*",                         "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "geo_cycle_model_type",               "Cycle performance model (0 = GETEM; 1 = User Defined, 2 = Reduced order)", "", "",            "GeoHourly",     "*",                         "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "simulation_timestep_type",           "Simulation timestep (0 = monthly, 1 = hourly)", "",              "",                          "GeoHourly",     "*",                         "INTEGER",         "" },
+
+
     { SSC_INPUT,        SSC_MATRIX,      "reservoir_model_inputs",             "Reservoir temperatures over time",             "",               "",                         "GeoHourly",     "reservoir_pressure_change_type=3", "",            "" },
 
     // geothermal plant and equipment                                                                                                                              

@@ -280,7 +280,10 @@ public:
         geo_inputs.md_AllowReservoirReplacements = as_boolean("allow_reservoir_replacements");
 
 		// calculate output array sizes
-		geo_inputs.mi_ModelChoice = as_integer("model_choice");		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+		//geo_inputs.mi_ModelChoice = as_integer("model_choice");		                    // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+        geo_inputs.mi_cycle_model_type = as_integer("geo_cycle_model_type");		            // 0=GETEM, 1=User Defined, 2=Reduced Order
+        geo_inputs.mi_simulation_timestep_type = as_integer("simulation_timestep_type");    // 0=monthly, 1=hourly
+
         if (is_assigned("reservoir_model_inputs")) 
             geo_inputs.md_ReservoirInputs = as_matrix("reservoir_model_inputs");
 
@@ -607,8 +610,15 @@ public:
 
             // allocate lifetime timestep arrays (one element per timestep, over lifetime of project)
             // if this is a monthly analysis, these are redundant with monthly arrays that track same outputs
-            geo_inputs.mi_MakeupCalculationsPerYear = (geo_inputs.mi_ModelChoice == 2) ? 8760 : 12;
-            geo_inputs.mi_TotalMakeupCalculations = geo_inputs.mi_ProjectLifeYears * geo_inputs.mi_MakeupCalculationsPerYear;
+            //geo_inputs.mi_MakeupCalculationsPerYear = (geo_inputs.mi_ModelChoice == 2) ? 8760 : 12;
+            if(geo_inputs.mi_simulation_timestep_type == 1) {
+                geo_inputs.mi_performance_simulations_per_year = 8760;
+            }
+            else {
+                geo_inputs.mi_performance_simulations_per_year = 12;
+            }
+
+            geo_inputs.mi_TotalMakeupCalculations = geo_inputs.mi_ProjectLifeYears * geo_inputs.mi_performance_simulations_per_year;
 
             geo_outputs.maf_timestep_resource_temp = allocate("timestep_resource_temperature", geo_inputs.mi_TotalMakeupCalculations);
             geo_outputs.maf_timestep_power = allocate("timestep_power", geo_inputs.mi_TotalMakeupCalculations);

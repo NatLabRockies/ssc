@@ -305,7 +305,8 @@ public:
                 geoPlant_inputs.md_InjectivityIndex = 2500;
 
 				// calculate output array sizes
-				geoPlant_inputs.mi_cycle_model_type = 0;		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+				geoPlant_inputs.mi_cycle_model_type = GETEM_CYCLE;		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+                geoPlant_inputs.mi_simulation_timestep_type = MONTHLY_TIMESTEPS;
 				// set geothermal inputs RE how analysis is done and for how long
 				geoPlant_inputs.mi_ProjectLifeYears = geothermal_analysis_period;
 				//if (geoPlant_inputs.mi_ProjectLifeYears == 0)
@@ -315,7 +316,7 @@ public:
 				geoPlant_inputs.mc_WeatherFileName = geothermal_weather_path;
 				geoPlant_inputs.mia_tou = tou;
 				//geoPlant_inputs.mi_MakeupCalculationsPerYear = (geoPlant_inputs.mi_ModelChoice == 2) ? 8760 : 12;
-                if( geoPlant_inputs.mi_simulation_timestep_type == 1 ) {
+                if( geoPlant_inputs.mi_simulation_timestep_type == HOURLY_TIMESTEPS ) {
                     geoPlant_inputs.mi_performance_simulations_per_year = 8760;
                 }
                 else {
@@ -389,7 +390,7 @@ public:
 		
 				//geoPlant_inputs.mi_MakeupCalculationsPerYear = (geoPlant_inputs.mi_ModelChoice == 2) ? 8760 : 12;
 				//geoPlant_inputs.mi_TotalMakeupCalculations = geoPlant_inputs.mi_ProjectLifeYears * geoPlant_inputs.mi_MakeupCalculationsPerYear;
-                if( geoPlant_inputs.mi_simulation_timestep_type == 1 ) {
+                if( geoPlant_inputs.mi_simulation_timestep_type == HOURLY_TIMESTEPS ) {
                     geoPlant_inputs.mi_performance_simulations_per_year = 8760;
                 }
                 else {

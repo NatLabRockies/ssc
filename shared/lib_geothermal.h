@@ -43,6 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __geothermalEnums__
 #define __geothermalEnums__
 
+enum geo_cycle_model_type {
+    GETEM_CYCLE = 0, REDUCED_ORDER_CYCLE = 1, USER_DEFINED_CYCLE = 2, UNDEFINED_CYCLE_MODEL = -1
+};
+
+enum geo_simulation_timestep_type {
+    MONTHLY_TIMESTEPS = 0, HOURLY_TIMESTEPS = 1, UNDEFINED_TIMESTEPS = -1
+};
+
 enum calculationBasis { NO_CALCULATION_BASIS, POWER_SALES, NUMBER_OF_WELLS };
 enum conversionTypes { NO_CONVERSION_TYPE, BINARY, FLASH }; //}
 enum resourceTypes { NO_RESOURCE_TYPE, HYDROTHERMAL, EGS };
@@ -61,7 +69,9 @@ struct SGeothermal_Inputs
 	{
 		me_cb = NO_CALCULATION_BASIS; me_ct = NO_CONVERSION_TYPE; me_ft = NO_FLASH_SUBTYPE; me_tdm = NO_TEMPERATURE_DECLINE_METHOD;
 		me_rt = NO_RESOURCE_TYPE; me_dc = NOT_CHOSEN; me_pc = NO_PC_CHOICE;
-		mi_cycle_model_type = mi_simulation_timestep_type = -1; mb_CalculatePumpWork = true;
+        mi_cycle_model_type = UNDEFINED_CYCLE_MODEL;
+        mi_simulation_timestep_type = UNDEFINED_TIMESTEPS;
+        mb_CalculatePumpWork = true;
 		mi_ProjectLifeYears = mi_performance_simulations_per_year = mi_TotalMakeupCalculations = 0;
 		md_DesiredSalesCapacityKW = md_NumberOfWells = md_NumberofWellsInj = md_PlantEfficiency = md_TemperatureDeclineRate = md_MaxTempDeclineC = md_TemperatureWetBulbC = 0.0;
 		md_PressureAmbientPSI = md_ProductionFlowRateKgPerS = md_GFPumpEfficiency = md_PressureChangeAcrossSurfaceEquipmentPSI = md_ExcessPressureBar = 0.0;
@@ -86,8 +96,8 @@ struct SGeothermal_Inputs
 	reservoirPressureChangeCalculation me_pc;				// 1=user enter pressure change, 2=SAM calculates it using simple fracture flow (for EGS resourceTypes only), 3=SAM calculates it using k*A (permeability x area)
 
     //mi_ModelChoice = as_integer("model_choice");		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
-	int mi_cycle_model_type;							// 0=GETEM, 1=User Defined, 2=Reduced Order
-    int mi_simulation_timestep_type;                    // 0=monthly, 1=hourly
+	geo_cycle_model_type mi_cycle_model_type;							// 0=GETEM, 1=User Defined, 2=Reduced Order
+    geo_simulation_timestep_type mi_simulation_timestep_type;                    // 0=monthly, 1=hourly
 
     bool mb_CalculatePumpWork;								// true (default) = getem calculates pump work
     util::matrix_t<double> md_ReservoirInputs;

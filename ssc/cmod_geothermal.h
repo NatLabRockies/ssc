@@ -71,7 +71,7 @@ static var_info _cm_vtab_geothermal[] = {
 
     // Other inputs                                                                                                                                                 
     //{ SSC_INPUT,        SSC_NUMBER,      "model_choice",                       "Cycle performance model (0 = GETEM; 1 = SAM monthly, 2 = SAM hourly)",  "", "",              "GeoHourly",     "*",                         "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "geo_cycle_model_type",               "Cycle performance model (0 = GETEM; 1 = User Defined, 2 = Reduced order)", "", "",            "GeoHourly",     "*",                         "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "geo_cycle_model_type",               "Cycle performance model (0 = GETEM; 1 = Reduced order, 2 = User Defined)", "", "",            "GeoHourly",     "*",                         "INTEGER",         "" },
     { SSC_INPUT,        SSC_NUMBER,      "simulation_timestep_type",           "Simulation timestep (0 = monthly, 1 = hourly)", "",              "",                          "GeoHourly",     "*",                         "INTEGER",         "" },
 
 

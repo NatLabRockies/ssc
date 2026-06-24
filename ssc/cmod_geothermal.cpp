@@ -391,8 +391,8 @@ public:
         // Set the power block input values that won't change hourly in geothermal model
         SPowerBlockInputs pbInputs;
         pbInputs.mode = 2;
-        pbInputs.m_dot_htf = GF_flowrate * 3600.0 / 2.20462;        //[kg/s] converted from [lb/hr]
-        pbInputs.demand_var = pbInputs.m_dot_htf;
+        pbInputs.m_dot_htf = GF_flowrate / 2.20462;         //[lb/hr] * 1/2.20462 [kg/lb] = [kg/hr]
+        pbInputs.demand_var = pbInputs.m_dot_htf;           //[kg/hr]
         pbInputs.standby_control = 1;
         pbInputs.rel_humidity = 0.7;
 

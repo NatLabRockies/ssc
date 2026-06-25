@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -385,6 +385,12 @@ double C_csp_gen_collector_receiver::get_col_startup_power()
 {
 	throw(C_csp_exception("C_csp_gen_collector_receiver::get_col_startup_power() is not complete"));
 	return std::numeric_limits<double>::quiet_NaN(); //MWe-hr
+}
+
+double C_csp_gen_collector_receiver::get_design_pumping_power() {
+
+    throw(C_csp_exception("C_csp_gen_collector_receiver::get_design_pumping_power() is not complete"));
+    return std::numeric_limits<double>::quiet_NaN(); //MWe-hr
 }
 
 void C_csp_gen_collector_receiver::on(const C_csp_weatherreader::S_outputs &weather,

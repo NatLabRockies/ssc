@@ -201,6 +201,7 @@ public:
     double get_max_power_delivery(double T_htf_cold_in /*C*/);    //MWt
 	double get_tracking_power();		//MWe
 	double get_col_startup_power();		//MWe-hr
+    double get_design_pumping_power();    //MWe
 
     void off(const C_csp_weatherreader::S_outputs &weather,
 		const C_csp_solver_htf_1state &htf_state_in,

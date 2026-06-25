@@ -252,6 +252,15 @@ double C_csp_falling_particle_collector_receiver::get_col_startup_power()
     return pstart;  //MWe-hr
 }
 
+double C_csp_falling_particle_collector_receiver::get_design_pumping_power() {
+
+    double lift_power = 0.0;
+    for (size_t i = 0; i < mc_pt_receivers.size(); i++)
+    {
+        lift_power += mc_pt_receivers.at(i)->get_pumping_parasitic_coef() * mc_pt_receivers.at(i)->get_q_dot_rec_des(); //[MWe]
+    }
+    return lift_power;  //MWe
+}
 
 void C_csp_falling_particle_collector_receiver::combine_results()
 {

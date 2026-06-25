@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -75,6 +75,7 @@ public:
         double csu_cost;                    //[$/start] Cycle startup cost
         double pen_delta_w;                 //[$/kWe-change] Cycle production change penalty
         double q_rec_standby;               //[kWt] Receiver standby thermal power consumption fraction
+        double sys_par_fixed;               //[kWe] Fixed parasitic load of the system
 
         bool can_cycle_use_standby;         //[-] Can the cycle use standby operation?
         bool is_parallel_heater;            //[-] Is there a heater parallel to the receiver?
@@ -125,6 +126,7 @@ public:
             w_rec_pump = std::numeric_limits<double>::quiet_NaN();
             q_pb_des = std::numeric_limits<double>::quiet_NaN();
             eta_pb_des = std::numeric_limits<double>::quiet_NaN();
+            sys_par_fixed = 0.0;
             inventory_incentive = 0.;
 
             time_weighting = 0.99;
@@ -230,7 +232,7 @@ public:
 
     csp_dispatch_opt();
 
-    void init(double cycle_q_dot_des, double cycle_eta_des);
+    void init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic);
 
     // Set default solver parameters if user did not set them
     void set_default_solver_parameters();
@@ -249,10 +251,6 @@ public:
 
     //declare dispatch function in csp_dispatch.cpp
     bool optimize();
-
-    std::string write_ampl();
-
-    bool optimize_ampl();
 
     // Set outputs struct based on LP solution -> could move to outputs struct
     void set_outputs_from_lp_solution(lprec* lp, unordered_map<std::string, double>& params);

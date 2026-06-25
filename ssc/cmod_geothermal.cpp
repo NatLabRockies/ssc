@@ -627,14 +627,15 @@ public:
             geo_outputs.maf_timestep_test_values = allocate("timestep_test_values", geo_inputs.mi_TotalMakeupCalculations);
 
             geo_outputs.maf_timestep_pressure = allocate("timestep_pressure", geo_inputs.mi_TotalMakeupCalculations);
-            geo_outputs.maf_timestep_dry_bulb = allocate("timestep_dry_bulb", geo_inputs.mi_TotalMakeupCalculations);
-            geo_outputs.maf_timestep_wet_bulb = allocate("timestep_wet_bulb", geo_inputs.mi_TotalMakeupCalculations);
-
+            
             size_t n_rec = 8760;
             if( as_boolean("system_use_lifetime_output") ) {
                 n_rec *= geo_inputs.mi_ProjectLifeYears;
             }
 
+            // Still want hourly reporting for some outputs even if simulation timestep is monthly
+            geo_outputs.maf_timestep_dry_bulb = allocate("timestep_dry_bulb", n_rec);
+            geo_outputs.maf_timestep_wet_bulb = allocate("timestep_wet_bulb", n_rec);
 
 			geo_outputs.maf_hourly_power = allocate("tmp", n_rec);
 			ssc_number_t * p_gen = allocate("gen", n_rec);

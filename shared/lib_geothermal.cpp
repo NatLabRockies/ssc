@@ -2485,8 +2485,6 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 					// record current temperature (temperature changes monthly, but this is an hourly record of it)
 					mp_geo_out->maf_timestep_resource_temp[iElapsedTimeSteps] = (float)md_WorkingTemperatureC; // NOTE: If EGS temp drop is being calculated, then PlantGrossPowerkW must be called.  No production = no temp change
 					mp_geo_out->maf_timestep_pressure[iElapsedTimeSteps] = (float)mo_pb_in.P_amb;
-					mp_geo_out->maf_timestep_dry_bulb[iElapsedTimeSteps] = (float)mo_pb_in.T_db;
-					mp_geo_out->maf_timestep_wet_bulb[iElapsedTimeSteps] = (float)mo_pb_in.T_wb;
 
 					// record outputs based on current inputs
 					if (mo_geo_in.mi_cycle_model_type == GETEM_CYCLE) // model choice 0 = GETEM
@@ -2505,15 +2503,19 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 
 					// record hourly power which = hourly energy
 					mp_geo_out->maf_hourly_power[iElapsedHours] = mp_geo_out->maf_timestep_power[iElapsedTimeSteps];
+                    mp_geo_out->maf_timestep_dry_bulb[iElapsedHours] = (float)mo_pb_in.T_db;
+                    mp_geo_out->maf_timestep_wet_bulb[iElapsedHours] = (float)mo_pb_in.T_wb;
                     
-
 					//md_ElapsedTimeInYears = year + util::percent_of_year(month,hour);
 					if (!ms_ErrorString.empty()) { return false; }
 					iElapsedTimeSteps++;
 					dElapsedTimeInYears = iElapsedTimeSteps * (1.0 / mo_geo_in.mi_performance_simulations_per_year);  //moved to be after iElapsedTimeSteps++;
 				}
-				else
-					mp_geo_out->maf_hourly_power[iElapsedHours] = fMonthlyPowerTotal;
+                else {
+                    mp_geo_out->maf_hourly_power[iElapsedHours] = fMonthlyPowerTotal;
+                    mp_geo_out->maf_timestep_dry_bulb[iElapsedHours] = (float)mo_pb_in.T_db;
+                    mp_geo_out->maf_timestep_wet_bulb[iElapsedHours] = (float)mo_pb_in.T_wb;
+                }
 
 				iElapsedHours++;
                 mp_geo_out->ElapsedHours = iElapsedHours;

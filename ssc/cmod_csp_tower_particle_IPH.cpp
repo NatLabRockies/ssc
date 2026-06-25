@@ -2018,8 +2018,7 @@ public:
         assign("csp.pt.cost.storage", (ssc_number_t)tes_cost);
 
         double W_dot_design = q_dot_pc_des;   //[MWt] cost basis now thermal
-        double power_cycle_cost =
-            N_mspt::power_cycle_cost(W_dot_design, as_double("plant_spec_cost"));
+        double power_cycle_cost = 0.0;   // no power cycle in a heat plant
         assign("csp.pt.cost.power_block", (ssc_number_t)power_cycle_cost);
 
         double bop_cost =
@@ -2036,7 +2035,7 @@ public:
 
         double direct_capital_precontingency_cost =
             site_improvement_cost + heliostat_cost + tower_cost + receiver_cost + rec_lift_cost +
-            tes_cost + power_cycle_cost + heater_cost + bop_cost + fossil_backup_cost;
+            tes_cost + heater_cost + bop_cost + fossil_backup_cost;
         assign("ui_direct_subtotal", (ssc_number_t)direct_capital_precontingency_cost);
 
         double contingency_cost =

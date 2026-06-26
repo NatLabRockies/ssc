@@ -404,10 +404,15 @@ public:
 				geoPlant_outputs.maf_timestep_test_values = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
 
 				geoPlant_outputs.maf_timestep_pressure = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
-				geoPlant_outputs.maf_timestep_dry_bulb = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
-				geoPlant_outputs.maf_timestep_wet_bulb = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
-		
+
+                
 				geoPlant_outputs.maf_hourly_power = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_timestep_dry_bulb = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_timestep_wet_bulb = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_frac_max_eff = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_max_secondlaw = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_AE = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+
 		
 		//====================================================================================================================================================================
 		void * user_data = nullptr;

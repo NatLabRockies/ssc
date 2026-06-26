@@ -209,8 +209,8 @@ TEST_F(DayCaseIrradProc, OptionalInputTest) {
     
     irr_hourly_day.set_optional(elev, pres, tdry);
     //set_optional will not use nan values, will keep previously assigned values or internal defaults
-    double elev_out, pres_out, t_amb_out;
-    irr_hourly_day.get_optional(&elev_out, &pres_out, &t_amb_out);
+    double elev_out, pres_out, t_amb_out, prec_water_out;
+    irr_hourly_day.get_optional(&elev_out, &pres_out, &t_amb_out, &prec_water_out);
     EXPECT_NEAR(elev_out, 234, 0) << "elevation";
     EXPECT_NEAR(pres_out, 1013.25, 0) << "pressure";
     EXPECT_NEAR(t_amb_out, 15, 0) << "ambient temperature";

@@ -77,6 +77,8 @@ set(SHARED_SRC
         lib_pv_io_manager.h
         lib_pv_shade_loss_mpp.cpp
         lib_pv_shade_loss_mpp.h
+        lib_pv_spectral_correction.cpp
+        lib_pv_spectral_correction.h
         lib_pvinv.cpp
         lib_pvinv.h
         lib_pvmodel.cpp

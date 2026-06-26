@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_snowmodel.h"
 #include "lib_sandia.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 #include "lib_cec6par.h"
 
 class lossdiagram
@@ -760,7 +761,7 @@ public:
         double annual_kwh = 0;
         size_t idx_life = 0;
         float percent = 0;
-        double elev, pres, t_amb;
+        double elev, pres, t_amb, pwater;
         for (size_t y = 0; y < nyears; y++)
         {
             for (size_t idx = 0; idx < nrec; idx++)
@@ -860,7 +861,7 @@ public:
                 irr.get_sun(&solazi, &solzen, &solalt, nullptr, nullptr, nullptr, &sunup, nullptr, nullptr, nullptr); //nullptr used when you don't need to retrieve the output
                 irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
                 irr.get_poa(&ibeam, &iskydiff, &ignddiff, nullptr, nullptr, nullptr); //nullptr used when you don't need to retrieve the output
-                irr.get_optional(&elev, &pres, &t_amb);
+                irr.get_optional(&elev, &pres, &t_amb, &pwater);
 
                 if (module.bifaciality > 0)
                 {

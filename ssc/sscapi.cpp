@@ -672,6 +672,14 @@ SSCEXPORT ssc_data_t ssc_data_get_table( ssc_data_t p_data, const char *name )
 	return static_cast<ssc_data_t>( &(dat->table) );
 }
 
+SSCEXPORT const char* ssc_data_get_table_key_name(ssc_data_t p_data, int index)
+{
+    var_table* vt = static_cast<var_table*>(p_data);
+    if (!vt) return 0;
+    const char* key = vt->key(index);
+    return key ? key : 0;
+}
+
 SSCEXPORT ssc_var_t ssc_data_get_data_array(ssc_data_t p_data, const char *name, int *nrows) {
     auto vt = static_cast<var_table*>(p_data);
     if (!vt) return 0;

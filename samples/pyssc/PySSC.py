@@ -1,6 +1,8 @@
 #Created with SAM version 2019.1.21
 
 import string, sys, struct, os
+import numpy as np
+import json
 from ctypes import *
 c_number = c_double # must be c_double or c_float depending on how defined in sscapi.h
 class PySSC:
@@ -9,8 +11,8 @@ class PySSC:
 
 		if sys.platform == 'win32' or sys.platform == 'cygwin':
 			#print("Using SSC DLL from here: ", this_directory)
-			self.pdll = CDLL(os.path.join('path to ssc folder', "ssc.dll"))
-			#self.pdll = CDLL(os.path.join('C:/Users/tneises/Documents/Projects/GitHub/build/ssc/ssc/Debug', "sscd.dll"))
+			self.pdll = CDLL(os.path.join(this_directory, "ssc.dll"))
+			# print('Process ID = ' + str(os.getpid()))
 		elif sys.platform == 'darwin':
 			self.pdll = CDLL(os.path.join(this_directory, "libssc.so"))
 		elif sys.platform == 'linux':
@@ -30,6 +32,13 @@ class PySSC:
 	def version(self):
 		self.pdll.ssc_version.restype = c_int
 		return self.pdll.ssc_version()
+	
+	def var_create(self):
+		self.pdll.ssc_var_create.restype = c_void_p
+		return self.pdll.ssc_var_create()
+	
+	def var_free(self, p_var):
+		self.pdll.ssc_var_free( c_void_p(p_var) )
 
 	def data_create(self):
 		self.pdll.ssc_data_create.restype = c_void_p
@@ -66,14 +75,26 @@ class PySSC:
 		count = len(parr)
 		arr = (c_number*count)()
 		arr[:] = parr # set all at once instead of looping
-		return self.pdll.ssc_data_set_array( c_void_p(p_data), c_char_p(name),pointer(arr), c_int(count))
+		return self.pdll.ssc_data_set_array( c_void_p(p_data), c_char_p(name), pointer(arr), c_int(count))
+
+	def data_set_string_array(self,p_data,name,parr):
+		count = len(parr)
+		ssc_var_arr = (c_void_p*count)()
+		for i, s in enumerate(parr):
+			ssc_var = self.var_create()
+			self.pdll.ssc_var_set_string( c_void_p(ssc_var), c_char_p(s.encode('utf-8')) )
+			ssc_var_arr[i] = ssc_var
+		res = self.pdll.ssc_data_set_data_array( c_void_p(p_data), c_char_p(name), pointer(ssc_var_arr), c_int(count))
+		for ssc_var in ssc_var_arr:
+			self.var_free(ssc_var)
+		return res
 
 	def data_set_array_from_csv(self, p_data, name, fn) :
-		f = open(fn, 'rb');
-		data = [];
+		f = open(fn, 'rb')
+		data = []
 		for line in f :
 			data.extend([n for n in map(float, line.split(b','))])
-		f.close();
+		f.close()
 		return self.data_set_array(p_data, name, data)
 
 	def data_set_matrix(self,p_data,name,mat):
@@ -89,12 +110,12 @@ class PySSC:
 		return self.pdll.ssc_data_set_matrix( c_void_p(p_data), c_char_p(name),pointer(arr), c_int(nrows), c_int(ncols))
 
 	def data_set_matrix_from_csv(self, p_data, name, fn) :
-		f = open(fn, 'rb');
-		data = [];
+		f = open(fn, 'rb')
+		data = []
 		for line in f :
 			lst = ([n for n in map(float, line.split(b','))])
-			data.append(lst);
-		f.close();
+			data.append(lst)
+		f.close()
 		return self.data_set_matrix(p_data, name, data)
 
 	def data_set_table(self,p_data,name,tab):
@@ -134,7 +155,12 @@ class PySSC:
 	# don't call data_free() on the result, it's an internal
 	# pointer inside SSC
 	def data_get_table(self,p_data,name):
-		return self.pdll.ssc_data_get_table( c_void_p(p_data), name )
+		self.pdll.ssc_data_get_table.restype = c_void_p
+		return self.pdll.ssc_data_get_table( c_void_p(p_data), c_char_p(name) )
+	
+	def data_get_table_key_name(self,p_data,index):
+		self.pdll.ssc_data_get_table_key_name.restype = c_char_p
+		return self.pdll.ssc_data_get_table_key_name( c_void_p(p_data), c_int(index) )
 
 	def module_entry(self,index):
 		self.pdll.ssc_module_entry.restype = c_void_p
@@ -282,7 +308,7 @@ def ssc_cmod(dat, name):
 	# Check for simulation errors
 	if ssc.module_exec(cmod, dat) == 0:
 		print (name + ' simulation error')
-		idx = 1;
+		idx = 1
 		msg = ssc.module_log(cmod, 0)
 		while (msg != None):
 			print (' : ' + msg.decode("utf - 8"))
@@ -305,7 +331,7 @@ def dict_to_ssc_table_dat(py_dict, cmod_name, dat):
 	cmod = ssc.module_create(cmod_name.encode("utf-8"))
 
 	dict_keys = list(py_dict.keys())
-	# dat = ssc.data_create();
+	# dat = ssc.data_create()
 
 	ii = 0
 	while (True):
@@ -331,7 +357,7 @@ def dict_to_ssc_table_dat(py_dict, cmod_name, dat):
 			for i in range(len(dict_keys)):
 				if (dict_keys[i] == ssc_input_data_name):
 					is_str_test_key = True
-					# print ("Found key");
+					# print ("Found key")
 					break
 
 			# Helpful for debugging:
@@ -356,6 +382,40 @@ def dict_to_ssc_table_dat(py_dict, cmod_name, dat):
 
 	return dat
 
+# Set ssc data values from dictionary object 
+def set_ssc_data_from_dict(ssc_api, ssc_data, D):
+    for key in D.keys():
+        if isinstance(D[key], np.ndarray):
+            D[key] = D[key].tolist()
+            
+        try:
+            if type(D[key]) in [type(1), type(1.), type(np.array([1.])[0]), type(np.array([1], dtype=int)[0])]:
+               ssc_api.data_set_number(ssc_data, key.encode("utf-8"), D[key])
+            elif type(D[key]) == type(True):
+               ssc_api.data_set_number(ssc_data, key.encode("utf-8"), 1 if D[key] else 0)
+            elif type(D[key]) == type(""):
+               ssc_api.data_set_string(ssc_data, key.encode("utf-8"), D[key].encode("utf-8"))  
+            elif type(D[key]) == type([]):
+               if len(D[key]) > 0:
+                   if type(D[key][0]) == type([]):
+                       ssc_api.data_set_matrix(ssc_data, key.encode("utf-8"), D[key])
+                   elif type(D[key][0]) == type(""):
+                       ssc_api.data_set_string_array(ssc_data, key.encode("utf-8"), D[key])
+                   else:
+                       ssc_api.data_set_array(ssc_data, key.encode("utf-8"), D[key])
+               else:
+                   #print ("Did not assign empty array " + key)
+                   pass
+            elif type(D[key]) == type({}):
+                table = ssc_api.data_create()
+                set_ssc_data_from_dict(ssc_api, table, D[key])
+                ssc_api.data_set_table(ssc_data, key.encode("utf-8"), table)
+                ssc_api.data_free(table)
+            else:
+               print ("Could not assign variable " + key )
+               raise KeyError
+        except:
+            print ("Error assigning variable " + key + ": bad data type")
 
 # Returns python dictionary representing SSC compute module w/ all required inputs/outputs defined
 def ssc_table_to_dict(cmod, dat):
@@ -368,12 +428,10 @@ def ssc_table_to_dict(cmod, dat):
 		if (ssc_output_data_type <= 0 or ssc_output_data_type > 5):
 			break
 		ssc_output_data_name = str(ssc.info_name(p_ssc_entry).decode("ascii"))
-		ssc_data_query = ssc.data_query(dat, ssc_output_data_name.encode("ascii"));
+		ssc_data_query = ssc.data_query(dat, ssc_output_data_name.encode("ascii"))
 		if (ssc_data_query > 0):
 			if (ssc_output_data_type == 1):
-				ssc_out[ssc_output_data_name] = ssc.data_get_string(dat,
-																	ssc_output_data_name.encode("ascii")).decode(
-					"ascii")
+				ssc_out[ssc_output_data_name] = ssc.data_get_string(dat,ssc_output_data_name.encode("ascii")).decode("ascii")
 			elif (ssc_output_data_type == 2):
 				ssc_out[ssc_output_data_name] = ssc.data_get_number(dat, ssc_output_data_name.encode("ascii"))
 			elif (ssc_output_data_type == 3):
@@ -382,6 +440,41 @@ def ssc_table_to_dict(cmod, dat):
 				ssc_out[ssc_output_data_name] = ssc.data_get_matrix(dat, ssc_output_data_name.encode("ascii"))
 			elif (ssc_output_data_type == 5):
 				ssc_out[ssc_output_data_name] = ssc.data_get_table(dat, ssc_output_data_name.encode("ascii"))
+				if type(ssc_out[ssc_output_data_name]) == int:	# Nested table, so convert to dictionary
+					table_dat = ssc_out[ssc_output_data_name]
+					ssc_out[ssc_output_data_name] = ssc_nested_table_to_dict(table_dat)
+			elif (ssc_data_query == 6):
+				print ("Data arrays are not supported. Key value: " + ssc_output_data_name)
+			else:
+				print (ssc_output_data_name + " failed to retrieve data")
 		i = i + 1
-
 	return ssc_out
+
+def ssc_nested_table_to_dict(table_dat):
+	ssc = PySSC()
+	dict_out = {}
+	i = 0
+	while (True):
+		raw_key_name = ssc.data_get_table_key_name(table_dat, i)
+		if (raw_key_name == None):
+			break
+		key_name = str(raw_key_name.decode("ascii"))
+		ssc_data_query = ssc.data_query(table_dat, key_name.encode("ascii"))
+		if (ssc_data_query > 0):
+			if (ssc_data_query == 1):
+				dict_out[key_name] = ssc.data_get_string(table_dat, key_name.encode("ascii")).decode("ascii")
+			elif (ssc_data_query == 2):
+				dict_out[key_name] = ssc.data_get_number(table_dat, key_name.encode("ascii"))
+			elif (ssc_data_query == 3):
+				dict_out[key_name] = ssc.data_get_array(table_dat, key_name.encode("ascii"))
+			elif (ssc_data_query == 4):
+				dict_out[key_name] = ssc.data_get_matrix(table_dat, key_name.encode("ascii"))
+			elif (ssc_data_query == 5):
+				nested_table_dat = ssc.data_get_table(table_dat, key_name.encode("ascii"))
+				dict_out[key_name] = ssc_nested_table_to_dict(nested_table_dat)
+			elif (ssc_data_query == 6):
+				print ("Data arrays are not supported. Key value: " + key_name)
+			else:
+				print (key_name + " failed to retrieve data")
+		i = i + 1
+	return dict_out

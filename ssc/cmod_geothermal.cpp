@@ -211,6 +211,11 @@ public:
 		geo_inputs.md_PressureAmbientPSI = as_double("ambient_pressure" );
         geo_inputs.md_UseWeatherFileConditions = 0; //initially set to zero for UI calculations
 
+        // Need to use this input during annual simulation but not design
+        // So save as a separate member variable, the use this new variable to set md_UseWeatherFileConditions during annual simulation
+        geo_inputs.md_UseWeatherFileConditions_annual_sim = as_integer("use_weather_file_conditions");
+
+
 		//pumping parameters
 		geo_inputs.md_ProductionFlowRateKgPerS = as_double("well_flow_rate");
 		geo_inputs.md_GFPumpEfficiency = as_double("pump_efficiency")/100;
@@ -309,7 +314,6 @@ public:
         // running the model, we need to specify other inputs
         geo_inputs.md_PotentialResourceMW = as_double("resource_potential");
 
-        geo_inputs.md_UseWeatherFileConditions = as_integer("use_weather_file_conditions");
 
         // we need to create the SPowerBlockInputs & SPowerBlockParameters and set the inputs
 
@@ -405,7 +409,13 @@ public:
         assign("num_confirm_wells_to_production", var_data((ssc_number_t)num_conf_wells_prod));
 
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
-        assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+
+        // The GETEM flash model as of 2026.06.26 uses a different value for gross turbine output
+        double gross_cost_output_for_flash = std::numeric_limits<double>::quiet_NaN();
+        if( geo_inputs.me_ct == FLASH ) {
+            gross_cost_output_for_flash = geo_outputs.md_GrossPowerkW;
+        }
+        assign("gross_cost_output", var_data((ssc_number_t)gross_cost_output_for_flash));
 
         assign("system_capacity", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW*1.E3));
         assign("cp_system_nameplate", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
@@ -637,6 +647,10 @@ public:
             geo_outputs.maf_timestep_dry_bulb = allocate("timestep_dry_bulb", n_rec);
             geo_outputs.maf_timestep_wet_bulb = allocate("timestep_wet_bulb", n_rec);
 
+            geo_outputs.maf_frac_max_eff = allocate("frac_max_eff_od", n_rec);
+            geo_outputs.maf_max_secondlaw = allocate("max_secondlaw_od", n_rec);
+            geo_outputs.maf_AE = allocate("AE_od", n_rec);
+
 			geo_outputs.maf_hourly_power = allocate("tmp", n_rec);
 			ssc_number_t * p_gen = allocate("gen", n_rec);
 
@@ -691,8 +705,8 @@ public:
 			capacity_fac = total_energy / nameplate;
 			if (geo_inputs.mi_ProjectLifeYears > 0) kWhperkW = kWhperkW / geo_inputs.mi_ProjectLifeYears;
 
-			assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
-            assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+			//assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
+            //assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
 			assign("capacity_factor", var_data((ssc_number_t)(capacity_fac / 87.6)));		//Divided by 8760 and then multiplied by 100 (or divide by 87.6) to return CF as a %
 			assign("kwh_per_kw", var_data((ssc_number_t)kWhperkW));
 			// 5/28/15 average provided for FCR market

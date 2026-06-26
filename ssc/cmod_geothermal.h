@@ -273,6 +273,11 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_ARRAY,       "timestep_dry_bulb",                  "Dry bulb temperature",                               "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "timestep_wet_bulb",                  "Wet bulb temperature",                               "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
 
+    { SSC_OUTPUT,       SSC_ARRAY,       "frac_max_eff_od",                    "Fraction of design 2nd law efficiency",              "-",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "max_secondlaw_od",                   "Max 2nd law efficiency",                             "-",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "AE_od",                              "Available energy per flow rate",                     "watt-hr/lb", "",          "GeoHourly",        "sim_type=1",               "",                "" },
+
+
     { SSC_OUTPUT,       SSC_NUMBER,      "lifetime_output",                    "Lifetime output",                                    "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "first_year_output",                  "First year output",                                  "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",                      "Annual AC energy in Year 1",                         "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },

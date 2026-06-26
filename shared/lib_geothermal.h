@@ -84,7 +84,7 @@ struct SGeothermal_Inputs
         md_dtProdWell = md_dtProdWellChoice = 0.0;
         md_NumberOfWellsProdExp = md_NumberOfWellsInjDrilled = md_NumberOfWellsProdDrilled = md_FailedWells = md_StimSuccessRate = md_DrillSuccessRate = 0;
         md_FailedInjFlowRatio = md_FailedProdFlowRatio = md_InjWellFriction = md_ProdWellFriction = md_InjWellPressurePSI = md_InjectivityIndex = md_ExplorationWellsProd = 0;
-        md_UseWeatherFileConditions = md_AllowReservoirReplacements = 0.0;
+        md_UseWeatherFileConditions = md_UseWeatherFileConditions_annual_sim = md_AllowReservoirReplacements = 0.0;
 	}
 
 	calculationBasis me_cb;									// { NO_CALCULATION_BASIS, POWER_SALES, NUMBER_OF_WELLS };
@@ -127,6 +127,7 @@ struct SGeothermal_Inputs
 	double md_TemperatureWetBulbC;							// degrees celcius - used in Flash brine effectiveness
 	double md_PressureAmbientPSI;							// psi, default=14.7, mostly for use in calculating flash brine effectiveness, but also pump work
     int md_UseWeatherFileConditions;
+    int md_UseWeatherFileConditions_annual_sim;             // 
     double md_ProductionFlowRateKgPerS;						// 70 kilograms per second in one well (default FlowRate in GETEM)
 	double md_GFPumpEfficiency;								// default=0.6 or 60%
 	double md_PressureChangeAcrossSurfaceEquipmentPSI;		// default 25 psi
@@ -189,6 +190,8 @@ struct SGeothermal_Outputs
         md_NumberOfWellsProdExp = md_NumberOfWellsProdDrilled = md_NumberOfWellsProdFailed = md_NumberOfWellsInjDrilled = md_FailedWells = md_StimSuccessRate = md_DrillSuccessRate = 0;
         md_FailedInjFlowRatio = md_FailedProdFlowRatio = 0;
         ElapsedHours = ElapsedMonths = 0;
+
+        md_frac_max_eff = md_max_secondlaw = md_AE = std::numeric_limits<double>::quiet_NaN();
 
 	}
 
@@ -259,6 +262,11 @@ struct SGeothermal_Outputs
 	double md_BottomHolePressure; //double GetBottomHolePressure(void) { return moPPC.GetBottomHolePressure(); }
     double md_FractionGFInjected;
 
+    // Report off-design power cycle outputs
+    double md_frac_max_eff;     //[-] fraction of design second law efficiency
+    double md_max_secondlaw;    //[-] maximum second law efficiency
+    double md_AE;               //[watt-hr/lb] actual brine effectiveness
+
 	// output arrays
 	double * maf_ReplacementsByYear;			// array of ones and zero's over time, ones representing years where reservoirs are replaced
 	double * maf_monthly_resource_temp;
@@ -271,6 +279,12 @@ struct SGeothermal_Outputs
 	double * maf_timestep_dry_bulb;
 	double * maf_timestep_wet_bulb;
 	double * maf_hourly_power;				// hourly values even if the timestep is monthly
+
+
+    double * maf_frac_max_eff;
+    double * maf_max_secondlaw;
+    double * maf_AE;
+
 };
 
 //******************************************************************************************************************************************************************************

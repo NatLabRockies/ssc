@@ -180,7 +180,7 @@ static var_info _cm_vtab_geothermal_costs_upstream[] = {
     // Binary Plant Type Inputs:
     { SSC_INPUT,      SSC_NUMBER,     "net_plant_output",                   "Net plant power to grid; net sales in GETEM",               "MWe",      "",     "GeoHourly", "*",                        "",                              "" },
     { SSC_INPUT,      SSC_NUMBER,     "gross_output",                       "Gross output from GETEM",                                   "MWe",      "",     "GeoHourly", "*",                        "",                              ""   },
-    { SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output from GETEM for cost calculations",             "kWe",      "",     "GeoHourly", "*",                        "",                              ""   },
+    { SSC_INPUT,      SSC_NUMBER,     "gross_cost_output",                  "Gross output adjusted for flash only from GETEM for cost calculations","kWe","","GeoHourly", "*",                        "",                              ""   },
     { SSC_INPUT,      SSC_NUMBER,     "eff_secondlaw",                      "Second Law Efficiency",                                      "%",       "",     "GeoHourly", "*",                        "",                              ""   },
 
     // Flash Plant Type Inputs:

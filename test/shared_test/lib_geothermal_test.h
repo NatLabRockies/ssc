@@ -435,6 +435,9 @@ public:
 			delete [] geoPlant_outputs.maf_ReplacementsByYear;
             delete geoTester;
 
+            delete [] geoPlant_outputs.maf_frac_max_eff;
+            delete [] geoPlant_outputs.maf_max_secondlaw;
+            delete [] geoPlant_outputs.maf_AE;
 	}
 
 };

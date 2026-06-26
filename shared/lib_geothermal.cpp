@@ -530,10 +530,22 @@ double CGeothermalAnalyzer::PlantGrossPowerkW(void)
 	switch (me_makeup)
 	{
     case MA_EGS_BINARY:
-	case MA_BINARY:
-		//dPlantBrineEfficiency = MaxSecondLawEfficiency() * FractionOfMaxEfficiency() * ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE());				//MaxSecondLawEfficiency() * FractionOfMaxEfficiency() * GetAEBinaryAtTemp(md_WorkingTemperatureC);
-        dPlantBrineEfficiency = MaxSecondLawEfficiency() * mo_geo_in.md_PlantEfficiency * FractionOfMaxEfficiency() * GetAEBinaryAtTemp(md_WorkingTemperatureC - DT_prod_well(mo_geo_in.md_dtProdWellChoice));	
-		break;
+    case MA_BINARY:
+    {
+        //dPlantBrineEfficiency = MaxSecondLawEfficiency() * FractionOfMaxEfficiency() * ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE());				//MaxSecondLawEfficiency() * FractionOfMaxEfficiency() * GetAEBinaryAtTemp(md_WorkingTemperatureC);
+        double frac_max_eff = FractionOfMaxEfficiency();    //[-]
+        mp_geo_out->md_frac_max_eff = frac_max_eff;         //[-]
+
+        double max_2nd_law_eff = MaxSecondLawEfficiency();    //[-]
+        mp_geo_out->md_max_secondlaw = max_2nd_law_eff;       //[-]
+
+        double E_avail = GetAEBinaryAtTemp(md_WorkingTemperatureC - DT_prod_well(mo_geo_in.md_dtProdWellChoice));  //[watt-hr/lb]
+        mp_geo_out->md_AE = E_avail;    //[watt-hr/lb]
+
+        dPlantBrineEfficiency = max_2nd_law_eff * mo_geo_in.md_PlantEfficiency * frac_max_eff * E_avail;	//[watt-hr/lb]
+
+        break;
+    }
     case MA_EGS_FLASH:
 	case MA_FLASH:
 		dPlantBrineEfficiency = MaxSecondLawEfficiency() * FractionOfMaxEfficiency() * GetAEFlashAtTemp(md_WorkingTemperatureC- DT_prod_well(mo_geo_in.md_dtProdWellChoice));
@@ -577,7 +589,10 @@ double CGeothermalAnalyzer::MaxSecondLawEfficiency()
 
 double CGeothermalAnalyzer::FractionOfMaxEfficiency()
 {
-	double dTemperatureRatio = 0.0;
+    //double T_sink_des = mo_geo_in.md_TemperatureWetBulbC;       //[C]
+    //double T_sink_od = physics::FarenheitToCelcius(TemperatureWetBulbF());  //[C]
+
+    double dTemperatureRatio = 0.0;
 	dTemperatureRatio = physics::CelciusToKelvin(physics::FarenheitToCelcius(TemperatureWetBulbF())) / physics::CelciusToKelvin(md_WorkingTemperatureC);
     double carnot_eff_initial = 1 - physics::CelciusToKelvin(physics::FarenheitToCelcius(TemperatureWetBulbF())) / physics::CelciusToKelvin(GetTemperaturePlantDesignC());
     double carnot_eff = 1 - dTemperatureRatio;
@@ -2439,6 +2454,9 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 	ReplaceReservoir(dElapsedTimeInYears);
 	mp_geo_out->md_PumpWorkKW = GetPumpWorkKW();
 
+    // 2026-06-26 Reset weather source
+    mo_geo_in.md_UseWeatherFileConditions = mo_geo_in.md_UseWeatherFileConditions_annual_sim;
+
 	// Go through time step (hours or months) one by one
 //    bool bReDrill = false;
 	unsigned int iElapsedMonths = 0, iElapsedTimeSteps = 0, iEvaluationsInMonth = 0, iElapsedHours = 0;
@@ -2505,6 +2523,10 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 					mp_geo_out->maf_hourly_power[iElapsedHours] = mp_geo_out->maf_timestep_power[iElapsedTimeSteps];
                     mp_geo_out->maf_timestep_dry_bulb[iElapsedHours] = (float)mo_pb_in.T_db;
                     mp_geo_out->maf_timestep_wet_bulb[iElapsedHours] = (float)mo_pb_in.T_wb;
+
+                    mp_geo_out->maf_frac_max_eff[iElapsedHours] = mp_geo_out->md_frac_max_eff;
+                    mp_geo_out->maf_max_secondlaw[iElapsedHours] = mp_geo_out->md_max_secondlaw;
+                    mp_geo_out->maf_AE[iElapsedHours] = mp_geo_out->md_AE;
                     
 					//md_ElapsedTimeInYears = year + util::percent_of_year(month,hour);
 					if (!ms_ErrorString.empty()) { return false; }
@@ -2515,6 +2537,10 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
                     mp_geo_out->maf_hourly_power[iElapsedHours] = fMonthlyPowerTotal;
                     mp_geo_out->maf_timestep_dry_bulb[iElapsedHours] = (float)mo_pb_in.T_db;
                     mp_geo_out->maf_timestep_wet_bulb[iElapsedHours] = (float)mo_pb_in.T_wb;
+
+                    mp_geo_out->maf_frac_max_eff[iElapsedHours] = mp_geo_out->md_frac_max_eff;
+                    mp_geo_out->maf_max_secondlaw[iElapsedHours] = mp_geo_out->md_max_secondlaw;
+                    mp_geo_out->maf_AE[iElapsedHours] = mp_geo_out->md_AE;
                 }
 
 				iElapsedHours++;

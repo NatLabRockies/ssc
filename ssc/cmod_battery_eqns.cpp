@@ -38,6 +38,234 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cmath>
 
+bool Size_battery(ssc_data_t data) {
+    auto vt = static_cast<var_table*>(data);
+    char errmsg[250];
+    if (!vt) {
+        return false;
+    }
+    int chem;
+
+    double desired_power, desired_capacity,  batt_Qfull, batt_Vnom_default, desired_voltage, batt_dc_ac_efficiency, batt_dc_dc_efficency, inverter_eff, original_capacity;
+    bool ac_connected;
+    double batt_cell_power_discharge_max, batt_cell_power_charge_max, batt_cell_current_discharge_max, batt_cell_current_charge_max;
+
+    double tol = 0.05;
+    bool size_by_ac_not_dc = false;
+
+    // cmod_battery params
+    vt_get_int(vt, "batt_chem", &chem);
+    vt_get_number(vt, "batt_Qfull", &batt_Qfull);
+    vt_get_number(vt, "batt_Vnom_default", &batt_Vnom_default);
+    vt_get_bool(vt, "batt_ac_or_dc", &ac_connected);
+    vt_get_number(vt, "batt_dc_ac_efficiency", &batt_dc_ac_efficiency);
+    vt_get_number(vt, "batt_dc_dc_efficiency", &batt_dc_dc_efficency);
+    vt_get_number(vt, "batt_computed_bank_capacity", &original_capacity);
+
+    // Required sizing parameters
+    vt_get_number(vt, "desired_power", &desired_power);
+    vt_get_number(vt, "desired_capacity", &desired_capacity);
+    vt_get_number(vt, "desired_voltage", &desired_voltage);
+
+    // Optional inputs
+    if (vt->is_assigned("size_by_ac_not_dc")) {
+        vt_get_bool(vt, "size_by_ac_not_dc", &size_by_ac_not_dc);
+    }
+    if (vt->is_assigned("tol")) {
+        vt_get_number(vt, "tol", &tol);
+    }
+
+    // Optional flow battery inputs
+    if (vt->is_assigned("batt_cell_power_discharge_max")) {
+        vt_get_number(vt, "batt_cell_power_discharge_max", &batt_cell_power_discharge_max);
+    }
+    if (vt->is_assigned("batt_cell_power_charge_max")) {
+        vt_get_number(vt, "batt_cell_power_charge_max", &batt_cell_power_charge_max);
+    }
+    if (vt->is_assigned("batt_cell_current_discharge_max")) {
+        vt_get_number(vt, "batt_cell_current_discharge_max", &batt_cell_current_discharge_max);
+    }
+    if (vt->is_assigned("batt_cell_current_charge_max")) {
+        vt_get_number(vt, "batt_cell_current_charge_max", &batt_cell_current_charge_max);
+    }
+
+    // Optional inputs "module_capacity" and "module_surface_area" used in the thermal sizing function
+
+    bool is_flow = chem == 2 || chem == 3;
+
+    double leadacid_q10, leadacid_q20, leadacid_qn, leadacid_tn = 0.0;
+    if (chem == 0) {
+        vt_get_number(vt, "leadacid_q10_computed", &leadacid_q10);
+        vt_get_number(vt, "leadacid_q20_computed", &leadacid_q20);
+        vt_get_number(vt, "leadacid_qn_computed", &leadacid_qn);
+        vt_get_number(vt, "leadacid_tn", &leadacid_tn);
+    }
+
+    double conv_eff = 0.0;
+    if (ac_connected) {
+        if (batt_dc_ac_efficiency > 100) {
+            sprintf(errmsg, "batt_dc_ac_efficiency cannot be greater than 100. Current value: %f", batt_dc_ac_efficiency);
+            vt->assign("error", std::string(errmsg));
+            return false;
+        }
+        conv_eff = batt_dc_ac_efficiency * 0.01;
+    }
+    else {
+        int inverter_model = vt->as_integer("inverter_model");
+        if (inverter_model == 0) {
+            vt_get_number(vt, "inv_snl_eff_cec", &inverter_eff);
+        }
+        else if (inverter_model == 1) {
+            vt_get_number(vt, "inv_ds_eff", &inverter_eff);
+        }
+        else if (inverter_model == 2) {
+            vt_get_number(vt, "inv_pd_eff", &inverter_eff);
+        }
+        else if (inverter_model == 3) {
+            vt_get_number(vt, "inv_cec_cg_eff_cec", &inverter_eff);
+        }
+        else {
+            sprintf(errmsg, "inverter_model must be between 0 and 3. Current value: %d", inverter_model);
+            vt->assign("error", std::string(errmsg));
+            return false;
+        }
+
+        if (inverter_eff > 100) {
+            sprintf(errmsg, "inverter_eff cannot be greater than 100. Current value: %f", inverter_eff);
+            vt->assign("error", std::string(errmsg));
+            return false;
+        }
+        conv_eff = inverter_eff * 0.01;
+        if (batt_dc_dc_efficency > 100) {
+            sprintf(errmsg, "batt_dc_dc_efficency cannot be greater than 100. Current value: %f", batt_dc_dc_efficency);
+            vt->assign("error", std::string(errmsg));
+            return false;
+        }
+        conv_eff *= batt_dc_dc_efficency * 0.01;
+    }
+
+    if (size_by_ac_not_dc) {
+        desired_capacity /= conv_eff;
+        desired_power /= conv_eff;
+    }
+
+    double computed_voltage = 0;
+    if (!is_flow) {
+        double num_series = std::ceil(desired_voltage / batt_Vnom_default);
+        double num_strings = std::ceil(desired_capacity * 1000 / (batt_Qfull * batt_Vnom_default * num_series));
+        computed_voltage = batt_Vnom_default * num_series;
+        double computed_capacity = batt_Qfull * computed_voltage * num_strings * 0.001;
+        double max_rate = desired_power / desired_capacity;
+        double computed_power = computed_capacity * max_rate;
+
+        if (std::fabs(computed_capacity - desired_capacity) / desired_capacity > tol) {
+            sprintf(errmsg, "Could not meet desired battery capacity. Consider adjusting the desired voltage, or battery cell properties.");
+            vt->assign("error", std::string(errmsg));
+            return false;
+        }
+
+        double batt_bank_power_discharge_ac, batt_bank_power_discharge_dc, batt_bank_power_charge_ac, batt_bank_power_charge_dc;
+        if (size_by_ac_not_dc) {
+            batt_bank_power_discharge_ac = computed_power * conv_eff;
+            batt_bank_power_charge_ac = computed_power * conv_eff;
+            batt_bank_power_discharge_dc = batt_bank_power_discharge_ac / conv_eff;
+            batt_bank_power_charge_dc = batt_bank_power_charge_ac * conv_eff;
+        }
+        else {
+            batt_bank_power_charge_dc = computed_power;
+            batt_bank_power_discharge_dc = computed_power;
+            batt_bank_power_discharge_ac = batt_bank_power_discharge_dc * conv_eff;
+            batt_bank_power_charge_ac = batt_bank_power_charge_dc / conv_eff;
+        }
+               
+
+        if (chem == 0) {
+            double leadacid_q10_computed = num_strings * leadacid_q10 * batt_Qfull / 100;
+            double leadacid_q20_computed = num_strings * leadacid_q20 * batt_Qfull / 100;
+            double leadacid_qn_computed = num_strings * leadacid_qn * batt_Qfull / 100;
+
+            vt->assign("LeadAcid_q10_computed", leadacid_q10_computed);
+            vt->assign("LeadAcid_q20_computed", leadacid_q20_computed);
+            vt->assign("LeadAcid_qn_computed", leadacid_qn_computed);
+        }
+
+        vt->assign("batt_computed_series", num_series);
+        vt->assign("batt_computed_strings", num_strings);
+        vt->assign("batt_computed_bank_capacity", computed_capacity);
+
+
+        vt->assign("batt_power_discharge_max_kwdc", batt_bank_power_discharge_dc);
+        vt->assign("batt_power_discharge_max_kwac", batt_bank_power_discharge_ac);
+        vt->assign("batt_power_charge_max_kwdc", batt_bank_power_charge_dc);
+        vt->assign("batt_power_charge_max_kwac", batt_bank_power_charge_ac);
+        vt->assign("batt_current_charge_max", batt_bank_power_charge_dc / computed_voltage * 1000.0);
+        vt->assign("batt_current_discharge_max", batt_bank_power_discharge_dc / computed_voltage * 1000.0);
+
+    }
+    else {
+        int batt_current_choice = 0;
+        vt_get_int(vt, "batt_current_choice", &batt_current_choice);
+        bool power_limited = batt_current_choice == 0 || batt_current_choice == 2;
+        bool current_limited = batt_current_choice == 1 || batt_current_choice == 2;
+        int num_series = 0;
+        int num_stacks_parallel = 0;
+        int num_stacks_series = 1;
+        double bank_capacity = 0;
+        double bank_current_discharge = 0;
+        double bank_current_charge = 0;
+        double bank_power_discharge = 0;
+        double bank_power_charge = 0;
+
+        // flow battery capacity is always exactly defined by electrolyte in tank
+        bank_capacity = desired_capacity;
+        num_series = ceil(desired_voltage / (num_stacks_series *  batt_Vnom_default));
+        computed_voltage = batt_Vnom_default * num_series * num_stacks_series;
+
+        if (power_limited)
+            num_stacks_parallel = ceil(desired_power / (batt_cell_power_discharge_max * num_series * num_stacks_series * 0.001));
+        if (current_limited)
+            num_stacks_parallel = fmax(ceil(desired_power / (computed_voltage * batt_cell_current_discharge_max *0.001)), num_stacks_parallel);
+
+
+        if (power_limited)
+        {
+            bank_power_discharge = batt_cell_power_discharge_max *0.001 * num_series * num_stacks_series * num_stacks_parallel;
+            bank_power_charge = batt_cell_power_charge_max *0.001 * num_series * num_stacks_series * num_stacks_parallel;
+            if (!current_limited) {
+                bank_current_discharge = bank_power_discharge * 1000 / computed_voltage;
+                bank_current_charge = bank_power_charge * 1000 / computed_voltage;
+            }
+        }
+        if (current_limited)
+        {
+            bank_current_discharge = num_stacks_parallel * batt_cell_current_discharge_max;
+            bank_current_charge = num_stacks_parallel * batt_cell_current_charge_max;
+            if (!power_limited) {
+                bank_power_discharge = computed_voltage * bank_current_discharge * 0.001;
+                bank_power_charge = computed_voltage * bank_current_charge * 0.001;
+            }
+            bank_power_discharge = computed_voltage * bank_current_discharge * 0.001;
+            bank_power_charge = computed_voltage * bank_current_charge * 0.001;
+        }
+
+        vt->assign("batt_computed_series", num_series);
+        vt->assign("batt_computed_strings", num_stacks_parallel);
+        vt->assign("batt_current_charge_max", bank_current_charge);
+        vt->assign("batt_current_discharge_max", bank_current_discharge);
+        vt->assign("batt_computed_stacks_series", num_stacks_series);
+        vt->assign("batt_num_cells", num_series * num_stacks_series * num_stacks_parallel);
+        vt->assign("batt_computed_bank_capacity", bank_capacity);
+        vt->assign("batt_power_discharge_max_kwdc", bank_power_discharge);
+        vt->assign("batt_power_charge_max_kwdc", bank_power_charge);
+    }
+
+    vt->assign("original_capacity", original_capacity);
+
+    Calculate_thermal_params(data);
+
+    return true;
+}
+
 bool Size_batterystateful(ssc_data_t data) {
     auto vt = static_cast<var_table*>(data);
     char errmsg[250];
@@ -82,8 +310,18 @@ bool Calculate_thermal_params(ssc_data_t data) {
 
     double mass, surface_area, original_capacity, desired_capacity, module_capacity, module_surface_area;
 
-    vt_get_number(vt, "mass", &mass);
-    vt_get_number(vt, "surface_area", &surface_area);
+    bool is_stateful;
+    if (vt->is_assigned("mass") && vt->is_assigned("surface_area")) {
+        vt_get_number(vt, "mass", &mass);
+        vt_get_number(vt, "surface_area", &surface_area);
+        is_stateful = true;
+    }
+    else {
+        vt_get_number(vt, "batt_mass", &mass);
+        vt_get_number(vt, "batt_surface_area", &surface_area);
+        is_stateful = false;
+    }
+
     vt_get_number(vt, "original_capacity", &original_capacity);
     vt_get_number(vt, "desired_capacity", &desired_capacity);
 
@@ -103,8 +341,15 @@ bool Calculate_thermal_params(ssc_data_t data) {
         surface_area = module_surface_area * desired_capacity / module_capacity;
     }
 
-    vt->assign("mass", mass);
-    vt->assign("surface_area", surface_area);
+    if (is_stateful) {
+        vt->assign("mass", mass);
+        vt->assign("surface_area", surface_area);
+    }
+    else {
+        vt->assign("batt_mass", mass);
+        vt->assign("batt_surface_area", surface_area);
+    }
+
 
     return true;
 }

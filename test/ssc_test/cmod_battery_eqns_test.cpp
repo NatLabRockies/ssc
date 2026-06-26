@@ -88,3 +88,47 @@ TEST_F(CMBatteryEqns_cmod_battery_eqns, reopt_sizing) {
     for (const auto& s : sections)
         ASSERT_TRUE(site->table.is_assigned(s));
 }
+
+TEST_F(CMBatteryEqns_cmod_battery_eqns, TestCmodBatterySizeModifications) {
+    data = ssc_data_create();
+    battery_data_default(data);
+    utility_rate5_default(data);
+    cashloan_default(data);
+
+    ssc_data_set_number(data, "desired_voltage", 600.0); // Increase voltage from 500 V
+    ssc_data_set_number(data, "desired_capacity", 20.0); // Increase capacity from 10 kWh
+    ssc_data_set_number(data, "desired_power", 10.0); // Increase power from 5 kW
+
+    Size_battery(data);
+    mod = ssc_module_create("battery");
+
+    EXPECT_TRUE(ssc_module_exec(mod, data));
+
+    ssc_number_t new_voltage, new_series, new_vnom, new_capacity, new_mass, new_surface_area;
+    ssc_data_get_number(data, "batt_Vnom_default", &new_vnom);
+    ssc_data_get_number(data, "batt_computed_series", &new_series);
+    ssc_data_get_number(data, "batt_computed_bank_capacity", &new_capacity);
+    ssc_data_get_number(data, "batt_mass", &new_mass);
+    ssc_data_get_number(data, "batt_surface_area", &new_surface_area);
+
+    EXPECT_NEAR(600.0, new_series * new_vnom, 2.0); // 4 V cells, assume we can get within half of that
+    EXPECT_NEAR(20.0, new_capacity, 0.5);
+    EXPECT_NEAR(101.35, new_mass, m_error_tolerance_hi);
+    EXPECT_NEAR(0.6953, new_surface_area, m_error_tolerance_lo);
+}
+
+TEST_F(CMBatteryEqns_cmod_battery_eqns, TestCmodBatterySizeModificationsErrorHandling) {
+    data = ssc_data_create();
+    battery_data_default(data);
+    utility_rate5_default(data);
+    cashloan_default(data);
+
+    ssc_data_set_number(data, "desired_voltage", 240.0); // Increase voltage from 500 V
+    ssc_data_set_number(data, "desired_capacity", 4.0); // Increase capacity from 10 kWh
+    ssc_data_set_number(data, "desired_power", 1.0); // Increase power from 5 kW
+
+    Size_battery(data);
+    
+    std::string error = ssc_data_get_string(data, "error");
+    ASSERT_EQ("Could not meet desired battery capacity. Consider adjusting the desired voltage, or battery cell properties.", error);
+}

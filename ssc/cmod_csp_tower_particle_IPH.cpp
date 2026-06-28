@@ -92,7 +92,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 
     // Solar field
     { SSC_INPUT,     SSC_NUMBER, "field_model_type",                   "0=optimize field and tower/receiver geometry, 1=design field, 2=user specified field, 3=user flux and eta map, pass heliostat_positions to SolarPILOT for layout, 4=user flux and eta maps, no SolarPILOT, input A_sf_in, total_land_area_in, and N_hel", "", "", "Heliostat Field", "*",                      "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "aim_point_method",                   "0=simple aim points, 1=image size priority",                                                                                              "",             "",                                  "Heliostat Field",                          "?=0",                                                              "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "aim_method",                          "0=simple aim points, 3=image size priority",                                                                                               "",              "",                                   "Heliostat Field",                           "?=0",                                                               "",               ""},
     { SSC_INPUT,     SSC_NUMBER, "sigma_limit_x",                      "Min. image offset from receiver edge, X (std. dev.)",                                                                                     "",             "",                                  "Heliostat Field",                          "?=2.0",                                                            "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "sigma_limit_y",                      "Min. image offset from receiver edge, Y (std. dev.)",                                                                                     "",             "",                                  "Heliostat Field",                          "?=2.0",                                                            "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "is_design_field_for_sim_type_2",     "0 = no (default), design-only call to cmod will use heliostat_positions, 1 = use SolarPILOT to layout field during design call to cmod (takes time)", "", "",                                  "Heliostat Field",                          "?=0",                                                              "",              ""},
@@ -314,7 +314,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_INPUT,     SSC_NUMBER, "site_spec_cost",                     "Site improvement cost",                                                                                                                   "$/m2",         "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "heliostat_spec_cost",                "Heliostat field cost",                                                                                                                    "$/m2",         "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "plant_spec_cost",                    "Power cycle specific cost",                                                                                                               "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              ""},
-{ SSC_INPUT,     SSC_NUMBER, "bop_spec_cost",                      "BOS specific cost",                                                                                                                       "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              ""},
+{ SSC_INPUT,     SSC_NUMBER, "bop_spec_cost",                      "BOS specific cost",                                                                                                                       "$/kWt",        "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "tes_cost_model",                     "TES cost model type (0 = Energy based, 1 = Detailed)",                                                                                    "",             "",                                  "System Costs",                             "?=1",                                                              "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "tes_spec_cost",                      "Thermal energy storage cost",                                                                                                             "$/kWht",       "",                                  "System Costs",                             "tes_cost_model=0",                                                 "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "tes_cost_per_mass",                  "Thermal energy storage cost per mass",                                                                                                    "$/kg",         "",                                  "System Costs",                             "*",                                                                "",              ""},
@@ -326,7 +326,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_INPUT,     SSC_NUMBER, "sales_tax_rate",                     "Sales tax rate",                                                                                                                          "%",            "",                                  "Financial Parameters",                     "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "sales_tax_frac",                     "Percent of cost to which sales tax applies",                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "cost_sf_fixed",                      "Solar field fixed cost",                                                                                                                  "$",            "",                                  "System Costs",                             "*",                                                                "",              ""},
-{ SSC_INPUT,     SSC_NUMBER, "fossil_spec_cost",                   "Fossil system specific cost",                                                                                                             "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              ""},
+{ SSC_INPUT,     SSC_NUMBER, "fossil_spec_cost",                   "Fossil system specific cost",                                                                                                             "$/kWt",        "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.per_acre",           "EPC cost per acre",                                                                                                                       "$/acre",       "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.percent",            "EPC cost percent of direct",                                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.per_watt",           "EPC cost per watt",                                                                                                                       "$/W",          "",                                  "System Costs",                             "*",                                                                "",              ""},
@@ -378,8 +378,8 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
     // land area with variable name required by downstream financial model
 { SSC_OUTPUT,    SSC_NUMBER, "total_land_area",                    "Total land area",                                                                                                                         "acre",         "",                                  "System Costs",                             "*",                                                                "",              ""},
 // System capacity required by downstream financial model
-{ SSC_OUTPUT,    SSC_NUMBER, "system_capacity",                    "System capacity",                                                                                                                         "kWe",          "",                                  "System Costs",                             "*",                                                                "",              ""},
-{ SSC_OUTPUT,    SSC_NUMBER, "cp_system_nameplate",                "System capacity for capacity payments",                                                                                                   "MWe",          "",                                  "System Costs",                             "*",                                                                "",              ""},
+{ SSC_OUTPUT,    SSC_NUMBER, "system_capacity",                    "System capacity",                                                                                                                         "kWt",          "",                                  "System Costs",                             "*",                                                                "",              ""},
+{ SSC_OUTPUT,    SSC_NUMBER, "cp_system_nameplate",                "System capacity for capacity payments",                                                                                                   "MWt",          "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "cp_battery_nameplate",               "Battery nameplate",                                                                                                                       "MWe",          "",                                  "System Costs",                             "*",                                                                "",              ""},
 
 // Solar Field
@@ -458,7 +458,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_NUMBER, "m_tes_total_des",                    "TES medium total mass",                                                                                                                   "kg",           "",                                 "TES Design Calc",                          "*",                                                                "",              ""},
 
 // Balance of Plant
-{ SSC_OUTPUT,    SSC_NUMBER, "nameplate",                          "Nameplate capacity",                                                                                                                      "MWe",          "",                                 "System Design Calc",                       "*",                                                                "",              ""},
+{ SSC_OUTPUT,    SSC_NUMBER, "nameplate",                          "Nameplate capacity",                                                                                                                      "MWt",          "",                                 "System Design Calc",                       "*",                                                                "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "W_dot_bop_design",                   "BOP parasitics at design",                                                                                                                "MWe",          "",                                 "Balance of Plant",                         "*",                                                                "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "W_dot_fixed",                        "Fixed parasitic at design",                                                                                                               "MWe",          "",                                 "Balance of Plant",                         "*",                                                                "",              ""},
 
@@ -520,7 +520,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_ARRAY,  "beam",                               "Resource beam normal irradiance",                                                                                                         "W/m2",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "tdry",                               "Resource dry Bulb temperature",                                                                                                           "C",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "twet",                               "Resource wet Bulb temperature",                                                                                                           "C",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "rh",                                 "Resource relative humidity",                                                                                                              "%",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "wspd",                               "Resource wind velocity",                                                                                                                  "m/s",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "wdir",                               "Resource wind direction",                                                                                                                 "deg",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
@@ -583,23 +582,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_ARRAY,  "T_htf_heater_in",                    "Parallel heater HTF inlet temperature",                                                                                                   "C",            "",                                  "Parallel Heater",                          "sim_type=1&is_parallel_htr=1",                                     "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "T_htf_heater_out",                   "Parallel heater HTF outlet temperature",                                                                                                  "C",            "",                                  "Parallel Heater",                          "sim_type=1&is_parallel_htr=1",                                     "",              ""},
 
-// Power cycle outputs
-{ SSC_OUTPUT,    SSC_ARRAY,  "eta",                                "PC efficiency, gross",                                                                                                                    "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "q_pb",                               "PC input energy",                                                                                                                         "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "m_dot_pc",                           "PC HTF mass flow rate",                                                                                                                   "kg/s",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "q_pc_startup",                       "PC startup thermal energy",                                                                                                               "MWht",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "q_dot_pc_startup",                   "PC startup thermal power",                                                                                                                "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "P_cycle",                            "PC electrical power output, gross",                                                                                                       "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "T_pc_in",                            "PC HTF inlet temperature",                                                                                                                "C",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "T_pc_out",                           "PC HTF outlet temperature",                                                                                                               "C",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "m_dot_water_pc",                     "PC water consumption, makeup + cooling",                                                                                                  "kg/s",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "T_cond_out",                         "PC condenser water outlet temperature",                                                                                                   "C",            "",                                  "PC",                                       "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "P_cond",                             "PC condensing pressure",                                                                                                                  "Pa",           "",                                  "PC",                                       "?",                                                                "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "P_cond_iter_err",                    "PC condenser pressure iteration error",                                                                                                   "",             "",                                  "PC",                                       "?",                                                                "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "cycle_htf_lift_power",               "Cycle HTF particle lift power",                                                                                                                    "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_ARRAY,  "P_cooling_tower_tot",                "Parasitic power condenser operation",                                                                                                     "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-
-
 // Thermal energy storage outputs
 { SSC_OUTPUT,    SSC_ARRAY,  "tank_losses",                        "TES thermal losses",                                                                                                                      "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "q_heater",                           "TES bin heater power",                                                                                                             "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -617,13 +599,12 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_ARRAY,  "m_dot_field_to_cycle",               "Mass flow: field to cycle",                                                                                                               "kg/s",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "m_dot_cycle_to_field",               "Mass flow: cycle to field",                                                                                                               "kg/s",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
-
 // Parasitics outputs
 { SSC_OUTPUT,    SSC_ARRAY,  "P_fixed",                            "Parasitic power fixed load",                                                                                                              "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "P_plant_balance_tot",                "Parasitic power generation-dependent load",                                                                                               "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
 // System outputs
-{ SSC_OUTPUT,    SSC_ARRAY,  "P_out_net",                          "Total electric power to grid",                                                                                                            "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
+{ SSC_OUTPUT,    SSC_ARRAY,  "P_out_net",                          "Net electric parasitic power",                                                                                                            "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
 // Controller outputs
 { SSC_OUTPUT,    SSC_ARRAY,  "tou_value",                          "CSP operating time-of-use value",                                                                                                         "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -682,9 +663,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 // Annual single-value outputs
 { SSC_OUTPUT,    SSC_NUMBER, "cost_particle_loss_year1",           "Cost of replacement particles in year 1",                                                                                                 "$",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
-{ SSC_OUTPUT,    SSC_NUMBER, "annual_energy",                      "Annual total electric power to grid",                                                                                                     "kWhe",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_NUMBER, "annual_W_cycle_gross",               "Electrical source - power cycle gross output",                                                                                            "kWhe",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_NUMBER, "annual_W_cooling_tower",             "Total of condenser operation parasitics",                                                                                                 "kWhe",         "",                                  "PC",                                       "sim_type=1",                                                       "",              ""},
+{ SSC_OUTPUT,    SSC_NUMBER, "annual_energy",                      "Annual thermal energy",                                                                                                                   "kWht",         "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "annual_q_rec_inc",                   "Annual receiver incident thermal power",                                                                                                  "MWt-hr",       "",                                  "Tower and Receiver",                       "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "annual_q_rec_reflection_loss",       "Annual receiver reflection losses",                                                                                                       "MWt-hr",       "",                                  "Tower and Receiver",                       "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "annual_q_rec_thermal_loss",          "Annual receiver advective and radiative losses",                                                                                          "MWt-hr",       "",                                  "Tower and Receiver",                       "sim_type=1",                                                       "",              ""},
@@ -692,7 +671,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_NUMBER, "particles_lost_per_year",            "Particles lost per year",                                                                                                                 "kg",           "",                                  "Tower and Receiver",                       "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "annual_eta_rec",                     "Annual receiver efficiency including reflective, advective, radiative loss",                                                              "",             "",                                  "Tower and Receiver",                       "sim_type=1",                                                       "",              ""},
 
-{ SSC_OUTPUT,    SSC_NUMBER, "conversion_factor",                  "Gross to net conversion factor",                                                                                                          "%",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "capacity_factor",                    "Capacity factor",                                                                                                                         "%",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "sales_energy_capacity_factor",       "Capacity factor considering only positive net generation periods",                                                                        "%",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "kwh_per_kw",                         "First year kWh/kW",                                                                                                                       "kWh/kW",       "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -2025,8 +2003,7 @@ public:
             N_mspt::bop_cost(W_dot_design, as_double("bop_spec_cost"));
         assign("csp.pt.cost.bop", (ssc_number_t)bop_cost);
 
-        double fossil_backup_cost =
-            N_mspt::fossil_backup_cost(W_dot_design, as_double("fossil_spec_cost"));
+        double fossil_backup_cost = 0.0;   // no fossil backup heater in this heat plant
         assign("csp.pt.cost.fossil", (ssc_number_t)fossil_backup_cost);
 
         double heater_cost =
@@ -2172,37 +2149,17 @@ public:
             log(out_msg, out_type);
         }
 
-        // Do unit post-processing here
-        double *p_q_pc_startup = allocate("q_pc_startup", n_steps_fixed);
-        size_t count_pc_su = 0;
-        ssc_number_t *p_q_dot_pc_startup = as_array("q_dot_pc_startup", &count_pc_su);
-        if( count_pc_su != n_steps_fixed )
+        // Convert receiver mass flow rate from [kg/hr] to [kg/s]
+        size_t count_m_dot_rec = 0;
+        ssc_number_t* p_m_dot_rec = as_array("m_dot_rec", &count_m_dot_rec);
+        if (count_m_dot_rec != n_steps_fixed)
         {
-            log("q_dot_pc_startup array is a different length than 'n_steps_fixed'.", SSC_WARNING);
-            return;
-        }
-        for( size_t i = 0; i < n_steps_fixed; i++ )
-        {
-            p_q_pc_startup[i] = (float)(p_q_dot_pc_startup[i] * (sim_setup.m_report_step / 3600.0));    //[MWh]
-        }
-
-        // Convert mass flow rates from [kg/hr] to [kg/s]
-        size_t count_m_dot_pc, count_m_dot_rec, count_m_dot_water_pc;
-        count_m_dot_pc = count_m_dot_rec = count_m_dot_water_pc = 0;
-        ssc_number_t *p_m_dot_rec = as_array("m_dot_rec", &count_m_dot_rec);
-        ssc_number_t *p_m_dot_pc = as_array("m_dot_pc", &count_m_dot_pc);
-        ssc_number_t *p_m_dot_water_pc = as_array("m_dot_water_pc", &count_m_dot_water_pc);
-        if (count_m_dot_rec != n_steps_fixed || count_m_dot_pc != n_steps_fixed || count_m_dot_water_pc != n_steps_fixed)
-        {
-            log("At least one m_dot array is a different length than 'n_steps_fixed'.", SSC_WARNING);
+            log("m_dot_rec array is a different length than 'n_steps_fixed'.", SSC_WARNING);
             return;
         }
         for (size_t i = 0; i < n_steps_fixed; i++) {
             p_m_dot_rec[i] = (ssc_number_t)(p_m_dot_rec[i] / 3600.0);   //[kg/s] convert from kg/hr
-            p_m_dot_pc[i] = (ssc_number_t)(p_m_dot_pc[i] / 3600.0);     //[kg/s] convert from kg/hr
-            p_m_dot_water_pc[i] = (ssc_number_t)(p_m_dot_water_pc[i] / 3600.0); //[kg/s] convert from kg/hr
         }
-
 
         // Set output data from heliostat class  
         size_t n_rows_eta_map = heliostatfields.at(0)->ms_params.m_eta_map.nrows();                     // Number of solar positions (same for all receivers)
@@ -2280,7 +2237,7 @@ public:
         accumulate_annual_for_year("q_dot_rec_inc", "annual_q_rec_inc", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);           //[MWt-hr]
         accumulate_annual_for_year("q_reflection_loss", "annual_q_rec_reflection_loss", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
         accumulate_annual_for_year("q_thermal_loss", "annual_q_rec_thermal_loss", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
-        accumulate_annual_for_year("m_dot_rec", "annual_rec_mass_throughput", sim_setup.m_report_step, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
+        accumulate_annual_for_year("m_dot_rec", "annual_rec_mass_throughput", sim_setup.m_report_step, steps_per_hour, 1, n_steps_fixed / steps_per_hour);   //[kg]
         assign("annual_eta_rec", (ssc_number_t)(1.0 - (as_number("annual_q_rec_thermal_loss") + as_number("annual_q_rec_reflection_loss")) / as_number("annual_q_rec_inc")));
 
         // Update fixed O&M based on receiver throughput
@@ -2338,19 +2295,11 @@ public:
         }
         assign("avg_suboptimal_rel_mip_gap", (ssc_number_t)avg_gap);
 
-        // Calculated Outputs
-            // First, sum power cycle water consumption timeseries outputs
-        accumulate_annual_for_year("m_dot_water_pc", "annual_total_water_use", sim_setup.m_report_step / 1000.0, steps_per_hour, 1, n_steps_fixed/steps_per_hour); //[m^3], convert from kg
-        // Then, add water usage from mirror cleaning
-        ssc_number_t V_water_cycle = as_number("annual_total_water_use");
         double V_water_mirrors = as_double("water_usage_per_wash") / 1000.0 * tot_A_sf * as_double("washing_frequency");
-        assign("annual_total_water_use", (ssc_number_t)(V_water_cycle + V_water_mirrors));
+        assign("annual_total_water_use", (ssc_number_t)V_water_mirrors);
 
-        ssc_number_t ae = as_number("annual_energy");           //[kWe-hr]
-        ssc_number_t pg = as_number("annual_W_cycle_gross");    //[kWe-hr]
-        ssc_number_t annual_sales_energy = as_number("annual_sales_energy");        //[kWe-hr]
-        ssc_number_t convfactor = (pg != 0) ? 100 * ae / pg : (ssc_number_t)0.0;
-        assign("conversion_factor", convfactor);
+        ssc_number_t ae = as_number("annual_energy");           //[kWht]
+        ssc_number_t annual_sales_energy = as_number("annual_sales_energy");        //[kWht]
 
         double kWh_per_kW = 0.0;
         double kWh_sales_energy_per_kW_nameplate = 0.0;

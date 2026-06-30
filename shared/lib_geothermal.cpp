@@ -260,9 +260,13 @@ namespace geothermal
 	// Enthalpy and Entropy Constants
 	CPolynomial oAmbientEnthalpyConstants(-31.76958886, 0.997066497, 0.00001087);
 	CPolynomial oAmbientEntropyConstants(-0.067875028480951, 0.002201824618666, -0.000002665154152, 0.000000004390426, -0.000000000004355);
-	CPolynomial oBinaryEnthalpyConstants(-24.113934502, 0.83827719984, 0.0013462856545, -5.9760546933E-6, 1.4924845946E-8, -1.8805783302E-11, 1.0122595469E-14);
-	CPolynomial oBinaryEntropyConstants(-0.060089552413, 0.0020324314656, -1.2026247967E-6, -1.8419111147E-09, 8.8430105661E-12, -1.2945213491E-14, 7.3991541798E-18);
-	CPolynomial oFlashEnthalpyConstants(-32.232886, 1.0112508, -0.00013079803, 0.00000050269721, -0.00000000050170088, 1.5041709E-13, 7.0459062E-16);
+
+    CPolynomial oBinaryEnthalpyConstants(-24.113934502, 0.83827719984, 0.0013462856545, -5.9760546933E-6, 1.4924845946E-8, -1.8805783302E-11, 1.0122595469E-14);
+
+    // Table on Page 134 of Getem manual. Units BTU/lb-R
+    CPolynomial oBinaryEntropyConstants(-0.060089552413, 0.0020324314656, -1.2026247967E-6, -1.8419111147E-09, 8.8430105661E-12, -1.2945213491E-14, 7.3991541798E-18);
+
+    CPolynomial oFlashEnthalpyConstants(-32.232886, 1.0112508, -0.00013079803, 0.00000050269721, -0.00000000050170088, 1.5041709E-13, 7.0459062E-16);
 	CPolynomial oFlashEntropyConstants(-0.067756238, 0.0021979159, -0.0000026352004, 0.0000000045293969, -6.5394475E-12, 6.2185729E-15, -2.2525163E-18);
 
 	// specific volume calculation constants
@@ -468,7 +472,8 @@ namespace geothermal
 	private:
 		double GetAEForBinaryBTU(double tempHighF, double tempLowF)
 		{
-			return (oBinaryEnthalpyConstants.evaluate(tempHighF) - oAmbientEnthalpyConstants.evaluate(tempLowF)) - ((tempLowF + 460) * (oBinaryEntropyConstants.evaluate(tempHighF) - oAmbientEntropyConstants.evaluate(tempLowF)));
+            double spec_availibility = (oBinaryEnthalpyConstants.evaluate(tempHighF) - oAmbientEnthalpyConstants.evaluate(tempLowF)) - ((tempLowF + 460) * (oBinaryEntropyConstants.evaluate(tempHighF) - oAmbientEntropyConstants.evaluate(tempLowF)));
+            return spec_availibility;
 		}
 
 		double GetAEForFlashBTU(double tempHighF, double tempLowF)
@@ -533,10 +538,13 @@ double CGeothermalAnalyzer::PlantGrossPowerkW(void)
     case MA_BINARY:
     {
         //dPlantBrineEfficiency = MaxSecondLawEfficiency() * FractionOfMaxEfficiency() * ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE());				//MaxSecondLawEfficiency() * FractionOfMaxEfficiency() * GetAEBinaryAtTemp(md_WorkingTemperatureC);
-        double frac_max_eff = FractionOfMaxEfficiency();    //[-]
+        double frac_max_eff = FractionOfMaxEfficiency();    //[-] cycle off-design adjustment
         mp_geo_out->md_frac_max_eff = frac_max_eff;         //[-]
 
-        double max_2nd_law_eff = MaxSecondLawEfficiency();    //[-]
+        //2026.06.26 max_2nd_law_eff increases as ambient temperature increases because the E ratio gets smaller because E_at_T_brine_min gets small fast
+        //  ... at design, this trend is ok, i guess, if corrected by a reduced design point efficiency input
+        //  ... at off-design, an increase in max_2nd_law_eff should not cancel out reduced E_avail, at the very least
+        double max_2nd_law_eff = MaxSecondLawEfficiency();    //[-] 1 - E_at_T_brine_min/E_at_design_resource - 0.375
         mp_geo_out->md_max_secondlaw = max_2nd_law_eff;       //[-]
 
         double E_avail = GetAEBinaryAtTemp(md_WorkingTemperatureC - DT_prod_well(mo_geo_in.md_dtProdWellChoice));  //[watt-hr/lb]
@@ -577,11 +585,21 @@ double CGeothermalAnalyzer::MaxSecondLawEfficiency()
 	// this leads to Plant brine effectiveness higher than input values
 	// which leads to actual plant output(after pumping losses) > design output (before pump losses) ??
 	// which leads to relative revenue > 1 ??
-	double dGetemAEForSecondLaw = (me_makeup == MA_BINARY || me_makeup == MA_EGS_BINARY) ? GetAEBinary() : GetAE(); // GETEM uses the correct ambient temperature, but it always uses Binary constants, even if flash is chosen as the conversion technology
-    //double dGetemAEForSecondLaw = GetAEBinary();
-    mp_geo_out->eff_secondlaw = GetPlantBrineEffectiveness() / dGetemAEForSecondLaw;	//2nd law efficiency used in direct plant cost calculations. This is NOT the same as the MAX 2nd law efficiency.
-	if (me_makeup == MA_BINARY || me_makeup == MA_EGS_BINARY)
-		return (mp_geo_out->max_secondlaw);
+
+    // GETEM uses the correct ambient temperature, but it always uses Binary constants, even if flash is chosen as the conversion technology
+    double dGetemAEForSecondLaw = std::numeric_limits<double>::quiet_NaN();
+    if( me_makeup == MA_BINARY || me_makeup == MA_EGS_BINARY ) {
+        dGetemAEForSecondLaw = GetAEBinary();
+    }
+    else{
+        dGetemAEForSecondLaw = GetAE();
+    }
+
+    double PlantBrineEffectiveness = GetPlantBrineEffectiveness();
+    mp_geo_out->eff_secondlaw = PlantBrineEffectiveness / dGetemAEForSecondLaw;	    //[-] 2nd law efficiency used in direct plant cost calculations. This is NOT the same as the MAX 2nd law efficiency.
+
+    if (me_makeup == MA_BINARY || me_makeup == MA_EGS_BINARY)
+		return (mp_geo_out->max_secondlaw);     // mp_geo_out->max_secondlaw is set in GetPlantBrineEffectiveness
 	else
 		return (GetPlantBrineEffectiveness() / dGetemAEForSecondLaw);
 }
@@ -1710,35 +1728,59 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
 
 double CGeothermalAnalyzer::GetPlantBrineEffectiveness(void)
 {
-	/*
-	double dTemperaturePlantDesignF = physics::CelciusToFarenheit(GetTemperaturePlantDesignC());
-	double exitTempLowF = (0.8229 * dTemperaturePlantDesignF ) - 127.71;
-	double exitTempHighF = (0.00035129 * pow(dTemperaturePlantDesignF,2)) + (0.69792956 * dTemperaturePlantDesignF) - 159.598;
-	double dTemperatureGFExitF = 109.31;// (GetTemperaturePlantDesignC() < 180) ? exitTempLowF : exitTempHighF;  // degrees farenheit - exit temperature for geothermal fluid
-	double dTemperatureGFExitC = physics::FarenheitToCelcius(dTemperatureGFExitF);	//physics::FarenheitToCelcius();
-	double dAE_At_Exit = GetAEAtTemp(dTemperatureGFExitC); // watt-hr/lb - Calculate available energy using binary constants and plant design temp (short cut)
-	*/
-	double TSiO2 = -(0.0000001334837*pow(GetTemperaturePlantDesignC(), 4)) + (0.0000706584462*pow(GetTemperaturePlantDesignC(), 3)) - (0.0036294799613*pow(GetTemperaturePlantDesignC(), 2)) + (0.3672417729236*GetTemperaturePlantDesignC()) + 4.205944351495;
-	double TamphSiO2 = (0.0000000000249634* pow(TSiO2, 4)) - (0.00000000425191 * pow(TSiO2, 3)) - (0.000119669*pow(TSiO2, 2)) + (0.307616*TSiO2) - 0.294394;
+    if(mo_geo_in.me_ct == FLASH){
+
+        return FlashBrineEffectiveness();
+    }
+    else {
+
+        /*
+        double dTemperaturePlantDesignF = physics::CelciusToFarenheit(GetTemperaturePlantDesignC());
+        double exitTempLowF = (0.8229 * dTemperaturePlantDesignF ) - 127.71;
+        double exitTempHighF = (0.00035129 * pow(dTemperaturePlantDesignF,2)) + (0.69792956 * dTemperaturePlantDesignF) - 159.598;
+        double dTemperatureGFExitF = 109.31;// (GetTemperaturePlantDesignC() < 180) ? exitTempLowF : exitTempHighF;  // degrees farenheit - exit temperature for geothermal fluid
+        double dTemperatureGFExitC = physics::FarenheitToCelcius(dTemperatureGFExitF);	//physics::FarenheitToCelcius();
+        double dAE_At_Exit = GetAEAtTemp(dTemperatureGFExitC); // watt-hr/lb - Calculate available energy using binary constants and plant design temp (short cut)
+        */
+
+        double T_plant_design_C = GetTemperaturePlantDesignC();     //[C]
+
+        double TSiO2 = -(0.0000001334837 * pow(GetTemperaturePlantDesignC(), 4)) + (0.0000706584462 * pow(GetTemperaturePlantDesignC(), 3)) - (0.0036294799613 * pow(GetTemperaturePlantDesignC(), 2)) + (0.3672417729236 * GetTemperaturePlantDesignC()) + 4.205944351495;
+        double TamphSiO2 = (0.0000000000249634 * pow(TSiO2, 4)) - (0.00000000425191 * pow(TSiO2, 3)) - (0.000119669 * pow(TSiO2, 2)) + (0.307616 * TSiO2) - 0.294394;
 
 
 
-	//	double dTemperatureGFExitF = physics::CelciusToFarenheit(TamphSiO2); //109.31
+        //	double dTemperatureGFExitF = physics::CelciusToFarenheit(TamphSiO2); //109.31
 
-	double dAE_At_Exit = GetAEAtTemp(TamphSiO2);
-
-
-	// GETEM's "optimizer" seems to pick the max possible brine effectiveness for the default binary plant, so use this as a proxy for now
+        double dAE_At_Exit = GetAEAtTemp(TamphSiO2);
 
 
+        // GETEM's "optimizer" seems to pick the max possible brine effectiveness for the default binary plant, so use this as a proxy for now
 
-//	double dAEMaxPossible = (geothermal::IMITATE_GETEM) ? GetAEBinary() -  GetAEBinaryAtTemp(TamphSiO2) : GetAE() - dAE_At_Exit; // watt-hr/lb - [10B.GeoFluid].H54 "maximum possible available energy accounting for the available energy lost due to a silica constraint on outlet temperature"
 
-	mp_geo_out->max_secondlaw = (1 - ((geothermal::IMITATE_GETEM) ? GetAEBinaryAtTemp(TamphSiO2) / GetAEBinary() : dAE_At_Exit / GetAE()) - 0.375);
-	//double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * ((GetTemperaturePlantDesignC() < 150) ? 0.14425 * exp(0.008806 * GetTemperaturePlantDesignC()) : mp_geo_out->max_secondlaw);
-    double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * (mp_geo_out->max_secondlaw);
 
-	return (mo_geo_in.me_ct == FLASH) ? FlashBrineEffectiveness() : dMaxBinaryBrineEffectiveness * mo_geo_in.md_PlantEfficiency;
+    //	double dAEMaxPossible = (geothermal::IMITATE_GETEM) ? GetAEBinary() -  GetAEBinaryAtTemp(TamphSiO2) : GetAE() - dAE_At_Exit; // watt-hr/lb - [10B.GeoFluid].H54 "maximum possible available energy accounting for the available energy lost due to a silica constraint on outlet temperature"
+
+        double dMaxBinaryBrineEffectiveness = std::numeric_limits<double>::quiet_NaN();
+        double AE = GetAE();
+        double AEBinary = GetAEBinary();
+        if( geothermal::IMITATE_GETEM ){
+
+            mp_geo_out->max_secondlaw = (1 - (GetAEBinaryAtTemp(TamphSiO2) / GetAEBinary()) - 0.375);
+            dMaxBinaryBrineEffectiveness = GetAEBinary() * (mp_geo_out->max_secondlaw);
+        }
+        else {
+
+            mp_geo_out->max_secondlaw = (1 - (dAE_At_Exit / GetAE()) - 0.375);
+            dMaxBinaryBrineEffectiveness = GetAE() * (mp_geo_out->max_secondlaw);
+        }
+
+        
+        //double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * ((GetTemperaturePlantDesignC() < 150) ? 0.14425 * exp(0.008806 * GetTemperaturePlantDesignC()) : mp_geo_out->max_secondlaw);
+        //double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * (mp_geo_out->max_secondlaw);
+
+        return dMaxBinaryBrineEffectiveness * mo_geo_in.md_PlantEfficiency;     //[W-hr/lb_m] 
+    }
 }
 
 double CGeothermalAnalyzer::calculateX(double enthalpyIn, double temperatureF)

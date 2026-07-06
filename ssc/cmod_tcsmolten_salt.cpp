@@ -913,6 +913,31 @@ static var_info vtab_battery_csp_outputs[] = {
 
     var_info_invalid };
 
+static var_info vtab_battery_costs_io[] = {
+
+// VARTYPE       DATATYPE    NAME                                  LABEL                                                            UNITS           META     GROUP                  REQUIRED_IF     CONSTRAINTS      UI_HINTS
+    { SSC_INPUT, SSC_NUMBER, "batt_cost_per_kwh",                  "Battery cost per kWh (DC)",                                     "$/kWh",        "",      "BatterySystem",       "",             "",              "" }, 
+    { SSC_INPUT, SSC_NUMBER, "batt_cost_per_kw",                   "Battery cost per kW (DC)",                                      "$/kW",         "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "batt_contingency_rate",              "Battery contingency rate (% of direct costs)",                  "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "batt_eng_EPC_cost",                  "Battery engineering and other EPC costs (% of direct costs)",   "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "batt_eng_EPC_cost_fixed",            "Battery engineering and other EPC costs (fixed costs)",         "$",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "batt_permit_EPC_cost",               "Battery permitting and other EPC costs (% of direct costs)",    "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "batt_permit_EPC_cost_fixed",         "Battery permitting and other EPC costs (fixed costs)",          "$",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "batt_sales_tax_basis",               "Battery sales tax basis as percent of direct cost",             "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "batt_sales_tax_rate",                "Battery sales tax rate",                                        "%",            "",      "BatterySystem",       "",             "",              "" },
+
+    // TODO: How do we want to handle replacement costs?
+    //{ SSC_INPUT, SSC_ARRAY,  "om_replacement_cost1",               "Cost to replace battery per kWh",                               "$/kWh",        "",      "BatterySystem",       "",             "",              "" },
+    
+    { SSC_OUTPUT, SSC_NUMBER, "batt_total_direct_cost",            "Battery total direct cost",                                     "$",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_OUTPUT, SSC_NUMBER, "batt_total_indirect_cost",          "Battery total indirect cost",                                   "$",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_OUTPUT, SSC_NUMBER, "batt_total_sales_tax",              "Battery total sales tax",                                       "$",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_OUTPUT, SSC_NUMBER, "batt_total_installed_cost",         "Battery total installed cost",                                  "$",            "",      "BatterySystem",       "",             "",              "" },
+
+    //{ SSC_OUTPUT, SSC_NUMBER, "batt_total_replacement_cost",       "Battery total replacement cost over lifetime",                 "$",            "",      "BatterySystem",       "",             "",              "" },
+var_info_invalid };
+
+
 bool SortByDouble(const pair<int, double>& lhs,
     const pair<int, double>& rhs);
 
@@ -928,6 +953,7 @@ public:
         add_var_info(vtab_technology_outputs);
         // Battery inputs - Starting with the stateful model for now
         add_var_info(vtab_battery_stateful_inputs);     // TODO: how should we handle required inputs? Breaks UI
+        add_var_info(vtab_battery_costs_io);
         add_var_info(vtab_battery_csp_outputs);
     } 
 
@@ -3163,7 +3189,37 @@ public:
         }
         // *****************************************************
         // *****************************************************
+        // Battery Cost Calculations
+        // *****************************************************
+        if (is_battery_included) {
+            double batt_cost_per_kwh = as_double("batt_cost_per_kwh");
+            double batt_cost_per_kw = as_double("batt_cost_per_kw");
+            double batt_contingency_rate = as_double("batt_contingency_rate");
+            double batt_eng_EPC_cost = as_double("batt_eng_EPC_cost");
+            double batt_eng_EPC_cost_fixed = as_double("batt_eng_EPC_cost_fixed");
+            double batt_permit_EPC_cost = as_double("batt_permit_EPC_cost");
+            double batt_permit_EPC_cost_fixed = as_double("batt_permit_EPC_cost_fixed");
+            double batt_sales_tax_basis = as_double("batt_sales_tax_basis");
+            double batt_sales_tax_rate = as_double("batt_sales_tax_rate");
 
+            // TODO: Check these -> nominal power could be handled differently...
+            double batt_nominal_capacity_kwh = battery->params->nominal_energy;
+            double batt_nominal_power_kw = battery->params->voltage->dynamic.C_rate * batt_nominal_capacity_kwh;
+
+            double batt_direct_cost = batt_nominal_capacity_kwh * batt_cost_per_kwh + batt_nominal_power_kw * batt_cost_per_kw;
+            batt_direct_cost *= (1.0 + ( batt_contingency_rate * 0.01));
+
+            double batt_total_indirect_cost = ((batt_eng_EPC_cost * 0.01) + (batt_permit_EPC_cost * 0.01)) * batt_direct_cost;
+            batt_total_indirect_cost += (batt_eng_EPC_cost_fixed + batt_permit_EPC_cost_fixed);
+
+            double batt_total_sales_tax = (batt_sales_tax_rate * 0.01) * (batt_sales_tax_basis * 0.01) * batt_direct_cost;
+            double batt_total_installed_cost = batt_direct_cost + batt_total_indirect_cost + batt_total_sales_tax;
+
+            assign("batt_total_direct_cost", (ssc_number_t)batt_direct_cost);
+            assign("batt_total_indirect_cost", (ssc_number_t)batt_total_indirect_cost);
+            assign("batt_total_sales_tax", (ssc_number_t)batt_total_sales_tax);
+            assign("batt_total_installed_cost", (ssc_number_t)batt_total_installed_cost);
+        }
 
         update("Begin timeseries simulation...", 0.0);
 

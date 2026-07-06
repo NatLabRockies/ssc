@@ -117,8 +117,8 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
         params.is_battery_included = true;
         double min_soc = pointers.battery->battery->SOC_min();
         double max_soc = pointers.battery->battery->SOC_max();
-        params.batt_soc_min = min_soc / 100.0;      // TODO: We could make these percentages within the dispatch model
-        params.batt_soc_max = max_soc / 100.0;
+        params.batt_soc_min = min_soc * 0.01;      // TODO: We could make these percentages within the dispatch model
+        params.batt_soc_max = max_soc * 0.01;
         params.batt_capacity = pointers.battery->battery->energy_max(100.0, 0.0) / 1.e3; // [kWh] -> [MWh]
 
         battery_state state = pointers.battery->battery->get_state();

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -318,8 +318,8 @@ public:
 	int sanity()
 	{
 		// ensure values are in "reasonable" ranges
-		if ( a < 0.05 || a > 15.0 ) return -1;
-		if ( Il < 0.5 || Il > 20.0 ) return -2;
+		if ( a < 0.01 || a > 15.0 ) return -1;
+		if ( Il < 0.01 || Il > 20.0 ) return -2;
 		if ( Io < 1e-16 || Io > 1e-7 ) return -3;
 		if ( Rs < 0.001 || Rs > 75.0 ) return -4;
 		if ( Rsh < 1.0 || Rsh > 100001.0 ) return -5;

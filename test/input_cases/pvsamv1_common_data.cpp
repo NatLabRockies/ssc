@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,9 @@ void pvsamv_nofinancial_default(ssc_data_t& data)
     ssc_data_set_number(data, "transformer_no_load_loss", 0);
     ssc_data_set_number(data, "transformer_load_loss", 0);
     ssc_data_set_number(data, "en_snow_model", 0);
+    ssc_data_set_number(data, "use_snow_weather_file", 1);
+    ssc_number_t snow_array[1] = { 0 };
+    ssc_data_set_array(data, "snow_array", snow_array, 1);
     ssc_data_set_number(data, "system_capacity", 4.6928696632385254);
     ssc_data_set_number(data, "use_wf_albedo", 0);
     ssc_number_t p_albedo[12] = { 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224 };
@@ -438,6 +441,7 @@ void belpe_default(ssc_data_t& data)
 */
 void battery_data_default(ssc_data_t& data) {
 	ssc_data_set_number(data, "en_batt", 0);
+	ssc_data_set_number(data, "en_standalone_batt", 0);
 	ssc_data_set_number(data, "batt_replacement_option", 0);
 
     ssc_data_set_number(data, "adjust_constant", 0.0);
@@ -553,7 +557,8 @@ void pvsamv1_with_residential_default(ssc_data_t& data)
     ssc_data_set_number(data, "transformer_no_load_loss", 0);
     ssc_data_set_number(data, "transformer_load_loss", 0);
     ssc_data_set_number(data, "system_use_lifetime_output", 0);
-    ssc_data_set_number(data, "analysis_period", 25);
+    ssc_data_set_number(data, "analysis_period", 2);
+
     ssc_number_t p_dc_degradation[1] = { 0.5 };
     ssc_data_set_array(data, "dc_degradation", p_dc_degradation, 1);
     ssc_data_set_number(data, "en_dc_lifetime_losses", 0);
@@ -567,6 +572,9 @@ void pvsamv1_with_residential_default(ssc_data_t& data)
     ssc_data_set_number(data, "use_wf_albedo", 0);
     ssc_number_t p_albedo[12] = { 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224 };
     ssc_data_set_array(data, "albedo", p_albedo, 12);
+    ssc_data_set_number(data, "use_snow_weather_file", 1);
+    ssc_number_t snow_array[1] = { 0 };
+    ssc_data_set_array(data, "snow_array", snow_array, 1);
     ssc_data_set_number(data, "irrad_mode", 0);
     ssc_data_set_number(data, "sky_model", 2);
     ssc_data_set_number(data, "inverter_count", 1);
@@ -942,8 +950,10 @@ void cashloan_default(ssc_data_t& data)
     ssc_data_set_array(data, "om_fuel_cost", p_om_fuel_cost, 1);
     ssc_data_set_number(data, "om_fuel_cost_escal", 0);
     ssc_number_t itc_amount[1] = { 0 };
-    ssc_number_t itc_fed_percent[1] = { 30 };
-    ssc_number_t itc_sta_percent[1] = { 25 };
+//    ssc_number_t itc_fed_percent[1] = { 30 };
+//    ssc_number_t itc_sta_percent[1] = { 25 };
+    ssc_number_t itc_fed_percent[1] = { 0 };
+    ssc_number_t itc_sta_percent[1] = { 0 };
     ssc_number_t itc_amount_max[1] = { 1e+38 };
     ssc_data_set_array(data, "itc_fed_amount", itc_amount, 1);
     ssc_data_set_array(data, "itc_sta_amount", itc_amount, 1);

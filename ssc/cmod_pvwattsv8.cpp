@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_snowmodel.h"
 #include "lib_sandia.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 #include "lib_cec6par.h"
 
 class lossdiagram
@@ -312,6 +313,7 @@ public:
         add_var_info(_cm_vtab_pvwattsv8);
         add_var_info(vtab_adjustment_factors);
         add_var_info(vtab_technology_outputs);
+        add_var_info(vtab_spectral_correction);
         add_var_info(vtab_hybrid_tech_om_outputs);
 
 
@@ -817,7 +819,7 @@ public:
         size_t idx_life = 0;
         float percent = 0;
         int n_alb_errs = 0;
-        double elev, pres, t_amb;
+        double elev, pres, t_amb, pwater;
         irrad irr;
         if (nyears > 1)
             irr.setup_solarpos_outputs_for_lifetime(nrec);
@@ -861,7 +863,13 @@ public:
                     if ((std::isfinite(wf.alb) && (wf.alb > 0 && wf.alb < 1)))
                         alb = wf.alb;
                     else
+                    {
+                        if (n_alb_errs < 5) // display warning up to 5 times
+                        {
+                            log(util::format("Invalid albedo input value %f [year:%d month:%d day:%d hour:%d minute:%lg]. Using default albedo value %f (snow) or %f (no snow). This warning only appears for the first five instances of this error.", wf.alb, wf.year, wf.month, wf.day, wf.hour, wf.minute, as_double("albedo_default_snow"), as_double("albedo_default")), SSC_NOTICE);
+                        }
                         n_alb_errs++;
+                    }
                 }
                 else
                 {
@@ -884,11 +892,6 @@ public:
                         alb = as_double("albedo_default_snow");
                     else
                         alb = as_double("albedo_default");
-                    if (!use_wf_albedo && n_alb_errs < 5) // display warning up to 5 times
-                    {
-                        log(util::format("Albedo input value is not valid for time step %d. Using default albedo value of %f (snow) or %f (no snow). This warning only appears for the first five instances of this error.", idx, as_double("albedo_default_snow"), as_double("albedo_default")), SSC_NOTICE);
-                        n_alb_errs++;
-                    }
                 }
 
                 // report albedo value as output
@@ -935,7 +938,7 @@ public:
                 irr.get_sun(&solazi, &solzen, &solalt, nullptr, nullptr, nullptr, &sunup, nullptr, nullptr, nullptr); //nullptr used when you don't need to retrieve the output
                 irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
                 irr.get_poa(&ibeam, &iskydiff, &ignddiff, nullptr, nullptr, nullptr); //nullptr used when you don't need to retrieve the output
-                irr.get_optional(&elev, &pres, &t_amb);
+                irr.get_optional(&elev, &pres, &t_amb, &pwater);
 
                 if (module.bifaciality > 0)
                 {
@@ -1239,11 +1242,13 @@ public:
                     // set up inputs to module model for both temperature and subsequent CEC module model calculations
                     // bifaciality is applied to irear on line 885 above for fixed arrays and line 962 for trackers - so, module.bifaciality should not be applied again here - SAM issue 1151
                     //pvinput_t in((f_nonlinear < 1.0 && poa > 0.0) ? ibeam_unselfshaded : ibeam, iskydiff, ignddiff, irear* module.bifaciality, poa_for_power,
+                    double scf = spectral_correction_factor(this, pwater, solzen, elev);
+
                     pvinput_t in((f_nonlinear < 1.0 && poa > 0.0) ? ibeam_unselfshaded : ibeam, iskydiff, ignddiff, irear, poa_for_power,
                         wf.tdry, wf.tdew, wf.wspd, wf.wdir, wf.pres,
                         solzen, aoi, elev,
                         stilt, sazi,
-                        ((double)wf.hour) + wf.minute / 60.0,
+                        ((double)wf.hour) + wf.minute / 60.0, scf,
                         irrad::DN_DF, false);
 
                     // module temperature calculations
@@ -1388,7 +1393,7 @@ public:
             }
 
             if (n_alb_errs > 0)
-                log(util::format("Weather file albedo has %d invalid values, using monthly value", (int)n_alb_errs), SSC_WARNING);
+                log(util::format("Weather file albedo has %d invalid values, using user-specified or default values for those time steps. See Albedo output variable.", (int)n_alb_errs), SSC_WARNING);
 
             wdprov->rewind();
         }

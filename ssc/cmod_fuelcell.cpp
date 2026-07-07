@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,6 +87,9 @@ var_info vtab_fuelcell_input[] = {
 	{ SSC_INPUT,        SSC_MATRIX,      "dispatch_manual_fuelcell_sched",             "Dispatch schedule for weekday",          "",          "",                 "Fuel Cell",                  "",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "dispatch_manual_fuelcell_sched_weekend",     "Dispatch schedule for weekend",          "",          "",                 "Fuel Cell",                  "",                        "",                              "" },
 
+    // Start day of week for manual dispatch arrays
+    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "Fuel Cell", "?=0", "", "" },
+
 	{ SSC_INOUT,        SSC_NUMBER,      "capacity_factor",                   "Capacity factor",                        "%",          "",                "",                           "?=0",                     "",                              "" },
 	{ SSC_INOUT,        SSC_NUMBER,      "annual_energy",                     "Annual AC energy in Year 1",                          "kWh",        "",                "",                           "?=0",                     "",                              "" },
 
@@ -141,7 +144,7 @@ void cm_fuelcell::construct()
 	fuelCell = std::move(tmp2);
 
 	std::unique_ptr<FuelCellDispatch> tmp3(new FuelCellDispatch(fuelCell.get(), fcVars->numberOfUnits,
-		fcVars->dispatchOption, fcVars->shutdownOption, fcVars->dt_hour, fcVars->fixed_percent, fcVars->dispatch_kW,
+		fcVars->dispatchOption, fcVars->shutdownOption, fcVars->dt_hour, fcVars->fixed_percent, fcVars->startDayOfYear, fcVars->dispatch_kW,
 		fcVars->canCharge, fcVars->canDischarge, fcVars->discharge_percentByPeriod, fcVars->discharge_unitsByPeriod,
 		fcVars->scheduleWeekday,fcVars->scheduleWeekend));
 	fuelCellDispatch = std::move(tmp3);
@@ -163,6 +166,21 @@ void cm_fuelcell::exec()
 		percent_complete = as_float("percent_complete");
 	}
 */
+    if (as_integer("fuelcell_dispatch_choice") == FuelCellDispatch::MANUAL) {
+
+        size_t max_period = 6;
+        util::matrix_t<size_t> m_scheduleWeekday = as_matrix_unsigned_long("dispatch_manual_fuelcell_sched");
+        util::matrix_t<size_t> m_scheduleWeekend = as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend");
+        size_t* discharge_schedule_vec = m_scheduleWeekday.data();
+        size_t* period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + m_scheduleWeekday.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
+        if (*period_num > max_period)
+            throw exec_error("fuelcell", "Invalid fuel cell manual dispatch period in weekday schedule. Period numbers must be less than or equal to 6.");
+
+        discharge_schedule_vec = m_scheduleWeekend.data();
+        period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + m_scheduleWeekend.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
+        if (*period_num > max_period)
+            throw exec_error("fuelcell", "Invalid fuel cell manual dispatch period in weekend schedule. Period numbers must be less than or equal to 6.");
+    }
 
 	construct();
 	size_t idx = 0;

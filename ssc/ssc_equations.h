@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -115,6 +115,9 @@ static ssc_equation_entry ssc_equation_table [] = {
             false, true},
 
         // Battery
+        {"Size_battery",  Size_battery,
+            "Battery", size_battery_doc,
+            false, true},
         {"Calculate_thermal_params", Calculate_thermal_params,
             "Battery", calculate_thermal_params_doc,
             false, false},
@@ -129,7 +132,7 @@ static ssc_equation_entry ssc_equation_table [] = {
 
         {"Size_batterystateful", Size_batterystateful,
             "battery_stateful", size_batterystateful_doc,
-            false, false},
+            false, true},
 
         // Wind
         {"Turbine_calculate_powercurve", Turbine_calculate_powercurve,

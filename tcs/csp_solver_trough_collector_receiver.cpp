@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
 {
 	{C_csp_trough_collector_receiver::E_THETA_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_COSTH_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
-	{C_csp_trough_collector_receiver::E_IAM_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
+	{C_csp_trough_collector_receiver::E_OPT_DERATE_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_ROWSHADOW_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_ENDLOSS_AVE, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_DNI_COSTH, C_csp_reported_outputs::TS_WEIGHTED_AVE},
@@ -59,6 +59,8 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
 	{C_csp_trough_collector_receiver::E_E_DOT_INTERNAL_ENERGY, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_Q_DOT_HTF_OUT, C_csp_reported_outputs::TS_WEIGHTED_AVE},
 	{C_csp_trough_collector_receiver::E_Q_DOT_FREEZE_PROT, C_csp_reported_outputs::TS_WEIGHTED_AVE},
+
+    {C_csp_trough_collector_receiver::E_TIME_IN_STARTUP, C_csp_reported_outputs::SUMMED},
 
 	{C_csp_trough_collector_receiver::E_M_DOT_LOOP, C_csp_reported_outputs::TS_WEIGHTED_AVE},
     {C_csp_trough_collector_receiver::E_IS_RECIRCULATING, C_csp_reported_outputs::TS_WEIGHTED_AVE},
@@ -217,8 +219,14 @@ C_csp_trough_collector_receiver::C_csp_trough_collector_receiver()
 	m_q_dot_htf_to_sink_fullts = std::numeric_limits<double>::quiet_NaN();	//[MWt]
 	m_q_dot_freeze_protection = std::numeric_limits<double>::quiet_NaN();	//[MWt]
 
+    m_q_dot_thermal_reported = std::numeric_limits<double>::quiet_NaN();    //[MWt]
+
 	m_dP_total = std::numeric_limits<double>::quiet_NaN();		//[bar]
 	m_W_dot_pump = std::numeric_limits<double>::quiet_NaN();	//[MWe]
+
+    m_time_at_off = std::numeric_limits<double>::quiet_NaN();       //[s]
+    m_time_at_startup = std::numeric_limits<double>::quiet_NaN();   //[s]
+    m_time_at_on = std::numeric_limits<double>::quiet_NaN();        //[s]
 
 	m_is_m_dot_recirc = false;
 
@@ -228,7 +236,7 @@ C_csp_trough_collector_receiver::C_csp_trough_collector_receiver()
 	m_m_dot_htf_tot = std::numeric_limits<double>::quiet_NaN();
 	m_Theta_ave = std::numeric_limits<double>::quiet_NaN();
 	m_CosTh_ave = std::numeric_limits<double>::quiet_NaN();
-	m_IAM_ave = std::numeric_limits<double>::quiet_NaN();
+	m_opt_derate_ave = std::numeric_limits<double>::quiet_NaN();
 	m_RowShadow_ave = std::numeric_limits<double>::quiet_NaN();
 	m_EndLoss_ave = std::numeric_limits<double>::quiet_NaN();
 	m_dni_costh = std::numeric_limits<double>::quiet_NaN();
@@ -265,69 +273,144 @@ C_csp_trough_collector_receiver::~C_csp_trough_collector_receiver()
     }
 }
 
-void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp_cr_init_inputs init_inputs, 
-				C_csp_collector_receiver::S_csp_cr_solved_params & solved_params)
+void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp_cr_init_inputs init_inputs,
+    C_csp_collector_receiver::S_csp_cr_solved_params& solved_params)
 {
 
     // If solar multiple is not yet calculated
     if (m_is_solar_mult_designed == false)
         throw(C_csp_exception("design_solar_mult() must be called before init()", "Trough collector solver"));
-	
-	// double some_calc = m_nSCA + m_nHCEt;
-	/*
-	--Initialization call--
 
-	Do any setup required here.
-	Get the values of the inputs and parameters
-	*/
+    // double some_calc = m_nSCA + m_nHCEt;
+    /*
+    --Initialization call--
 
-	//Initialize air properties -- used in reeiver calcs
-	m_airProps.SetFluid(HTFProperties::Air);
+    Do any setup required here.
+    Get the values of the inputs and parameters
+    */
 
-	// Save init_inputs to member data
-	m_latitude = init_inputs.m_latitude;	//[deg]
-	m_longitude = init_inputs.m_longitude;	//[deg]
-	m_shift = init_inputs.m_shift;			//[deg]
-	m_latitude *= m_d2r;		//[rad] convert from [deg]
-	m_longitude *= m_d2r;		//[rad] convert from [deg]
-	m_shift *= m_d2r;			//[rad] convert from [deg]
+    //Initialize air properties -- used in reeiver calcs
+    m_airProps.SetFluid(HTFProperties::Air);
+
+    // Save init_inputs to member data
+    m_latitude = init_inputs.m_latitude;	//[deg]
+    m_longitude = init_inputs.m_longitude;	//[deg]
+    m_shift = init_inputs.m_shift;			//[deg]
+    m_latitude *= m_d2r;		//[rad] convert from [deg]
+    m_longitude *= m_d2r;		//[rad] convert from [deg]
+    m_shift *= m_d2r;			//[rad] convert from [deg]
 
     m_P_field_in = 17 / 1.e-5;                //Assumed inlet htf pressure for property lookups (DP_tot_max = 16 bar + 1 atm) [Pa]
 
-	// Adjust parameters
-	m_ColTilt = m_ColTilt*m_d2r;	//[rad] Collector tilt angle (0 is horizontal, 90deg is vertical), convert from [deg]
-	m_ColAz = m_ColAz*m_d2r;		//[rad] Collector azimuth angle, convert from [deg]
+    // Adjust parameters
+    m_ColTilt = m_ColTilt * m_d2r;	//[rad] Collector tilt angle (0 is horizontal, 90deg is vertical), convert from [deg]
+    m_ColAz = m_ColAz * m_d2r;		//[rad] Collector azimuth angle, convert from [deg]
 
-	// Check m_IAM matrix against number of collectors: m_nColt
-	m_n_r_iam_matrix = (int)m_IAM_matrix.nrows();
-	m_n_c_iam_matrix = (int)m_IAM_matrix.ncols();
+    if (m_nColt != m_opt_model.size())
+    {
+        throw(C_csp_exception("m_opt_model length must equal m_nColt", "Trough collector solver"));
+    }
 
-	if (m_n_c_iam_matrix < 3)
-	{
-		throw(C_csp_exception("There must be at least 3 incident angle modifier coefficients", "Trough collector solver"));
-	}
+    // Check IAM matrix specific values
+    bool is_IAM = false;
+    for (int opt_model : m_opt_model)
+    {
+        if (opt_model == 3)
+        {
+            is_IAM = true;
+            break;
+        }
+    }
+    if(is_IAM)
+    {
+        // Check m_IAM matrix against number of collectors: m_nColt
+        m_n_r_iam_matrix = (int)m_IAM_matrix.nrows();
+        m_n_c_iam_matrix = (int)m_IAM_matrix.ncols();
 
-	if (m_n_r_iam_matrix < m_nColt)
-	{
-		m_error_msg = util::format("The number of groups of m_IAM coefficients (%d) is less than the number of collector types in this simulation (%d)", m_n_r_iam_matrix, m_nColt);
-		throw(C_csp_exception(m_error_msg, "Trough collector solver"));
-	}
+        if (m_n_c_iam_matrix < 3)
+        {
+            throw(C_csp_exception("There must be at least 3 incident angle modifier coefficients", "Trough collector solver"));
+        }
 
-	// Check that for each collector, at least 3 coefficients are != 0.0
-	for (int i = 0; i < m_nColt; i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			if (m_IAM_matrix(i, j) == 0.0)
-			{
+        if (m_n_r_iam_matrix < m_nColt)
+        {
+            m_error_msg = util::format("The number of groups of m_IAM coefficients (%d) is less than the number of collector types in this simulation (%d)", m_n_r_iam_matrix, m_nColt);
+            throw(C_csp_exception(m_error_msg, "Trough collector solver"));
+        }
 
-				m_error_msg = util::format("For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
-				throw(C_csp_exception(m_error_msg, "Trough collector solver"));
-				//message(TCS_ERROR, "For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
-				//return -1;
-			}
-		}
-	}
+        // Check that for each collector, at least 3 coefficients are != 0.0
+        for (int i = 0; i < m_nColt; i++)
+        {
+            bool is_IAM = m_opt_model[i] == 3;
+            if (!is_IAM)
+                continue;
+            for (int j = 0; j < 3; j++)
+            {
+                if (m_IAM_matrix(i, j) == 0.0)
+                {
+                    m_error_msg = util::format("For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
+                    throw(C_csp_exception(m_error_msg, "Trough collector solver"));
+                    //message(TCS_ERROR, "For %d collectors and groups of m_IAM coefficients, each group of m_IAM coefficients must begin with at least 3 non-zero values. There are only %d non-zero coefficients for collector %d", m_nColt, j, i + 1);
+                    //return -1;
+                }
+            }
+        }
+    }
+
+    // Initialize optical tables (if necessary)
+    m_optical_tables.resize(m_nColt);
+    for (int i_col = 0; i_col < m_opt_model.size(); i_col++)
+    {
+        int opt_model_local = m_opt_model[i_col];
+
+        // Optical model
+        if (opt_model_local < 1 || opt_model_local > 3)
+        {
+            throw(C_csp_exception("m_opt_model must be between 1-3", "Trough collector solver"));
+        }
+
+        if(opt_model_local != 3)
+        {
+            /*
+            The input should be defined as follows:
+            - Data of size nx, ny
+            - OpticalTable of size (nx+1)*(ny+1)
+            - First nx+1 values (row 1) are x-axis values, not data, starting at index 1
+            - First value of remaining ny rows are y-axis values, not data
+            - Data is contained in cells i,j : where i>1, j>1
+            */
+            int ncol_OpticalTable = m_OpticalTables_in[i_col].ncols();
+            int nrow_OpticalTable = m_OpticalTables_in[i_col].nrows();
+
+            std::vector<double> xax(ncol_OpticalTable - 1);
+            std::vector<double> yax(nrow_OpticalTable - 1);
+            std::vector<double> data((ncol_OpticalTable - 1) * (nrow_OpticalTable - 1));
+
+            //get the xaxis data values
+            for (int i = 1; i < ncol_OpticalTable; i++) {
+                xax[i - 1] = m_OpticalTables_in[i_col].at(0, i) * m_d2r;
+            }
+            //get the yaxis data values
+            for (int j = 1; j < nrow_OpticalTable; j++) {
+                yax[j - 1] = m_OpticalTables_in[i_col].at(j, 0) * m_d2r;
+            }
+            //Get the data values
+            for (int j = 1; j < nrow_OpticalTable; j++) {
+                for (int i = 1; i < ncol_OpticalTable; i++) {
+                    data[i - 1 + (ncol_OpticalTable - 1) * (j - 1)] = m_OpticalTables_in[i_col].at(j, i);
+                }
+            }
+
+            auto& opt_table = m_optical_tables[i_col].emplace();
+            opt_table.AddXAxis(xax.data(), static_cast<int>(xax.size()));
+            opt_table.AddYAxis(yax.data(), static_cast<int>(yax.size()));
+            opt_table.AddData(data.data());
+        }
+    }
+
+    
+
+
 	// ******************************************************************
 
 	//Organize the emittance tables here
@@ -386,7 +469,7 @@ void C_csp_trough_collector_receiver::init(const C_csp_collector_receiver::S_csp
     m_q_reflect_tot.resize(m_nSCA);
     m_q_reflect.resize(m_nHCEVar);
 	m_q_i.resize(m_nColt);
-	m_IAM.resize(m_nColt);
+	m_opt_derate.resize(m_nColt);
 	m_ColOptEff.resize(m_nColt, m_nSCA);
 	m_EndGain.resize(m_nColt, m_nSCA);
 	m_EndLoss.resize(m_nColt, m_nSCA);
@@ -653,7 +736,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
     // Max Field Flow Velocity
     m_max_field_flow_velocity = 0;
     {
-        double density = m_htfProps.dens(m_T_loop_out_des + 273.15, std::numeric_limits<double>::quiet_NaN());
+        double density = m_htfProps.dens(m_T_loop_out_des, std::numeric_limits<double>::quiet_NaN());
 
         m_max_field_flow_velocity = m_m_dot_htfmax * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
     }
@@ -661,9 +744,9 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
     // Min Field Flow Velocity
     m_min_field_flow_velocity = 0;
     {
-        double density = m_htfProps.dens(m_T_loop_in_des + 273.15, std::numeric_limits<double>::quiet_NaN());
+        double density = m_htfProps.dens(m_T_loop_in_des, std::numeric_limits<double>::quiet_NaN());
 
-        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
+        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_max_inner_diameter * m_max_inner_diameter);
     }
 
 	//need to provide fluid density
@@ -858,7 +941,7 @@ bool C_csp_trough_collector_receiver::init_fieldgeom()
 
     // Calculate Design Point Outputs
     double T_avg = 0.5 * (m_T_loop_in_des + m_T_loop_out_des);
-    m_field_htf_cp_avg_des = m_htfProps.Cp(T_avg + 273.15);         //[kJ/kg-K]
+    m_field_htf_cp_avg_des = m_htfProps.Cp(T_avg);         //[kJ/kg-K]
 
 
 	// *********************************************
@@ -929,6 +1012,11 @@ double C_csp_trough_collector_receiver::get_tracking_power()
         return std::numeric_limits<double>::quiet_NaN();
 
     return m_SCA_drives_elec * 1.e-6 * m_nSCA * m_nLoops;     //MWe
+}
+
+double C_csp_trough_collector_receiver::get_design_pumping_power() {
+
+    return m_W_dot_pump_SS; //MWe-hr
 }
 
 std::vector<double> C_csp_trough_collector_receiver::get_scas_outlet_temps()
@@ -1664,7 +1752,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta_off()
 	m_costh = 0.0;		//[-] Cosine of the incident angle between the sun and trough aperture
 
 	m_q_i.assign(m_q_i.size(),0.0);		//[W/m] DNI * A_aper / L_sca
-	m_IAM.assign(m_IAM.size(),0.0);		//[-] Incidence angle modifiers
+	m_opt_derate.assign(m_opt_derate.size(),0.0);		//[-] Incidence angle modifiers
 	m_ColOptEff.fill(0.0);				//[-] tracking * geom * rho * dirt * error * IAM * row shadow * end loss * ftrack
     m_EqOpteff = 0.;
 	m_EndGain.fill(0.0);				//[-] Light from different collector hitting receiver
@@ -1674,7 +1762,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta_off()
 
 	m_Theta_ave = 0.0; 
 	m_CosTh_ave = 0.0; 
-	m_IAM_ave = 0.0; 
+	m_opt_derate_ave = 0.0; 
 	m_RowShadow_ave = 0.0; 
 	m_EndLoss_ave = 0.0;
 	m_dni_costh = 0.0;
@@ -1688,6 +1776,43 @@ void C_csp_trough_collector_receiver::loop_optical_eta_off()
 	return;
 }
 
+double C_csp_trough_collector_receiver::calculate_opt_derate(const int i, const double SolarAz,
+    const double SolarZenRad, const double theta)
+{
+    double opt_derate = 0;
+
+    switch (m_opt_model[i])
+    {
+        // Sun position
+        case(1):
+        {
+            opt_derate = std::max(m_optical_tables[i]->interpolate(SolarAz, std::min(SolarZenRad, CSP::pi / 2.)), 0.0);
+            return opt_derate;
+        }
+        // Incidence angle table
+        case(2):
+        {
+            double phi_t, theta_L;
+            CSP::theta_trans(SolarAz, SolarZenRad, m_ColAz, phi_t, theta_L);
+            opt_derate = std::max(m_optical_tables[i]->interpolate(phi_t, std::max(theta_L, 0.0)), 0.0);
+            return opt_derate;
+        }
+        // IAM poly (original)
+        case(3):
+        {
+            double IAM = m_IAM_matrix(i, 0);
+            for (int j = 1; j < m_n_c_iam_matrix; j++)
+                IAM += m_IAM_matrix(i, j) * std::pow(theta, j) / m_costh;
+            opt_derate = fmax(0.0, fmin(IAM, 1.0));
+            return opt_derate;
+        }
+        default:
+        {
+            throw(C_csp_exception("Unsupported opt_model value."));
+        }
+    }
+}
+
 void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader::S_outputs &weather,
 	const C_csp_solver_sim_info &sim_info)
 {
@@ -1697,8 +1822,6 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 	}
 	else
 	{
-
-
 		// First, clear all the values calculated below
 		loop_optical_eta_off();
 
@@ -1775,6 +1898,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
         double SolarAz = weather.m_solazi;		//[deg] Solar azimuth angle
         SolarAz = (SolarAz - 180.0) * m_d2r;	//[rad] convert from [deg]
         double SolarAlt;
+        double SolarZenRad = weather.m_solzen * m_d2r;  // [rad]
 
         if (m_accept_mode == 1) {
             SolarAlt = CSP::pi/2 - weather.m_solzen;		//[deg] Solar altitude angle
@@ -1798,22 +1922,18 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 		}
 
 		// m_theta in radians
-		double theta = acos(m_costh);		//[rad] Incidene angle
+		double theta = acos(m_costh);		//[rad] Incidence angle
 
 		for (int i = 0; i < m_nColt; i++)
 		{
 			m_q_i[i] = weather.m_beam*m_A_aperture[i] / m_L_actSCA[i]; //[W/m] The incoming solar irradiation per aperture length
 
-			m_IAM[i] = m_IAM_matrix(i, 0);
-			for (int j = 1; j < m_n_c_iam_matrix; j++)
-				m_IAM[i] += m_IAM_matrix(i, j)*pow(theta, j) / m_costh;
-
-			m_IAM[i] = fmax(0.0, fmin(m_IAM[i], 1.0));
+            m_opt_derate[i] = calculate_opt_derate(i, SolarAz, SolarZenRad, theta);
 
 			//Calculate the Optical efficiency of the collector
 			for (int j = 0; j < m_nSCA; j++)
 			{
-				m_ColOptEff(i, j) = m_TrackingError[i] * m_GeomEffects[i] * m_Rho_mirror_clean[i] * m_Dirt_mirror[i] * m_Error[i] * m_IAM[i];
+				m_ColOptEff(i, j) = m_TrackingError[i] * m_GeomEffects[i] * m_Rho_mirror_clean[i] * m_Dirt_mirror[i] * m_Error[i] * m_opt_derate[i];
 			}
 
 			//Account for light reflecting off the collector and missing the receiver, also light from other 
@@ -1821,7 +1941,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 			//mjw 4.21.11 - rescope this to be for each specific collector j=1,m_nSCA
 			for (int j = 0; j < m_nSCA; j++)
 			{
-				if (std::abs(SolarAz) <= 90.0)
+				if (std::abs(SolarAz) <= (CSP::pi / 2.0))
 				{  //mjw 5.1.11 The sun is in the southern sky (towards equator)
 					if (j == 0 || j == m_nSCA - 1)
 					{
@@ -1867,7 +1987,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 
 		//Calculate the flux level associated with each SCA
 		//but only calculate for the first call of the timestep<----[NO// messes with defocusing control: mjw 11.4.2010]
-		m_Theta_ave = 0.0; m_CosTh_ave = 0.0; m_IAM_ave = 0.0; m_RowShadow_ave = 0.0; m_EndLoss_ave = 0.0;
+		m_Theta_ave = 0.0; m_CosTh_ave = 0.0; m_opt_derate_ave = 0.0; m_RowShadow_ave = 0.0; m_EndLoss_ave = 0.0;
 		for (int i = 0; i < m_nSCA; i++)
 		{
 			int CT = (int)m_SCAInfoArray(i, 1) - 1;    //Collector type
@@ -1875,7 +1995,7 @@ void C_csp_trough_collector_receiver::loop_optical_eta(const C_csp_weatherreader
 			//Also use this chance to calculate average optical values
 			m_Theta_ave = m_Theta_ave + theta*m_L_actSCA[CT] / m_L_tot;		//[rad]
 			m_CosTh_ave = m_CosTh_ave + m_costh*m_L_actSCA[CT] / m_L_tot;	//[-]
-			m_IAM_ave = m_IAM_ave + m_IAM[CT] * m_L_actSCA[CT] / m_L_tot;
+            m_opt_derate_ave = m_opt_derate_ave + m_opt_derate[CT] * m_L_actSCA[CT] / m_L_tot;
 			m_RowShadow_ave = m_RowShadow_ave + m_RowShadow[CT] * m_L_actSCA[CT] / m_L_tot;
 			m_EndLoss_ave = m_EndLoss_ave + m_EndLoss(CT, i)*m_L_actSCA[CT] / m_L_tot;
 
@@ -2110,7 +2230,7 @@ void C_csp_trough_collector_receiver::set_output_value()
 {
 	mc_reported_outputs.value(E_THETA_AVE, m_Theta_ave*m_r2d);		//[deg], convert from rad
 	mc_reported_outputs.value(E_COSTH_AVE, m_CosTh_ave);			//[-]
-	mc_reported_outputs.value(E_IAM_AVE, m_IAM_ave);				//[-]
+	mc_reported_outputs.value(E_OPT_DERATE_AVE, m_opt_derate_ave);				//[-]
 	mc_reported_outputs.value(E_ROWSHADOW_AVE, m_RowShadow_ave);	//[-]
 	mc_reported_outputs.value(E_ENDLOSS_AVE, m_EndLoss_ave);		//[-]
 	mc_reported_outputs.value(E_DNI_COSTH, m_dni_costh);			//[W/m2]
@@ -2132,8 +2252,10 @@ void C_csp_trough_collector_receiver::set_output_value()
 														m_E_dot_xover_summed_fullts +
 														m_E_dot_HR_cold_fullts +
 														m_E_dot_HR_hot_fullts);			//[MWt]
-	mc_reported_outputs.value(E_Q_DOT_HTF_OUT, m_q_dot_htf_to_sink_fullts);				//[MWt]
+	mc_reported_outputs.value(E_Q_DOT_HTF_OUT, m_q_dot_thermal_reported);				//[MWt]
 	mc_reported_outputs.value(E_Q_DOT_FREEZE_PROT, m_q_dot_freeze_protection);			//[MWt]
+
+    mc_reported_outputs.value(E_TIME_IN_STARTUP, m_time_at_startup / 60.0);         //[min] convert from s
 
 	mc_reported_outputs.value(E_M_DOT_LOOP, m_m_dot_htf_tot/(double)m_nLoops);		//[kg/s]
 
@@ -2206,7 +2328,7 @@ void C_csp_trough_collector_receiver::off(const C_csp_weatherreader::S_outputs &
 		m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts = 
 		m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts = 
 		m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts = 
-		m_q_dot_htf_to_sink_fullts = 0.0;
+		m_q_dot_htf_to_sink_fullts = m_q_dot_thermal_reported = 0.0;
 
 	for(int i = 0; i < n_steps_recirc; i++)
 	{
@@ -2296,8 +2418,9 @@ void C_csp_trough_collector_receiver::off(const C_csp_weatherreader::S_outputs &
 	//              .... and not passing HTF to other components
 	//cr_out_solver.m_m_dot_salt_tot = m_dot_htf_loop*3600.0*(double)m_nLoops;	//[kg/hr] Total HTF mass flow rate
 	cr_out_solver.m_m_dot_salt_tot = 0.0;	//[kg/hr] Total HTF mass flow rate
-	
-	cr_out_solver.m_q_thermal = 0.0;						//[MWt] No available receiver thermal output
+
+    m_q_dot_thermal_reported = 0.0;
+	cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;						//[MWt] No available receiver thermal output
 		// 7.12.16: Return timestep-end or timestep-integrated-average?
 		// If multiple recirculation steps, then need to calculate average of timestep-integrated-average
 	cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int_fullts - 273.15;		//[C]
@@ -2308,6 +2431,10 @@ void C_csp_trough_collector_receiver::off(const C_csp_weatherreader::S_outputs &
     cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;   //[MWt]
 
 	m_operating_mode = C_csp_collector_receiver::OFF;
+
+    m_time_at_off = sim_info.ms_ts.m_step;
+    m_time_at_startup = 0.0;
+    m_time_at_on = 0.0;
 
 	set_output_value();
 
@@ -2331,7 +2458,7 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
 	double m_dot_htf_loop = m_m_dot_htfmin;
 	if( weather.m_beam > 50.0 && m_T_htf_out_t_end_converged[m_nSCA - 1] > (0.5*m_T_fp + 0.5*m_T_startup) )
 	{
-		double m_dot_ss = (weather.m_beam * m_CosTh_ave * m_IAM_ave * m_RowShadow_ave * m_EndLoss_ave) / 
+		double m_dot_ss = (weather.m_beam * m_CosTh_ave * m_opt_derate_ave * m_RowShadow_ave * m_EndLoss_ave) / 
 								(m_I_bn_des * m_opteff_des) * m_m_dot_loop_des;		//[kg/s]
 		m_dot_htf_loop = min( m_m_dot_htfmax, max(m_m_dot_htfmin, 0.8*m_dot_ss + 0.2*m_m_dot_htfmin) );		//[kg/s]
 	}
@@ -2365,7 +2492,7 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
 		m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts =
 		m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts =
 		m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts =
-		m_q_dot_htf_to_sink_fullts = 0.0;
+		m_q_dot_htf_to_sink_fullts = m_q_dot_thermal_reported = 0.0;
 
     sim_info_temp.ms_ts.m_time = time_start;
     while(sim_info_temp.ms_ts.m_time < time_end)
@@ -2476,7 +2603,8 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
 	cr_out_solver.m_m_dot_salt_tot = 0.0;	//[kg/hr]
 
 	// Should not be available thermal output if receiver is in start up, but controller doesn't use it in CR_SU (confirmed)
-	cr_out_solver.m_q_thermal = 0.0;						//[MWt] No available receiver thermal output
+    m_q_dot_thermal_reported = 0.0;
+    cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;						//[MWt] No available receiver thermal output
 		// 7.12.16: Return timestep-end or timestep-integrated-average?
 		// If multiple recirculation steps, then need to calculate average of timestep-integrated-average
 	cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int_fullts - 273.15;		//[C]
@@ -2487,6 +2615,10 @@ void C_csp_trough_collector_receiver::startup(const C_csp_weatherreader::S_outpu
     cr_out_solver.m_W_dot_elec_in_tot = m_W_dot_sca_tracking + m_W_dot_pump;    //[MWe]
         // Shouldn't need freeze protection if in startup, but may want a check on this
     cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;    //[MWt]
+
+    m_time_at_off = 0.0;
+    m_time_at_startup = sim_info.ms_ts.m_step;
+    m_time_at_on = 0.0;
 
 	set_output_value();
 }
@@ -2735,7 +2867,8 @@ void C_csp_trough_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 			// The controller also requires the receiver thermal output
 			// 7.12.16 Now using the timestep-integrated-average temperature
 		double c_htf_ave = m_htfProps.Cp_ave(T_cold_in, m_T_sys_h_t_int);  //[kJ/kg-K]
-		cr_out_solver.m_q_thermal = (cr_out_solver.m_m_dot_salt_tot / 3600.0)*c_htf_ave*(m_T_sys_h_t_int - T_cold_in) / 1.E3;	//[MWt]
+        m_q_dot_thermal_reported = (cr_out_solver.m_m_dot_salt_tot / 3600.0) * c_htf_ave * (m_T_sys_h_t_int - T_cold_in) / 1.E3;	//[MWt]
+        cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;
 		// Finally, the controller need the HTF outlet temperature from the field
 		cr_out_solver.m_T_salt_hot = m_T_sys_h_t_int - 273.15;		//[C]
 			
@@ -2762,12 +2895,12 @@ void C_csp_trough_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 			m_q_dot_HR_cold_loss_fullts = m_q_dot_HR_hot_loss_fullts =
 			m_E_dot_sca_summed_fullts = m_E_dot_xover_summed_fullts =
 			m_E_dot_HR_cold_fullts = m_E_dot_HR_hot_fullts =
-			m_q_dot_htf_to_sink_fullts = m_q_dot_freeze_protection = 0.0;
+			m_q_dot_htf_to_sink_fullts = m_q_dot_freeze_protection = m_q_dot_thermal_reported = 0.0;
 
 		cr_out_solver.m_q_startup = 0.0;			//[MWt-hr]
 		cr_out_solver.m_time_required_su = 0.0;		//[s]
 		cr_out_solver.m_m_dot_salt_tot = 0.0;		//[kg/hr]
-		cr_out_solver.m_q_thermal = 0.0;			//[MWt]
+		cr_out_solver.m_q_thermal = m_q_dot_thermal_reported;			//[MWt]
 		cr_out_solver.m_T_salt_hot = 0.0;			//[C]
 		cr_out_solver.m_component_defocus = 1.0;	//[-]
         cr_out_solver.m_is_recirculating = false;
@@ -2778,6 +2911,10 @@ void C_csp_trough_collector_receiver::on(const C_csp_weatherreader::S_outputs &w
 
         cr_out_solver.m_q_dot_heater = m_q_dot_freeze_protection;    //[MWt]
 	}
+
+    m_time_at_off = 0.0;
+    m_time_at_startup = 0.0;
+    m_time_at_on = sim_info.ms_ts.m_step;
 
 	set_output_value();
 
@@ -4180,7 +4317,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     // loop_optical_eta() has side-effects. Store affected member variable values for restore after call.
     double m_costh_ini(m_costh);
     std::vector<double> m_q_i_ini(m_q_i);
-    std::vector<double> m_IAM_ini(m_IAM);
+    std::vector<double> m_opt_derate_ini(m_opt_derate);
     util::matrix_t<double> m_ColOptEff_ini(m_ColOptEff);
     double m_EqOpteff_ini(m_EqOpteff);
     util::matrix_t<double> m_EndGain_ini(m_EndGain);
@@ -4189,7 +4326,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     std::vector<double> m_q_SCA_ini(m_q_SCA);
     double m_Theta_ave_ini(m_Theta_ave);
     double m_CosTh_ave_ini(m_CosTh_ave);
-    double m_IAM_ave_ini(m_IAM_ave);
+    double m_opt_derate_ave_ini(m_opt_derate_ave);
     double m_RowShadow_ave_ini(m_RowShadow_ave);
     double m_EndLoss_ave_ini(m_EndLoss_ave);
     double m_dni_costh_ini(m_dni_costh);
@@ -4204,7 +4341,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     // Restore member variable values
     m_costh = m_costh_ini;
     m_q_i = m_q_i_ini;
-    m_IAM = m_IAM_ini;
+    m_opt_derate = m_opt_derate_ini;
     m_ColOptEff = m_ColOptEff_ini;
     m_EqOpteff = m_EqOpteff_ini;
     m_EndGain = m_EndGain_ini;
@@ -4213,7 +4350,7 @@ double C_csp_trough_collector_receiver::calculate_optical_efficiency(const C_csp
     m_q_SCA = m_q_SCA_ini;
     m_Theta_ave = m_Theta_ave_ini;
     m_CosTh_ave = m_CosTh_ave_ini;
-    m_IAM_ave = m_IAM_ave_ini;
+    m_opt_derate_ave = m_opt_derate_ave_ini;
     m_RowShadow_ave = m_RowShadow_ave_ini;
     m_EndLoss_ave = m_EndLoss_ave_ini;
     m_dni_costh = m_dni_costh_ini;
@@ -4421,22 +4558,6 @@ bool C_csp_trough_collector_receiver::design_solar_mult(std::vector<double> trou
             if (d > m_max_inner_diameter)
                 m_max_inner_diameter = d;
         }
-    }
-
-    // Max Field Flow Velocity
-    m_max_field_flow_velocity = 0;
-    {
-        double density = m_htfProps.dens(m_T_loop_out_des + 273.15, std::numeric_limits<double>::quiet_NaN());
-
-        m_max_field_flow_velocity = m_m_dot_htfmax * 4 / (density * M_PI * m_min_inner_diameter * m_min_inner_diameter);
-    }
-
-    // Min Field Flow Velocity
-    m_min_field_flow_velocity = 0;
-    {
-        double density = m_htfProps.dens(m_T_loop_in_des + 273.15, std::numeric_limits<double>::quiet_NaN());
-
-        m_min_field_flow_velocity = m_m_dot_htfmin * 4 / (density * M_PI * m_max_inner_diameter * m_max_inner_diameter);
     }
 
     // HCE design heat loss
@@ -6835,10 +6956,13 @@ double C_csp_trough_collector_receiver::m_dot_runner(double m_dot_field, int nfi
     switch (irnr_onedir) {
     case 0:
         m_dot_rnr = m_dot_rnr_0;
+        break;
     case 1:
         m_dot_rnr = m_dot_rnr_1;
+        break;
     default:
         m_dot_rnr = m_dot_rnr_1 - (irnr_onedir - 1)*m_dot_field / float(nfieldsec) * 2;
+        break;
     }
 
     return max(m_dot_rnr, 0.0);

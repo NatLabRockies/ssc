@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,13 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_power_electronics.h"
 
 
-FuelCellDispatch::FuelCellDispatch(FuelCell * fuelCell, size_t numberOfUnits, int dispatchOption, int shutdownOption, double dt_hour, double fixed_percent, 
+FuelCellDispatch::FuelCellDispatch(FuelCell * fuelCell, size_t numberOfUnits, int dispatchOption, int shutdownOption, double dt_hour, double fixed_percent, size_t start_day_of_year,
 	std::vector<double> dispatchInput_kW, std::vector<bool> canCharge, std::vector<bool> canDischarge, 
 	std::map<size_t, double> discharge_percent, std::map<size_t, size_t> discharge_units, util::matrix_t<size_t> scheduleWeekday, util::matrix_t<size_t> scheduleWeekend)
 	: m_powerTotal_kW(0), m_numberOfUnits(numberOfUnits), m_dispatchOption(dispatchOption), m_shutdownOption(shutdownOption), dt_hour(dt_hour), m_fixed_percent(fixed_percent * 0.01), 
 	m_dispatchInput_kW(dispatchInput_kW), m_canCharge(canCharge), m_canDischarge(canDischarge), 
 	m_discharge_percent(discharge_percent), m_discharge_units(discharge_units),
-	m_scheduleWeekday(scheduleWeekday), m_scheduleWeekend(scheduleWeekend)
+	m_scheduleWeekday(scheduleWeekday), m_scheduleWeekend(scheduleWeekend),
+    m_start_day_of_year(start_day_of_year)
 {
 	// Convert percentages to fractions
 	for (auto percent = m_discharge_percent.begin(); percent != m_discharge_percent.end(); percent++) {
@@ -75,7 +76,7 @@ FuelCellDispatch::FuelCellDispatch(FuelCell * fuelCell, size_t numberOfUnits, in
 			else if (m_dispatchOption == FuelCellDispatch::FC_DISPATCH_OPTION::MANUAL) {
 				size_t period = m_scheduleWeekday(0, 0);
 
-				if (!util::weekday(0)) {
+				if (!util::weekday(0, m_start_day_of_year)) {
 					period = m_scheduleWeekend(0, 0);
 				}
 				double discharge_percent_init = 0;
@@ -163,7 +164,7 @@ void FuelCellDispatch::runSingleTimeStep(size_t hour_of_year, size_t year_idx, d
 		util::month_hour(hour_of_year, month, hour);
 		size_t period = m_scheduleWeekday(month - 1, hour - 1);
 		
-		if (!util::weekday(hour_of_year)) {
+		if (!util::weekday(hour_of_year, m_start_day_of_year)) {
 			period = m_scheduleWeekend(month - 1, hour - 1);
 		}
 

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -418,6 +418,7 @@ void weather_record::reset()
     minute = std::numeric_limits<double>::quiet_NaN();
     gh = dn = df = poa = wspd = wdir = std::numeric_limits<double>::quiet_NaN();
     tdry = twet = tdew = rhum = pres = snow = alb = aod = std::numeric_limits<double>::quiet_NaN();
+    pwater = csky_dn = csky_df = csky_gh = std::numeric_limits<double>::quiet_NaN();
 }
 
 bool weather_data_provider::check_hour_of_year(int hour, int line) {
@@ -998,6 +999,11 @@ bool weatherfile::open(const std::string& file, bool header_only)
                 else if (lowname == "snow" || lowname == "snow cover" || lowname == "snow depth") m_columns[SNOW].index = i;
                 else if (lowname == "alb" || lowname == "albedo" || lowname == "surface albedo") m_columns[ALB].index = i;
                 else if (lowname == "aod" || lowname == "aerosol" || lowname == "aerosol optical depth") m_columns[AOD].index = i;
+                else if (lowname == "pwater" || lowname == "precipitable water" || lowname == "precipitation" || lowname == "rainfall") m_columns[PWATER].index = i;
+                else if (lowname == "clearsky dni" || lowname == "clearsky dn" || lowname == "clearsky direct normal" || lowname == "clearsky direct normal irradiance" || lowname == "clearsky direct (beam) irradiance") m_columns[CSKY_DNI].index = i;
+                else if (lowname == "clearsky ghi" || lowname == "clearsky gh" || lowname == "clearsky global horizontal" || lowname == "clearsky global horizontal irradiance") m_columns[CSKY_GHI].index = i;
+                else if (lowname == "clearsky dhi" || lowname == "clearsky df" || lowname == "clearsky diffuse horizontal" || lowname == "clearsky diffuse horizontal irradiance") m_columns[CSKY_DHI].index = i;
+
             }
         }
     }
@@ -1018,6 +1024,7 @@ bool weatherfile::open(const std::string& file, bool header_only)
             = m_columns[RH].index
             = m_columns[PRES].index
             = m_columns[SNOW].index
+            = m_columns[PWATER].index
             = 1;
     }
     else if (m_type == TMY3)
@@ -1156,6 +1163,7 @@ bool weatherfile::open(const std::string& file, bool header_only)
                 m_columns[RH].data[i] = (float)d12;
                 m_columns[PRES].data[i] = (float)d13;
                 m_columns[SNOW].data[i] = (float)d20;
+                m_columns[PWATER].data[i] = (float)d18; /* precipitable water */
                 m_columns[ALB].data[i] = -999; /* no albedo in TMY2 */
                 m_columns[AOD].data[i] = -999; /* no AOD in TMY2 */
                 m_columns[TWET].data[i]
@@ -1582,6 +1590,7 @@ bool weatherfile::read_average(weather_record* r, std::vector<int>& cols, size_t
         r->rhum = m_columns[RH].data[m_index];
         r->pres = m_columns[PRES].data[m_index];
         r->snow = m_columns[SNOW].data[m_index];
+        r->pwater = m_columns[PWATER].data[m_index];
         r->alb = m_columns[ALB].data[m_index];
         r->aod = m_columns[AOD].data[m_index];
 
@@ -1662,6 +1671,9 @@ bool weatherfile::read_average(weather_record* r, std::vector<int>& cols, size_t
             case SNOW:
                 r->snow = col_val;
                 break;
+            case PWATER:
+                r->pwater = col_val;
+                break;
             case ALB:
                 r->alb = col_val;
                 break;
@@ -1719,6 +1731,10 @@ bool weatherfile::read(weather_record* r)
         r->snow = m_columns[SNOW].data[m_index];
         r->alb = m_columns[ALB].data[m_index];
         r->aod = m_columns[AOD].data[m_index];
+        r->pwater = m_columns[PWATER].data[m_index];
+        r->csky_dn = m_columns[CSKY_DNI].data[m_index];
+        r->csky_df = m_columns[CSKY_DHI].data[m_index];
+        r->csky_gh = m_columns[CSKY_GHI].data[m_index];
 
         m_index++;
         return true;

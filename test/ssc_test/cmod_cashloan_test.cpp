@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,23 +76,11 @@ TEST_F(CmodCashLoanTest, DiscountedPayback) {
 }
 
 
-
-TEST_F(CmodCashLoanTest, PVWattsResidential) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Residential_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Residential_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
 TEST_F(CmodCashLoanTest, PVWattsCommercial) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Commercial_cmod_cashloan.json";
+    file_inputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_PVWatts_Commercial_cmod_cashloan.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Commercial_cmod_cashloan_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_PVWatts_Commercial_cmod_cashloan_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
     std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
 
@@ -101,42 +89,19 @@ TEST_F(CmodCashLoanTest, PVWattsCommercial) {
 
 TEST_F(CmodCashLoanTest, PVWattsBatteryResidential) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Battery_Residential_cmod_cashloan.json";
+    file_inputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_PVWatts_Battery_Residential_cmod_cashloan.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Battery_Residential_cmod_cashloan_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_PVWatts_Battery_Residential_cmod_cashloan_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
     std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
 
     Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
-
-TEST_F(CmodCashLoanTest, PVWattsBatteryCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Battery_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PVWatts_Battery_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, PVResidential) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Flat_Plate_PV_Residential_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Flat_Plate_PV_Residential_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
 TEST_F(CmodCashLoanTest, PVCommercial) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Flat_Plate_PV_Commercial_cmod_cashloan.json";
+    file_inputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Flat_Plate_PV_Commercial_cmod_cashloan.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Flat_Plate_PV_Commercial_cmod_cashloan_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Flat_Plate_PV_Commercial_cmod_cashloan_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
     std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" , "cf_energy_sales",  "cf_energy_net" };
 
@@ -146,42 +111,19 @@ TEST_F(CmodCashLoanTest, PVCommercial) {
 
 TEST_F(CmodCashLoanTest, PVBatteryResidential) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PV_Battery_Residential_cmod_cashloan.json";
+    file_inputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_PV_Battery_Residential_cmod_cashloan.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PV_Battery_Residential_cmod_cashloan_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_PV_Battery_Residential_cmod_cashloan_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
     std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
 
     Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
-
-TEST_F(CmodCashLoanTest, PVBatteryCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PV_Battery_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_PV_Battery_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, CustomGenerationResidential) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_System_Residential_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_System_Residential_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
 TEST_F(CmodCashLoanTest, CustomGenerationCommercial) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_System_Commercial_cmod_cashloan.json";
+    file_inputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Custom_Generation_Profile_Commercial_cmod_cashloan.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_System_Commercial_cmod_cashloan_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Custom_Generation_Profile_Commercial_cmod_cashloan_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
     std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
 
@@ -198,45 +140,11 @@ TEST_F(CmodCashLoanTest, CustomGenerationBatteryResidential) {
 
     Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
 }
-
-TEST_F(CmodCashLoanTest, CustomGenerationBatteryCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_Battery_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_Battery_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, DSLFCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_DSLF_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_DSLF_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, EmpiricalTroughCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Empirical_Trough_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Empirical_Trough_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
 TEST_F(CmodCashLoanTest, FuelCellCommercial) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Fuel_Cell_Commercial_cmod_cashloan.json";
+    file_inputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Fuel_Cell_Commercial_cmod_cashloan.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Fuel_Cell_Commercial_cmod_cashloan_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Fuel_Cell_Commercial_cmod_cashloan_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
     std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate", "cf_energy_value", "cf_thermal_value" };
 
@@ -245,86 +153,9 @@ TEST_F(CmodCashLoanTest, FuelCellCommercial) {
 
 TEST_F(CmodCashLoanTest, GenericCSPCommercial) {
     std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_CSP_System_Commercial_cmod_cashloan.json";
+    file_inputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Generic_CSP_System_Commercial_cmod_cashloan.json";
     std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Generic_CSP_System_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, MSLFCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_MSLF_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_MSLF_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, SWHResidential) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Solar_Water_Heating_Residential_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Solar_Water_Heating_Residential_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, SWHCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Solar_Water_Heating_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Solar_Water_Heating_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, StandaloneBatteryResidential) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Standalone_Battery_Residential_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Standalone_Battery_Residential_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, StandaloneBatteryCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Standalone_Battery_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Standalone_Battery_Commercial_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, WindResidential) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Wind_Power_Residential_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Wind_Power_Residential_cmod_cashloan_outputs.json";
-    std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
-    std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
-
-    Test("cashloan", file_inputs, file_outputs, compare_number_variables, compare_array_variables);
-}
-
-TEST_F(CmodCashLoanTest, WindCommercial) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Wind_Power_Commercial_cmod_cashloan.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/FinancialModels/cashloan/2022.08.08_develop_branch_Wind_Power_Commercial_cmod_cashloan_outputs.json";
+    file_outputs += "/test/input_json/FinancialModels/cashloan/2026.05.11_itc_basis_updates_branch_Generic_CSP_System_Commercial_cmod_cashloan_outputs.json";
     std::vector<std::string> compare_number_variables = { "lcoe_nom", "npv", "payback" };
     std::vector<std::string> compare_array_variables = { "cf_after_tax_cash_flow", "cf_value_added", "cf_after_tax_net_equity_cost_flow", "cf_parasitic_cost", "cf_util_escal_rate" };
 

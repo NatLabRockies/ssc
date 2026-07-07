@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -308,9 +308,9 @@ MYBOOL LUSOL_sizeto(LUSOLrec *LUSOL, int init_r, int init_c, int init_a)
     return( FALSE );
 }
 
-char *LUSOL_pivotLabel(LUSOLrec *LUSOL)
+const char *LUSOL_pivotLabel(LUSOLrec *LUSOL)
 {
-  static /*const*/ char *pivotText[LUSOL_PIVMOD_MAX+1] =
+  static const char *pivotText[LUSOL_PIVMOD_MAX+1] =
   {"TPP", "TRP", "TCP", "TSP"};
   return(pivotText[LUSOL->luparm[LUSOL_IP_PIVOTTYPE]]);
 }
@@ -467,9 +467,9 @@ int LUSOL_findSingularityPosition(LUSOLrec *LUSOL, int singcol)
   return( LUSOL->ip[singcol] );
 }
 
-char *LUSOL_informstr(LUSOLrec *LUSOL, int inform)
+const char *LUSOL_informstr(LUSOLrec *LUSOL, int inform)
 {
-  static char *informText[LUSOL_INFORM_MAX-LUSOL_INFORM_MIN+1] =
+  static const char *informText[LUSOL_INFORM_MAX-LUSOL_INFORM_MIN+1] =
   {"LUSOL_RANKLOSS: Lost rank",
    "LUSOL_LUSUCCESS: Success",
    "LUSOL_LUSINGULAR: Singular A",
@@ -634,7 +634,7 @@ void LUSOL_free(LUSOLrec *LUSOL)
   LUSOL_FREE(LUSOL);
 }
 
-void LUSOL_report(LUSOLrec *LUSOL, int msglevel, char *format, ...)
+void LUSOL_report(LUSOLrec *LUSOL, int msglevel, const char *format, ...)
 {
   va_list ap;
 
@@ -661,7 +661,7 @@ void LUSOL_report(LUSOLrec *LUSOL, int msglevel, char *format, ...)
   }
 }
 
-void LUSOL_timer(LUSOLrec *LUSOL, int timerid, char *text)
+void LUSOL_timer(LUSOLrec *LUSOL, int timerid, const char *text)
 {
   LUSOL_report(LUSOL, -1, "TimerID %d at %s - %s\n",
                           timerid, "", text);

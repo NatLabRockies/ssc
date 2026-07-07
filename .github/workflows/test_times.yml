@@ -55,6 +55,19 @@ jobs:
       run: |
         echo "WORKFLOW_ID=${{ steps.workflow_id.outputs.result }}" >> $GITHUB_ENV
 
+    - name: Checkout SSC
+      uses: actions/checkout@v4
+      with:
+          path: ssc    
+
+    - name: Check Test-Running Workflows were Successfully Completed
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      shell: bash
+      run: |
+        pip install pandas requests
+        python '${{ github.workspace }}/ssc/test/compare_elapsed_time.py' check_workflow ${{env.WORKFLOW_ID}}
+
     - name: Get Artifact from Completed CI (on Feature Branch)
       uses: actions/github-script@v7
       id: get-artifact
@@ -95,11 +108,6 @@ jobs:
       if: ${{ matrix.os != 'windows-2019' }}
       run: unzip ${{steps.get-artifact.outputs.result}}
 
-    - name: Checkout SSC
-      uses: actions/checkout@v4
-      with:
-          path: ssc    
-
     - name: Compare Test Times
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -107,7 +115,6 @@ jobs:
       run: |
         # compare the downloaded times from the feature branch to that of the default branch
         echo ${{ github.ref_name }}
-        pip install pandas requests
         outputString=$(python '${{ github.workspace }}/ssc/test/compare_elapsed_time.py' compare '${{ github.workspace }}/gtest_elapsed_times.csv' ${{ github.ref_name }})
         echo $outputString
         echo "RESULT=$outputString" >> $GITHUB_ENV

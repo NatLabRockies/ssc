@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lsqfit.h"
 #include "lib_iec61853.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 
 const char *iec61853_module_t::module_type_names[_maxTypeNames] = { "monoSi", "multiSi", "CdTe", "CIS", "CIGS", "Amorphous" };
 const char *iec61853_module_t::col_names[COL_MAX] = { "Irr (W/m2)", "Temp (C)", "Pmp (W)", "Vmp (V)", "Voc (V)", "Isc (A)" };
@@ -864,7 +865,7 @@ bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, i
 	return true;
 }
 
-bool iec61853_module_t::operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &out )
+bool iec61853_module_t::operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &out ) const
 {
 	/* initialize output first */
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;
@@ -892,7 +893,8 @@ bool iec61853_module_t::operator() ( pvinput_t &input, double TcellC, double opv
         if( tpoa > poa ) tpoa = poa;
 	
 		// spectral effect via AM modifier
-		double ama = air_mass_modifier( input.Zenith, input.Elev, AMA );
+		//double ama = air_mass_modifier( input.Zenith, input.Elev, AMA );
+        double ama = input.SCF;
 		tpoa *= ama;
 		AOIModifier = tpoa/poa;
 	} 

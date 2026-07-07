@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,8 +47,8 @@ TEST_F(CMGeothermal, SingleOwnerDefault_cmod_geothermal) {
 		ssc_number_t annual_energy, eff_secondlaw;
 		ssc_data_get_number(data, "annual_energy", &annual_energy);
 		ssc_data_get_number(data, "eff_secondlaw", &eff_secondlaw);
-		EXPECT_NEAR(annual_energy, 261301614.984375, 0.1);
-		EXPECT_GE(eff_secondlaw, 0);
+        EXPECT_NEAR(annual_energy, 261301614.984375, 0.1);
+        EXPECT_GE(eff_secondlaw, 0);
 	}
 
 }

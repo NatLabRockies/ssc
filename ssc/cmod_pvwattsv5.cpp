@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_pvshade.h"
 #include "lib_pvmodel.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 
 enum pvwatts_tracking_input { FIXED_OPEN_RACK, FIXED_ROOF_MOUNT, ONE_AXIS_SELF_SHADED, ONE_AXIS_BACKTRACKED, TWO_AXIS, AZIMUTH_AXIS };
 
@@ -151,7 +152,7 @@ protected:
 
     double ibeam, iskydiff, ignddiff;
     double solazi, solzen, solalt, aoi, stilt, sazi, rot, btd;
-    double elevation, pressure, t_amb;
+    double elevation, pressure, t_amb, pwater;
     int sunup;
 
     std::unique_ptr<pvwatts_celltemp> tccalc;
@@ -258,7 +259,7 @@ public:
         irr.get_sun(&solazi, &solzen, &solalt, 0, 0, 0, &sunup, 0, 0, 0);
         irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
         irr.get_poa(&ibeam, &iskydiff, &ignddiff, 0, 0, 0);
-        irr.get_optional(&elevation, &pressure, &t_amb);
+        irr.get_optional(&elevation, &pressure, &t_amb, &pwater);
 
 
         return code;

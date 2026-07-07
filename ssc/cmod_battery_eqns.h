@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static const char* size_battery_doc =
+    "Resizes the battery for a battery data object \\n\\n"
+    "Input: var_table with key-value pairs\\n"
+    "     'desired_capacity': double [kWh]\\n"
+    "     'desired_voltage': double [V]\\n"
+    "     'mass': double [kg] \\n"
+    "     'surface_area': double [m^2],\\n"
+    "     'module_capacity': double [kWh], optional\\n"
+    "     'module_surface_area': double [m^2], optional\\n"
+    "     'tol': double [%], optional\\n"
+    "     'batt_cell_power_discharge_max': double [Wdc], optional\\n"
+    "     'batt_cell_power_charge_max': double [Wdc], optional\\n"
+    "     'batt_cell_current_discharge_max': double [A], optional\\n"
+    "     'batt_cell_current_charge_max': double [A], optional\\n"
+    "Output: key-value pairs added to var_table, mass, surface_area, and nominal_energy will be modified\\n"
+    "     'original_capacity': kWh [kWh]\\n";
+
+
+SSCEXPORT bool Size_battery(ssc_data_t data);
 
 static const char* size_batterystateful_doc =
     "Resizes the battery for a battery_stateful data object \\n\\n"
@@ -79,7 +99,7 @@ static const char* Reopt_size_standalone_battery_params_doc =
 "REopt inputs not used in this function will be REopt's defaults.\\n"
 "The post produced here is not a complete submission. Additional variables uch as lon and lat are required.\\n"
 "Function PVSamV1.Reopt_size_battery_params provides a valid post, or users can provide additional inputs via Python or LK.\\n"
-"See https ://nrel.github.io/REopt.jl/dev/reopt/inputs/ for a full set of inputs\\n\\n"
+"See https ://natlabrockies.github.io/REopt.jl/dev/reopt/inputs/ for a full set of inputs\\n\\n"
 "Input: var_table with key-value pairs:  \\n"
 "     ++ Battery inputs ++\\n"
 "         'batt_dc_ac_efficiency': optional double [%], Battery DC to AC efficiency, 0-100\\n"

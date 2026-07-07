@@ -326,6 +326,32 @@ int sco2_cycle_plot_data_TS(int cycle_config,
 	int n_pres = pres.size();
 	int n_entr = entr.size();
 
+    int HTR_HP_IN_ENUM = -1;
+    int PHX_IN_ENUM = -1;
+    int LTR_LP_IN_ENUM = -1;
+    int COOLER_IN_ENUM = -1;
+    if (cycle_config == 4)  // Turbine Split Flow
+    {
+        HTR_HP_IN_ENUM = C_sco2_cycle_core::MC_OUT;
+        PHX_IN_ENUM = C_sco2_cycle_core::LTR_HP_OUT;
+        LTR_LP_IN_ENUM = C_sco2_cycle_core::TURB2_OUT;
+        COOLER_IN_ENUM = C_sco2_cycle_core::MIXER_OUT;
+    }
+    else if (cycle_config == 3) // Recompression with HTR Bypass
+    {
+        HTR_HP_IN_ENUM = C_sco2_cycle_core::MIXER_OUT;
+        PHX_IN_ENUM = C_sco2_cycle_core::MIXER2_OUT;
+        LTR_LP_IN_ENUM = C_sco2_cycle_core::HTR_LP_OUT;
+        COOLER_IN_ENUM = C_sco2_cycle_core::LTR_LP_OUT;
+    }
+    else
+    {
+        HTR_HP_IN_ENUM = C_sco2_cycle_core::MIXER_OUT;
+        PHX_IN_ENUM = C_sco2_cycle_core::HTR_HP_OUT;
+        LTR_LP_IN_ENUM = C_sco2_cycle_core::HTR_LP_OUT;
+        COOLER_IN_ENUM = C_sco2_cycle_core::LTR_LP_OUT;
+    }
+
 	// Get LTR HP data
 	int err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::MC_OUT], entr[C_sco2_cycle_core::MC_OUT],
 		pres[C_sco2_cycle_core::LTR_HP_OUT], entr[C_sco2_cycle_core::LTR_HP_OUT],
@@ -334,70 +360,72 @@ int sco2_cycle_plot_data_TS(int cycle_config,
 		return err_code;
 
 	// Get HTR HP data
-	err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::MIXER_OUT], entr[C_sco2_cycle_core::MIXER_OUT],
+	err_code = Ts_data_over_linear_dP_ds(pres[HTR_HP_IN_ENUM], entr[HTR_HP_IN_ENUM],
 		pres[C_sco2_cycle_core::HTR_HP_OUT], entr[C_sco2_cycle_core::HTR_HP_OUT],
 		T_HTR_HP, s_HTR_HP, 25);
 	if (err_code != 0)
 		return err_code;
 
 	// Get PHX data
-	err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::HTR_HP_OUT], entr[C_sco2_cycle_core::HTR_HP_OUT],
+	err_code = Ts_data_over_linear_dP_ds(pres[PHX_IN_ENUM], entr[PHX_IN_ENUM],
 		pres[C_sco2_cycle_core::TURB_IN], entr[C_sco2_cycle_core::TURB_IN],
 		T_PHX, s_PHX, 25);
 	if (err_code != 0)
 		return err_code;
 
-	// Get HTR HP data
+	// Get HTR LP data
 	err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::TURB_OUT], entr[C_sco2_cycle_core::TURB_OUT],
 		pres[C_sco2_cycle_core::HTR_LP_OUT], entr[C_sco2_cycle_core::HTR_LP_OUT],
 		T_HTR_LP, s_HTR_LP, 25);
 	if (err_code != 0)
 		return err_code;
 
-	// Get LTR HP data
-	err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::HTR_LP_OUT], entr[C_sco2_cycle_core::HTR_LP_OUT],
+	// Get LTR LP data
+	err_code = Ts_data_over_linear_dP_ds(pres[LTR_LP_IN_ENUM], entr[LTR_LP_IN_ENUM],
 		pres[C_sco2_cycle_core::LTR_LP_OUT], entr[C_sco2_cycle_core::LTR_LP_OUT],
 		T_LTR_LP, s_LTR_LP, 25);
 	if (err_code != 0)
 		return err_code;
 
-	if (cycle_config != 2)		// Recompression Cycle
-	{
-		if (n_pres < C_sco2_cycle_core::RC_OUT + 1 || n_entr != n_pres)
-			return -1;
+    if (cycle_config == 1 || cycle_config == 3 || cycle_config == 4)		// Recompression Cycle or Turbine split flow cycle
+    {
+        if (n_pres < C_sco2_cycle_core::RC_OUT + 1 || n_entr != n_pres)
+            return -1;
 
-		// Get main cooler data
-		err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::LTR_LP_OUT], entr[C_sco2_cycle_core::LTR_LP_OUT],
-			pres[C_sco2_cycle_core::MC_IN], entr[C_sco2_cycle_core::MC_IN],
-			T_main_cooler, s_main_cooler, 25);
-		if (err_code != 0)
-			return err_code;
+        // Get main cooler data
+        err_code = Ts_data_over_linear_dP_ds(pres[COOLER_IN_ENUM], entr[COOLER_IN_ENUM],
+            pres[C_sco2_cycle_core::MC_IN], entr[C_sco2_cycle_core::MC_IN],
+            T_main_cooler, s_main_cooler, 25);
+        if (err_code != 0)
+            return err_code;
 
-		// Set IP data
-		T_pre_cooler.resize(1);
-		T_pre_cooler[0] = T_main_cooler[0];
-		s_pre_cooler.resize(1);
-		s_pre_cooler[0] = s_main_cooler[0];
-	}
-	else		// Partial Cooling Cycle
-	{
-		if (n_pres < C_sco2_cycle_core::PC_OUT + 1 || n_entr != n_pres)
-			return -1;
+        // Set IP data
+        T_pre_cooler.resize(1);
+        T_pre_cooler[0] = T_main_cooler[0];
+        s_pre_cooler.resize(1);
+        s_pre_cooler[0] = s_main_cooler[0];
+    }
+    else if (cycle_config == 2)		// Partial Cooling Cycle
+    {
+        if (n_pres < C_sco2_cycle_core::PC_OUT + 1 || n_entr != n_pres)
+            return -1;
 
-		// Get pre cooler data
-		err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::LTR_LP_OUT], entr[C_sco2_cycle_core::LTR_LP_OUT],
-			pres[C_sco2_cycle_core::PC_IN], entr[C_sco2_cycle_core::PC_IN],
-			T_pre_cooler, s_pre_cooler, 25);
-		if (err_code != 0)
-			return err_code;
+        // Get pre cooler data
+        err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::LTR_LP_OUT], entr[C_sco2_cycle_core::LTR_LP_OUT],
+            pres[C_sco2_cycle_core::PC_IN], entr[C_sco2_cycle_core::PC_IN],
+            T_pre_cooler, s_pre_cooler, 25);
+        if (err_code != 0)
+            return err_code;
 
-		// Get main cooler data
-		err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::PC_OUT], entr[C_sco2_cycle_core::PC_OUT],
-			pres[C_sco2_cycle_core::MC_IN], entr[C_sco2_cycle_core::MC_IN],
-			T_main_cooler, s_main_cooler, 25);
-		if (err_code != 0)
-			return err_code;
-	}
+        // Get main cooler data
+        err_code = Ts_data_over_linear_dP_ds(pres[C_sco2_cycle_core::PC_OUT], entr[C_sco2_cycle_core::PC_OUT],
+            pres[C_sco2_cycle_core::MC_IN], entr[C_sco2_cycle_core::MC_IN],
+            T_main_cooler, s_main_cooler, 25);
+        if (err_code != 0)
+            return err_code;
+    }
+    else
+        return -1;              // Not modeled
 
 	return 0;
 }
@@ -412,7 +440,9 @@ int sco2_cycle_plot_data_PH(int cycle_config,
 	std::vector<double> & P_rc /*MPa*/,
 	std::vector<double> & h_rc /*kJ/kg*/,
 	std::vector<double> & P_pc /*MPa*/,
-	std::vector<double> & h_pc /*kJ/kg*/)
+	std::vector<double> & h_pc /*kJ/kg*/,
+    std::vector<double> & P_t2 /*MPa*/,
+    std::vector<double> & h_t2 /*kJ/kg*/)
 {
 	int n_pres = pres.size();
 	int n_temp = temp.size();
@@ -431,46 +461,73 @@ int sco2_cycle_plot_data_PH(int cycle_config,
 	if (err_code != 0)
 		return err_code;
 
-	if (cycle_config != 2)		// Recompression Cycle
-	{
-		if (n_pres < C_sco2_cycle_core::RC_OUT + 1 || n_temp != n_pres)
-			return -1;
+    if (cycle_config == 4)  // Turbine Split Flow Cycle
+    {
+        if (n_pres < C_sco2_cycle_core::TURB2_OUT + 1 || n_temp != n_pres)
+            return -1;
 
-		// Recompressor
-		err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::LTR_LP_OUT], pres[C_sco2_cycle_core::LTR_LP_OUT],
-			temp[C_sco2_cycle_core::RC_OUT], pres[C_sco2_cycle_core::RC_OUT],
-			P_rc, h_rc, 25);
+        // Secondary Turbine
+        int err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::HTR_HP_OUT], pres[C_sco2_cycle_core::HTR_HP_OUT],
+            temp[C_sco2_cycle_core::TURB2_OUT], pres[C_sco2_cycle_core::TURB2_OUT],
+            P_t2, h_t2, 25);
 
-		if (err_code != 0)
-			return err_code;
+        if (err_code != 0)
+            return err_code;
 
-		// Precompressor
-		P_pc.resize(1);
-		P_pc[0] = P_mc[0];
-		h_pc.resize(1);
-		h_pc[0] = h_mc[0];
-	}
-	else		// Partial Cooling Cycle
-	{
-		if (n_pres < C_sco2_cycle_core::PC_OUT + 1 || n_temp != n_pres)
-			return -1;
+        // Recompressor
+        P_rc.resize(1);
+        P_rc[0] = P_mc[0];
+        h_rc.resize(1);
+        h_rc[0] = h_mc[0];
+        
+        // Precompressor
+        P_pc.resize(1);
+        P_pc[0] = P_mc[0];
+        h_pc.resize(1);
+        h_pc[0] = h_mc[0];
+    }
+    else if (cycle_config == 1 || cycle_config == 3) // Recompression w/o and w/ HTR Bypass
+    {
+        if (n_pres < C_sco2_cycle_core::RC_OUT + 1 || n_temp != n_pres)
+            return -1;
 
-		// Recompressor
-		err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::PC_OUT], pres[C_sco2_cycle_core::PC_OUT],
-			temp[C_sco2_cycle_core::RC_OUT], pres[C_sco2_cycle_core::RC_OUT],
-			P_rc, h_rc, 25);
+        // Recompressor
+        err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::LTR_LP_OUT], pres[C_sco2_cycle_core::LTR_LP_OUT],
+            temp[C_sco2_cycle_core::RC_OUT], pres[C_sco2_cycle_core::RC_OUT],
+            P_rc, h_rc, 25);
 
-		if (err_code != 0)
-			return err_code;
+        if (err_code != 0)
+            return err_code;
 
-		// Precompressor
-		err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::PC_IN], pres[C_sco2_cycle_core::PC_IN],
-			temp[C_sco2_cycle_core::PC_OUT], pres[C_sco2_cycle_core::PC_OUT],
-			P_pc, h_pc, 25);
+        // Precompressor
+        P_pc.resize(1);
+        P_pc[0] = P_mc[0];
+        h_pc.resize(1);
+        h_pc[0] = h_mc[0];
+    }
+    else if (cycle_config == 2)		// Partial Cooling Cycle
+    {
+        if (n_pres < C_sco2_cycle_core::PC_OUT + 1 || n_temp != n_pres)
+            return -1;
 
-		if (err_code != 0)
-			return err_code;
-	}
+        // Recompressor
+        err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::PC_OUT], pres[C_sco2_cycle_core::PC_OUT],
+            temp[C_sco2_cycle_core::RC_OUT], pres[C_sco2_cycle_core::RC_OUT],
+            P_rc, h_rc, 25);
+
+        if (err_code != 0)
+            return err_code;
+
+        // Precompressor
+        err_code = Ph_data_over_turbomachinery(temp[C_sco2_cycle_core::PC_IN], pres[C_sco2_cycle_core::PC_IN],
+            temp[C_sco2_cycle_core::PC_OUT], pres[C_sco2_cycle_core::PC_OUT],
+            P_pc, h_pc, 25);
+
+        if (err_code != 0)
+            return err_code;
+    }
+    else // Not modeled
+        return -1;
 
 	return 0;
 }
@@ -771,6 +828,20 @@ int Ph_dome(double P_low /*MPa*/, std::vector<double> & P_data /*MPa*/, std::vec
 	return Ts_full_dome(T_P_target_solved - 273.15, T_data, s_data, P_data, h_data);
 }
 
+double calculate_inflation_factor(double yr_base, double yr_target)
+{
+    if (yr_base == 0 || yr_target == 0)
+        return 1.0;
+
+    std::vector<double> yr_vec = std::vector<double>{ yr_base, yr_target };
+
+    if (yr_vec[0] == 2017 && yr_vec[1] == 2024) {
+        return 1.407577;
+    }
+
+    return std::numeric_limits<double>::quiet_NaN();
+}
+
 int C_MEQ_CO2_props_at_2phase_P::operator()(double T_co2 /*K*/, double *P_calc /*kPa*/)
 {
 	int prop_err_code = CO2_TQ(T_co2, 0.0, &mc_co2_props);
@@ -806,14 +877,29 @@ void C_HeatExchanger::hxr_conductance(const std::vector<double> & m_dots, double
 }
 
 double C_turbine::calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/)
+	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double yr_inflation/*yr*/)
 {
 	switch (m_cost_model)
 	{
 	case C_turbine::E_CARLSON_17:
-		return 7.79*1.E-3*std::pow(W_dot, 0.6842);		//[M$] needs power in kWe
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 7.79 * 1.E-3 * std::pow(W_dot, 0.6842) * f_inflation;		//[M$] needs power in kWe
+    }
     case C_turbine::E_WEILAND_19__AXIAL:
-        return 182600*std::pow(W_dot*1.E-3, 0.5561)*1.E-6;  //[M$] needs power in MWe
+    {
+        double base_cost = 182600 * std::pow(W_dot * 1.E-3, 0.5561);  // [$] needs power in MWe
+
+        double cost_mult = 1.0;
+        double T_in_C = T_in - 273.15;  //[C]
+        if (T_in_C >= 550) {
+            cost_mult = 1.0 + ((1.106e-4) * std::pow(T_in_C - 550, 2.0));
+        }
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return base_cost * cost_mult * 1e-6 * f_inflation;  //[M$]
+    }
 	default:
 		return std::numeric_limits<double>::quiet_NaN();
 	}
@@ -897,7 +983,7 @@ void C_turbine::turbine_sizing(const S_design_parameters & des_par_in, int & err
 	ms_des_solved.m_W_dot = ms_des_par.m_m_dot*(ms_des_par.m_h_in - ms_des_par.m_h_out);
 
 	ms_des_solved.m_equipment_cost = calculate_equipment_cost(ms_des_par.m_T_in, ms_des_par.m_P_in, ms_des_par.m_m_dot,
-							T_out, ms_des_par.m_P_out, ms_des_solved.m_W_dot);
+							T_out, ms_des_par.m_P_out, ms_des_solved.m_W_dot, ms_des_par.m_yr_inflation);
 
     ms_des_solved.m_bare_erected_cost = calculate_bare_erected_cost(ms_des_solved.m_equipment_cost);
 }
@@ -1494,14 +1580,22 @@ int C_comp_multi_stage::C_MEQ_N_rpm__P_out::operator()(double N_rpm /*rpm*/, dou
 }
 
 double C_comp_multi_stage::calculate_equipment_cost(double T_in /*K*/, double P_in /*kPa*/, double m_dot /*kg/s*/,
-	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/)
+	double T_out /*K*/, double P_out /*kPa*/, double W_dot /*kWe*/, double yr_inflation /*yr*/)
 {
 	switch (m_cost_model)
 	{
 	case C_comp_multi_stage::E_CARLSON_17:
-		return 6.898*1.E-3*std::pow(W_dot, 0.7865);		//[M$] needs power in kWe
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 6.898 * 1.E-3 * std::pow(W_dot, 0.7865) * f_inflation;		//[M$] needs power in kWe
+    }
     case C_comp_multi_stage::E_WEILAND_19__IG:
-        return 1.23*std::pow(W_dot*1.E-3, 0.3992);      //[M$] needs power in MWe
+    {
+        double yr_base_inflation = 2017;
+        double f_inflation = calculate_inflation_factor(yr_base_inflation, yr_inflation);
+        return 1.23 * std::pow(W_dot * 1.E-3, 0.3992) * f_inflation;      //[M$] needs power in MWe
+    } 
 	default:
 		return std::numeric_limits<double>::quiet_NaN();
 	}
@@ -1517,7 +1611,7 @@ double C_comp_multi_stage::calculate_bare_erected_cost(double cost_equipment /*M
 }
 
 int C_comp_multi_stage::design_given_outlet_state(int comp_model_code, double T_in /*K*/, double P_in /*kPa*/, double m_dot_cycle /*kg/s*/,
-	double T_out /*K*/, double P_out /*K*/, double tol /*-*/)
+	double T_out /*K*/, double P_out /*K*/, double tol /*-*/, double yr_inflation /*yr*/)
 {
     m_compressor_model = comp_model_code;   //[-]
 
@@ -1655,7 +1749,7 @@ int C_comp_multi_stage::design_given_outlet_state(int comp_model_code, double T_
 	}
 
 	ms_des_solved.m_cost_equipment = calculate_equipment_cost(ms_des_solved.m_T_in, ms_des_solved.m_P_in, ms_des_solved.m_m_dot,
-							ms_des_solved.m_T_out, ms_des_solved.m_P_out, ms_des_solved.m_W_dot);
+							ms_des_solved.m_T_out, ms_des_solved.m_P_out, ms_des_solved.m_W_dot, yr_inflation);
 
     ms_des_solved.m_cost_bare_erected = calculate_bare_erected_cost(ms_des_solved.m_cost_equipment);    //[M$]
 

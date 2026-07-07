@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -231,6 +231,7 @@ struct batt_variables
 	util::matrix_t<size_t> ec_weekend_schedule;
 	util::matrix_t<double> ec_tou_matrix;
 	std::vector<double> ec_realtime_buy;
+    size_t start_day_of_year;
 
 	/* Battery replacement options */
 	int batt_replacement_option;

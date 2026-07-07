@@ -6,7 +6,7 @@
 
 # For CMake build option `SAMAPI_EXPORT`, see ../CMakeLists.txt
 
-include_directories(. ../splinter ../shared ../nlopt ../lpsolve ../solarpilot ../tcs ../ssc)
+include_directories(. ../splinter/include $ENV{ORTOOLSDIR}/include/eigen3 $ENV{ORTOOLSDIR}/include ../shared ../nlopt ../lpsolve ../solarpilot ../tcs ../ssc)
 
 set(SSC_SRC
 		cmod_6parsolve.cpp
@@ -123,8 +123,6 @@ set(SSC_SRC
 		cmod_windpower.h
 		cmod_windpower_eqns.cpp
 		cmod_windpower_eqns.h
-        	cmod_wind_landbosse.cpp
-        	cmod_wind_landbosse.h
 		common.cpp
 		common.h
 		common_financial.cpp
@@ -184,22 +182,22 @@ else()
 endif()
 
 # dltest executable for checking ssc library
-if(UNIX AND NOT SAMAPI_EXPORT)
-	add_executable(dltest ../build_resources/dltest.c)
-	if (APPLE)
-		add_custom_command(
-			TARGET ssc
-			POST_BUILD
-			COMMAND codesign --force --deep --sign - $<TARGET_FILE:ssc>
-			COMMAND dltest $<TARGET_FILE:ssc>)
-	else()
-		target_link_libraries(dltest -ldl -Wl,--no-as-needed)
-		add_custom_command(
-			TARGET ssc
-			POST_BUILD
-			COMMAND dltest $<TARGET_FILE:ssc>)
-	endif()
-endif()
+#if(UNIX AND NOT SAMAPI_EXPORT)
+#	add_executable(dltest ../build_resources/dltest.c)
+#	if (APPLE)
+#		add_custom_command(
+#			TARGET ssc
+#			POST_BUILD
+#			COMMAND codesign --force --deep --sign - $<TARGET_FILE:ssc>
+#			COMMAND dltest $<TARGET_FILE:ssc>)
+#	else()
+#		target_link_libraries(dltest -ldl -Wl,--no-as-needed)
+#		add_custom_command(
+#			TARGET ssc
+#			POST_BUILD
+#			COMMAND dltest $<TARGET_FILE:ssc>)
+#	endif()
+#endif()
 
 # libssc for PySAM
 if(UNIX)
@@ -238,6 +236,9 @@ foreach( name ${DEPENDENCIES} )
 endforeach()
 
 if (UNIX)
+    find_package(ortools REQUIRED)
+    target_link_libraries(shared ortools::ortools)
+
 	find_package(Threads REQUIRED)
 	target_link_libraries(ssc PUBLIC Threads::Threads ${CMAKE_DL_LIBS}) 
 	find_library(MATH_LIBRARY m)

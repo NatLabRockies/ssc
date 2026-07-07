@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,8 @@ public:
 	bool read_line(std::vector<double> &values) override;
 
 	std::string get_stdErrorMsg(){ return stdErrorMsg; };
+
+    void rewind() override { irecord = 0; }
 };
 
 class cm_windpower : public compute_module

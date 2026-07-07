@@ -4,7 +4,7 @@ Note
 -------------
 The version of lp_solve included in this repository has been modified as follows:
 1. The original .c files have been modified to .cpp files to facilitate the use of c++ std library functions for abs, fabs, sqrt, etc.
-2. The lp_solve specific file modifications can be found at https://github.com/NREL/ssc/commits/patch/lpsolve
+2. The lp_solve specific file modifications can be found at https://github.com/NatLabRockies/ssc/commits/patch/lpsolve
 
 The original version of lp_solve can be found at https://sourceforge.net/projects/lpsolve/
 
@@ -172,7 +172,7 @@ void __WINAPI set_outputstream(lprec *lp, FILE *stream)
   lp->streamowned = FALSE;
 }
 
-MYBOOL __WINAPI set_outputfile(lprec *lp, char *filename)
+MYBOOL __WINAPI set_outputfile(lprec *lp, const char *filename)
 {
   MYBOOL ok;
   FILE   *output = stdout;
@@ -930,9 +930,9 @@ int __WINAPI get_pivoting(lprec *lp)
   return( (lp->piv_strategy | PRICE_STRATEGYMASK) ^ PRICE_STRATEGYMASK );
 }
 
-STATIC char *get_str_piv_rule(int rule)
+STATIC const char *get_str_piv_rule(int rule)
 {
-  static char *pivotText[PRICER_LASTOPTION+1] =
+  static const char *pivotText[PRICER_LASTOPTION+1] =
   {"Bland first index", "Dantzig", "Devex", "Steepest Edge"};
 
   return( pivotText[rule] );
@@ -1357,7 +1357,7 @@ int __WINAPI get_status(lprec *lp)
   return(lp->spx_status);
 }
 
-char * __WINAPI get_statustext(lprec *lp, int statuscode)
+const char * __WINAPI get_statustext(lprec *lp, int statuscode)
 {
   if (statuscode == NOBFP)             return("No basis factorization package");
   else if (statuscode == DATAIGNORED)  return("Invalid input data provided");
@@ -3169,10 +3169,11 @@ MYBOOL __WINAPI add_constraint(lprec *lp, REAL *row, int constr_type, REAL rh)
   return( add_constraintex(lp, 0, row, NULL, constr_type, rh) );
 }
 
-MYBOOL __WINAPI str_add_constraint(lprec *lp, char *row_string, int constr_type, REAL rh)
+MYBOOL __WINAPI str_add_constraint(lprec *lp, const char *row_string, int constr_type, REAL rh)
 {
   int    i;
-  char   *p, *newp;
+  const char* p;
+  char    *newp;
   REAL   *aRow;
   MYBOOL status = FALSE;
 
@@ -4419,7 +4420,7 @@ REAL __WINAPI get_constr_value(lprec *lp, int rownr, int count, REAL *primsoluti
   return( value );
 }
 
-STATIC char *get_str_constr_class(lprec *lp, int con_class)
+STATIC const char *get_str_constr_class(lprec *lp, int con_class)
 {
   switch(con_class) {
     case ROWCLASS_Unknown:     return("Unknown");
@@ -4437,7 +4438,7 @@ STATIC char *get_str_constr_class(lprec *lp, int con_class)
   }
 }
 
-STATIC char *get_str_constr_type(lprec *lp, int con_type)
+STATIC const char *get_str_constr_type(lprec *lp, int con_type)
 {
   switch(con_type) {
     case FR: return("FR");
@@ -5720,12 +5721,12 @@ STATIC int get_basisOF(lprec *lp, int coltarget[], REAL crow[], int colno[])
 {
   int            i, n = lp->rows, nz = 0;
   REAL           *obj = lp->obj;
-  register REAL epsvalue = lp->epsvalue;
+  REAL epsvalue = lp->epsvalue;
 
   /* Compute offset over the specified objective indeces (step 2) */
   if(coltarget != NULL) {
-    register int  ix, m = coltarget[0];
-    register REAL value;
+    int  ix, m = coltarget[0];
+    REAL value;
 
     for(i = 1, coltarget++; i <= m; i++, coltarget++) {
       ix = *coltarget;
@@ -5748,7 +5749,7 @@ STATIC int get_basisOF(lprec *lp, int coltarget[], REAL crow[], int colno[])
 
   /* Get the basic objective function values (step 1) */
   else {
-    register int *basvar = lp->var_basic;
+    int *basvar = lp->var_basic;
 
     for(i = 1, crow++, basvar++; i <= n;
          i++, crow++, basvar++) {
@@ -8005,7 +8006,7 @@ STATIC int compute_theta(lprec *lp, int rownr, LREAL *theta, int isupbound, REAL
    the leaving variable. Note that the incoming theta is "d" in Chvatal-terminology */
 {
   int             colnr = lp->var_basic[rownr];
-  register LREAL x     = lp->rhs[rownr];
+  LREAL x     = lp->rhs[rownr];
   REAL            lb    = 0,  /* Put lower bound here when the fully bounded version is implemented */
                   ub    = lp->upbo[colnr],
                   eps   = lp->epsprimal;  /* Primal feasibility tolerance */

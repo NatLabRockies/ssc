@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -276,7 +276,7 @@ sandia_module_t::sandia_module_t( )
 }
 
 
-bool sandia_module_t::operator() ( pvinput_t &in, double TcellC, double opvoltage, pvoutput_t &out )
+bool sandia_module_t::operator() ( pvinput_t const &in, double TcellC, double opvoltage, pvoutput_t &out ) const
 {
 	
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;
@@ -294,8 +294,8 @@ bool sandia_module_t::operator() ( pvinput_t &in, double TcellC, double opvoltag
 		double AMa = sandia_absolute_air_mass(in.Zenith, in.Elev);
 
 		//C Calculate F1 function:
-		double F1 = sandia_f1(AMa,A0,A1,A2,A3,A4);
-
+		//double F1 = sandia_f1(AMa,A0,A1,A2,A3,A4);
+        double F1 = in.SCF;
 		//C Calculate F2 function:
 		double F2 = sandia_f2(in.IncAng,B0,B1,B2,B3,B4,B5);
 
@@ -517,7 +517,7 @@ C b   = empirical constant
 	return E * exp(a + b * Ws) + Ta;
 }
 
-bool sandia_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &, double , double &Tcell )
+bool sandia_celltemp_t::operator() ( pvinput_t const &input, pvmodule_t const &, double , double &Tcell ) const
 {
 	//Sev 2015-09-14: changed to permit direct poa data
 	double Itotal;

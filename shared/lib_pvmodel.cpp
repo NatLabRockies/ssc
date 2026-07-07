@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ pvinput_t::pvinput_t()
 {
 	Ibeam = Idiff = Ignd = Tdry = poaIrr= Tdew = Wspd = Wdir = Patm
 		= Zenith = IncAng = Elev 
-		= Tilt = Azimuth = HourOfDay = std::numeric_limits<double>::quiet_NaN();
+		= Tilt = Azimuth = HourOfDay = SCF = std::numeric_limits<double>::quiet_NaN();
 
 	radmode = 0;
 	usePOAFromWF = false;
@@ -55,7 +55,7 @@ pvinput_t::pvinput_t( double ib, double id, double ig, double irear, double ip,
 		double ta, double td, double ws, double wd, double patm,
 		double zen, double inc, 
 		double elv, double tlt, double azi,
-		double hrday, int rmode, bool up)
+		double hrday, double scf, int rmode, bool up)
 {
 	Ibeam = ib;
 	Idiff = id;
@@ -73,6 +73,7 @@ pvinput_t::pvinput_t( double ib, double id, double ig, double irear, double ip,
 	Tilt = tlt;
 	Azimuth = azi;
 	HourOfDay = hrday;
+    SCF = scf;
 	radmode = rmode;
 	usePOAFromWF = up;
 }
@@ -104,7 +105,7 @@ pvoutput_t::pvoutput_t( double p, double v,
 }
 
 
-std::string pvmodule_t::error()
+std::string pvmodule_t::error() const
 {
 	return m_err;
 }
@@ -122,7 +123,7 @@ spe_module_t::spe_module_t( )
 }
 
 	
-double spe_module_t::eff_interpolate( double irrad, double rad[5], double eff[5] )
+double spe_module_t::eff_interpolate( double const irrad, double const rad[5], double const eff[5] )
 {
 	if ( irrad < rad[0] )
 		return eff[0];
@@ -139,7 +140,7 @@ double spe_module_t::eff_interpolate( double irrad, double rad[5], double eff[5]
 	return (1-wx)*eff[i1]+wx*eff[i];
 }
 
-bool spe_module_t::operator() ( pvinput_t &input, double TcellC, double , pvoutput_t &output)
+bool spe_module_t::operator() ( pvinput_t const &input, double TcellC, double , pvoutput_t &output) const
 {
 	double idiff = fd*(input.Idiff + input.Ignd);
 

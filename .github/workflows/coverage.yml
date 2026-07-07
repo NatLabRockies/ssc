@@ -1,4 +1,4 @@
-name: CI
+name: coveralls
 
 on:
   push:
@@ -8,9 +8,10 @@ env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Debug
   GTEST_REF: b85864c64758dec007208e56af933fc3f52044ee
+  ORTOOLS_VER: "9.14"
 
 jobs:
-  build-on-ubuntu:
+  coveralls-on-ubuntu:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,12 +31,48 @@ jobs:
         echo "GTEST=$GTEST" >> $GITHUB_ENV
         SSCDIR=$GITHUB_WORKSPACE/ssc
         echo "SSCDIR=$SSCDIR" >> $GITHUB_ENV
+        ORTOOLSDIR=$GITHUB_WORKSPACE/or-tools-$ORTOOLS_VER/install_release
+        echo "ORTOOLSDIR=$ORTOOLSDIR" >> $GITHUB_ENV
+
     
     - name: Install OS dependencies
       run: |
         sudo apt-get update --fix-missing
         sudo apt-get install -y \
           lcov
+
+    - name: Restore cached OR-Tools
+      id: cached-ortools-restore
+      uses: actions/cache/restore@v4
+      with:
+        key: ortools-${{env.ORTOOLS_VER}}-linux-debug
+        path: ${{env.ORTOOLSDIR}}/
+
+    - name: Download OR-Tools
+      if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -L https://github.com/google/or-tools/releases/download/v$ORTOOLS_VER/or-tools-$ORTOOLS_VER.tar.gz -o or-tools-$ORTOOLS_VER.tar.gz
+        tar xvzf or-tools-$ORTOOLS_VER.tar.gz
+
+    - name: build OR-Tools
+      if: steps.cached-ortools-restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: | 
+          mkdir ${ORTOOLSDIR}
+          cd or-tools-$ORTOOLS_VER
+          mkdir build
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPS=ON -DUSE_COINOR=ON -DUSE_GLPK=ON -DBUILD_EXAMPLES=OFF -DBUILD_SAMPLES=OFF -DBUILD_DOC=OFF -DINSTALL_DOC=OFF -DCMAKE_INSTALL_PREFIX=${ORTOOLSDIR}
+          cmake --build build --config Debug --target all -j4 -v
+          cmake --build build --config Debug --target install -v
+
+    - name: Always save OR-Tools build
+      id: cached-ortools-save
+      if: always() && steps.cached-ortools-restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ steps.cached-ortools-restore.outputs.cache-primary-key }}
+        path: ${{env.ORTOOLSDIR}}/
 
 
     - name: Get cached GTest
@@ -59,7 +96,7 @@ jobs:
           export 
           mkdir ${GTEST}/build
           cd ${GTEST}/build
-          cmake -DCMAKE_CXX_FLAGS=-std=c++11 ..
+          cmake -DCMAKE_CXX_FLAGS=-std=c++17 ..
           make          
     
     - name: Checkout SSC
@@ -67,21 +104,16 @@ jobs:
       with:
          path: ssc
 
-    - name: Configure CMake
-      # Configure cmake to build ssc tests but not tools
+    - name: Build SSC
+      shell: bash
       run: |
-        mkdir ${SSCDIR}/build
-        cd ${SSCDIR}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=1 -DSAM_SKIP_TOOLS=1 
-
-    - name: Build
-      # Build your program with the given configuration
-      run: |
-        cd ${SSCDIR}/build
+        # Downloaded OR-Tools has CoinOR enabled
+        mkdir $SSCDIR/build
+        cd $SSCDIR/build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=1 -DSAM_SKIP_TOOLS=1 -DUSE_XPRESS=0 -DUSE_COINOR=1 -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_PREFIX_PATH=${ORTOOLSDIR} -Dabsl_DIR=${ORTOOLSDIR}\lib\cmake\absl" -Dutf8_range_DIR=${ORTOOLSDIR}\lib\cmake\utf8_range"  ..
         make -j4
 
     - name: Test
-      # Turn off fast fail for when the landbosse tests write to cerr
       shell: bash
       run: |
         set -e

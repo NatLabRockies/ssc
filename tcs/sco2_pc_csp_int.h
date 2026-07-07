@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,8 @@ public:
 		double m_eta_thermal;			//[-] Cycle thermal efficiency
 		double m_UA_recup_tot_des;		//[kW/K] Total recuperator conductance
 		int m_cycle_config;				//[-] 2 = partial cooling, [else] = recompression
-	
+        double m_eta_thermal_cutoff;    //[] Minimum eta to fully design cycle (returns failure below value)
+
 		// Cycle design parameters
 		std::vector<double> m_DP_LT;		//(cold, hot) positive values are absolute [kPa], negative values are relative (-)
 		std::vector<double> m_DP_HT;		//(cold, hot) positive values are absolute [kPa], negative values are relative (-)
@@ -94,12 +95,15 @@ public:
         double m_eta_rc;					//[-] design-point efficiency of the recompressor; isentropic if positive, polytropic if negative
 		double m_eta_pc;					//[-] design-point efficiency of the precompressor; isentropic if positive, polytropic if negative
 		double m_eta_t;						//[-] design-point efficiency of the turbine; isentropic if positive, polytropic if negative
-		double m_P_high_limit;				//[kPa] maximum allowable pressure in cycle
+        double m_eta_t2;                    //[-] design-point efficiency of the secondary turbine (TSF ONLY); isentropic if positive, polytropic if negative
+        double m_P_high_limit;				//[kPa] maximum allowable pressure in cycle
 		double m_des_tol;				    //[-] Design point convergence tolerance
 		double m_des_opt_tol;				//[-] Optimization tolerance
 		double m_N_turbine;					//[rpm] Turbine shaft speed (negative values link turbine to compressor)
 		double m_is_recomp_ok;				//[-] 1 = Yes, 0 = simple cycle only, < 0 = fix f_recomp to abs(input)
-	
+        double m_is_bypass_ok;              //[-] 1 = Yes, 0 = no bypass, < 0 = fix bp_frac to abs(input)
+        double m_is_turbine_split_ok;       //[-] 1 = Yes, 0 = No Second Turbine, < 0 = fix split_frac to abs(input)
+
 		int m_des_objective_type;			//[2] = min phx deltat then max eta, [else] max eta
 		double m_min_phx_deltaT;			//[C]
 	
@@ -123,6 +127,16 @@ public:
 		double m_deltaP_cooler_frac;    // [-] Fraction of high side (of cycle, i.e. comp outlet) pressure that is allowed as pressure drop to design the ACC
         double m_eta_fan;               //[-] Fan isentropic efficiency
         int m_N_nodes_pass;             //[-] Number of nodes per pass
+
+
+        // Bypass Configuration Parameters
+        double m_T_bypass_target;       // [K] Bypass Target Temperature
+        int m_T_target_is_HTF;          // (1) BP Target is HTF temp, (0) Target is sco2 at cold bypass
+        double m_deltaT_bypass;         // [delta K] sco2 Bypass Outlet Temp - HTR_HP_OUT Temp
+        double m_set_HTF_mdot;          // [kg/s] For HTR Bypass ONLY, 0 = calculate HTF mdot (need to set dT_PHX_cold_approach), > 0 = HTF mdot kg/s
+
+        // Inflation target year
+        double m_yr_inflation;          // [yr] Inflation target year
 
 		S_des_par()
 		{
@@ -154,13 +168,14 @@ public:
                 m_LTR_UA = m_LTR_min_dT = m_LTR_eff_target = m_LTR_eff_max =
                 m_HTR_UA = m_HTR_min_dT = m_HTR_eff_target = m_HTR_eff_max =
 	
-				m_eta_mc = m_eta_rc = m_eta_pc = m_eta_t =
+				m_eta_mc = m_eta_rc = m_eta_pc = m_eta_t = m_eta_t2 =
 				m_P_high_limit = m_des_tol = m_des_opt_tol = m_N_turbine =
-                m_is_recomp_ok = 
+                m_is_recomp_ok = m_is_turbine_split_ok =
 	
 				m_PR_HP_to_LP_guess = m_f_PR_HP_to_IP_guess =
 	
 				m_phx_dt_cold_approach = m_frac_fan_power = m_deltaP_cooler_frac = m_eta_fan =
+                m_yr_inflation =
 				std::numeric_limits<double>::quiet_NaN();
 	
             m_fixed_P_mc_out = false;       //[-] If false, then should default to optimizing this parameter
@@ -174,6 +189,7 @@ public:
 	{
 		C_HX_counterflow_CRM::S_des_solved ms_phx_des_solved;
 		C_sco2_cycle_core::S_design_solved ms_rc_cycle_solved;
+        C_HX_counterflow_CRM::S_des_solved ms_bp_des_solved;
 	};
 
 	struct S_od_par
@@ -362,11 +378,14 @@ private:
     std::shared_ptr<C_sco2_cycle_core> mpc_sco2_cycle;
 
 	C_HX_co2_to_htf mc_phx;
+    C_HX_co2_to_htf mc_bp;  // Bypass Heat Exchanger
 
 	S_des_par ms_des_par;
 	C_sco2_cycle_core::S_auto_opt_design_hit_eta_parameters ms_cycle_des_par;
 	C_HX_counterflow_CRM::S_des_calc_UA_par ms_phx_des_par;
-		
+
+    C_HX_counterflow_CRM::S_des_calc_UA_par ms_bp_des_par; // Bypass HX Design Parameters
+
 	S_des_solved ms_des_solved;
 
 	S_od_par ms_od_par;
@@ -388,7 +407,7 @@ private:
 	double m_T_co2_crit;		//[K]
 	double m_P_co2_crit;		//[kPa]
 
-	void design_core();
+	int design_core();
 
 	double adjust_P_mc_in_away_2phase(double T_co2 /*K*/, double P_mc_in /*kPa*/);
 
@@ -613,7 +632,7 @@ public:
 		util::matrix_t<double> & T_htf_ind, util::matrix_t<double> & T_amb_ind, util::matrix_t<double> & m_dot_htf_ND_ind,
         double od_opt_tol /*-*/, double od_tol /*-*/);
 
-	void design(S_des_par des_par);
+	int design(S_des_par des_par);
 
     int off_design__constant_N__calc_max_htf_massflow__T_mc_in_P_LP_in__objective(C_sco2_phx_air_cooler::S_od_par od_par,
         bool is_rc_N_od_at_design, double rc_N_od_f_des /*-*/,

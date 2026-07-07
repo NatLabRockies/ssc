@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -652,7 +652,7 @@ TEST_F(lib_battery_lifetime_nmc_test, TestAgainstKokamData) {
 
             char writeBuffer[6553634];
             rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
-            rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(os);
+            rapidjson::PrettyWriter<rapidjson::FileWriteStream, rapidjson::UTF8<char>, rapidjson::UTF8<char>, rapidjson::CrtAllocator, rapidjson::kWriteNanAndInfFlag> writer(os);
 
             // write
             root.Accept(writer);

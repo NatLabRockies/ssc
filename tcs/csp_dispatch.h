@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,12 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#pragma once
-#pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
+#ifndef __csp_dispatch_
+#define __csp_dispatch_
 
-#include "base_dispatch.h"
+#include "base_dispatch_lpsolve.h"
 
-class csp_dispatch_opt : public base_dispatch_opt
+class csp_dispatch_opt : public base_dispatch_lpsolve
 {
 public:
     struct s_params
@@ -49,7 +49,7 @@ public:
         std::vector<double> delta_rs;            //expected proportion of time step used for receiver start up
         std::vector<double> f_pb_op_limit;		//[-] Maximum normalized cycle output
 
-        //TODO: This is not used and probabily should be removed.
+        //TODO: This is not used and probably should be removed.
         std::vector<double> eta_sf_expected;     //Expected solar field thermal efficiency (normalized)
 
         // Parameters
@@ -58,10 +58,10 @@ public:
         double e_tes_max;                   //[kWht] maximum allowable energy capacity in TES
         double e_pb_startup_cold;           //[kWht] energy requirement to start up the power block from cold state
         double e_pb_startup_hot;            //[kWht] energy requirement to start up the power block from standby
-        double e_rec_startup;               //[kWht] energy requirement to start up the reciever
-        double dt_pb_startup_cold;          //[hr] time requiremeent to start up the power block from cold state
-        double dt_pb_startup_hot;           //[hr] time requiremeent to start up the power block from hot state
-        double dt_rec_startup;              //[hr] time requirement to start up the reciever
+        double e_rec_startup;               //[kWht] energy requirement to start up the receiver
+        double dt_pb_startup_cold;          //[hr] time requirement to start up the power block from cold state
+        double dt_pb_startup_hot;           //[hr] time requirement to start up the power block from hot state
+        double dt_rec_startup;              //[hr] time requirement to start up the receiver
         double tes_degrade_rate;            //IN [1/hr] Fractional energy loss from tes per hour
         double q_pb_standby;                //[kWt] power requirement to maintain the power block in standby mode
         double q_pb_des;                    //[kWe] design cycle thermal power input
@@ -70,12 +70,12 @@ public:
         double q_pb_min;                    //[kWt] Minimum allowable thermal energy rate to the cycle
         double q_rec_min;                   //[kWt] Minimum allowable power delivery by the receiver when operating
         double w_rec_pump;                  //[kWe/kWt] Pumping parasitic power per thermal energy produced
-        double sf_effadj;                   //[-] 0..1 Solar field efficiency adjustment
         double time_weighting;              //[-] Weighting factor that discounts future decisions over more imminent ones
         double rsu_cost;                    //[$/start] Receiver startup cost
         double csu_cost;                    //[$/start] Cycle startup cost
         double pen_delta_w;                 //[$/kWe-change] Cycle production change penalty
         double q_rec_standby;               //[kWt] Receiver standby thermal power consumption fraction
+        double sys_par_fixed;               //[kWe] Fixed parasitic load of the system
 
         bool can_cycle_use_standby;         //[-] Can the cycle use standby operation?
         bool is_parallel_heater;            //[-] Is there a heater parallel to the receiver?
@@ -101,7 +101,7 @@ public:
         double inventory_incentive;         //[-]   Terminal storage inventory objective incentive multiplier
         //double ppa_price_y1;                //[$/MWh] Assumed ppa price for year 1 dispatch
 
-        s_efftable eff_table_load, eff_table_Tdb, wcondcoef_table_Tdb;  //Efficiency of the power cycle, condenser power coefs
+        s_efftable eff_table_load, eff_table_Tdb, wcondcoef_table_Tdb;  //Efficiency of the power cycle, condenser power coefficients
 
         s_params() {
             is_pb_operating0 = false;
@@ -126,8 +126,8 @@ public:
             w_rec_pump = std::numeric_limits<double>::quiet_NaN();
             q_pb_des = std::numeric_limits<double>::quiet_NaN();
             eta_pb_des = std::numeric_limits<double>::quiet_NaN();
+            sys_par_fixed = 0.0;
             inventory_incentive = 0.;
-            sf_effadj = 1.;
 
             time_weighting = 0.99;
             rsu_cost = 952.;
@@ -232,7 +232,7 @@ public:
 
     csp_dispatch_opt();
 
-    void init(double cycle_q_dot_des, double cycle_eta_des);
+    void init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic);
 
     // Set default solver parameters if user did not set them
     void set_default_solver_parameters();
@@ -252,12 +252,10 @@ public:
     //declare dispatch function in csp_dispatch.cpp
     bool optimize();
 
-    std::string write_ampl();
-
-    bool optimize_ampl();
-
     // Set outputs struct based on LP solution -> could move to outputs struct
     void set_outputs_from_lp_solution(lprec* lp, unordered_map<std::string, double>& params);
 
     bool set_dispatch_outputs();
 };
+
+#endif //__csp_dispatch_

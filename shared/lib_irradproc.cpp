@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_util.h"
 #include "lib_irradproc.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 #include "lib_util.h"
 #include "lib_weatherfile.h"
 
@@ -1840,6 +1841,7 @@ void irrad::setup() {
     elevation = 0;
     pressure = 1013.25;
     tamb = 15;
+    pwater = std::numeric_limits<double>::quiet_NaN();
 
     globalHorizontal = directNormal = diffuseHorizontal = -999;
 
@@ -2144,7 +2146,7 @@ void irrad::set_location(double latDegrees, double longDegrees, double tz) {
     this->timezone = tz;
 }
 
-void irrad::set_optional(double elev, double pres, double t_amb) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
+void irrad::set_optional(double elev, double pres, double t_amb, double prec_water) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
 {
     if (!std::isnan(elev) && elev >= 0)
         this->elevation = elev;
@@ -2152,13 +2154,16 @@ void irrad::set_optional(double elev, double pres, double t_amb) //defaults of 0
         this->pressure = pres;
     if (!std::isnan(t_amb))
         this->tamb = t_amb;
+    if (!std::isnan(prec_water))
+        this->pwater = prec_water;
 }
 
-void irrad::get_optional(double *elev, double *pres, double *t_amb) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
+void irrad::get_optional(double *elev, double *pres, double *t_amb, double *prec_water) //defaults of 0 meters elevation, atmospheric pressure, 15°C average annual temperature
 {
     *elev = this->elevation;
     *pres = this->pressure;
     *t_amb = this->tamb;
+    *prec_water = this->pwater;
 }
 
 void irrad::set_subhourly_clipping(bool enable)
@@ -2240,7 +2245,7 @@ void irrad::set_from_weather_record(weather_record wf, weather_header hdr, int t
         bool useWeatherFileAlbedo, std::vector<double>& userSpecifiedAlbedo, poaDecompReq *poaAllIn, bool useSpatialAlbedos, const util::matrix_t<double>* userSpecifiedSpatialAlbedos, 
         bool useCustomRotAngles, double customRotAngle) {
     set_time(wf.year, wf.month, wf.day, wf.hour, wf.minute, delt);
-    set_optional(hdr.elev, wf.pres, wf.tdry);
+    set_optional(hdr.elev, wf.pres, wf.tdry, wf.pwater);
     if (radiationMode == irrad::DN_DF) set_beam_diffuse(wf.dn, wf.df);
     else if (radiationMode == irrad::DN_GH) set_global_beam(wf.gh, wf.dn);
     else if (radiationMode == irrad::GH_DF) set_global_diffuse(wf.gh, wf.df);

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,13 +38,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lib_cec6par.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 #include "lib_util.h"
 
 static const double KB = 8.618e-5; // Boltzmann constant [eV/K] note units
 static const double k_air=0.02676, mu_air=1.927E-5, Pr_air=0.724;  // !Viscosity in units of N-s/m^2
 static const double EmisC = 0.84, EmisB = 0.7;  // Emissivities of glass cover, backside material
 static const double sigma = 5.66961E-8, cp_air = 1005.5;
-static double amavec[5] = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 };	// !Air mass modifier coefficients as indicated for polycrystalline modules in Table A1 of DeSoto paper published in Solar Energy  Vol 80 Issue 1 January 2006
 
 static const double Tc_ref = (25+273.15); // 25 'C
 static const double I_ref = 1000; // 1000 W/m2
@@ -103,7 +103,7 @@ cec6par_module_t::cec6par_module_t( )
 	Area = Vmp = Imp = Voc = Isc = alpha_isc = beta_voc 
 		= a = Il = Io = Rs = Rsh = Adj = std::numeric_limits<double>::quiet_NaN();
 }
-double air_mass_modifier( double Zenith_deg, double Elev_m, double a[5] )
+double air_mass_modifier( double Zenith_deg, double Elev_m, double const a[5] )
 {
 	// !Calculation of Air Mass Modifier
 	double air_mass = 1/(cos( Zenith_deg*M_PI/180 )+0.5057*pow(96.080-Zenith_deg, -1.634));
@@ -112,7 +112,7 @@ double air_mass_modifier( double Zenith_deg, double Elev_m, double a[5] )
 	return f1 > 0.0 ? f1 : 0.0;
 }
 
-bool cec6par_module_t::operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &out )
+bool cec6par_module_t::operator() ( pvinput_t const &input, double TcellC, double opvoltage, pvoutput_t &out ) const
 {
 	double muIsc = alpha_isc * (1-Adj/100);
 	//double muVoc = beta_voc * (1+Adj/100);
@@ -147,7 +147,8 @@ bool cec6par_module_t::operator() ( pvinput_t &input, double TcellC, double opvo
 		if (theta_z > 86.0) theta_z = 86.0; // !Zenith angle must be < 90 (?? why 86?)
 		if (theta_z < 0) theta_z = 0; // Zenith angle must be >= 0
 
-		Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );
+		double Geff_total_test = Geff_total * air_mass_modifier( theta_z, input.Elev, amavec );
+        Geff_total *= input.SCF;
 	
 	}
     else { // Even though we're using POA ref. data, we may still need to use the decomposed poa
@@ -201,8 +202,11 @@ bool cec6par_module_t::operator() ( pvinput_t &input, double TcellC, double opvo
 		out.Isc_oper = I_sc;
 		out.CellTemp = T_cell - 273.15;
 	}
-
-	return out.Power >= 0;
+    if (out.Power < 0) {
+        m_err = "Output power negative";
+        return false;
+    }
+	return true;
 }
 
 
@@ -213,7 +217,7 @@ bool cec6par_module_t::operator() ( pvinput_t &input, double TcellC, double opvo
  *********************************************************************************************
  *********************************************************************************************/
 
-bool noct_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double , double &Tcell )
+bool noct_celltemp_t::operator() ( pvinput_t const &  input, pvmodule_t const &  module, double , double &Tcell ) const
 {
 	double G_total, Geff_total;
 	double tau_al = std::abs(TauAlpha);
@@ -240,7 +244,8 @@ bool noct_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 			tau_al *= Geff_total/G_total;
 			
 		// !Calculation of Air Mass Modifier
-		Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );	
+		//Geff_total *= air_mass_modifier( theta_z, input.Elev, amavec );
+        Geff_total *= input.SCF;
 
 	} else { // Even though we're using POA ref. data, we may still need to use the decomposed poa
 		if( input.usePOAFromWF )
@@ -359,9 +364,9 @@ static double channel_free_194( double W_gap, double SLOPE, double TA, double T_
 	return  Nu*k_air/W_gap;
 }
 
-bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell )
+bool mcsp_celltemp_t::operator() ( pvinput_t const &input, pvmodule_t const &module, double opvoltage, double &Tcell ) const
 {	
-
+    m_err = "Populating a default error message";
 	if ( input.Ibeam + input.Idiff + input.Ignd < 1 )
 	{
 		Tcell = input.Tdry;
@@ -381,7 +386,7 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 	double RefrAng1   = asind(sind(THETA)/n2);
 	double TransSurf1 = 1-0.5*( pow(sind(RefrAng1-THETA),2)/pow(sind(RefrAng1+THETA),2)
 			+ pow(tand(RefrAng1-THETA),2)/pow(tand(RefrAng1+THETA),2) );
-	double TransCoverAbs1 = exp(-k_glass*l_glass/cosd(RefrAng1));
+double TransCoverAbs1 = exp(-k_glass*l_glass/cosd(RefrAng1));
 	double tau1       = TransCoverAbs1*TransSurf1;
         
 	//!Evaluating transmittance at angle Normal to surface (0), use 1 to avoid probs.
@@ -435,8 +440,10 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 	//!Calculation of Air Mass Modifier
 	if  (THETAZ < 0) THETAZ=0;
 	//double AMASS      = 1/(cosd(THETAZ)+0.5057*pow(96.080-THETAZ,-1.634));
-	double MAM        = //a0+a1*AMASS+a2*pow(AMASS,2)+a3*pow(AMASS,3)+a4*pow(AMASS,4);
-		air_mass_modifier( THETAZ, input.Elev, amavec );
+	//double MAM        = //a0+a1*AMASS+a2*pow(AMASS,2)+a3*pow(AMASS,3)+a4*pow(AMASS,4);
+	//	air_mass_modifier( THETAZ, input.Elev, amavec );
+    double MAM = //a0+a1*AMASS+a2*pow(AMASS,2)+a3*pow(AMASS,3)+a4*pow(AMASS,4);
+        input.SCF;
 	SUNEFF     = SUNEFF*MAM;
 
 	if (SUNEFF < 1)
@@ -444,30 +451,41 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 		Tcell = input.Tdry;
 		return true;
 	}
-
+    double l_length;
+    double l_width;
+    size_t l_nrows, l_ncols;
 	if (HTD == 1)
 	{
-		Nrows = Ncols = 1;
+        l_nrows = l_ncols = 1;
+        //l_length = Length;
+        //l_width = Width;
 	}
 	else if (HTD == 2)
 	{
-		Length = Nrows*Length;
-		Width = Ncols*Width;
-	}
+        l_ncols = Ncols;
+        l_nrows = Nrows;
+    }
+    else {
+        m_err = "Invalid Heat Transfer Dimension. Not 1 or 2";
+        return false;
+    }
+
+    l_length = l_nrows *Length;
+    l_width = l_ncols *Width;
 	
 	double Imp = module.ImpRef();
 	double Vmp = module.VmpRef();
 	
 	double Area_base = module.AreaRef();	 // !Use provided area for Duffie and Beckman model to maintain consistency w/ previous model
-	double Area = Area_base * Length * Width; // !Surface area of module
+	double Area = Area_base * l_length * l_width; // !Surface area of module
     // !Define characteristic length
-    double L_char     = 4.0 * Length * Width / (2.0 * (Width + Length));
-       
+    double L_char     = 4.0 * l_length * l_width / (2.0 * (l_width + l_length));
+    int local_MC = MC;
     // !If gap is less than 1 mm, use flush mounting configuration
-    if (Wgap < 0.001 && MC == 4) MC = 2;
+    if (Wgap < 0.001 && local_MC == 4) local_MC = 2;
     
-	double R_gap = Wgap / Length;
-	if ( MC == 4  && R_gap > 1 && MSO == 1) MC = 1;	
+	double R_gap = Wgap / l_length;
+	if ( local_MC == 4  && R_gap > 1 && MSO == 1) local_MC = 1;	
 
 	double v_ch = 1.0, Fcg, Fcs, Fbs, Fbg, T_sky, T_ground, T_rw;
 	
@@ -489,17 +507,17 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 	double EFFREF = 1e-3;
 		
 	// !Guess power based on SRC efficiency and irradiance
-	if (MC == 5)
+	if (local_MC == 5)
 		EFFREF = Imp*Vmp/(I_ref*Area_base);   // !Efficiency of module at SRC conditions
 	else
 		EFFREF = Imp*Vmp/(I_ref*Area);   // !Efficiency of module at SRC conditions
 
 	P_guess = EFFREF * (SUNEFF*Area); // !Estimate performance based on SRC efficiency
-	if (HTD == 2) P_guess = P_guess * Nrows * Ncols;
+	if (HTD == 2) P_guess = P_guess * l_nrows * l_ncols;
 
 
 	// !Adjust backside wind speed based on mounting structure orientation for "gap" mounting configuration
-	if (MC == 4) {
+	if (local_MC == 4) {
 		if (MSO==2) V_WIND  = MAX(0.001, std::abs(cosd(input.Wdir-input.Azimuth))*V_WIND);
 		if (MSO==3) V_WIND  = MAX(0.001, std::abs(cosd(input.Wdir+90.-input.Azimuth))*V_WIND);
 		v_ch = V_WIND * 0.3;   // !Give realistic starting value to channel air velocity
@@ -557,7 +575,7 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
         //Do something with finding asymptote of L or L_n to get final Lacunarity value here?
 
 
-		switch( MC )
+		switch( local_MC )
 		{
 		case 1 : // !Rack Mounting Configuration 
 			while(std::abs(err_TC) > 0.001 )
@@ -577,12 +595,12 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
                     h_forced   = Nu_forced * k_air / L_char;
                 else {
                     double Re_forced_Lsc = MAX(0.1, rho_air * V_cover * Lsc / mu_air);
-                    h_forced = (k_air / (ground_clearance_height + 2.0 * Length * sind(input.Tilt))) * pow(10, (0.090125 * pow(Re_forced_Lsc, 1. / 5.) * pow(Pr_air, 1. / 12.) + 1.8617));
+                    h_forced = (k_air / (ground_clearance_height + 2.0 * l_length * sind(input.Tilt))) * pow(10, (0.090125 * pow(Re_forced_Lsc, 1. / 5.) * pow(Pr_air, 1. / 12.) + 1.8617));
                 }
                 double h_sky      = (TC*TC+T_sky*T_sky)*(TC+T_sky);
 				double h_ground   = (TC*TC+T_ground*T_ground)*(TC+T_ground);
-				double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area,Length,Width) ; //   !Call function to calculate free convection on tilted surface (top)           
-				double h_free_b   = free_convection_194(TC,TA,180.0-input.Tilt,rho_air,Area,Length,Width); // !Call function to calculate free convection on tilted surface (bottom)              
+				double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area, l_length,l_width) ; //   !Call function to calculate free convection on tilted surface (top)           
+				double h_free_b   = free_convection_194(TC,TA,180.0-input.Tilt,rho_air,Area, l_length,l_width); // !Call function to calculate free convection on tilted surface (bottom)              
 				double h_conv_c   = pow( pow(h_forced,3.) + pow(h_free_c,3.) , 1./3.) ; // !Combine free and forced heat transfer coefficients (top)
 				double h_conv_b   = pow( pow(h_forced,3.) + pow(h_free_b,3.) , 1./3.) ; // !Combine free and forced heat transfer coefficients (bottom)
                 //h_conv_c = h_forced;
@@ -604,7 +622,10 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				TC         = TC1; //      !Set cell temp to most recent calculation
 					
 				h_iter++;			
-				if ( h_iter > 150 ) return false;
+				if ( h_iter > 150 ) {
+					m_err = "Temperature calculation did not converge in rack mounting configuration (MC=1).";
+					return false;
+				}
 			}
 			break;
 				
@@ -617,7 +638,7 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				double h_forced   = Nu_forced * k_air / L_char;
 				double h_sky      = (TC*TC+T_sky*T_sky)*(TC+T_sky);
 				double h_ground   = (TC*TC+T_ground*T_ground)*(TC+T_ground);
-				double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area,Length,Width);
+				double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area, l_length,l_width);
 				double h_conv_c   = pow((pow(h_forced,3.) + pow(h_free_c,3.)), (1./3.));
 					
 				double TC1 = ((h_conv_c)*TA + (Fcs*EmisC)*sigma*h_sky*T_sky + (Fcg*EmisC)*sigma*h_ground*T_ground
@@ -627,7 +648,10 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				TC         = TC1;
 					
 				h_iter++;
-				if (h_iter > 150) return false;
+				if (h_iter > 150) {
+					m_err = "Temperature calculation did not converge in flush mounting configuration (MC=2).";
+					return false;
+				}
 			}
 			break;
 			
@@ -643,8 +667,8 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				double h_sky      = (TC*TC+T_sky*T_sky)*(TC+T_sky);
 				double h_ground   = (TC*TC+T_ground*T_ground)*(TC+T_ground);				   
 				double h_radbk    = (TC*TC+TbackK*TbackK)*(TC+TbackK); // !Using TbackK now instead of TA					
-				double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area,Length,Width);				 
-				double h_free_b   = free_convection_194(TC,TbackK,180.-input.Tilt,rho_bk,Area,Length,Width);				 
+				double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area, l_length,l_width);
+				double h_free_b   = free_convection_194(TC,TbackK,180.-input.Tilt,rho_bk,Area, l_length,l_width);
 				double h_conv_c   = pow( pow(h_forced,3.) + pow(h_free_c,3.), (1./3.));
 				double h_conv_b   = h_free_b;// !No forced convection on backside
 					
@@ -656,7 +680,10 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				TC         = TC1;
 					
 				h_iter++;
-				if (h_iter > 150) return false;
+				if (h_iter > 150) {
+					m_err = "Temperature calculation did not converge in integrated mounting configuration (MC=3).";
+					return false;
+				}
 			}
 			break;
 				
@@ -668,8 +695,8 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				{
 					// !Define channel length and width for gap mounting configuration that does not block air flow in any direction
 					// !Use minimum dimension for length so that MSO 1 will have lower temp than MSO 2 or 3
-					L_charB = MIN(Width, Length);
-					L_str   = MAX(Width, Length);
+					L_charB = MIN(l_width, l_length);
+					L_str   = MAX(l_width, l_length);
 						
 					// !These values are dependent on MSO
 					A_c        = Wgap * L_str;     // !Cross Sectional area of channel
@@ -678,8 +705,8 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				}
 				else if (MSO == 2) //  !Vertical supports
 				{
-					L_charB = Length;
-					L_str   = Width / Ncols;
+					L_charB = l_length;
+					L_str   = l_width / l_ncols;
 					A_c        = Wgap * L_str ; //         !Cross Sectional area of channel
 					Per_cw 	   = 2.*L_str + 2.*Wgap ; //   !Perimeter ACCOUNTING for supports: different than MSO 1
 					D_h 	   = (4.*A_c)/Per_cw ; //       !Hydraulic diameter
@@ -687,15 +714,18 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 				else if (MSO == 3) // ! Horizontal supports
 				{
 					// !Flow is restricted to one direction.  Wind speed has already been adjusted using a cosine projection
-					L_charB = Width;
+					L_charB = l_width;
 					// !Width of channel is function of number of columns of modules.  Assuming that support structures are exactly the length of a module
-					L_str   = Length / Nrows;
+					L_str   = l_length / l_nrows;
 					A_c        = Wgap * L_str ; //         !Cross Sectional area of channel
 					Per_cw 	   = 2.*L_str + 2.*Wgap ; //   !Perimeter ACCOUNTING for supports: different than MSO 1
 					D_h 	   = (4.*A_c)/Per_cw ; //       !Hydraulic diameter
 				}
 				else
+				{
+					m_err = "Invalid MSO parameter specified for gap (channel) mounting configuration (MC=4).";
 					return false; // invalid parameter specified
+				}
 					
 				// !Begin iteration to find cell temperature
 				while (std::abs(err_TC) > 0.001 )
@@ -731,7 +761,7 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 					double h_forced   = Nu_forced * k_air / L_char;
 					double h_sky      = (TC*TC+T_sky*T_sky)*(TC+T_sky);
 					double h_ground   = (TC*TC+T_ground*T_ground)*(TC+T_ground);
-					double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area,Length,Width);
+					double h_free_c   = free_convection_194(TC,TA,input.Tilt,rho_air,Area, l_length,l_width);
 					double h_conv_c   = pow(pow(h_forced,3.) + pow(h_free_c,3.), 1./3.);
 					
 					// !Reynolds number for channel flow
@@ -756,7 +786,7 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 						double h_fr = 0;
 							
 						if (MSO == 3) h_fr = 0; //  !If E-W supports then assume no free convection
-						else h_fr = channel_free_194(Wgap,input.Tilt,TA,T_cr,rho_air,Length); // !Call function for channel free convection        
+						else h_fr = channel_free_194(Wgap,input.Tilt,TA,T_cr,rho_air, l_length); // !Call function for channel free convection        
 				 
 						double m_dot 	   = v_ch*rho_air*A_c ; // !mass flow rate through channel
 						double h_conv_b   = pow( pow(h_ch,3) + pow(h_fr,3) , (1./3.)) ; // !total heat transfer coefficient in channel
@@ -766,8 +796,8 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 							
 						int AR = 0;
 						if (MSO == 1) AR = 1;
-						if (MSO == 2) AR = Ncols;
-						if (MSO == 3) AR = Nrows;
+						if (MSO == 2) AR = l_ncols;
+						if (MSO == 3) AR = l_nrows;
 					
 						double T_m = T_cr-(T_cr-TA)*exp(-2*(Area/AR)*h_conv_b/(m_dot*cp_air));
 						 
@@ -809,10 +839,16 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 
 					h_iter++;
 						
-					if (h_iter > 150) return false;
+					if (h_iter > 150) {
+						m_err = "Temperature calculation did not converge in gap mounting configuration (MC=4).";
+						return false;
+					}
 				}
 			}
 			break;
+		default:
+			m_err = "Invalid mounting configuration (MC) specified.";
+			return false;
 		}
 
 		// now calculate module power based on new Cell Temp
@@ -820,13 +856,13 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 		pvoutput_t out;
 		if (!module( input, TC-273.15, opvoltage, out ))
 		{
-			m_err = module.error();
+			m_err = "Module error: " + module.error();
 			return false;
 		}
 
 		double PMAX_1 = out.Power * DcDerate;
 		      
-		if (HTD == 2)   PMAX_1 = PMAX_1 * Nrows * Ncols; //   !Calculate power on # modules used for heat transfer calcs
+		if (HTD == 2)   PMAX_1 = PMAX_1 * l_nrows * l_ncols; //   !Calculate power on # modules used for heat transfer calcs
      
 		err_P1     = PMAX_1 - P_guess; // !Performance error
 		double err_sign_P = err_P1 * err_P2;
@@ -834,7 +870,7 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
       
 		if( (p_iter > 5) && (err_sign_P < 0.)) app_fac_P = 0.75*app_fac_P;
       
-		err_P      = (PMAX_1 - P_guess)/(Nrows * Ncols); //    !Performance error for 1 panel
+		err_P      = (PMAX_1 - P_guess)/(l_nrows * l_ncols); //    !Performance error for 1 panel
 		P_guess    = P_guess + app_fac_P*err_P1; //  !Set performance to most recent calc
 		p_iter     = p_iter + 1; // !+1 to iteration counter
       
@@ -844,7 +880,11 @@ bool mcsp_celltemp_t::operator() ( pvinput_t &input, pvmodule_t &module, double 
 			return false;
 		}
 	}
-	
+
 	Tcell = TC - 273.15;
+    if (std::isnan(Tcell)) {
+        m_err = "Cell temperature is NA";
+        return false;
+    }
 	return true;
 }

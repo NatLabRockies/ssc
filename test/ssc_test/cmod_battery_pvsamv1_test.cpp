@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -440,7 +440,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_singleowner)
 
     ssc_number_t lcos_real;
     ssc_data_get_number(data, "lcos_real", &lcos_real);
-    EXPECT_NEAR(lcos_real, 23.41, 0.1);
+    EXPECT_NEAR(lcos_real, 53.38, 0.1);
 
 }
 
@@ -456,7 +456,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_levpartflip)
 
     ssc_number_t lcos_real;
     ssc_data_get_number(data, "lcos_real", &lcos_real);
-    EXPECT_NEAR(lcos_real, 23.43, 0.1);
+    EXPECT_NEAR(lcos_real, 53.56, 0.1); 
 }
 
 TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_cashloan)
@@ -472,7 +472,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, LCOS_test_cashloan)
 
     ssc_number_t lcos_real;
     ssc_data_get_number(data, "lcos_real", &lcos_real);
-    EXPECT_NEAR(lcos_real, 583.83, 0.1);
+    EXPECT_NEAR(lcos_real, 2843.41, 0.1);
 }
 
 /// Test PVSAMv1 with all defaults and battery enabled with 3 automatic dispatch methods
@@ -490,7 +490,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_ACBatteryModelIntegration)
     ssc_number_t peakKwCharge[3] = { -1040.2, -1051.5, -1051.5 };
     ssc_number_t peakKwDischarge[3] = { 967.5, 969.5, 969.5 };
     ssc_number_t peakCycles[3] = { 1, 1, 1 };
-    ssc_number_t avgCycles[3] = { 0.0039, 0.0042, 0.003 };
+    ssc_number_t avgCycles[3] = { 0.0068, 0.0110, 0.003 };
 
     ssc_data_set_number(data, "batt_dispatch_choice", 0);
     // Test economoic dispatch look ahead, economoic dispatch look behind. Others require additional input data
@@ -595,7 +595,8 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_CustomDispatchBatteryModelD
     ssc_number_t expectedBatteryDischargeEnergy = 3254.;
 
     ssc_number_t peakKwCharge = -992.86;
-    ssc_number_t peakKwDischarge = 946.98;
+    ssc_number_t peakKwDischarge = 941.19;
+
     ssc_number_t peakCycles = 1;
     ssc_number_t avgCycles = 0.0027;
 
@@ -647,7 +648,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_CustomDispatchBatteryModelD
     ssc_number_t peakKwCharge = -841.39;
     ssc_number_t peakKwDischarge = 652.0;
     ssc_number_t peakCycles = 3;
-    ssc_number_t avgCycles = 1.1836;
+    ssc_number_t avgCycles = 1.1849;
 
     ssc_data_set_number(data, "batt_dispatch_choice", 2);
     ssc_data_set_number(data, "batt_ac_or_dc", 0);
@@ -901,8 +902,8 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, PPA_CustomDispatchBatteryModelD
 
         auto batt_q_rel = data_vtab->as_vector_ssc_number_t("batt_capacity_percent");
         auto batt_cyc_avg = data_vtab->as_vector_ssc_number_t("batt_DOD_cycle_average");
-        EXPECT_NEAR(batt_q_rel.back(), 85.875, 2e-2);
-        EXPECT_NEAR(batt_cyc_avg.back(), 21.81, m_error_tolerance_lo);
+        EXPECT_NEAR(batt_q_rel.back(), 95.926, 2e-2); 
+        EXPECT_NEAR(batt_cyc_avg.back(), 20.56, m_error_tolerance_lo);
     }
 
 }
@@ -927,7 +928,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
     ssc_number_t peakKwCharge = -3.601;
     ssc_number_t peakKwDischarge = 1.99;
     ssc_number_t peakCycles = 1;
-    ssc_number_t avgCycles = 0.320;
+    ssc_number_t avgCycles = 0.373;
 
     pairs["batt_dispatch_choice"] = 4;
     pairs["batt_dispatch_auto_can_clipcharge"] = 1;
@@ -954,12 +955,12 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
         EXPECT_NEAR(batt_stats.peakKwCharge, peakKwCharge, m_error_tolerance_lo);
         EXPECT_NEAR(batt_stats.peakKwDischarge, peakKwDischarge, m_error_tolerance_lo);
         EXPECT_NEAR(batt_stats.peakCycles, peakCycles, m_error_tolerance_lo);
-        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
 
         auto batt_q_rel = data_vtab->as_vector_ssc_number_t("batt_capacity_percent");
         auto batt_cyc_avg = data_vtab->as_vector_ssc_number_t("batt_DOD_cycle_average");
-        EXPECT_NEAR(batt_q_rel.back(), 97.241, 5e-2);
-        EXPECT_NEAR(batt_cyc_avg.back(), 27.49, 1.0); // High tolerance due to ~ 1% dispatch difference between linux and windows. Tighten in the future by improving the algorithm.
+        EXPECT_NEAR(batt_q_rel.back(), 96.99, 5e-2);
+        EXPECT_NEAR(batt_cyc_avg.back(), 25.10, 1.0); // High tolerance due to ~ 1% dispatch difference between linux and windows. Tighten in the future by improving the algorithm.
 
         // No grid export for this configuration
         auto monthly_to_grid = data_vtab->as_vector_ssc_number_t("monthly_batt_to_grid");
@@ -1214,7 +1215,7 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
     ssc_number_t peakKwCharge = -3.89;
     ssc_number_t peakKwDischarge = 3.8;
     ssc_number_t peakCycles = 2;
-    ssc_number_t avgCycles = 0.742;
+    ssc_number_t avgCycles = 0.762;
 
     pairs["batt_dispatch_choice"] = 4;
     pairs["batt_dispatch_auto_can_clipcharge"] = 1;
@@ -1245,10 +1246,10 @@ TEST_F(CMPvsamv1BatteryIntegration_cmod_pvsamv1, ResidentialDCBatteryModelPriceS
         auto batt_power = data_vtab->as_vector_ssc_number_t("batt_power");
         daily_battery_stats batt_stats = daily_battery_stats(batt_power);
 
-        EXPECT_NEAR(batt_stats.peakKwCharge, peakKwCharge, 0.5); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.peakKwCharge, peakKwCharge, 0.5); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
         EXPECT_NEAR(batt_stats.peakKwDischarge, peakKwDischarge, m_error_tolerance_lo);
-        EXPECT_NEAR(batt_stats.peakCycles, peakCycles, 1); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
-        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NREL/ssc/issues/614
+        EXPECT_NEAR(batt_stats.peakCycles, peakCycles, 1); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
+        EXPECT_NEAR(batt_stats.avgCycles, avgCycles, 0.010); // Increased tolerance due to https://github.com/NatLabRockies/ssc/issues/614
 
         // No grid export for this configuration
         auto monthly_to_grid = data_vtab->as_vector_ssc_number_t("monthly_batt_to_grid");

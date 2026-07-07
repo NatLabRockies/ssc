@@ -59,6 +59,24 @@ using namespace std;
 //static bool solarpilot_callback( simulation_info *siminfo, void *data );
 static bool optimize_callback( simulation_info *siminfo, void *data );
 
+double solarpilot_invoke::getFieldAverageCosine()
+{
+    SolarField* SF = m_sapi->GetSolarFieldObject();
+    if (SF == 0)
+        return std::numeric_limits<double>::quiet_NaN();
+
+    double cos_sum = 0.0;
+    size_t cos_n = 0;
+    for (std::vector<Heliostat>::iterator hit = SF->getHeliostatObjects()->begin();
+        hit != SF->getHeliostatObjects()->end(); hit++)
+    {
+        cos_sum += hit->getEfficiencyCosine();
+        cos_n++;
+    }
+    return (cos_n > 0) ? cos_sum / (double)cos_n
+        : std::numeric_limits<double>::quiet_NaN();
+}
+
 solarpilot_invoke::solarpilot_invoke(compute_module *cm)
 {
     m_cmod = cm;

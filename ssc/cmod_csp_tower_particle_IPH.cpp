@@ -127,7 +127,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
     { SSC_INPUT,     SSC_NUMBER, "sun_loc_des",                        "Sun location at design point (0 = Summer solstice, 1 = Equinox, 2 = Winter solstice)",                                                    "",             "",                                  "Heliostat Field",                          "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "field_des_ratio",                    "Ratio of design-point field incident power to receiver design thermal power",                                                             "",             "",                                  "Heliostat Field",                          "?=1",                                                              "",              "" },
 
-
     // Inputs required for user-defined SF performance when field_model_type = 4
     // Values can be defined by mapping to equivalent _calc output for simulation results with field_model_type < 3
     { SSC_INPUT,     SSC_ARRAY,  "A_sf_in",                            "Solar field area",                                                                                                                        "m^2",          "",                                  "Heliostat Field",                          "field_model_type>3",                                               "",              "SIMULATION_PARAMETER"},
@@ -222,7 +221,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_INPUT,     SSC_NUMBER, "heater_spec_cost",                   "Heater specific cost",                                                                                                                    "$/kWht",       "",                                  "System Costs",                             "is_parallel_htr=1",                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "allow_heater_no_dispatch_opt",       "Allow heater with no dispatch optimization? SAM UI relies on cmod default",                                                               "",             "",                                  "System Costs",                             "?=0",                                                              "",              "SIMULATION_PARAMETER" },
 
-
 // TES parameters - general
 { SSC_INPUT,     SSC_NUMBER, "tes_init_hot_htf_percent",           "Initial fraction of available volume that is hot",                                                                                        "%",            "",                                  "Thermal Storage",                          "*", /*not required because replacing deprecated var and checked in cmod*/ "",        ""},
 { SSC_INPUT,     SSC_NUMBER, "h_tank",                             "Total height of bin (height of HTF when bin is full)",                                                                                  "m",            "",                                  "Thermal Storage",                          "*",                                                                "",              ""},
@@ -301,7 +299,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_INPUT,     SSC_ARRAY,  "dispatch_series",                    "Time series dispatch factors",                                                                                                            "",             "",                                  "System Control",                           "",                                                                            "",              "SIMULATION_PARAMETER"},
 
 { SSC_INPUT,     SSC_NUMBER, "start_day_of_year",                  "Start day of year for TOD periods",                                                                                                       "0..6",         "0=Monday, 6=Sunday",                "Time of Delivery Factors",                 "?=0",                                                                         "",              "" },
-{ SSC_INPUT,     SSC_ARRAY,  "ppa_price_input_heat_btu",           "PPA prices - yearly",                                                                                                                     "$/MMBtu",      "",                                  "Revenue",                                  "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1",                  "",              "" },
+{ SSC_INPUT,     SSC_ARRAY,  "ppa_price_input_heat_btu",           "PPA prices - yearly",                                                                                                                     "$/MMBtu",      "",                                  "Revenue",                                  "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1",                  "",              "SIMULATION_PARAMETER"},
 { SSC_INPUT,     SSC_MATRIX, "mp_energy_market_revenue",           "Energy market revenue input",                                                                                                             "",             "Lifetime x 2[Cleared Capacity(MW),Price($/MWh)]", "Revenue",                    "csp_financial_model=6&is_dispatch=1&sim_type=1",                              "",              "SIMULATION_PARAMETER"},
 
 // Costs
@@ -549,7 +547,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_ARRAY,  "q_thermal_loss",                     "Receiver convection and emission losses",                                                                                                 "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "q_reflection_loss",                  "Receiver reflection losses",                                                                                                              "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "P_tower_lift",                       "Receiver and tower particle lift power",                                                                                                  "MWe",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-
+{ SSC_OUTPUT,    SSC_NUMBER, "eta_cosine_field",                   "Field average cosine efficiency",                                                                                                         "",             "",                                  "",                                         "sim_type=1",                                                       "",              "" },
 { SSC_OUTPUT,    SSC_ARRAY,  "clearsky",						   "Predicted clear-sky beam normal irradiance",																							  "W/m2",         "",                                  "CR",                                       "sim_type=1&rec_clearsky_fraction>0",                               "",              ""},
 
 // Collector-receiver outputs from individual receivers (only reported if > 1 receiver)
@@ -636,7 +634,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_ARRAY,  "disp_presolve_nvar",                 "Dispatch number of variables in problem",                                                                                                 "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_ARRAY,  "disp_solve_time",                    "Dispatch solver time",                                                                                                                    "sec",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
-
 // These outputs correspond to the first csp-solver timestep in the reporting timestep.
 //     Subsequent csp-solver timesteps within the same reporting timestep are not tracked
 { SSC_OUTPUT,    SSC_ARRAY,  "q_dot_pc_sb",                        "Thermal power for PC standby",                                                                                                            "MWt",          "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -691,7 +688,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 // 12.13.23 twn: for now, need these to defined here to pass downstream to LCOE model
 { SSC_OUTPUT,    SSC_NUMBER, "annual_electricity_consumption",     "Annual electricity consumption w/ avail derate",                                                                                         "kWe-hr",        "",                                 "Post-process",                              "sim_type=1",                                                       "",              "" },
 { SSC_OUTPUT,    SSC_NUMBER, "electricity_rate",                   "Cost of electricity used to operate lifts and trackers",                                                                                 "$/kWe-hr",      "",                                 "Post-process",                              "sim_type=1",                                                       "",              "" },
-
 
 var_info_invalid };
 
@@ -1055,6 +1051,8 @@ public:
             }
 
             THT = spi.sf.tht.val;
+
+            assign("eta_cosine_field", (ssc_number_t)spi.getFieldAverageCosine());
 
             if (sim_type == 1) {    // Only check this when annual simulation is taking place.
                 size_t sp_num_recs = spi.recs.size();

@@ -459,14 +459,16 @@ public:
                 // Gather calculated outputs for financial calculations
                 ssc_number_t system_capacity = ((var_table*)compute_module_outputs)->as_double("nameplate") * 1.e3; // MWe to kWe, net capacity
                 hybridSystemCapacity += system_capacity; // financial calculations -> net?
+                // TODO: Do we need to add battery capacity to hybridSystemCapacity?
+
                 hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("total_installed_cost");
+                hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("batt_total_installed_cost");   // Adding battery installed costs
 
                 // TODO: how do we want to handle construction financing costs?
-                // Call at the end for the sum of all technologies
-                ssc_number_t construction_financing_cost = ((var_table*)compute_module_outputs)->as_double("construction_financing_cost");
-
-                // TODO: calculate battery costs? - Matt
+                //ssc_number_t construction_financing_cost = ((var_table*)compute_module_outputs)->as_double("construction_financing_cost");
+                
                 // TODO: How to handle Battery degradation? May need to run battery for lifetime output to get degradation and lifetime energy throughput.
+
                 // TODO: figure out what we need here for CSP with thermal storage, and how to handle O&M costs, etc.
 
                 // add production O and M calculations - done below before financial calculations

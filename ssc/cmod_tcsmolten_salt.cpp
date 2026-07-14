@@ -829,6 +829,7 @@ static var_info vtab_battery_csp_outputs[] = {
     //{ SSC_OUTPUT,     SSC_ARRAY,     "last_idx",                  "Last index (lifetime)",                                    "",          "",                     "StatePack",       "",                           "",                               ""  },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_voltage",           "Voltage",                                                  "V",         "",                     "StatePack",       "",                           "",                               ""  },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_power",             "Power",                                                    "kW",        "",                     "StatePack",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_NUMBER,      "batt_annual_discharge_energy",               "Battery annual energy discharged",                      "kWh",      "",                      "Battery",       "",                           "",                               "" },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_capacity",          "Capacity",                                                 "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_max_capacity",      "Max Capacity",                                             "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_current",           "Current",                                                  "A",         "",                     "StatePack",       "",                           "",                               ""  },
@@ -2191,6 +2192,7 @@ public:
             // TODO: Go through the outputs and determine which ones we actually want to report.
             battery->mc_reported_outputs.assign(C_csp_battery::Voltage, allocate("battery_voltage", n_steps_fixed), n_steps_fixed);
             battery->mc_reported_outputs.assign(C_csp_battery::Power, allocate("battery_power", n_steps_fixed), n_steps_fixed);
+            accumulate_annual_for_year("battery_power", "batt_annual_discharge_energy", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
             battery->mc_reported_outputs.assign(C_csp_battery::Capacity, allocate("battery_capacity", n_steps_fixed), n_steps_fixed);
             battery->mc_reported_outputs.assign(C_csp_battery::MaxCapacity, allocate("battery_max_capacity", n_steps_fixed), n_steps_fixed);
             battery->mc_reported_outputs.assign(C_csp_battery::Current, allocate("battery_current", n_steps_fixed), n_steps_fixed);

@@ -407,13 +407,15 @@ public:
             }
 
             //CSP with thermal storage setup
-            if (csp_thermal_storage.size() > 0) { // run single fuel cell if present 
+            if (csp_thermal_storage.size() > 0) { // run single molten salt power tower if present 
 
                 percent = 100.0f * ((float)(generators.size() + csp_thermal_storage.size()) / (float)(generators.size() + csp_thermal_storage.size() + batteries.size() + financials.size()));
                 update("", percent);
 
                 std::string& compute_module = csp_thermal_storage[0];
                 var_data* compute_module_inputs = input_table->table.lookup(compute_module);
+
+                
 
                 ssc_module_t module = ssc_module_create(compute_module.c_str());
                 class compute_module* cmod = static_cast<class compute_module*>(module);                // FIXME: Is this needed?
@@ -429,7 +431,18 @@ public:
                 var_data* hybrid_inputs = input_table->table.lookup(hybridVarTable);
                 var_table& hybridinput = hybrid_inputs->table;
                 input.merge(hybridinput, false);
+
+                if (batteries.size() > 0) {
+
+                    std::string batteryVarTable("Battery");
+                    var_data* battery_inputs = input_table->table.lookup(batteryVarTable);
+                    var_table& batteryinput = battery_inputs->table;
+                    input.merge(batteryinput, false);
+                }
+
                 ssc_module_exec_with_error(module, input, compute_module);  // Executes CSP compute module
+
+                
 
                 // Gather compute module outputs
                 ssc_data_t compute_module_outputs = ssc_data_create();
@@ -583,7 +596,9 @@ public:
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "system_use_lifetime_output", 1);
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "en_batt", 1); // should be done at UI level
 
-                ssc_module_exec_with_error(module, input, compute_module);
+                if (csp_thermal_storage.size() == 0) {
+                    ssc_module_exec_with_error(module, input, compute_module);
+                }
 
                 ssc_data_t compute_module_outputs = ssc_data_create();
 
@@ -610,6 +625,9 @@ public:
                 if (len == 1) { // ssc #992
                     double first_val = battery_discharged[0];
                     battery_discharged.resize(analysisPeriod, first_val);
+                }
+                else if (csp_thermal_storage.size() != 0) {
+                    battery_discharged.resize(1, 0);
                 }
                 else if (len != analysisPeriod) {
                     throw exec_error("hybrid", util::format("battery_discharged size (%d) incorrect", (int)len));
@@ -658,7 +676,7 @@ public:
 
                 // production O and M conversion to $
                 for (size_t i = 0; i < (size_t)analysisPeriod; i++)
-                    pOMProduction[i+1] *= battery_discharged[i];
+                    pOMProduction[i + 1] *= battery_discharged[i];
 
                 // resize annual outputs
                 size_t arr_length = analysisPeriod + 1;
@@ -674,6 +692,7 @@ public:
                 ssc_data_set_table(outputs, compute_module.c_str(), compute_module_outputs);
                 ssc_module_free(module);
                 ssc_data_free(compute_module_outputs);
+                
             }
 
             bool use_batt_output = false;

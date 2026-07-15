@@ -5,15 +5,16 @@ The SSC Open Source Project repository contains the source code for the technolo
 
 You could think of SSC as the home for the algorithms behind the SAM desktop program. Most people run the code through the desktop user interface, but SSC can also be run directly using the [SAM Sofware Develoment Kit](https://sam.nlr.gov/sdk).
 
-SSC requires building four other open-source projects:
+SSC requires building six other open-source projects:
 
 - [Google Test](https://github.com/google/googletest)
 - [LK](https://github.com/NatLabRockies/lk)
 - [wxWidgets](https://www.wxwidgets.org/)
 - [WEX](https://github.com/NatLabRockies/wex)
 - [jsoncpp](https://github.com/open-source-parsers/jsoncpp)
+- [or-tools](https://github.com/google/or-tools)
 
-However, if you remove SDKtool and TCSconsole from your SSC project, you can build SSC without any other software dependencies. Please see the main [SAM project wiki](https://github.com/NatLabRockies/SAM/wiki) for complete build instructions and software dependencies.
+Please see the main [SAM project wiki](https://github.com/NatLabRockies/SAM/wiki) for complete build instructions and software dependencies.
 
 SSC directly includes source code from three other open-source projects, and builds them as part of its build process.  These projects and their respective licenses are:
 - [NLopt](https://nlopt.readthedocs.io/en/latest/) - code located [here](https://github.com/NREL/ssc/tree/develop/nlopt), [LGPL license](https://nlopt.readthedocs.io/en/latest/NLopt_License_and_Copyright/)

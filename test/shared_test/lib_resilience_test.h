@@ -59,7 +59,7 @@ protected:
 
     std::shared_ptr<batt_variables> batt_vars = nullptr;
     var_table* vartab = nullptr;
-    std::shared_ptr<battstor> batt = nullptr;
+    std::shared_ptr<battstor_heuristic_dispatch> batt = nullptr;
     dispatch_t* dispatch = nullptr;
     SharedInverter* inverter = nullptr;
 
@@ -101,7 +101,7 @@ protected:
         batt_vars->grid_outage_steps = std::move(outage_vars);
 
         vartab = new var_table;
-        batt = std::make_shared<battstor>(*vartab, true, n_recs, dt_hr, batt_vars);
+        batt = std::make_shared<battstor_heuristic_dispatch>(*vartab, true, n_recs, dt_hr, batt_vars);
         batt->initialize_automated_dispatch(ac, load);
         batt->setSharedInverter(inverter);
         dispatch = batt->dispatch_model;

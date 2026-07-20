@@ -276,12 +276,6 @@ struct battstor
 
     battstor(const battstor& orig);
 
-	void parse_configuration();
-
-	/// Initialize automated dispatch with lifetime vectors
-	void initialize_automated_dispatch(std::vector<ssc_number_t> pv= std::vector<ssc_number_t>(),
-									   std::vector<ssc_number_t> load= std::vector<ssc_number_t>(),
-									   std::vector<ssc_number_t> cliploss= std::vector<ssc_number_t>());
 	virtual ~battstor();
 
 
@@ -302,35 +296,6 @@ struct battstor
 	void update_grid_power(compute_module &cm, double P_gen_ac, double P_load_ac, size_t index);
     bool is_outage_step(size_t index);
     bool is_offline(size_t index); // Must be run after advance to get valid answer
-
-	/*! Manual dispatch*/
-	bool manual_dispatch = false;
-
-	/*! Automated dispatch weather file look ahead*/
-	bool wf_look_ahead = false;
-
-	/*! Automated dispatch weather file look behind*/
-	bool wf_look_behind = false;
-
-	/*! Automated dispatch use custom weather file input forecast (look ahead)*/
-	bool wf_input_forecast = false;
-
-    /*! Automated dispatch look ahead for load*/
-    bool load_look_ahead = false;
-
-    /*! Automated dispatch look behind for load*/
-    bool load_look_behind = false;
-
-    /*! Automated dispatch use custom input forecast (look ahead) for load*/
-    bool load_input_forecast = false;
-
-	/*! Automated dispatch override algorithm grid target calculation*/
-	bool input_target = false;
-
-	/*! Use user-input battery dispatch */
-	bool input_custom_dispatch = false;
-
-    bool uses_forecast();
 
 	// for user schedule
 	void check_replacement_schedule();
@@ -377,12 +342,6 @@ struct battstor
 
 	double e_charge;
 	double e_discharge;
-
-	/*! Variables to store forecast data */
-	std::vector<double> pv_prediction;
-	std::vector<double> load_prediction;
-	std::vector<double> cliploss_prediction;
-	int prediction_index;
 
 	/*! If fuel cell is attached */
 	std::vector<double> fuelcellPower;
@@ -479,13 +438,53 @@ struct battstor
 struct battstor_heuristic_dispatch : public battstor
 {
     battstor_heuristic_dispatch(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
-                                const std::shared_ptr<batt_variables>& batt_vars_in = 0)
-        : battstor(vt, setup_model, nrec, dt_hr, batt_vars_in) {}
+                                const std::shared_ptr<batt_variables>& batt_vars_in = 0);
 
-    battstor_heuristic_dispatch(const battstor_heuristic_dispatch& orig)
-        : battstor(orig) {}
+    battstor_heuristic_dispatch(const battstor_heuristic_dispatch& orig);
 
     ~battstor_heuristic_dispatch() override = default;
+
+    void parse_configuration();
+
+    /// Initialize automated dispatch with lifetime vectors
+    void initialize_automated_dispatch(std::vector<ssc_number_t> pv = std::vector<ssc_number_t>(),
+                                       std::vector<ssc_number_t> load = std::vector<ssc_number_t>(),
+                                       std::vector<ssc_number_t> cliploss = std::vector<ssc_number_t>());
+
+    bool uses_forecast();
+
+    /*! Manual dispatch*/
+    bool manual_dispatch = false;
+
+    /*! Automated dispatch weather file look ahead*/
+    bool wf_look_ahead = false;
+
+    /*! Automated dispatch weather file look behind*/
+    bool wf_look_behind = false;
+
+    /*! Automated dispatch use custom weather file input forecast (look ahead)*/
+    bool wf_input_forecast = false;
+
+    /*! Automated dispatch look ahead for load*/
+    bool load_look_ahead = false;
+
+    /*! Automated dispatch look behind for load*/
+    bool load_look_behind = false;
+
+    /*! Automated dispatch use custom input forecast (look ahead) for load*/
+    bool load_input_forecast = false;
+
+    /*! Automated dispatch override algorithm grid target calculation*/
+    bool input_target = false;
+
+    /*! Use user-input battery dispatch */
+    bool input_custom_dispatch = false;
+
+    /*! Variables to store forecast data */
+    std::vector<double> pv_prediction;
+    std::vector<double> load_prediction;
+    std::vector<double> cliploss_prediction;
+    int prediction_index = 0;
 };
 
 #endif

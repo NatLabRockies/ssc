@@ -1413,11 +1413,9 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
     else if (batt_vars->batt_topology == ChargeController::DC_CONNECTED) {
         charge_control = new DCBatteryController(dispatch_model, battery_metrics, batt_vars->batt_dc_dc_bms_efficiency, batt_vars->batt_inverter_efficiency_cutoff);
     }
-
-    parse_configuration();
 }
 
-void battstor::parse_configuration()
+void battstor_heuristic_dispatch::parse_configuration()
 {
     int batt_dispatch = batt_vars->batt_dispatch;
     int batt_weather_forecast = batt_vars->batt_dispatch_wf_forecast;
@@ -1489,7 +1487,7 @@ void battstor::parse_configuration()
         manual_dispatch = true;
 }
 
-void battstor::initialize_automated_dispatch(std::vector<ssc_number_t> pv, std::vector<ssc_number_t> load, std::vector<ssc_number_t> cliploss)
+void battstor_heuristic_dispatch::initialize_automated_dispatch(std::vector<ssc_number_t> pv, std::vector<ssc_number_t> load, std::vector<ssc_number_t> cliploss)
 {
     if (dynamic_cast<dispatch_automatic_t*>(dispatch_model))
     {
@@ -1656,17 +1654,8 @@ battstor::~battstor()
 }
 
 battstor::battstor(const battstor& orig) {
-    // copy values
-    manual_dispatch = orig.manual_dispatch;
-    wf_look_ahead = orig.wf_look_ahead;
-    wf_look_behind = orig.wf_look_behind;
-    wf_input_forecast = orig.wf_input_forecast;
-    load_look_ahead = orig.load_look_ahead;
-    load_look_behind = orig.load_look_behind;
-    load_input_forecast = orig.load_input_forecast;
-    input_target = orig.input_target;
-    input_custom_dispatch = orig.input_custom_dispatch;
-    step_per_hour = orig.step_per_hour;
+// copy values
+step_per_hour = orig.step_per_hour;
     step_per_year = orig.step_per_year;
     nyears = orig.nyears;
     total_steps = orig.total_steps;
@@ -1689,12 +1678,6 @@ battstor::battstor(const battstor& orig) {
 
     e_charge = orig.e_charge;
     e_discharge = orig.e_discharge;
-
-    /*! Variables to store forecast data */
-    pv_prediction = orig.pv_prediction;
-    load_prediction = orig.load_prediction;
-    cliploss_prediction = orig.cliploss_prediction;
-    prediction_index = orig.prediction_index;
 
     fuelcellPower = orig.fuelcellPower;
 
@@ -1828,7 +1811,34 @@ battstor::battstor(const battstor& orig) {
 
 }
 
-bool battstor::uses_forecast() {
+battstor_heuristic_dispatch::battstor_heuristic_dispatch(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
+                                                         const std::shared_ptr<batt_variables>& batt_vars_in)
+    : battstor(vt, setup_model, nrec, dt_hr, batt_vars_in)
+{
+    if (en) {
+        parse_configuration();
+    }
+}
+
+battstor_heuristic_dispatch::battstor_heuristic_dispatch(const battstor_heuristic_dispatch& orig)
+    : battstor(orig)
+{
+    manual_dispatch = orig.manual_dispatch;
+    wf_look_ahead = orig.wf_look_ahead;
+    wf_look_behind = orig.wf_look_behind;
+    wf_input_forecast = orig.wf_input_forecast;
+    load_look_ahead = orig.load_look_ahead;
+    load_look_behind = orig.load_look_behind;
+    load_input_forecast = orig.load_input_forecast;
+    input_target = orig.input_target;
+    input_custom_dispatch = orig.input_custom_dispatch;
+    pv_prediction = orig.pv_prediction;
+    load_prediction = orig.load_prediction;
+    cliploss_prediction = orig.cliploss_prediction;
+    prediction_index = orig.prediction_index;
+}
+
+bool battstor_heuristic_dispatch::uses_forecast() {
     if (batt_vars->batt_meter_position == dispatch_t::FRONT) {
         return batt_vars->batt_dispatch == dispatch_t::FOM_AUTOMATED_ECONOMIC || batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING;
     }

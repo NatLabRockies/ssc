@@ -282,7 +282,7 @@ struct battstor
 	void initialize_automated_dispatch(std::vector<ssc_number_t> pv= std::vector<ssc_number_t>(),
 									   std::vector<ssc_number_t> load= std::vector<ssc_number_t>(),
 									   std::vector<ssc_number_t> cliploss= std::vector<ssc_number_t>());
-	~battstor();
+	virtual ~battstor();
 
 
 	void initialize_time(size_t year, size_t hour_of_year, size_t step);
@@ -470,6 +470,22 @@ struct battstor
     double outPercentTimestepsLoadMetBySystemYear1;
     double outTimestepsLoadMetBySystemLifetime;
     double outPercentTimestepsLoadMetBySystemLifetime;
+};
+
+// Derived class that will (in subsequent steps) own all dispatch, powerflow,
+// outage, PV-smoothing, and fuel-cell state that currently lives on battstor.
+// For now it is a thin shell that forwards to the base constructor so that
+// call sites can be migrated incrementally without behavior changes.
+struct battstor_heuristic_dispatch : public battstor
+{
+    battstor_heuristic_dispatch(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
+                                const std::shared_ptr<batt_variables>& batt_vars_in = 0)
+        : battstor(vt, setup_model, nrec, dt_hr, batt_vars_in) {}
+
+    battstor_heuristic_dispatch(const battstor_heuristic_dispatch& orig)
+        : battstor(orig) {}
+
+    ~battstor_heuristic_dispatch() override = default;
 };
 
 #endif

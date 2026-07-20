@@ -1275,7 +1275,7 @@ void cm_pvsamv1::exec()
     std::unique_ptr<resilience_runner> resilience = nullptr;
 
     // setup battery model
-    std::shared_ptr<battstor> batt = nullptr;
+    std::shared_ptr<battstor_heuristic_dispatch> batt = nullptr;
     bool en_batt = as_boolean("en_batt");
     int batt_topology = 0;
     if (en_batt && !save_full_lifetime_variables) {
@@ -1289,7 +1289,7 @@ void cm_pvsamv1::exec()
         if (!Simulation->annualSimulation)
             throw exec_error("pvsamv1", "The PV Battery configuration requires a simulation period that is continuous over one or more years.");
 
-        batt = std::make_shared<battstor>(*m_vartab, en_batt, nrec, ts_hour);
+        batt = std::make_shared<battstor_heuristic_dispatch>(*m_vartab, en_batt, nrec, ts_hour);
         batt->setSharedInverter(sharedInverter);
         batt_topology = batt->batt_vars->batt_topology;
 

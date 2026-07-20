@@ -397,7 +397,7 @@ void cm_battwatts::exec()
                 n_rec_single_year,
                 dt_hour_gen);
 
-        auto batt = std::make_shared<battstor>(*m_vartab, true, p_ac.size(), dt_hour_gen, batt_vars);
+        auto batt = std::make_shared<battstor_heuristic_dispatch>(*m_vartab, true, p_ac.size(), dt_hour_gen, batt_vars);
         batt->initialize_automated_dispatch(p_ac, p_load);
 
 

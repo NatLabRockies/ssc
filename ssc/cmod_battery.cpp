@@ -2402,7 +2402,7 @@ public:
 
             }
 
-            auto batt = std::make_shared<battstor>(*m_vartab, true, n_rec_single_year, dt_hour_gen);
+            auto batt = std::make_shared<battstor_heuristic_dispatch>(*m_vartab, true, n_rec_single_year, dt_hour_gen);
 
             if (is_assigned("crit_load")) {
                 bool crit_load_specified = !p_crit_load.empty() && *std::max_element(p_crit_load.begin(), p_crit_load.end()) > 0;

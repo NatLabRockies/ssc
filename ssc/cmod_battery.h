@@ -271,8 +271,20 @@ struct batt_variables
 
 struct battstor
 {
+    /// Selects which subsystems the battstor constructor should set up.
+    /// full        - existing SAM cmod behavior: parse dispatch inputs, allocate
+    ///               output arrays into the var_table, build dispatch_model /
+    ///               charge_control, and honor grid_outage.
+    /// battery_only - build only battery_model + battery_metrics + replacements.
+    ///               Skips output allocation, dispatch/charge_control creation,
+    ///               and outage setup. Intended for hosts (e.g. CSP) that drive
+    ///               battery_model directly and own their own outputs.
+    enum class run_mode { full, battery_only };
+
 	/// Pass in the single-year number of records
-	battstor(var_table &vt, bool setup_model, size_t nrec, double dt_hr, const std::shared_ptr<batt_variables>& batt_vars_in=0);
+	battstor(var_table &vt, bool setup_model, size_t nrec, double dt_hr,
+	         const std::shared_ptr<batt_variables>& batt_vars_in=0,
+	         run_mode mode = run_mode::full);
 
     battstor(const battstor& orig);
 

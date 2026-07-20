@@ -356,8 +356,12 @@ var_info vtab_battery_outputs[] = {
 
     var_info_invalid };
 
-battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, const std::shared_ptr<batt_variables>& batt_vars_in)
+battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
+                   const std::shared_ptr<batt_variables>& batt_vars_in,
+                   run_mode mode)
 {
+    const bool full_mode = (mode == run_mode::full);
+
     make_vars = false;
     utilityRate = NULL;
     util_rate_data = NULL;
@@ -883,7 +887,7 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
 
     // Check to see if the outage variables need to be set up
     analyze_outage = false;
-    if (vt.is_assigned("grid_outage")) {
+    if (full_mode && vt.is_assigned("grid_outage")) {
         batt_vars->grid_outage_steps = vt.as_vector_bool("grid_outage"); // All lines that check for this check for length and default to false, so no exception should be ok here.
         // If not all false, we need the outage vars
         analyze_outage = std::any_of(batt_vars->grid_outage_steps.begin(), batt_vars->grid_outage_steps.end(), [](bool x) {return x; });
@@ -979,116 +983,120 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
     Initialize outputs
     ********************************************************************** */
 
-    // only allocate if lead-acid
-    if (chem == 0)
-    {
-        outAvailableCharge = vt.allocate("batt_q1", nrec * nyears);
-        outBoundCharge = vt.allocate("batt_q2", nrec * nyears);
-    }
-    outCellVoltage = vt.allocate("batt_voltage_cell", nrec * nyears);
-    outMaxCharge = vt.allocate("batt_qmax", nrec * nyears);
-    outMaxChargeThermal = vt.allocate("batt_qmax_thermal", nrec * nyears);
-    outBatteryTemperature = vt.allocate("batt_temperature", nrec * nyears);
-    outCapacityThermalPercent = vt.allocate("batt_capacity_thermal_percent", nrec * nyears);
+    if (full_mode) {
 
-    outCurrent = vt.allocate("batt_I", nrec * nyears);
-    outBatteryVoltage = vt.allocate("batt_voltage", nrec * nyears);
-    outTotalCharge = vt.allocate("batt_q0", nrec * nyears);
-    outCycles = vt.allocate("batt_cycles", nrec * nyears);
-    outSOC = vt.allocate("batt_SOC", nrec * nyears);
-    outDOD = vt.allocate("batt_DOD", nrec * nyears);
-    outDODCycleAverage = vt.allocate("batt_DOD_cycle_average", nrec * nyears);
-    outCapacityPercent = vt.allocate("batt_capacity_percent", nrec * nyears);
-    if (batt_vars->batt_life_model == lifetime_params::CALCYC || batt_vars->batt_life_model == lifetime_params::LMOLTO) {
-        outCapacityPercentCycle = vt.allocate("batt_capacity_percent_cycle", nrec * nyears);
-        outCapacityPercentCalendar = vt.allocate("batt_capacity_percent_calendar", nrec * nyears);
-    }
-    outBatteryPowerAC = vt.allocate("batt_power", nrec * nyears);
-    outBatteryPowerDC = vt.allocate("batt_power_dc", nrec * nyears);
-    outGridPower = vt.allocate("grid_power", nrec * nyears); // Net grid energy required.  Positive indicates putting energy on grid.  Negative indicates pulling off grid
-    outGenPower = vt.allocate("pv_batt_gen", nrec * nyears);
-    outGenWithoutBattery = vt.allocate("gen_without_battery", nrec * nyears);
-    outSystemToGrid = vt.allocate("system_to_grid", nrec * nyears);
-    outBatteryToSystemLoad = vt.allocate("batt_to_system_load", nrec * nyears);
-    outBatteryToGrid = vt.allocate("batt_to_grid", nrec * nyears);
-    outBatteryToInverterDC = vt.allocate("batt_to_inverter_dc", nrec * nyears);
-    outAdjustLosses = vt.allocate("batt_availability_loss", nrec * nyears);
-
-    if (batt_vars->batt_meter_position == dispatch_t::BEHIND)
-    {
-        outSystemToLoad = vt.allocate("system_to_load", nrec * nyears);
-        outBatteryToLoad = vt.allocate("batt_to_load", nrec * nyears);
-        outGridToLoad = vt.allocate("grid_to_load", nrec * nyears);
-
-        if (batt_vars->batt_dispatch != dispatch_t::MANUAL)
+        // only allocate if lead-acid
+        if (chem == 0)
         {
-            outGridPowerTarget = vt.allocate("grid_power_target", nrec * nyears);
-            outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
+            outAvailableCharge = vt.allocate("batt_q1", nrec * nyears);
+            outBoundCharge = vt.allocate("batt_q2", nrec * nyears);
         }
-        else {
-            outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
+        outCellVoltage = vt.allocate("batt_voltage_cell", nrec * nyears);
+        outMaxCharge = vt.allocate("batt_qmax", nrec * nyears);
+        outMaxChargeThermal = vt.allocate("batt_qmax_thermal", nrec * nyears);
+        outBatteryTemperature = vt.allocate("batt_temperature", nrec * nyears);
+        outCapacityThermalPercent = vt.allocate("batt_capacity_thermal_percent", nrec * nyears);
+
+        outCurrent = vt.allocate("batt_I", nrec * nyears);
+        outBatteryVoltage = vt.allocate("batt_voltage", nrec * nyears);
+        outTotalCharge = vt.allocate("batt_q0", nrec * nyears);
+        outCycles = vt.allocate("batt_cycles", nrec * nyears);
+        outSOC = vt.allocate("batt_SOC", nrec * nyears);
+        outDOD = vt.allocate("batt_DOD", nrec * nyears);
+        outDODCycleAverage = vt.allocate("batt_DOD_cycle_average", nrec * nyears);
+        outCapacityPercent = vt.allocate("batt_capacity_percent", nrec * nyears);
+        if (batt_vars->batt_life_model == lifetime_params::CALCYC || batt_vars->batt_life_model == lifetime_params::LMOLTO) {
+            outCapacityPercentCycle = vt.allocate("batt_capacity_percent_cycle", nrec * nyears);
+            outCapacityPercentCalendar = vt.allocate("batt_capacity_percent_calendar", nrec * nyears);
         }
-    }
-    else if (batt_vars->batt_meter_position == dispatch_t::FRONT)
-    {
-        if (batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
-            outPVS_outpower = vt.allocate("batt_pvs_outpower", nrec * nyears);
-            outPVS_battpower = vt.allocate("batt_pvs_battpower", nrec * nyears);
-            outPVS_battsoc = vt.allocate("batt_pvs_battsoc", nrec * nyears);
-            outPVS_curtail = vt.allocate("batt_pvs_curtail", nrec * nyears);
-            outPVS_violation_list = vt.allocate("batt_pvs_violation_list", nrec * nyears);
-            outPVS_P_pv_ac = vt.allocate("batt_pvs_P_pv_ac", nrec * nyears);
-            outPVS_PV_ramp_interval = vt.allocate("batt_pvs_PV_ramp_interval", nrec * nyears);
-            outPVS_forecast_pv_energy = vt.allocate("batt_pvs_forecast_pv_energy", nrec * nyears);
+        outBatteryPowerAC = vt.allocate("batt_power", nrec * nyears);
+        outBatteryPowerDC = vt.allocate("batt_power_dc", nrec * nyears);
+        outGridPower = vt.allocate("grid_power", nrec * nyears); // Net grid energy required.  Positive indicates putting energy on grid.  Negative indicates pulling off grid
+        outGenPower = vt.allocate("pv_batt_gen", nrec * nyears);
+        outGenWithoutBattery = vt.allocate("gen_without_battery", nrec * nyears);
+        outSystemToGrid = vt.allocate("system_to_grid", nrec * nyears);
+        outBatteryToSystemLoad = vt.allocate("batt_to_system_load", nrec * nyears);
+        outBatteryToGrid = vt.allocate("batt_to_grid", nrec * nyears);
+        outBatteryToInverterDC = vt.allocate("batt_to_inverter_dc", nrec * nyears);
+        outAdjustLosses = vt.allocate("batt_availability_loss", nrec * nyears);
+
+        if (batt_vars->batt_meter_position == dispatch_t::BEHIND)
+        {
+            outSystemToLoad = vt.allocate("system_to_load", nrec * nyears);
+            outBatteryToLoad = vt.allocate("batt_to_load", nrec * nyears);
+            outGridToLoad = vt.allocate("grid_to_load", nrec * nyears);
+
+            if (batt_vars->batt_dispatch != dispatch_t::MANUAL)
+            {
+                outGridPowerTarget = vt.allocate("grid_power_target", nrec * nyears);
+                outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
+            }
+            else {
+                outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
+            }
         }
-        else  if (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL) {
-            outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
-            outBenefitCharge = vt.allocate("batt_revenue_charge", nrec * nyears);
-            outBenefitGridcharge = vt.allocate("batt_revenue_gridcharge", nrec * nyears);
-            outBenefitClipcharge = vt.allocate("batt_revenue_clipcharge", nrec * nyears);
-            outBenefitDischarge = vt.allocate("batt_revenue_discharge", nrec * nyears);
+        else if (batt_vars->batt_meter_position == dispatch_t::FRONT)
+        {
+            if (batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
+                outPVS_outpower = vt.allocate("batt_pvs_outpower", nrec * nyears);
+                outPVS_battpower = vt.allocate("batt_pvs_battpower", nrec * nyears);
+                outPVS_battsoc = vt.allocate("batt_pvs_battsoc", nrec * nyears);
+                outPVS_curtail = vt.allocate("batt_pvs_curtail", nrec * nyears);
+                outPVS_violation_list = vt.allocate("batt_pvs_violation_list", nrec * nyears);
+                outPVS_P_pv_ac = vt.allocate("batt_pvs_P_pv_ac", nrec * nyears);
+                outPVS_PV_ramp_interval = vt.allocate("batt_pvs_PV_ramp_interval", nrec * nyears);
+                outPVS_forecast_pv_energy = vt.allocate("batt_pvs_forecast_pv_energy", nrec * nyears);
+            }
+            else  if (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL) {
+                outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
+                outBenefitCharge = vt.allocate("batt_revenue_charge", nrec * nyears);
+                outBenefitGridcharge = vt.allocate("batt_revenue_gridcharge", nrec * nyears);
+                outBenefitClipcharge = vt.allocate("batt_revenue_clipcharge", nrec * nyears);
+                outBenefitDischarge = vt.allocate("batt_revenue_discharge", nrec * nyears);
+            }
+            else {
+                outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
+            }
         }
-        else {
-            outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
+        outSystemToBattAC = vt.allocate("system_to_batt", nrec * nyears);
+        outSystemToBattDC = vt.allocate("system_to_batt_dc", nrec * nyears);
+        outGridToBatt = vt.allocate("grid_to_batt", nrec * nyears);
+
+        if (batt_vars->en_fuelcell) {
+            outFuelCellToBatt = vt.allocate("fuelcell_to_batt", nrec * nyears);
+            outFuelCellToGrid = vt.allocate("fuelcell_to_grid", nrec * nyears);
+            outFuelCellToLoad = vt.allocate("fuelcell_to_load", nrec * nyears);
+
         }
-    }
-    outSystemToBattAC = vt.allocate("system_to_batt", nrec * nyears);
-    outSystemToBattDC = vt.allocate("system_to_batt_dc", nrec * nyears);
-    outGridToBatt = vt.allocate("grid_to_batt", nrec * nyears);
 
-    if (batt_vars->en_fuelcell) {
-        outFuelCellToBatt = vt.allocate("fuelcell_to_batt", nrec * nyears);
-        outFuelCellToGrid = vt.allocate("fuelcell_to_grid", nrec * nyears);
-        outFuelCellToLoad = vt.allocate("fuelcell_to_load", nrec * nyears);
+        bool cycleCostRelevant = (batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::RETAIL_RATE) ||
+            (batt_vars->batt_meter_position == dispatch_t::FRONT && (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL && batt_vars->batt_dispatch != dispatch_t::FOM_CUSTOM_DISPATCH));
+        if (cycleCostRelevant && batt_vars->batt_cycle_cost_choice == dispatch_t::MODEL_CYCLE_COST) {
+            outCostToCycle = vt.allocate("batt_cost_to_cycle", nrec * nyears);
+        }
 
-    }
+        outBatteryConversionPowerLoss = vt.allocate("batt_conversion_loss", nrec * nyears);
+        outBatterySystemLoss = vt.allocate("batt_system_loss", nrec * nyears);
+        outInterconnectionLoss = vt.allocate("interconnection_loss", nrec * nyears);
 
-    bool cycleCostRelevant = (batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::RETAIL_RATE) ||
-        (batt_vars->batt_meter_position == dispatch_t::FRONT && (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL && batt_vars->batt_dispatch != dispatch_t::FOM_CUSTOM_DISPATCH));
-    if (cycleCostRelevant && batt_vars->batt_cycle_cost_choice == dispatch_t::MODEL_CYCLE_COST) {
-        outCostToCycle = vt.allocate("batt_cost_to_cycle", nrec * nyears);
-    }
+        if (analyze_outage) {
+            outCritLoadUnmet = vt.allocate("crit_load_unmet", nrec * nyears);
+            outCritLoad = vt.allocate("crit_load", nrec * nyears);
+            outUnmetLosses = vt.allocate("outage_losses_unmet", nrec * nyears);
+        }
 
-    outBatteryConversionPowerLoss = vt.allocate("batt_conversion_loss", nrec * nyears);
-    outBatterySystemLoss = vt.allocate("batt_system_loss", nrec * nyears);
-    outInterconnectionLoss = vt.allocate("interconnection_loss", nrec * nyears);
+        // annual outputs
+        outBatteryBankReplacement = vt.allocate("batt_bank_replacement", nyears);
+        outAnnualChargeEnergy = vt.allocate("batt_annual_charge_energy", nyears);
+        outAnnualDischargeEnergy = vt.allocate("batt_annual_discharge_energy", nyears);
+        outAnnualGridImportEnergy = vt.allocate("annual_import_to_grid_energy", nyears);
+        outAnnualGridExportEnergy = vt.allocate("annual_export_to_grid_energy", nyears);
+        outAnnualEnergySystemLoss = vt.allocate("batt_annual_energy_system_loss", nyears);
+        outAnnualEnergyLoss = vt.allocate("batt_annual_energy_loss", nyears);
+        outAnnualSystemChargeEnergy = vt.allocate("batt_annual_charge_from_system", nyears);
+        outAnnualGridChargeEnergy = vt.allocate("batt_annual_charge_from_grid", nyears);
 
-    if (analyze_outage) {
-        outCritLoadUnmet = vt.allocate("crit_load_unmet", nrec * nyears);
-        outCritLoad = vt.allocate("crit_load", nrec * nyears);
-        outUnmetLosses = vt.allocate("outage_losses_unmet", nrec * nyears);
-    }
-
-    // annual outputs
-    outBatteryBankReplacement = vt.allocate("batt_bank_replacement", nyears);
-    outAnnualChargeEnergy = vt.allocate("batt_annual_charge_energy", nyears);
-    outAnnualDischargeEnergy = vt.allocate("batt_annual_discharge_energy", nyears);
-    outAnnualGridImportEnergy = vt.allocate("annual_import_to_grid_energy", nyears);
-    outAnnualGridExportEnergy = vt.allocate("annual_export_to_grid_energy", nyears);
-    outAnnualEnergySystemLoss = vt.allocate("batt_annual_energy_system_loss", nyears);
-    outAnnualEnergyLoss = vt.allocate("batt_annual_energy_loss", nyears);
-    outAnnualSystemChargeEnergy = vt.allocate("batt_annual_charge_from_system", nyears);
-    outAnnualGridChargeEnergy = vt.allocate("batt_annual_charge_from_grid", nyears);
+    } // end if (full_mode) output allocation
 
     // model initialization
     voltage_t* voltage_model = 0;
@@ -1233,6 +1241,8 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr, c
     }
 
     battery_metrics = new battery_metrics_t(dt_hr);
+
+    if (!full_mode) return;
 
     /*! Process the dispatch options and create the appropriate model */
     if ((batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL) ||

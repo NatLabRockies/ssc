@@ -4,7 +4,7 @@
 #
 #####################################################################################################################
 
-include_directories(. include src $ENV{ORTOOLSDIR}/include/eigen3 ../ssc)
+include_directories(. include src $ENV{ORTOOLSDIR}/include/eigen3 $ENV{ORTOOLSDIR}/_deps/eigen3-src ../ssc)
 
 set(SPLINTER_SRC
 	src/bspline.cpp

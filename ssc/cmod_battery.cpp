@@ -49,31 +49,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_util.h"
 #include "lib_utility_rate.h"
 
-var_info vtab_battery_inputs[] = {
+// Kernel-only inputs: all variables read by battstor when constructed with
+// run_mode::battery_only. Hosts that only need the battery kernel (e.g. CSP)
+// should add_var_info(vtab_battery_kernel_inputs) without vtab_battery_inputs.
+var_info vtab_battery_kernel_inputs[] = {
     /*   VARTYPE           DATATYPE         NAME                                            LABEL                                                   UNITS      META                   GROUP           REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
 
     // simulation inputs - required only if lifetime analysis
     { SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",                 "Enable lifetime simulation",                                  "0/1",     "0=SingleYearRepeated,1=RunEveryYear",                     "Lifetime",             "?=0",                        "BOOLEAN",                        "" },
-    { SSC_INPUT,        SSC_NUMBER,      "analysis_period",                            "Lifetime analysis period",                                "years",   "The number of years in the simulation",                   "Lifetime",             "system_use_lifetime_output =1",   "",                               "" },
+    { SSC_INPUT,        SSC_NUMBER,      "analysis_period",                            "Lifetime analysis period",                                "years",   "The number of years in the simulation",                   "Lifetime",             "system_use_lifetime_output=1",   "",                               "" },
 
     // configuration inputs
     { SSC_INPUT,        SSC_NUMBER,      "batt_chem",                                  "Battery chemistry",                                       "",        "0=LeadAcid,1=LiIon",   "BatteryCell",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inverter_model",                             "Inverter model specifier",                                "",        "0=cec,1=datasheet,2=partload,3=coefficientgenerator,4=generic","Inverter","?=4", "INTEGER,MIN=0,MAX=4",           "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inverter_count",                             "Number of inverters",                                     "",        "",                     "Inverter"        "",                            "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_snl_eff_cec",                            "Inverter Sandia CEC Efficiency",                          "%",       "",                     "Inverter",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_snl_paco",                               "Inverter Sandia Maximum AC Power",                        "Wac",     "",                     "Inverter",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_ds_eff",                                 "Inverter Datasheet Efficiency",                           "%",       "",                     "Inverter",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_ds_paco",                                "Inverter Datasheet Maximum AC Power",                     "Wac",     "",                     "Inverter",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_pd_eff",                                 "Inverter Partload Efficiency",                            "%",       "",                     "Inverter",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_pd_paco",                                "Inverter Partload Maximum AC Power",                      "Wac",     "",                     "Inverter",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_cec_cg_eff_cec",                         "Inverter Coefficient Generator CEC Efficiency",           "%",       "",                     "Inverter",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inv_cec_cg_paco",                            "Inverter Coefficient Generator Max AC Power",             "Wac",       "",                   "Inverter",       "",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "batt_ac_or_dc",                              "Battery interconnection (AC or DC)",                      "",        "0=DC_Connected,1=AC_Connected",                  "BatterySystem",       "",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "batt_dc_dc_efficiency",                      "System DC to battery DC efficiency",                          "",        "",                     "BatterySystem",       "",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "dcoptimizer_loss",                           "DC optimizer loss",                      "",        "",                     "Losses",       "",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "batt_dc_ac_efficiency",                      "Battery DC to AC efficiency",                             "",        "",                     "BatterySystem",       "",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "batt_ac_dc_efficiency",                      "Inverter AC to battery DC efficiency",                    "",        "",                     "BatterySystem",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "batt_meter_position",                        "Position of battery relative to electric meter",          "",        "0=BehindTheMeter,1=FrontOfMeter",                     "BatterySystem",       "",                           "",                              "" },
     { SSC_INPUT,        SSC_NUMBER,      "batt_inverter_efficiency_cutoff",            "Inverter efficiency at which to cut battery charge or discharge off",          "%",        "","BatterySystem",       "",                           "",                              "" },
     { SSC_INPUT,        SSC_ARRAY,       "batt_losses",                                "Battery system losses at each timestep (kW DC for DC connected, AC for AC connected)",                  "kW",       "",                     "BatterySystem",       "?=0",                        "",                             "" },
     { SSC_INPUT,        SSC_ARRAY,       "batt_losses_charging",                       "Battery system losses when charging (kW DC for DC connected, AC for AC connected)",                     "kW",       "",                     "BatterySystem",       "?=0",                        "",                             "" },
@@ -92,7 +84,6 @@ var_info vtab_battery_inputs[] = {
     { SSC_INOUT,        SSC_NUMBER,      "batt_power_discharge_max_kwdc",              "Battery maximum discharge power (DC)",                            "kWdc",    "",                    "BatterySystem",       "",                           "",                              "" },
     { SSC_INOUT,        SSC_NUMBER,      "batt_power_charge_max_kwac",                 "Battery maximum charge power (AC)",                               "kWac",    "",                    "BatterySystem",       "",                           "",                              "" },
     { SSC_INOUT,        SSC_NUMBER,      "batt_power_discharge_max_kwac",              "Battery maximum discharge power (AC)",                            "kWac",    "",                    "BatterySystem",       "",                           "",                              "" },
-
 
     // Voltage discharge curve
     { SSC_INPUT,        SSC_NUMBER,      "batt_voltage_choice",                        "Battery voltage input option",                            "0/1",      "0=UseVoltageModel,1=InputVoltageTable",                    "BatteryCell",       "?=0",                        "",                             "" },
@@ -116,11 +107,11 @@ var_info vtab_battery_inputs[] = {
     { SSC_INPUT,		SSC_NUMBER,		"LeadAcid_tn",	                               "Time to discharge",                                      "h",        "",                     "BatteryCell",       "",                           "",                             "" },
 
     // charge limits and priority inputs
-    { SSC_INPUT,        SSC_NUMBER,      "batt_initial_SOC",		                   "Initial state-of-charge",                                 "%",       "",                     "BatteryCell",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "batt_minimum_SOC",		                   "Minimum allowed state-of-charge during nominal operation","%",       "",                     "BatteryCell",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "batt_minimum_outage_SOC",		               "Minimum allowed state-of-charge during an outage",        "%",       "",                     "BatteryCell",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "batt_maximum_SOC",                           "Maximum allowed state-of-charge",                         "%",       "",                     "BatteryCell",       "",                           "",                              "" },
-    { SSC_INPUT,        SSC_NUMBER,      "batt_minimum_modetime",                      "Minimum time at charge state",                            "min",     "",                     "BatteryCell",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "batt_initial_SOC",		                   "Initial state-of-charge",                                 "%",       "",                     "BatteryCell",       "?=50",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "batt_minimum_SOC",		                   "Minimum allowed state-of-charge during nominal operation","%",       "",                     "BatteryCell",       "?=15",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "batt_minimum_outage_SOC",		               "Minimum allowed state-of-charge during an outage",        "%",       "",                     "BatteryCell",       "?=0",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "batt_maximum_SOC",                           "Maximum allowed state-of-charge",                         "%",       "",                     "BatteryCell",       "?=95",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "batt_minimum_modetime",                      "Minimum time at charge state",                            "min",     "",                     "BatteryCell",       "?=10",                           "",                              "" },
 
     // lifetime inputs
     { SSC_INPUT,		SSC_NUMBER,     "batt_life_model",                             "Battery life model specifier",                           "0/1/2",    "0=calendar/cycle,1=NMC,2=LMO/LTO", "BatteryCell",       "?=0",                           "",                             "" },
@@ -136,7 +127,6 @@ var_info vtab_battery_inputs[] = {
     { SSC_INPUT,        SSC_NUMBER,     "batt_replacement_capacity",                   "Capacity degradation at which to replace battery",       "%",        "",                     "BatterySystem",       "",                           "",                             "" },
     { SSC_INPUT,        SSC_NUMBER,     "batt_replacement_option",                     "Enable battery replacement?",                            "0=none,1=capacity based,2=user schedule", "", "BatterySystem", "?=0",                  "INTEGER,MIN=0,MAX=2",          "" },
     { SSC_INPUT,        SSC_ARRAY,      "batt_replacement_schedule_percent",           "Percentage of battery capacity to replace in each year", "%","length <= analysis_period",                  "BatterySystem",      "batt_replacement_option=2",   "",                             "" },
-    { SSC_INPUT,        SSC_ARRAY,      "om_replacement_cost1",                        "Cost to replace battery per kWh",                        "$/kWh",    "",                     "BatterySystem",       "",                           "",                             "" },
 
     // thermal inputs
     { SSC_INPUT,        SSC_NUMBER,     "batt_mass",                                   "Battery mass",                                           "kg",       "",                     "BatterySystem",       "",                           "",                             "" },
@@ -145,6 +135,27 @@ var_info vtab_battery_inputs[] = {
     { SSC_INPUT,        SSC_NUMBER,     "batt_h_to_ambient",                           "Heat transfer between battery and environment",          "W/m2K",    "",                     "BatteryCell",       "",                           "",                             "" },
     { SSC_INPUT,        SSC_ARRAY,      "batt_room_temperature_celsius",               "Temperature of storage room",                            "C", "length=1 for fixed, # of weatherfile records otherwise", "BatteryCell",        "",                           "",                             "" },
     { SSC_INPUT,        SSC_MATRIX,     "cap_vs_temp",                                 "Effective capacity as function of temperature",          "C,%",      "",                     "BatteryCell",       "",                           "",                             "" },
+
+    var_info_invalid
+};
+
+// Dispatch, powerflow, inverter, forecast, and cost-escalation inputs. Only read when
+// battstor is constructed in run_mode::full. SAM cmods should add both
+// vtab_battery_kernel_inputs and vtab_battery_inputs.
+var_info vtab_battery_inputs[] = {
+    { SSC_INPUT,        SSC_NUMBER,      "inverter_model",                             "Inverter model specifier",                                "",        "0=cec,1=datasheet,2=partload,3=coefficientgenerator,4=generic","Inverter","?=4", "INTEGER,MIN=0,MAX=4",           "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inverter_count",                             "Number of inverters",                                     "",        "",                     "Inverter"        "",                            "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_snl_eff_cec",                            "Inverter Sandia CEC Efficiency",                          "%",       "",                     "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_snl_paco",                               "Inverter Sandia Maximum AC Power",                        "Wac",     "",                     "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_ds_eff",                                 "Inverter Datasheet Efficiency",                           "%",       "",                     "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_ds_paco",                                "Inverter Datasheet Maximum AC Power",                     "Wac",     "",                     "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_pd_eff",                                 "Inverter Partload Efficiency",                            "%",       "",                     "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_pd_paco",                                "Inverter Partload Maximum AC Power",                      "Wac",     "",                     "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_cec_cg_eff_cec",                         "Inverter Coefficient Generator CEC Efficiency",           "%",       "",                     "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "inv_cec_cg_paco",                            "Inverter Coefficient Generator Max AC Power",             "Wac",       "",                   "Inverter",       "",                           "",                              "" },
+    { SSC_INPUT,        SSC_NUMBER,      "batt_meter_position",                        "Position of battery relative to electric meter",          "",        "0=BehindTheMeter,1=FrontOfMeter",                     "BatterySystem",       "",                           "",                              "" },
+
+    { SSC_INPUT,        SSC_ARRAY,      "om_replacement_cost1",                        "Cost to replace battery per kWh",                        "$/kWh",    "",                     "BatterySystem",       "",                           "",                             "" },
 
     // storage dispatch
     { SSC_INPUT,        SSC_ARRAY,      "dispatch_manual_charge",                      "Periods 1-6 charging from system allowed?",              "",         "",                     "BatteryDispatch",       "en_batt=1&en_standalone_batt=0&batt_dispatch_choice=3",                           "",                             "" },
@@ -357,24 +368,13 @@ var_info vtab_battery_outputs[] = {
     var_info_invalid };
 
 battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
-                   const std::shared_ptr<batt_variables>& batt_vars_in,
-                   run_mode mode)
+                   const std::shared_ptr<batt_variables>& batt_vars_in)
 {
-    const bool full_mode = (mode == run_mode::full);
-
     make_vars = false;
-    utilityRate = NULL;
-    util_rate_data = NULL;
     // time quantities
     _dt_hour = dt_hr;
     step_per_hour = static_cast<size_t>(1. / _dt_hour);
     initialize_time(0, 0, 0);
-
-    bool has_fuelcell = false;
-    if (auto vd = vt.lookup("fuelcell_power")) {
-        fuelcellPower = vd->arr_vector();
-        has_fuelcell = true;
-    }
 
     // battery variables
     if (batt_vars_in == 0)
@@ -382,15 +382,15 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
         make_vars = true;
         batt_vars = std::make_shared<batt_variables>();
 
-
-        // fuel cell variables
-        batt_vars->en_fuelcell = false;
-        if (has_fuelcell) {
-            batt_vars->en_fuelcell = true;
-            batt_vars->batt_can_fuelcellcharge = vt.as_vector_bool("dispatch_manual_fuelcellcharge");
+        // en_batt defaults to true for base-only kernel construction (CSP path);
+        // SAM cmods construct battstor_heuristic_dispatch which re-checks the
+        // enable flags before invoking dispatch parsing.
+        batt_vars->en_batt = true;
+        if (vt.is_assigned("en_batt") || vt.is_assigned("en_standalone_batt") || vt.is_assigned("en_wave_batt")) {
+            batt_vars->en_batt = vt.as_boolean("en_batt") || vt.as_boolean("en_standalone_batt") || vt.as_boolean("en_wave_batt");
         }
+        batt_vars->en_fuelcell = false;
 
-        batt_vars->en_batt = vt.as_boolean("en_batt") || vt.as_boolean("en_standalone_batt") || vt.as_boolean("en_wave_batt");
         if (batt_vars->en_batt)
         {
             // Financial Parameters
@@ -480,325 +480,72 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
             }
             batt_vars->batt_minimum_modetime = vt.as_double("batt_minimum_modetime");
 
-            // Storage dispatch controllers
-            batt_vars->batt_dispatch = vt.as_integer("batt_dispatch_choice");
-            batt_vars->batt_dispatch_wf_forecast = vt.as_integer("batt_dispatch_wf_forecast_choice");
-            batt_vars->batt_dispatch_load_forecast = vt.as_integer("batt_dispatch_load_forecast_choice");
-            batt_vars->batt_meter_position = vt.as_integer("batt_meter_position");
-
-            // Cycle cost calculations
-            batt_vars->batt_cycle_cost_choice = vt.as_integer("batt_cycle_cost_choice");
-
-            size_t cnt = 0, i = 0;
-            double inflation_rate = vt.as_double("inflation_rate") * 0.01;
-
-            // compute utility rate out-years escalation multipliers
-            std::vector<ssc_number_t> cycle_cost(nyears);
-            if (batt_vars->batt_cycle_cost_choice == 1)
+            // OM: replacement cost, cycle cost, variable cost escalations
             {
-                ssc_number_t* parr = vt.as_array("batt_cycle_cost", &cnt);
-                if (cnt == 1)
+                size_t cnt = 0, i = 0;
+                double inflation_rate = vt.is_assigned("inflation_rate") ? vt.as_double("inflation_rate") * 0.01 : 0.0;
+
+                batt_vars->batt_cycle_cost_choice = vt.is_assigned("batt_cycle_cost_choice") ? vt.as_integer("batt_cycle_cost_choice") : 0;
+
+                std::vector<ssc_number_t> cycle_cost(nyears);
+                if (batt_vars->batt_cycle_cost_choice == 1 && vt.is_assigned("batt_cycle_cost"))
                 {
-                    for (i = 0; i < nyears; i++)
-                        cycle_cost[i] = parr[0] * (ssc_number_t)pow((double)(inflation_rate + 1), (double)i);
+                    ssc_number_t* parr = vt.as_array("batt_cycle_cost", &cnt);
+                    if (cnt == 1) {
+                        for (i = 0; i < nyears; i++)
+                            cycle_cost[i] = parr[0] * (ssc_number_t)pow((double)(inflation_rate + 1), (double)i);
+                    }
+                    else if (cnt < nyears) {
+                        throw exec_error("battery", "Invalid number for batt_cycle_cost, must be 1 or equal to analysis_period.");
+                    }
+                    else {
+                        for (i = 0; i < nyears; i++)
+                            cycle_cost[i] = parr[i];
+                    }
                 }
-                else if (cnt < nyears)
+                batt_vars->batt_cycle_cost = cycle_cost;
+
+                if (vt.is_assigned("om_batt_replacement_cost"))
                 {
-                    throw exec_error("battery", "Invalid number for batt_cycle_cost, must be 1 or equal to analysis_period.");
+                    std::vector<ssc_number_t> replacement_cost(nyears);
+                    ssc_number_t* parr = vt.as_array("om_batt_replacement_cost", &cnt);
+                    if (cnt == 1) {
+                        double escal = vt.is_assigned("om_replacement_cost_escal") ? vt.as_double("om_replacement_cost_escal") : 0.0;
+                        for (i = 0; i < nyears; i++)
+                            replacement_cost[i] = parr[0] * (ssc_number_t)pow((double)(inflation_rate + escal + 1), (double)i);
+                    }
+                    else if (cnt < nyears) {
+                        throw exec_error("battery", "Invalid number for om_batt_replacement_cost, must be 1 or equal to analysis_period.");
+                    }
+                    else {
+                        for (i = 0; i < nyears; i++)
+                            replacement_cost[i] = parr[i];
+                    }
+                    batt_vars->batt_cost_per_kwh = replacement_cost;
                 }
                 else
+                    batt_vars->batt_cost_per_kwh = std::vector<double>(nyears, 0.0);
+
+                if (vt.is_assigned("om_batt_variable_cost"))
                 {
-                    for (i = 0; i < nyears; i++)
-                        cycle_cost[i] = parr[i];
-                }
-            }
-            batt_vars->batt_cycle_cost = cycle_cost;
-
-
-            // Battery bank replacement
-            if (vt.is_assigned("om_batt_replacement_cost"))
-            {
-                std::vector<ssc_number_t> replacement_cost(nyears);
-                ssc_number_t*  parr = vt.as_array("om_batt_replacement_cost", &cnt);
-                if (cnt == 1)
-                {
-                    double escal = 0.0;
-                    if (vt.is_assigned("om_replacement_cost_escal")) {
-                        escal = vt.as_double("om_replacement_cost_escal");
+                    std::vector<ssc_number_t> om_cost(nyears);
+                    ssc_number_t* parr = vt.as_array("om_batt_variable_cost", &cnt);
+                    if (cnt == 1) {
+                        double escal = vt.is_assigned("om_production_escal") ? vt.as_double("om_production_escal") : 0.0;
+                        for (i = 0; i < nyears; i++)
+                            om_cost[i] = 0.001 * parr[0] * (ssc_number_t)pow((double)(inflation_rate + escal + 1), (double)i); // $/MWh to $/kWh
                     }
-
-                    for (i = 0; i < nyears; i++)
-                        replacement_cost[i] = parr[0] * (ssc_number_t)pow((double)(inflation_rate + escal + 1), (double)i);
-                }
-                else if (cnt < nyears)
-                {
-                    throw exec_error("battery", "Invalid number for om_batt_replacement_cost, must be 1 or equal to analysis_period.");
-                }
-                else {
-                    for (i = 0; i < nyears; i++)
-                        replacement_cost[i] = parr[i];
-                }
-                batt_vars->batt_cost_per_kwh = replacement_cost;
-            }
-            else
-                batt_vars->batt_cost_per_kwh = std::vector<double>(nyears, 0.0);
-
-
-            // battery o and m cost
-            if (vt.is_assigned("om_batt_variable_cost"))
-            {
-                std::vector<ssc_number_t> om_cost(nyears);
-                ssc_number_t* parr = vt.as_array("om_batt_variable_cost", &cnt);
-                if (cnt == 1) {
-                    double escal = 0.0;
-                    if (vt.is_assigned("om_production_escal")) {
-                        escal = vt.as_double("om_production_escal");
+                    else if (cnt < nyears) {
+                        throw exec_error("battery", "Invalid number for om_batt_variable_cost, must be 1 or equal to analysis_period.");
                     }
-                    for (i = 0; i < nyears; i++)
-                        om_cost[i] = 0.001 * parr[0] * (ssc_number_t)pow((double)(inflation_rate + escal + 1), (double)i); // $/MWh to $/kWh
-                }
-                else if (cnt < nyears)  {
-                    throw exec_error("battery", "Invalid number for om_batt_variable_cost, must be 1 or equal to analysis_period.");
-                }
-                else {
-                    for (i = 0; i < nyears; i++)
-                        om_cost[i] = 0.001* parr[i]; // $/MWh to $/kWh
-                }
-                batt_vars->om_batt_variable_cost_per_kwh = om_cost;
-            }
-            else
-                batt_vars->om_batt_variable_cost_per_kwh = std::vector<double>(nyears, 0.0);
-
-
-
-
-            // Interconnection and curtailment
-            std::vector<double> scaleFactors(batt_vars->analysis_period, 1.0); // No scaling factors for curtailment
-
-            std::vector<double> curtailment_year_one;
-            if (vt.is_assigned("grid_curtailment")) {
-                curtailment_year_one = vt.as_vector_double("grid_curtailment");
-                double interpolation_factor = 1.0;
-                single_year_to_lifetime_interpolated<double>(
-                    batt_vars->system_use_lifetime_output,
-                    (size_t)batt_vars->analysis_period,
-                    total_steps,
-                    curtailment_year_one,
-                    scaleFactors,
-                    interpolation_factor,
-                    batt_vars->gridCurtailmentLifetime_MW,
-                    step_per_year,
-                    _dt_hour);
-            }
-
-            if (vt.is_assigned("enable_interconnection_limit")) {
-                batt_vars->enable_interconnection_limit = vt.as_boolean("enable_interconnection_limit");
-                if (batt_vars->enable_interconnection_limit && vt.is_assigned("grid_interconnection_limit_kwac")) {
-                    batt_vars->grid_interconnection_limit_kW = vt.as_double("grid_interconnection_limit_kwac");
-                }
-                else {
-                    batt_vars->enable_interconnection_limit = false;
-                }
-            }
-            else {
-                batt_vars->enable_interconnection_limit = false;
-            }
-
-            if (!batt_vars->enable_interconnection_limit) {
-                batt_vars->grid_interconnection_limit_kW = 1e+38;
-            }
-
-            // Front of meter
-            if (batt_vars->batt_meter_position == dispatch_t::FRONT)
-            {
-                if (batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
-                    batt_vars->batt_dispatch_pvs_nameplate_ac = vt.as_double("batt_dispatch_pvs_nameplate_ac");
-                    batt_vars->batt_dispatch_pvs_ac_lb_enable = vt.as_boolean("batt_dispatch_pvs_ac_lb_enable");
-                    batt_vars->batt_dispatch_pvs_ac_lb = vt.as_double("batt_dispatch_pvs_ac_lb");
-                    batt_vars->batt_dispatch_pvs_ac_ub_enable = vt.as_boolean("batt_dispatch_pvs_ac_ub_enable");
-                    batt_vars->batt_dispatch_pvs_ac_ub = vt.as_double("batt_dispatch_pvs_ac_ub");
-                    batt_vars->batt_dispatch_pvs_curtail_as_control = vt.as_boolean("batt_dispatch_pvs_curtail_as_control");
-                    batt_vars->batt_dispatch_pvs_curtail_if_violation = vt.as_boolean("batt_dispatch_pvs_curtail_if_violation");
-                    batt_vars->batt_dispatch_pvs_short_forecast_enable = vt.as_boolean("batt_dispatch_pvs_short_forecast_enable");
-                    batt_vars->batt_dispatch_pvs_forecast_shift_periods = vt.as_double("batt_dispatch_pvs_forecast_shift_periods");
-                    batt_vars->batt_dispatch_pvs_timestep_multiplier = vt.as_double("batt_dispatch_pvs_timestep_multiplier");
-                    batt_vars->batt_dispatch_pvs_max_ramp = vt.as_double("batt_dispatch_pvs_max_ramp")/100.0;
-                    batt_vars->batt_dispatch_pvs_soc_rest = vt.as_double("batt_dispatch_pvs_soc_rest")/100.0;
-                    batt_vars->batt_dispatch_pvs_kp = vt.as_double("batt_dispatch_pvs_kp");
-                    batt_vars->batt_dispatch_pvs_ki = vt.as_double("batt_dispatch_pvs_ki");
-                    batt_vars->batt_dispatch_pvs_kf = vt.as_double("batt_dispatch_pvs_kf");
-                }
-                else {
-                    forecast_price_signal fps(&vt);
-                    bool success = fps.setup(step_per_hour);
-                    if (!success) {
-                        throw exec_error("battery", fps.error());
+                    else {
+                        for (i = 0; i < nyears; i++)
+                            om_cost[i] = 0.001 * parr[i]; // $/MWh to $/kWh
                     }
-                    batt_vars->forecast_price_series_dollar_per_kwh = fps.forecast_price();
-                    batt_vars->forecast_cleared_capacities_kw = fps.cleared_capacity();
-                    batt_vars->capacity_forecast_type = fps.forecast_type;
-                    batt_vars->cleared_capacity_percent = fps.cleared_capacity_percent;
-                    outMarketPrice = vt.allocate("market_sell_rate_series_yr1", batt_vars->forecast_price_series_dollar_per_kwh.size());
-                    for (i = 0; i < batt_vars->forecast_price_series_dollar_per_kwh.size(); i++) {
-                        outMarketPrice[i] = (ssc_number_t)(batt_vars->forecast_price_series_dollar_per_kwh[i] * 1000.0);
-                    }
-
-                    // For automated front of meter with electricity rates
-                    batt_vars->ec_rate_defined = false;
-                    if (vt.is_assigned("en_electricity_rates")) { // Only defined for singleowner
-                        if (vt.as_integer("en_electricity_rates"))
-                        {
-                            batt_vars->ec_use_realtime = vt.as_boolean("ur_en_ts_sell_rate");
-                            if (!batt_vars->ec_use_realtime) {
-                                batt_vars->ec_weekday_schedule = vt.as_matrix_unsigned_long("ur_ec_sched_weekday");
-                                batt_vars->ec_weekend_schedule = vt.as_matrix_unsigned_long("ur_ec_sched_weekend");
-                                batt_vars->ec_tou_matrix = vt.as_matrix("ur_ec_tou_mat");
-                            }
-                            else {
-                                batt_vars->ec_realtime_buy = vt.as_vector_double("ur_ts_buy_rate");
-                            }
-                            batt_vars->ec_rate_defined = true;
-                        }
-                        else {
-                            batt_vars->ec_use_realtime = true;
-                            batt_vars->ec_realtime_buy = batt_vars->forecast_price_series_dollar_per_kwh;
-                        }
-                    }
-
-                    if (batt_vars->batt_dispatch == dispatch_t::FOM_AUTOMATED_ECONOMIC)
-                    {
-                        batt_vars->batt_look_ahead_hours = vt.as_unsigned_long("batt_look_ahead_hours");
-                        batt_vars->batt_dispatch_update_frequency_hours = vt.as_double("batt_dispatch_update_frequency_hours");
-                    }
-                    else if (batt_vars->batt_dispatch == dispatch_t::FOM_CUSTOM_DISPATCH)
-                    {
-                        batt_vars->batt_custom_dispatch = vt.as_vector_double("batt_custom_dispatch");
-                    }
+                    batt_vars->om_batt_variable_cost_per_kwh = om_cost;
                 }
-            }
-            // Automated behind-the-meter
-            else
-            {
-                 // For automated behind the meter with electricity rates
-                batt_vars->ec_rate_defined = false;
-                if (vt.is_assigned("ur_ec_tou_mat")) { // Some tests don't have this assigned, ensure it is before setting up forecast rate
-                    batt_vars->ec_rate_defined = true;
-                }
-
-
-                if (batt_vars->batt_dispatch == dispatch_t::MAINTAIN_TARGET)
-                {
-                    batt_vars->batt_target_choice = vt.as_integer("batt_target_choice");
-                    batt_vars->target_power_monthly = vt.as_vector_double("batt_target_power_monthly");
-                    batt_vars->target_power = vt.as_vector_double("batt_target_power");
-
-                    if (batt_vars->batt_target_choice == dispatch_automatic_behind_the_meter_t::TARGET_SINGLE_MONTHLY)
-                    {
-                        target_power_monthly = batt_vars->target_power_monthly;
-
-                        if (target_power_monthly.size() != 12) {
-                            throw exec_error("battery", "batt_target_power_monthly must have 12 entries if batt_target_choice is target_single_monthly (0).");
-                        }
-
-                        target_power.clear();
-                        target_power.reserve(8760 * step_per_hour);
-                        for (size_t month = 0; month != 12; month++)
-                        {
-                            double target = target_power_monthly[month];
-                            for (size_t h = 0; h != util::hours_in_month(month + 1); h++)
-                            {
-                                for (size_t s = 0; s != step_per_hour; s++)
-                                    target_power.push_back(target);
-                            }
-                        }
-
-                    }
-                    else
-                        target_power = batt_vars->target_power;
-
-                    if (target_power.size() != nrec)
-                        throw exec_error("battery", "Length of target_power must equal number of records in weather file.");
-
-                    // extend target power to lifetime internally
-                    for (size_t y = 1; y < nyears; y++) {
-                        for (i = 0; i < nrec; i++) {
-                            target_power.push_back(target_power[i]);
-                        }
-                    }
-                    batt_vars->target_power = target_power;
-
-                }
-                else if (batt_vars->batt_dispatch == dispatch_t::SELF_CONSUMPTION)
-                {
-                    //for self-consumption (aka 24/7 carbon-free energy) dispatch option, we're going to use the grid target power algorithm with an array of zeros
-                    std::vector<double> target_power_temp(nyears* nrec, 0.0);
-                    target_power = target_power_temp;
-                }
-                else if (batt_vars->batt_dispatch == dispatch_t::CUSTOM_DISPATCH)
-                {
-                    batt_vars->batt_custom_dispatch = vt.as_vector_double("batt_custom_dispatch");
-                }
-            }
-
-            // Manual dispatch
-            if ((batt_vars->batt_meter_position == dispatch_t::FRONT && batt_vars->batt_dispatch == dispatch_t::FOM_MANUAL) ||
-                (batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL))
-            {
-                batt_vars->batt_can_charge = vt.as_vector_bool("dispatch_manual_charge");
-                batt_vars->batt_can_discharge = vt.as_vector_bool("dispatch_manual_discharge");
-                batt_vars->batt_can_gridcharge = vt.as_vector_bool("dispatch_manual_gridcharge");
-                batt_vars->batt_discharge_percent = vt.as_vector_double("dispatch_manual_percent_discharge");
-                batt_vars->batt_gridcharge_percent = vt.as_vector_double("dispatch_manual_percent_gridcharge");
-                batt_vars->batt_discharge_schedule_weekday = vt.as_matrix_unsigned_long("dispatch_manual_sched");
-                batt_vars->batt_discharge_schedule_weekend = vt.as_matrix_unsigned_long("dispatch_manual_sched_weekend");
-
-                if (batt_vars->batt_meter_position == dispatch_t::BEHIND) {
-                    batt_vars->batt_btm_can_discharge_to_grid = vt.as_vector_bool("dispatch_manual_btm_discharge_to_grid");
-                }
-            }
-
-            batt_vars->start_day_of_year = vt.as_number("start_day_of_year");
-
-            // Common to automated methods
-            batt_vars->batt_dispatch_auto_can_charge = true;
-            batt_vars->batt_dispatch_auto_can_clipcharge = false;
-            batt_vars->batt_dispatch_auto_can_curtailcharge = false;
-            batt_vars->batt_dispatch_auto_can_gridcharge = false;
-            batt_vars->batt_dispatch_auto_can_fuelcellcharge = true;
-            batt_vars->batt_dispatch_auto_btm_can_discharge_to_grid = false;
-
-            if (vt.is_assigned("batt_dispatch_auto_can_gridcharge")) {
-                batt_vars->batt_dispatch_auto_can_gridcharge = vt.as_boolean("batt_dispatch_auto_can_gridcharge");
-            }
-            if (vt.is_assigned("batt_dispatch_auto_can_charge")) {
-                batt_vars->batt_dispatch_auto_can_charge = vt.as_boolean("batt_dispatch_auto_can_charge");
-            }
-            if (vt.is_assigned("batt_dispatch_auto_can_clipcharge")) {
-                batt_vars->batt_dispatch_auto_can_clipcharge = vt.as_boolean("batt_dispatch_auto_can_clipcharge");
-            }
-            if (vt.is_assigned("batt_dispatch_auto_can_curtailcharge")) {
-                batt_vars->batt_dispatch_auto_can_curtailcharge = vt.as_boolean("batt_dispatch_auto_can_curtailcharge");
-            }
-            if (vt.is_assigned("batt_dispatch_auto_can_fuelcellcharge")) {
-                batt_vars->batt_dispatch_auto_can_fuelcellcharge = vt.as_boolean("batt_dispatch_auto_can_fuelcellcharge");
-            }
-            if (vt.is_assigned("batt_dispatch_auto_btm_can_discharge_to_grid")) {
-                batt_vars->batt_dispatch_auto_btm_can_discharge_to_grid = vt.as_boolean("batt_dispatch_auto_btm_can_discharge_to_grid");
-            }
-
-            // Control powerflow for all BTM methods
-            batt_vars->batt_dispatch_charge_only_system_exceeds_load = true;
-            batt_vars->batt_dispatch_discharge_only_load_exceeds_system = true;
-            batt_vars->batt_dispatch_batt_system_charge_first = false;
-
-            if (vt.is_assigned("batt_dispatch_charge_only_system_exceeds_load")) {
-                batt_vars->batt_dispatch_charge_only_system_exceeds_load = vt.as_boolean("batt_dispatch_charge_only_system_exceeds_load");
-            }
-            if (vt.is_assigned("batt_dispatch_discharge_only_load_exceeds_system")) {
-                batt_vars->batt_dispatch_discharge_only_load_exceeds_system = vt.as_boolean("batt_dispatch_discharge_only_load_exceeds_system");
-            }
-            if (vt.is_assigned("dispatch_manual_system_charge_first")) {
-                batt_vars->batt_dispatch_batt_system_charge_first = vt.as_boolean("dispatch_manual_system_charge_first");
+                else
+                    batt_vars->om_batt_variable_cost_per_kwh = std::vector<double>(nyears, 0.0);
             }
 
             batt_vars->batt_replacement_option = vt.as_integer("batt_replacement_option");
@@ -840,43 +587,6 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
                 double T_ambient = batt_vars->T_room[0];
                 batt_vars->T_room = std::vector<double>(nrec, T_ambient);
             }
-
-            // Inverter settings
-            batt_vars->inverter_model = vt.as_integer("inverter_model");
-            if (batt_vars->inverter_model < 4) //user has assigned an actual inverter model
-            {
-                batt_vars->inverter_count = vt.as_integer("inverter_count");
-                batt_vars->batt_inverter_efficiency_cutoff = vt.as_double("batt_inverter_efficiency_cutoff");
-
-                if (batt_vars->inverter_model == SharedInverter::SANDIA_INVERTER)
-                {
-                    batt_vars->inverter_efficiency = vt.as_double("inv_snl_eff_cec");
-                    batt_vars->inverter_paco = batt_vars->inverter_count * vt.as_double("inv_snl_paco") * util::watt_to_kilowatt;
-                }
-                else if (batt_vars->inverter_model == SharedInverter::DATASHEET_INVERTER)
-                {
-                    batt_vars->inverter_efficiency = vt.as_double("inv_ds_eff");
-                    batt_vars->inverter_paco = batt_vars->inverter_count * vt.as_double("inv_ds_paco") * util::watt_to_kilowatt;
-
-                }
-                else if (batt_vars->inverter_model == SharedInverter::PARTLOAD_INVERTER)
-                {
-                    batt_vars->inverter_efficiency = vt.as_double("inv_pd_eff");
-                    batt_vars->inverter_paco = batt_vars->inverter_count * vt.as_double("inv_pd_paco") * util::watt_to_kilowatt;
-                }
-                else if (batt_vars->inverter_model == SharedInverter::COEFFICIENT_GENERATOR)
-                {
-                    batt_vars->inverter_efficiency = vt.as_double("inv_cec_cg_eff_cec");
-                    batt_vars->inverter_paco = batt_vars->inverter_count * vt.as_double("inv_cec_cg_paco") * util::watt_to_kilowatt;
-                }
-            }
-            else //use the default "none" inverter model, which is the default behavior of this input
-            {
-                batt_vars->inverter_model = SharedInverter::NONE;
-                batt_vars->inverter_count = 1;
-                batt_vars->inverter_efficiency = batt_vars->batt_ac_dc_efficiency;
-                batt_vars->inverter_paco = batt_vars->batt_kw;
-            }
         }
     }
     else {
@@ -885,89 +595,9 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
         batt_vars = batt_vars_in;
     }
 
-    // Check to see if the outage variables need to be set up
-    analyze_outage = false;
-    if (full_mode && vt.is_assigned("grid_outage")) {
-        batt_vars->grid_outage_steps = vt.as_vector_bool("grid_outage"); // All lines that check for this check for length and default to false, so no exception should be ok here.
-        // If not all false, we need the outage vars
-        analyze_outage = std::any_of(batt_vars->grid_outage_steps.begin(), batt_vars->grid_outage_steps.end(), [](bool x) {return x; });
-
-        // If outage is all zeroes we don't care about the length, make sure if an outage is specified that it matches the weather file
-        if (analyze_outage && batt_vars->grid_outage_steps.size() < step_per_hour * 8760) {
-            throw exec_error("Battery", "Length of grid_outage must equal number of steps in one year of simulation.");
-        }
-    }
-
     // component models
     battery_model = 0;
-    dispatch_model = 0;
-    charge_control = 0;
     battery_metrics = 0;
-
-    // outputs
-    outTotalCharge = 0;
-    outAvailableCharge = 0;
-    outBoundCharge = 0;
-    outMaxChargeAtCurrent = 0;
-    outMaxChargeThermal = 0;
-    outMaxCharge = 0;
-    outSOC = 0;
-    outDOD = 0;
-    outDODCycleAverage = 0;
-    outCurrent = 0;
-    outCellVoltage = 0;
-    outBatteryVoltage = 0;
-    outCapacityPercent = 0;
-    outCycles = 0;
-    outBatteryBankReplacement = 0;
-    outBatteryTemperature = 0;
-    outCapacityThermalPercent = 0;
-    outBatteryPowerAC = 0;
-    outBatteryPowerDC = 0;
-    outGridPower = 0;
-    outSystemToLoad = 0;
-    outBatteryToLoad = 0;
-    outGridToLoad = 0;
-    outFuelCellToLoad = 0;
-    outGridPowerTarget = 0;
-    outSystemToBattAC = 0;
-    outSystemToBattDC = 0;
-    outGridToBatt = 0;
-    outFuelCellToBatt = 0;
-    outSystemToGrid = 0;
-    outBatteryToGrid = 0;
-    outBatteryToSystemLoad = 0;
-    outBatteryToInverterDC = 0;
-    outFuelCellToGrid = 0;
-    outBatteryConversionPowerLoss = 0;
-    outBatterySystemLoss = 0;
-    outInterconnectionLoss = 0;
-    outCritLoad = 0;
-    outCritLoadUnmet = 0;
-    outUnmetLosses = 0;
-    outAverageCycleEfficiency = 0;
-    outSystemChargePercent = 0;
-    outGridChargePercent = 0;
-    outAnnualSystemChargeEnergy = 0;
-    outAnnualGridChargeEnergy = 0;
-    outAnnualChargeEnergy = 0;
-    outAnnualDischargeEnergy = 0;
-    outAnnualGridImportEnergy = 0;
-    outAnnualGridExportEnergy = 0;
-    outCostToCycle = 0;
-    outBenefitCharge = 0;
-    outBenefitGridcharge = 0;
-    outBenefitClipcharge = 0;
-    outBenefitDischarge = 0;
-    outPVS_outpower = 0;
-    outPVS_battpower = 0;
-    outPVS_battsoc = 0;
-    outPVS_curtail = 0;
-    outPVS_violation_list = 0;
-    outPVS_P_pv_ac = 0;
-    outPVS_PV_ramp_interval = 0;
-    outPVS_forecast_pv_energy = 0;
-
 
     en = setup_model;
     if (!en) return;
@@ -977,126 +607,6 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
             throw exec_error("battery", "Battery replacements are enabled with single year simulation. You must enable lifetime simulations (system_use_lifetime_output = 1) to model battery replacements.");
     }
     chem = batt_vars->batt_chem;
-
-
-    /* **********************************************************************
-    Initialize outputs
-    ********************************************************************** */
-
-    if (full_mode) {
-
-        // only allocate if lead-acid
-        if (chem == 0)
-        {
-            outAvailableCharge = vt.allocate("batt_q1", nrec * nyears);
-            outBoundCharge = vt.allocate("batt_q2", nrec * nyears);
-        }
-        outCellVoltage = vt.allocate("batt_voltage_cell", nrec * nyears);
-        outMaxCharge = vt.allocate("batt_qmax", nrec * nyears);
-        outMaxChargeThermal = vt.allocate("batt_qmax_thermal", nrec * nyears);
-        outBatteryTemperature = vt.allocate("batt_temperature", nrec * nyears);
-        outCapacityThermalPercent = vt.allocate("batt_capacity_thermal_percent", nrec * nyears);
-
-        outCurrent = vt.allocate("batt_I", nrec * nyears);
-        outBatteryVoltage = vt.allocate("batt_voltage", nrec * nyears);
-        outTotalCharge = vt.allocate("batt_q0", nrec * nyears);
-        outCycles = vt.allocate("batt_cycles", nrec * nyears);
-        outSOC = vt.allocate("batt_SOC", nrec * nyears);
-        outDOD = vt.allocate("batt_DOD", nrec * nyears);
-        outDODCycleAverage = vt.allocate("batt_DOD_cycle_average", nrec * nyears);
-        outCapacityPercent = vt.allocate("batt_capacity_percent", nrec * nyears);
-        if (batt_vars->batt_life_model == lifetime_params::CALCYC || batt_vars->batt_life_model == lifetime_params::LMOLTO) {
-            outCapacityPercentCycle = vt.allocate("batt_capacity_percent_cycle", nrec * nyears);
-            outCapacityPercentCalendar = vt.allocate("batt_capacity_percent_calendar", nrec * nyears);
-        }
-        outBatteryPowerAC = vt.allocate("batt_power", nrec * nyears);
-        outBatteryPowerDC = vt.allocate("batt_power_dc", nrec * nyears);
-        outGridPower = vt.allocate("grid_power", nrec * nyears); // Net grid energy required.  Positive indicates putting energy on grid.  Negative indicates pulling off grid
-        outGenPower = vt.allocate("pv_batt_gen", nrec * nyears);
-        outGenWithoutBattery = vt.allocate("gen_without_battery", nrec * nyears);
-        outSystemToGrid = vt.allocate("system_to_grid", nrec * nyears);
-        outBatteryToSystemLoad = vt.allocate("batt_to_system_load", nrec * nyears);
-        outBatteryToGrid = vt.allocate("batt_to_grid", nrec * nyears);
-        outBatteryToInverterDC = vt.allocate("batt_to_inverter_dc", nrec * nyears);
-        outAdjustLosses = vt.allocate("batt_availability_loss", nrec * nyears);
-
-        if (batt_vars->batt_meter_position == dispatch_t::BEHIND)
-        {
-            outSystemToLoad = vt.allocate("system_to_load", nrec * nyears);
-            outBatteryToLoad = vt.allocate("batt_to_load", nrec * nyears);
-            outGridToLoad = vt.allocate("grid_to_load", nrec * nyears);
-
-            if (batt_vars->batt_dispatch != dispatch_t::MANUAL)
-            {
-                outGridPowerTarget = vt.allocate("grid_power_target", nrec * nyears);
-                outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
-            }
-            else {
-                outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
-            }
-        }
-        else if (batt_vars->batt_meter_position == dispatch_t::FRONT)
-        {
-            if (batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
-                outPVS_outpower = vt.allocate("batt_pvs_outpower", nrec * nyears);
-                outPVS_battpower = vt.allocate("batt_pvs_battpower", nrec * nyears);
-                outPVS_battsoc = vt.allocate("batt_pvs_battsoc", nrec * nyears);
-                outPVS_curtail = vt.allocate("batt_pvs_curtail", nrec * nyears);
-                outPVS_violation_list = vt.allocate("batt_pvs_violation_list", nrec * nyears);
-                outPVS_P_pv_ac = vt.allocate("batt_pvs_P_pv_ac", nrec * nyears);
-                outPVS_PV_ramp_interval = vt.allocate("batt_pvs_PV_ramp_interval", nrec * nyears);
-                outPVS_forecast_pv_energy = vt.allocate("batt_pvs_forecast_pv_energy", nrec * nyears);
-            }
-            else  if (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL) {
-                outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
-                outBenefitCharge = vt.allocate("batt_revenue_charge", nrec * nyears);
-                outBenefitGridcharge = vt.allocate("batt_revenue_gridcharge", nrec * nyears);
-                outBenefitClipcharge = vt.allocate("batt_revenue_clipcharge", nrec * nyears);
-                outBenefitDischarge = vt.allocate("batt_revenue_discharge", nrec * nyears);
-            }
-            else {
-                outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
-            }
-        }
-        outSystemToBattAC = vt.allocate("system_to_batt", nrec * nyears);
-        outSystemToBattDC = vt.allocate("system_to_batt_dc", nrec * nyears);
-        outGridToBatt = vt.allocate("grid_to_batt", nrec * nyears);
-
-        if (batt_vars->en_fuelcell) {
-            outFuelCellToBatt = vt.allocate("fuelcell_to_batt", nrec * nyears);
-            outFuelCellToGrid = vt.allocate("fuelcell_to_grid", nrec * nyears);
-            outFuelCellToLoad = vt.allocate("fuelcell_to_load", nrec * nyears);
-
-        }
-
-        bool cycleCostRelevant = (batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::RETAIL_RATE) ||
-            (batt_vars->batt_meter_position == dispatch_t::FRONT && (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL && batt_vars->batt_dispatch != dispatch_t::FOM_CUSTOM_DISPATCH));
-        if (cycleCostRelevant && batt_vars->batt_cycle_cost_choice == dispatch_t::MODEL_CYCLE_COST) {
-            outCostToCycle = vt.allocate("batt_cost_to_cycle", nrec * nyears);
-        }
-
-        outBatteryConversionPowerLoss = vt.allocate("batt_conversion_loss", nrec * nyears);
-        outBatterySystemLoss = vt.allocate("batt_system_loss", nrec * nyears);
-        outInterconnectionLoss = vt.allocate("interconnection_loss", nrec * nyears);
-
-        if (analyze_outage) {
-            outCritLoadUnmet = vt.allocate("crit_load_unmet", nrec * nyears);
-            outCritLoad = vt.allocate("crit_load", nrec * nyears);
-            outUnmetLosses = vt.allocate("outage_losses_unmet", nrec * nyears);
-        }
-
-        // annual outputs
-        outBatteryBankReplacement = vt.allocate("batt_bank_replacement", nyears);
-        outAnnualChargeEnergy = vt.allocate("batt_annual_charge_energy", nyears);
-        outAnnualDischargeEnergy = vt.allocate("batt_annual_discharge_energy", nyears);
-        outAnnualGridImportEnergy = vt.allocate("annual_import_to_grid_energy", nyears);
-        outAnnualGridExportEnergy = vt.allocate("annual_export_to_grid_energy", nyears);
-        outAnnualEnergySystemLoss = vt.allocate("batt_annual_energy_system_loss", nyears);
-        outAnnualEnergyLoss = vt.allocate("batt_annual_energy_loss", nyears);
-        outAnnualSystemChargeEnergy = vt.allocate("batt_annual_charge_from_system", nyears);
-        outAnnualGridChargeEnergy = vt.allocate("batt_annual_charge_from_grid", nyears);
-
-    } // end if (full_mode) output allocation
 
     // model initialization
     voltage_t* voltage_model = 0;
@@ -1241,188 +751,6 @@ battstor::battstor(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
     }
 
     battery_metrics = new battery_metrics_t(dt_hr);
-
-    if (!full_mode) return;
-
-    /*! Process the dispatch options and create the appropriate model */
-    if ((batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL) ||
-        (batt_vars->batt_meter_position == dispatch_t::FRONT && batt_vars->batt_dispatch == dispatch_t::FOM_MANUAL))
-    {
-        /*! Generic manual dispatch model inputs */
-        if (batt_vars->batt_can_charge.size() != 6 || batt_vars->batt_can_discharge.size() != 6 || batt_vars->batt_can_gridcharge.size() != 6)
-            throw exec_error("battery", "Invalid battery manual dispatch control vector length, must be length 6.");
-
-        if (batt_vars->batt_discharge_schedule_weekday.nrows() != 12 || batt_vars->batt_discharge_schedule_weekday.ncols() != 24)
-            throw exec_error("battery", "Invalid battery manual dispatch schedule matrix batt_discharge_schedule dimensions, must be 12 x 24.");
-
-        size_t max_period = 6;
-        size_t* discharge_schedule_vec = batt_vars->batt_discharge_schedule_weekday.data();
-        size_t* period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + batt_vars->batt_discharge_schedule_weekday.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
-        if (*period_num > max_period)
-            throw exec_error("battery", "Invalid battery manual dispatch period in weekday schedule. Period numbers must be less than or equal to 6.");
-
-        if (batt_vars->batt_discharge_schedule_weekend.nrows() != 12 || batt_vars->batt_discharge_schedule_weekend.ncols() != 24)
-            throw exec_error("battery", "Invalid weekend battery manual dispatch schedule matrix dimensions, must be 12 x 24.");
-
-        discharge_schedule_vec = batt_vars->batt_discharge_schedule_weekend.data();
-        period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + batt_vars->batt_discharge_schedule_weekend.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
-        if (*period_num > max_period)
-            throw exec_error("battery", "Invalid battery manual dispatch period in weekend schedule. Period numbers must be less than or equal to 6.");
-
-        if (batt_vars->en_fuelcell) {
-            if (batt_vars->batt_can_fuelcellcharge.size() != 6)
-                throw exec_error("fuelcell", "Invalid battery manual dispatch control vector lengths, must be length 6.");
-        }
-
-        if (batt_vars->batt_meter_position == dispatch_t::BEHIND) {
-            if (batt_vars->batt_btm_can_discharge_to_grid.size() != 6) {
-                throw exec_error("Battery", "Invalid battery manual dispatch control vector lenghts, must be length 6.");
-            }
-
-            if (batt_vars->batt_dispatch_batt_system_charge_first && batt_vars->batt_dispatch_charge_only_system_exceeds_load) {
-                throw exec_error("Battery", "Invalid charging priority choices. Only enable dispatch_manual_system_charge_first if batt_dispatch_charge_only_system_exceeds_load is false.");
-            }
-        }
-
-
-        size_t discharge_index = 0;
-        size_t gridcharge_index = 0;
-        for (size_t i = 0; i < batt_vars->batt_can_discharge.size(); i++)
-        {
-            if (batt_vars->batt_can_discharge[i])
-                dm_percent_discharge[i + 1] = batt_vars->batt_discharge_percent[discharge_index++];
-
-            if (batt_vars->batt_can_gridcharge[i])
-                dm_percent_gridcharge[i + 1] = batt_vars->batt_gridcharge_percent[gridcharge_index++];
-        }
-        // Manual Dispatch Model
-        if ((batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL) ||
-            (batt_vars->batt_meter_position == dispatch_t::FRONT && batt_vars->batt_dispatch == dispatch_t::FOM_MANUAL))
-        {
-            dispatch_model = new dispatch_manual_t(battery_model, dt_hr, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
-                batt_vars->batt_current_choice,
-                batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
-                batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
-                batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
-                batt_vars->batt_minimum_modetime,
-                batt_vars->batt_dispatch, batt_vars->batt_meter_position,
-                batt_vars->batt_discharge_schedule_weekday, batt_vars->batt_discharge_schedule_weekend,
-                batt_vars->batt_can_charge, batt_vars->batt_can_discharge, batt_vars->batt_can_gridcharge, batt_vars->batt_can_fuelcellcharge, batt_vars->batt_btm_can_discharge_to_grid,
-                dm_percent_discharge, dm_percent_gridcharge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_curtailcharge, batt_vars->grid_interconnection_limit_kW,
-                batt_vars->start_day_of_year,
-                batt_vars->batt_dispatch_charge_only_system_exceeds_load,
-                batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
-                batt_vars->batt_minimum_outage_SOC,
-                batt_vars->batt_dispatch_batt_system_charge_first);
-        }
-    }
-    /*! Front of meter automated DC-connected dispatch */
-    else if (batt_vars->batt_meter_position == dispatch_t::FRONT)
-    {
-        double eta_discharge = batt_vars->batt_dc_dc_bms_efficiency * 0.01 * batt_vars->inverter_efficiency;
-        double eta_pvcharge = batt_vars->batt_dc_dc_bms_efficiency;
-        double eta_gridcharge = batt_vars->batt_dc_dc_bms_efficiency * 0.01 * batt_vars->inverter_efficiency;
-        if (batt_vars->batt_topology == ChargeController::AC_CONNECTED) {
-            eta_discharge = batt_vars->batt_dc_ac_efficiency;
-            eta_pvcharge = batt_vars->batt_ac_dc_efficiency;
-            eta_gridcharge = batt_vars->batt_ac_dc_efficiency;
-        }
-
-        // Create UtilityRate object only if utility rate is defined
-        if (batt_vars->ec_rate_defined) {
-            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->start_day_of_year, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
-        }
-
-        // PV Smoothing dispatch model
-        if (batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
-            dispatch_model = new dispatch_pvsmoothing_front_of_meter_t(battery_model, dt_hr, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
-                batt_vars->batt_current_choice, batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
-                batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
-                batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
-                batt_vars->batt_minimum_modetime,
-                batt_vars->batt_dispatch, batt_vars->batt_dispatch_wf_forecast, batt_vars->batt_meter_position,
-                nyears, batt_vars->batt_look_ahead_hours, batt_vars->batt_dispatch_update_frequency_hours,
-                batt_vars->batt_dispatch_auto_can_charge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_gridcharge,
-                batt_vars->batt_dispatch_auto_can_fuelcellcharge, batt_vars->batt_dispatch_auto_can_curtailcharge,
-                batt_vars->inverter_paco, batt_vars->batt_cost_per_kwh,
-                batt_vars->batt_cycle_cost_choice, batt_vars->batt_cycle_cost, batt_vars->om_batt_variable_cost_per_kwh,
-                eta_pvcharge, eta_gridcharge, eta_discharge, batt_vars->batt_dispatch_pvs_nameplate_ac,
-                batt_vars->batt_dispatch_pvs_ac_lb, batt_vars->batt_dispatch_pvs_ac_lb_enable, batt_vars->batt_dispatch_pvs_ac_ub,
-                batt_vars->batt_dispatch_pvs_ac_ub_enable, batt_vars->batt_dispatch_pvs_curtail_as_control, batt_vars->batt_dispatch_pvs_curtail_if_violation,
-                batt_vars->batt_dispatch_pvs_forecast_shift_periods, batt_vars->batt_dispatch_pvs_kf, batt_vars->batt_dispatch_pvs_ki, batt_vars->batt_dispatch_pvs_kp,
-                batt_vars->batt_dispatch_pvs_max_ramp, batt_vars->batt_dispatch_pvs_short_forecast_enable,
-                batt_vars->batt_dispatch_pvs_soc_rest, batt_vars->batt_dispatch_pvs_timestep_multiplier, batt_vars->grid_interconnection_limit_kW);
-
-        }
-        else {
-            dispatch_model = new dispatch_automatic_front_of_meter_t(battery_model, dt_hr, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
-                batt_vars->batt_current_choice, batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
-                batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
-                batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
-                batt_vars->batt_minimum_modetime,
-                batt_vars->batt_dispatch, batt_vars->batt_dispatch_wf_forecast, batt_vars->batt_meter_position,
-                nyears, batt_vars->batt_look_ahead_hours, batt_vars->batt_dispatch_update_frequency_hours,
-                batt_vars->batt_dispatch_auto_can_charge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_gridcharge,
-                batt_vars->batt_dispatch_auto_can_fuelcellcharge, batt_vars->batt_dispatch_auto_can_curtailcharge,
-                batt_vars->inverter_paco, batt_vars->batt_cost_per_kwh,
-                batt_vars->batt_cycle_cost_choice, batt_vars->batt_cycle_cost, batt_vars->om_batt_variable_cost_per_kwh,
-                batt_vars->forecast_price_series_dollar_per_kwh, utilityRate,
-                eta_pvcharge, eta_gridcharge, eta_discharge,  batt_vars->grid_interconnection_limit_kW,
-                batt_vars->forecast_cleared_capacities_kw, batt_vars->capacity_forecast_type, batt_vars->cleared_capacity_percent);
-
-            if (batt_vars->batt_dispatch == dispatch_t::FOM_CUSTOM_DISPATCH)
-            {
-                if (dispatch_automatic_front_of_meter_t* dispatch_fom = dynamic_cast<dispatch_automatic_front_of_meter_t*>(dispatch_model))
-                {
-                    if (batt_vars->batt_custom_dispatch.size() != 8760 * step_per_hour) {
-                        throw exec_error("battery", util::format("Battery custom dispatch time step (%d minutes) does not match simulation time step (%d minutes). Length of batt_custom_dispatch (%d) must be steps_per_hour (%lg) * 8760.", batt_vars->batt_custom_dispatch.size()/8760*60, (int)(60/step_per_hour), batt_vars->batt_custom_dispatch.size(), (double)step_per_hour));
-                    }
-                    dispatch_fom->set_custom_dispatch(batt_vars->batt_custom_dispatch);
-                }
-            }
-        }
-    }
-    /*! Behind-the-meter automated dispatch for peak shaving */
-    else
-    {
-         if (batt_vars->ec_rate_defined) {
-            util_rate_data = new rate_data();
-            rate_setup::setup(&vt, (int)step_per_year, batt_vars->analysis_period, *util_rate_data, "cmod_battery");
-         }
-         else if (batt_vars->batt_dispatch == dispatch_t::RETAIL_RATE) {
-             throw exec_error("Battery", "Cannot select retail rate dispatch without providing utility rate data.");
-         }
-        dispatch_model = new dispatch_automatic_behind_the_meter_t(battery_model, dt_hr, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
-            batt_vars->batt_current_choice, batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
-            batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
-            batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
-            batt_vars->batt_minimum_modetime,
-            batt_vars->batt_dispatch, batt_vars->batt_dispatch_wf_forecast, batt_vars->batt_meter_position, nyears,
-            batt_vars->batt_look_ahead_hours, batt_vars->batt_dispatch_update_frequency_hours,
-            batt_vars->batt_dispatch_auto_can_charge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_gridcharge,
-            batt_vars->batt_dispatch_auto_can_fuelcellcharge, batt_vars->batt_dispatch_auto_can_curtailcharge,
-            util_rate_data, batt_vars->batt_cost_per_kwh, batt_vars->batt_cycle_cost_choice, batt_vars->batt_cycle_cost, batt_vars->om_batt_variable_cost_per_kwh, batt_vars->grid_interconnection_limit_kW,
-            batt_vars->batt_dispatch_charge_only_system_exceeds_load, batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
-            batt_vars->batt_dispatch_auto_btm_can_discharge_to_grid, batt_vars->batt_minimum_outage_SOC, batt_vars->batt_dispatch_load_forecast
-        );
-        if (batt_vars->batt_dispatch == dispatch_t::CUSTOM_DISPATCH)
-        {
-            if (dispatch_automatic_behind_the_meter_t* dispatch_btm = dynamic_cast<dispatch_automatic_behind_the_meter_t*>(dispatch_model))
-            {
-                if (batt_vars->batt_custom_dispatch.size() != 8760 * step_per_hour) {
-                    throw exec_error("battery", util::format("Input battery power targets time step (%d minutes) does not match simulation time step (%d minutes). Length of batt_custom_dispatch (%d) must be steps_per_hour (%lg) * 8760.", batt_vars->batt_custom_dispatch.size() / 8760 * 60, (int)(60 / step_per_hour), batt_vars->batt_custom_dispatch.size(), (double)step_per_hour));
-                }
-                dispatch_btm->set_custom_dispatch(batt_vars->batt_custom_dispatch);
-            }
-        }
-    }
-
-    if (batt_vars->batt_topology == ChargeController::AC_CONNECTED) {
-        charge_control = new ACBatteryController(dispatch_model, battery_metrics, batt_vars->batt_ac_dc_efficiency, batt_vars->batt_dc_ac_efficiency);
-    }
-    else if (batt_vars->batt_topology == ChargeController::DC_CONNECTED) {
-        charge_control = new DCBatteryController(dispatch_model, battery_metrics, batt_vars->batt_dc_dc_bms_efficiency, batt_vars->batt_inverter_efficiency_cutoff);
-    }
 }
 
 void battstor_heuristic_dispatch::parse_configuration()
@@ -1653,19 +981,11 @@ battstor::~battstor()
 {
     delete battery_model;
     delete battery_metrics;
-    delete dispatch_model;
-    delete charge_control;
-    if (util_rate_data != NULL) {
-        delete util_rate_data;
-    }
-    if (utilityRate != NULL) {
-        delete utilityRate;
-    }
 }
 
 battstor::battstor(const battstor& orig) {
-// copy values
-step_per_hour = orig.step_per_hour;
+    // copy values
+    step_per_hour = orig.step_per_hour;
     step_per_year = orig.step_per_year;
     nyears = orig.nyears;
     total_steps = orig.total_steps;
@@ -1678,20 +998,631 @@ step_per_hour = orig.step_per_hour;
     year_index = orig.year_index;
     en = orig.en;
     chem = orig.chem;
+    make_vars = orig.make_vars;
 
+    if (orig.batt_vars) batt_vars = orig.batt_vars;
+
+    battery_metrics = orig.battery_metrics ? new battery_metrics_t(orig._dt_hour) : nullptr;
+    battery_model = orig.battery_model ? new battery_t(*orig.battery_model) : nullptr;
+}
+
+// -----------------------------------------------------------------------------
+// battstor_heuristic_dispatch
+// -----------------------------------------------------------------------------
+
+// Parse dispatch, inverter, forecast, curtailment, and outage inputs from the
+// var_table. Called from the derived ctor after the base kernel has been built.
+static void heuristic_parse_batt_vars(var_table& vt, batt_variables& v,
+                                      size_t nrec, size_t nyears, size_t step_per_hour, size_t step_per_year, double dt_hour,
+                                      bool has_fuelcell, ssc_number_t*& outMarketPrice, bool& make_vars)
+{
+    if (!make_vars) return; // batt_vars supplied by caller; nothing to parse.
+    if (!v.en_batt) return;
+
+    // Fuel cell manual charge schedule
+    if (has_fuelcell) {
+        v.en_fuelcell = true;
+        v.batt_can_fuelcellcharge = vt.as_vector_bool("dispatch_manual_fuelcellcharge");
+    }
+
+    // Storage dispatch controllers
+    v.batt_dispatch = vt.as_integer("batt_dispatch_choice");
+    v.batt_dispatch_wf_forecast = vt.as_integer("batt_dispatch_wf_forecast_choice");
+    v.batt_dispatch_load_forecast = vt.as_integer("batt_dispatch_load_forecast_choice");
+    v.batt_meter_position = vt.as_integer("batt_meter_position");
+
+    // Interconnection and curtailment
+    std::vector<double> scaleFactors(v.analysis_period, 1.0);
+    std::vector<double> curtailment_year_one;
+    if (vt.is_assigned("grid_curtailment")) {
+        curtailment_year_one = vt.as_vector_double("grid_curtailment");
+        double interpolation_factor = 1.0;
+        single_year_to_lifetime_interpolated<double>(
+            v.system_use_lifetime_output,
+            (size_t)v.analysis_period,
+            nyears * 8760 * step_per_hour,
+            curtailment_year_one,
+            scaleFactors,
+            interpolation_factor,
+            v.gridCurtailmentLifetime_MW,
+            step_per_year,
+            dt_hour);
+    }
+
+    if (vt.is_assigned("enable_interconnection_limit")) {
+        v.enable_interconnection_limit = vt.as_boolean("enable_interconnection_limit");
+        if (v.enable_interconnection_limit && vt.is_assigned("grid_interconnection_limit_kwac")) {
+            v.grid_interconnection_limit_kW = vt.as_double("grid_interconnection_limit_kwac");
+        }
+        else {
+            v.enable_interconnection_limit = false;
+        }
+    }
+    else {
+        v.enable_interconnection_limit = false;
+    }
+
+    if (!v.enable_interconnection_limit) {
+        v.grid_interconnection_limit_kW = 1e+38;
+    }
+
+    size_t i = 0;
+
+    // Front of meter
+    if (v.batt_meter_position == dispatch_t::FRONT)
+    {
+        if (v.batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
+            v.batt_dispatch_pvs_nameplate_ac = vt.as_double("batt_dispatch_pvs_nameplate_ac");
+            v.batt_dispatch_pvs_ac_lb_enable = vt.as_boolean("batt_dispatch_pvs_ac_lb_enable");
+            v.batt_dispatch_pvs_ac_lb = vt.as_double("batt_dispatch_pvs_ac_lb");
+            v.batt_dispatch_pvs_ac_ub_enable = vt.as_boolean("batt_dispatch_pvs_ac_ub_enable");
+            v.batt_dispatch_pvs_ac_ub = vt.as_double("batt_dispatch_pvs_ac_ub");
+            v.batt_dispatch_pvs_curtail_as_control = vt.as_boolean("batt_dispatch_pvs_curtail_as_control");
+            v.batt_dispatch_pvs_curtail_if_violation = vt.as_boolean("batt_dispatch_pvs_curtail_if_violation");
+            v.batt_dispatch_pvs_short_forecast_enable = vt.as_boolean("batt_dispatch_pvs_short_forecast_enable");
+            v.batt_dispatch_pvs_forecast_shift_periods = vt.as_double("batt_dispatch_pvs_forecast_shift_periods");
+            v.batt_dispatch_pvs_timestep_multiplier = vt.as_double("batt_dispatch_pvs_timestep_multiplier");
+            v.batt_dispatch_pvs_max_ramp = vt.as_double("batt_dispatch_pvs_max_ramp") / 100.0;
+            v.batt_dispatch_pvs_soc_rest = vt.as_double("batt_dispatch_pvs_soc_rest") / 100.0;
+            v.batt_dispatch_pvs_kp = vt.as_double("batt_dispatch_pvs_kp");
+            v.batt_dispatch_pvs_ki = vt.as_double("batt_dispatch_pvs_ki");
+            v.batt_dispatch_pvs_kf = vt.as_double("batt_dispatch_pvs_kf");
+        }
+        else {
+            forecast_price_signal fps(&vt);
+            bool success = fps.setup(step_per_hour);
+            if (!success) {
+                throw exec_error("battery", fps.error());
+            }
+            v.forecast_price_series_dollar_per_kwh = fps.forecast_price();
+            v.forecast_cleared_capacities_kw = fps.cleared_capacity();
+            v.capacity_forecast_type = fps.forecast_type;
+            v.cleared_capacity_percent = fps.cleared_capacity_percent;
+            outMarketPrice = vt.allocate("market_sell_rate_series_yr1", v.forecast_price_series_dollar_per_kwh.size());
+            for (i = 0; i < v.forecast_price_series_dollar_per_kwh.size(); i++) {
+                outMarketPrice[i] = (ssc_number_t)(v.forecast_price_series_dollar_per_kwh[i] * 1000.0);
+            }
+
+            v.ec_rate_defined = false;
+            if (vt.is_assigned("en_electricity_rates")) {
+                if (vt.as_integer("en_electricity_rates"))
+                {
+                    v.ec_use_realtime = vt.as_boolean("ur_en_ts_sell_rate");
+                    if (!v.ec_use_realtime) {
+                        v.ec_weekday_schedule = vt.as_matrix_unsigned_long("ur_ec_sched_weekday");
+                        v.ec_weekend_schedule = vt.as_matrix_unsigned_long("ur_ec_sched_weekend");
+                        v.ec_tou_matrix = vt.as_matrix("ur_ec_tou_mat");
+                    }
+                    else {
+                        v.ec_realtime_buy = vt.as_vector_double("ur_ts_buy_rate");
+                    }
+                    v.ec_rate_defined = true;
+                }
+                else {
+                    v.ec_use_realtime = true;
+                    v.ec_realtime_buy = v.forecast_price_series_dollar_per_kwh;
+                }
+            }
+
+            if (v.batt_dispatch == dispatch_t::FOM_AUTOMATED_ECONOMIC)
+            {
+                v.batt_look_ahead_hours = vt.as_unsigned_long("batt_look_ahead_hours");
+                v.batt_dispatch_update_frequency_hours = vt.as_double("batt_dispatch_update_frequency_hours");
+            }
+            else if (v.batt_dispatch == dispatch_t::FOM_CUSTOM_DISPATCH)
+            {
+                v.batt_custom_dispatch = vt.as_vector_double("batt_custom_dispatch");
+            }
+        }
+    }
+    else
+    {
+        v.ec_rate_defined = false;
+        if (vt.is_assigned("ur_ec_tou_mat")) {
+            v.ec_rate_defined = true;
+        }
+
+        if (v.batt_dispatch == dispatch_t::MAINTAIN_TARGET)
+        {
+            v.batt_target_choice = vt.as_integer("batt_target_choice");
+            v.target_power_monthly = vt.as_vector_double("batt_target_power_monthly");
+            v.target_power = vt.as_vector_double("batt_target_power");
+        }
+        else if (v.batt_dispatch == dispatch_t::CUSTOM_DISPATCH)
+        {
+            v.batt_custom_dispatch = vt.as_vector_double("batt_custom_dispatch");
+        }
+    }
+
+    // Manual dispatch
+    if ((v.batt_meter_position == dispatch_t::FRONT && v.batt_dispatch == dispatch_t::FOM_MANUAL) ||
+        (v.batt_meter_position == dispatch_t::BEHIND && v.batt_dispatch == dispatch_t::MANUAL))
+    {
+        v.batt_can_charge = vt.as_vector_bool("dispatch_manual_charge");
+        v.batt_can_discharge = vt.as_vector_bool("dispatch_manual_discharge");
+        v.batt_can_gridcharge = vt.as_vector_bool("dispatch_manual_gridcharge");
+        v.batt_discharge_percent = vt.as_vector_double("dispatch_manual_percent_discharge");
+        v.batt_gridcharge_percent = vt.as_vector_double("dispatch_manual_percent_gridcharge");
+        v.batt_discharge_schedule_weekday = vt.as_matrix_unsigned_long("dispatch_manual_sched");
+        v.batt_discharge_schedule_weekend = vt.as_matrix_unsigned_long("dispatch_manual_sched_weekend");
+
+        if (v.batt_meter_position == dispatch_t::BEHIND) {
+            v.batt_btm_can_discharge_to_grid = vt.as_vector_bool("dispatch_manual_btm_discharge_to_grid");
+        }
+    }
+
+    v.start_day_of_year = vt.as_number("start_day_of_year");
+
+    v.batt_dispatch_auto_can_charge = true;
+    v.batt_dispatch_auto_can_clipcharge = false;
+    v.batt_dispatch_auto_can_curtailcharge = false;
+    v.batt_dispatch_auto_can_gridcharge = false;
+    v.batt_dispatch_auto_can_fuelcellcharge = true;
+    v.batt_dispatch_auto_btm_can_discharge_to_grid = false;
+
+    if (vt.is_assigned("batt_dispatch_auto_can_gridcharge"))
+        v.batt_dispatch_auto_can_gridcharge = vt.as_boolean("batt_dispatch_auto_can_gridcharge");
+    if (vt.is_assigned("batt_dispatch_auto_can_charge"))
+        v.batt_dispatch_auto_can_charge = vt.as_boolean("batt_dispatch_auto_can_charge");
+    if (vt.is_assigned("batt_dispatch_auto_can_clipcharge"))
+        v.batt_dispatch_auto_can_clipcharge = vt.as_boolean("batt_dispatch_auto_can_clipcharge");
+    if (vt.is_assigned("batt_dispatch_auto_can_curtailcharge"))
+        v.batt_dispatch_auto_can_curtailcharge = vt.as_boolean("batt_dispatch_auto_can_curtailcharge");
+    if (vt.is_assigned("batt_dispatch_auto_can_fuelcellcharge"))
+        v.batt_dispatch_auto_can_fuelcellcharge = vt.as_boolean("batt_dispatch_auto_can_fuelcellcharge");
+    if (vt.is_assigned("batt_dispatch_auto_btm_can_discharge_to_grid"))
+        v.batt_dispatch_auto_btm_can_discharge_to_grid = vt.as_boolean("batt_dispatch_auto_btm_can_discharge_to_grid");
+
+    v.batt_dispatch_charge_only_system_exceeds_load = true;
+    v.batt_dispatch_discharge_only_load_exceeds_system = true;
+    v.batt_dispatch_batt_system_charge_first = false;
+
+    if (vt.is_assigned("batt_dispatch_charge_only_system_exceeds_load"))
+        v.batt_dispatch_charge_only_system_exceeds_load = vt.as_boolean("batt_dispatch_charge_only_system_exceeds_load");
+    if (vt.is_assigned("batt_dispatch_discharge_only_load_exceeds_system"))
+        v.batt_dispatch_discharge_only_load_exceeds_system = vt.as_boolean("batt_dispatch_discharge_only_load_exceeds_system");
+    if (vt.is_assigned("dispatch_manual_system_charge_first"))
+        v.batt_dispatch_batt_system_charge_first = vt.as_boolean("dispatch_manual_system_charge_first");
+
+    // Inverter settings
+    v.inverter_model = vt.as_integer("inverter_model");
+    if (v.inverter_model < 4)
+    {
+        v.inverter_count = vt.as_integer("inverter_count");
+        v.batt_inverter_efficiency_cutoff = vt.as_double("batt_inverter_efficiency_cutoff");
+
+        if (v.inverter_model == SharedInverter::SANDIA_INVERTER) {
+            v.inverter_efficiency = vt.as_double("inv_snl_eff_cec");
+            v.inverter_paco = v.inverter_count * vt.as_double("inv_snl_paco") * util::watt_to_kilowatt;
+        }
+        else if (v.inverter_model == SharedInverter::DATASHEET_INVERTER) {
+            v.inverter_efficiency = vt.as_double("inv_ds_eff");
+            v.inverter_paco = v.inverter_count * vt.as_double("inv_ds_paco") * util::watt_to_kilowatt;
+        }
+        else if (v.inverter_model == SharedInverter::PARTLOAD_INVERTER) {
+            v.inverter_efficiency = vt.as_double("inv_pd_eff");
+            v.inverter_paco = v.inverter_count * vt.as_double("inv_pd_paco") * util::watt_to_kilowatt;
+        }
+        else if (v.inverter_model == SharedInverter::COEFFICIENT_GENERATOR) {
+            v.inverter_efficiency = vt.as_double("inv_cec_cg_eff_cec");
+            v.inverter_paco = v.inverter_count * vt.as_double("inv_cec_cg_paco") * util::watt_to_kilowatt;
+        }
+    }
+    else
+    {
+        v.inverter_model = SharedInverter::NONE;
+        v.inverter_count = 1;
+        v.inverter_efficiency = v.batt_ac_dc_efficiency;
+        v.inverter_paco = v.batt_kw;
+    }
+}
+
+battstor_heuristic_dispatch::battstor_heuristic_dispatch(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
+                                                         const std::shared_ptr<batt_variables>& batt_vars_in)
+    : battstor(vt, setup_model, nrec, dt_hr, batt_vars_in)
+{
+    // Fuel cell power input (used by dispatch)
+    bool has_fuelcell = false;
+    if (auto vd = vt.lookup("fuelcell_power")) {
+        fuelcellPower = vd->arr_vector();
+        has_fuelcell = true;
+    }
+
+    // Parse dispatch / powerflow / inverter / forecast inputs
+    heuristic_parse_batt_vars(vt, *batt_vars, nrec, nyears, step_per_hour, step_per_year, _dt_hour,
+                              has_fuelcell, outMarketPrice, make_vars);
+
+    // Outage variables
+    analyze_outage = false;
+    if (vt.is_assigned("grid_outage")) {
+        batt_vars->grid_outage_steps = vt.as_vector_bool("grid_outage");
+        analyze_outage = std::any_of(batt_vars->grid_outage_steps.begin(), batt_vars->grid_outage_steps.end(), [](bool x) {return x; });
+        if (analyze_outage && batt_vars->grid_outage_steps.size() < step_per_hour * 8760) {
+            throw exec_error("Battery", "Length of grid_outage must equal number of steps in one year of simulation.");
+        }
+    }
+
+    if (!en) return;
+
+    /* ******************************************************************
+       Allocate outputs into the var_table
+       ****************************************************************** */
+    if (chem == 0)
+    {
+        outAvailableCharge = vt.allocate("batt_q1", nrec * nyears);
+        outBoundCharge = vt.allocate("batt_q2", nrec * nyears);
+    }
+    outCellVoltage = vt.allocate("batt_voltage_cell", nrec * nyears);
+    outMaxCharge = vt.allocate("batt_qmax", nrec * nyears);
+    outMaxChargeThermal = vt.allocate("batt_qmax_thermal", nrec * nyears);
+    outBatteryTemperature = vt.allocate("batt_temperature", nrec * nyears);
+    outCapacityThermalPercent = vt.allocate("batt_capacity_thermal_percent", nrec * nyears);
+
+    outCurrent = vt.allocate("batt_I", nrec * nyears);
+    outBatteryVoltage = vt.allocate("batt_voltage", nrec * nyears);
+    outTotalCharge = vt.allocate("batt_q0", nrec * nyears);
+    outCycles = vt.allocate("batt_cycles", nrec * nyears);
+    outSOC = vt.allocate("batt_SOC", nrec * nyears);
+    outDOD = vt.allocate("batt_DOD", nrec * nyears);
+    outDODCycleAverage = vt.allocate("batt_DOD_cycle_average", nrec * nyears);
+    outCapacityPercent = vt.allocate("batt_capacity_percent", nrec * nyears);
+    if (batt_vars->batt_life_model == lifetime_params::CALCYC || batt_vars->batt_life_model == lifetime_params::LMOLTO) {
+        outCapacityPercentCycle = vt.allocate("batt_capacity_percent_cycle", nrec * nyears);
+        outCapacityPercentCalendar = vt.allocate("batt_capacity_percent_calendar", nrec * nyears);
+    }
+    outBatteryPowerAC = vt.allocate("batt_power", nrec * nyears);
+    outBatteryPowerDC = vt.allocate("batt_power_dc", nrec * nyears);
+    outGridPower = vt.allocate("grid_power", nrec * nyears);
+    outGenPower = vt.allocate("pv_batt_gen", nrec * nyears);
+    outGenWithoutBattery = vt.allocate("gen_without_battery", nrec * nyears);
+    outSystemToGrid = vt.allocate("system_to_grid", nrec * nyears);
+    outBatteryToSystemLoad = vt.allocate("batt_to_system_load", nrec * nyears);
+    outBatteryToGrid = vt.allocate("batt_to_grid", nrec * nyears);
+    outBatteryToInverterDC = vt.allocate("batt_to_inverter_dc", nrec * nyears);
+    outAdjustLosses = vt.allocate("batt_availability_loss", nrec * nyears);
+
+    if (batt_vars->batt_meter_position == dispatch_t::BEHIND)
+    {
+        outSystemToLoad = vt.allocate("system_to_load", nrec * nyears);
+        outBatteryToLoad = vt.allocate("batt_to_load", nrec * nyears);
+        outGridToLoad = vt.allocate("grid_to_load", nrec * nyears);
+
+        if (batt_vars->batt_dispatch != dispatch_t::MANUAL) {
+            outGridPowerTarget = vt.allocate("grid_power_target", nrec * nyears);
+            outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
+        }
+        else {
+            outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
+        }
+    }
+    else if (batt_vars->batt_meter_position == dispatch_t::FRONT)
+    {
+        if (batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
+            outPVS_outpower = vt.allocate("batt_pvs_outpower", nrec * nyears);
+            outPVS_battpower = vt.allocate("batt_pvs_battpower", nrec * nyears);
+            outPVS_battsoc = vt.allocate("batt_pvs_battsoc", nrec * nyears);
+            outPVS_curtail = vt.allocate("batt_pvs_curtail", nrec * nyears);
+            outPVS_violation_list = vt.allocate("batt_pvs_violation_list", nrec * nyears);
+            outPVS_P_pv_ac = vt.allocate("batt_pvs_P_pv_ac", nrec * nyears);
+            outPVS_PV_ramp_interval = vt.allocate("batt_pvs_PV_ramp_interval", nrec * nyears);
+            outPVS_forecast_pv_energy = vt.allocate("batt_pvs_forecast_pv_energy", nrec * nyears);
+        }
+        else if (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL) {
+            outBattPowerTarget = vt.allocate("batt_power_target", nrec * nyears);
+            outBenefitCharge = vt.allocate("batt_revenue_charge", nrec * nyears);
+            outBenefitGridcharge = vt.allocate("batt_revenue_gridcharge", nrec * nyears);
+            outBenefitClipcharge = vt.allocate("batt_revenue_clipcharge", nrec * nyears);
+            outBenefitDischarge = vt.allocate("batt_revenue_discharge", nrec * nyears);
+        }
+        else {
+            outDispatchPeriod = vt.allocate("batt_dispatch_period", nrec * nyears);
+        }
+    }
+    outSystemToBattAC = vt.allocate("system_to_batt", nrec * nyears);
+    outSystemToBattDC = vt.allocate("system_to_batt_dc", nrec * nyears);
+    outGridToBatt = vt.allocate("grid_to_batt", nrec * nyears);
+
+    if (batt_vars->en_fuelcell) {
+        outFuelCellToBatt = vt.allocate("fuelcell_to_batt", nrec * nyears);
+        outFuelCellToGrid = vt.allocate("fuelcell_to_grid", nrec * nyears);
+        outFuelCellToLoad = vt.allocate("fuelcell_to_load", nrec * nyears);
+    }
+
+    bool cycleCostRelevant = (batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::RETAIL_RATE) ||
+        (batt_vars->batt_meter_position == dispatch_t::FRONT && (batt_vars->batt_dispatch != dispatch_t::FOM_MANUAL && batt_vars->batt_dispatch != dispatch_t::FOM_CUSTOM_DISPATCH));
+    if (cycleCostRelevant && batt_vars->batt_cycle_cost_choice == dispatch_t::MODEL_CYCLE_COST) {
+        outCostToCycle = vt.allocate("batt_cost_to_cycle", nrec * nyears);
+    }
+
+    outBatteryConversionPowerLoss = vt.allocate("batt_conversion_loss", nrec * nyears);
+    outBatterySystemLoss = vt.allocate("batt_system_loss", nrec * nyears);
+    outInterconnectionLoss = vt.allocate("interconnection_loss", nrec * nyears);
+
+    if (analyze_outage) {
+        outCritLoadUnmet = vt.allocate("crit_load_unmet", nrec * nyears);
+        outCritLoad = vt.allocate("crit_load", nrec * nyears);
+        outUnmetLosses = vt.allocate("outage_losses_unmet", nrec * nyears);
+    }
+
+    outBatteryBankReplacement = vt.allocate("batt_bank_replacement", nyears);
+    outAnnualChargeEnergy = vt.allocate("batt_annual_charge_energy", nyears);
+    outAnnualDischargeEnergy = vt.allocate("batt_annual_discharge_energy", nyears);
+    outAnnualGridImportEnergy = vt.allocate("annual_import_to_grid_energy", nyears);
+    outAnnualGridExportEnergy = vt.allocate("annual_export_to_grid_energy", nyears);
+    outAnnualEnergySystemLoss = vt.allocate("batt_annual_energy_system_loss", nyears);
+    outAnnualEnergyLoss = vt.allocate("batt_annual_energy_loss", nyears);
+    outAnnualSystemChargeEnergy = vt.allocate("batt_annual_charge_from_system", nyears);
+    outAnnualGridChargeEnergy = vt.allocate("batt_annual_charge_from_grid", nyears);
+
+    /* ******************************************************************
+       Handle self-consumption / target power extension
+       ****************************************************************** */
+    if (batt_vars->batt_meter_position == dispatch_t::BEHIND && make_vars)
+    {
+        if (batt_vars->batt_dispatch == dispatch_t::MAINTAIN_TARGET)
+        {
+            if (batt_vars->batt_target_choice == dispatch_automatic_behind_the_meter_t::TARGET_SINGLE_MONTHLY)
+            {
+                target_power_monthly = batt_vars->target_power_monthly;
+                if (target_power_monthly.size() != 12) {
+                    throw exec_error("battery", "batt_target_power_monthly must have 12 entries if batt_target_choice is target_single_monthly (0).");
+                }
+                target_power.clear();
+                target_power.reserve(8760 * step_per_hour);
+                for (size_t month = 0; month != 12; month++) {
+                    double target = target_power_monthly[month];
+                    for (size_t h = 0; h != util::hours_in_month(month + 1); h++) {
+                        for (size_t s = 0; s != step_per_hour; s++)
+                            target_power.push_back(target);
+                    }
+                }
+            }
+            else {
+                target_power = batt_vars->target_power;
+            }
+
+            if (target_power.size() != nrec)
+                throw exec_error("battery", "Length of target_power must equal number of records in weather file.");
+
+            for (size_t y = 1; y < nyears; y++) {
+                for (size_t ii = 0; ii < nrec; ii++)
+                    target_power.push_back(target_power[ii]);
+            }
+            batt_vars->target_power = target_power;
+        }
+        else if (batt_vars->batt_dispatch == dispatch_t::SELF_CONSUMPTION)
+        {
+            target_power = std::vector<double>(nyears * nrec, 0.0);
+        }
+    }
+
+    /* ******************************************************************
+       Build dispatch model + charge_control
+       ****************************************************************** */
+    if ((batt_vars->batt_meter_position == dispatch_t::BEHIND && batt_vars->batt_dispatch == dispatch_t::MANUAL) ||
+        (batt_vars->batt_meter_position == dispatch_t::FRONT && batt_vars->batt_dispatch == dispatch_t::FOM_MANUAL))
+    {
+        if (batt_vars->batt_can_charge.size() != 6 || batt_vars->batt_can_discharge.size() != 6 || batt_vars->batt_can_gridcharge.size() != 6)
+            throw exec_error("battery", "Invalid battery manual dispatch control vector length, must be length 6.");
+
+        if (batt_vars->batt_discharge_schedule_weekday.nrows() != 12 || batt_vars->batt_discharge_schedule_weekday.ncols() != 24)
+            throw exec_error("battery", "Invalid battery manual dispatch schedule matrix batt_discharge_schedule dimensions, must be 12 x 24.");
+
+        size_t max_period = 6;
+        size_t* discharge_schedule_vec = batt_vars->batt_discharge_schedule_weekday.data();
+        size_t* period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + batt_vars->batt_discharge_schedule_weekday.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
+        if (*period_num > max_period)
+            throw exec_error("battery", "Invalid battery manual dispatch period in weekday schedule. Period numbers must be less than or equal to 6.");
+
+        if (batt_vars->batt_discharge_schedule_weekend.nrows() != 12 || batt_vars->batt_discharge_schedule_weekend.ncols() != 24)
+            throw exec_error("battery", "Invalid weekend battery manual dispatch schedule matrix dimensions, must be 12 x 24.");
+
+        discharge_schedule_vec = batt_vars->batt_discharge_schedule_weekend.data();
+        period_num = std::find_if(discharge_schedule_vec, discharge_schedule_vec + batt_vars->batt_discharge_schedule_weekend.ncells() - 1, [max_period](size_t element) { return (max_period < element); });
+        if (*period_num > max_period)
+            throw exec_error("battery", "Invalid battery manual dispatch period in weekend schedule. Period numbers must be less than or equal to 6.");
+
+        if (batt_vars->en_fuelcell) {
+            if (batt_vars->batt_can_fuelcellcharge.size() != 6)
+                throw exec_error("fuelcell", "Invalid battery manual dispatch control vector lengths, must be length 6.");
+        }
+
+        if (batt_vars->batt_meter_position == dispatch_t::BEHIND) {
+            if (batt_vars->batt_btm_can_discharge_to_grid.size() != 6) {
+                throw exec_error("Battery", "Invalid battery manual dispatch control vector lenghts, must be length 6.");
+            }
+            if (batt_vars->batt_dispatch_batt_system_charge_first && batt_vars->batt_dispatch_charge_only_system_exceeds_load) {
+                throw exec_error("Battery", "Invalid charging priority choices. Only enable dispatch_manual_system_charge_first if batt_dispatch_charge_only_system_exceeds_load is false.");
+            }
+        }
+
+        size_t discharge_index = 0;
+        size_t gridcharge_index = 0;
+        for (size_t i = 0; i < batt_vars->batt_can_discharge.size(); i++)
+        {
+            if (batt_vars->batt_can_discharge[i])
+                dm_percent_discharge[i + 1] = batt_vars->batt_discharge_percent[discharge_index++];
+            if (batt_vars->batt_can_gridcharge[i])
+                dm_percent_gridcharge[i + 1] = batt_vars->batt_gridcharge_percent[gridcharge_index++];
+        }
+
+        dispatch_model = new dispatch_manual_t(battery_model, _dt_hour, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
+            batt_vars->batt_current_choice,
+            batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
+            batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
+            batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
+            batt_vars->batt_minimum_modetime,
+            batt_vars->batt_dispatch, batt_vars->batt_meter_position,
+            batt_vars->batt_discharge_schedule_weekday, batt_vars->batt_discharge_schedule_weekend,
+            batt_vars->batt_can_charge, batt_vars->batt_can_discharge, batt_vars->batt_can_gridcharge, batt_vars->batt_can_fuelcellcharge, batt_vars->batt_btm_can_discharge_to_grid,
+            dm_percent_discharge, dm_percent_gridcharge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_curtailcharge, batt_vars->grid_interconnection_limit_kW,
+            batt_vars->start_day_of_year,
+            batt_vars->batt_dispatch_charge_only_system_exceeds_load,
+            batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
+            batt_vars->batt_minimum_outage_SOC,
+            batt_vars->batt_dispatch_batt_system_charge_first);
+    }
+    else if (batt_vars->batt_meter_position == dispatch_t::FRONT)
+    {
+        double eta_discharge = batt_vars->batt_dc_dc_bms_efficiency * 0.01 * batt_vars->inverter_efficiency;
+        double eta_pvcharge = batt_vars->batt_dc_dc_bms_efficiency;
+        double eta_gridcharge = batt_vars->batt_dc_dc_bms_efficiency * 0.01 * batt_vars->inverter_efficiency;
+        if (batt_vars->batt_topology == ChargeController::AC_CONNECTED) {
+            eta_discharge = batt_vars->batt_dc_ac_efficiency;
+            eta_pvcharge = batt_vars->batt_ac_dc_efficiency;
+            eta_gridcharge = batt_vars->batt_ac_dc_efficiency;
+        }
+
+        if (batt_vars->ec_rate_defined) {
+            utilityRate = new UtilityRate(batt_vars->ec_use_realtime, batt_vars->start_day_of_year, batt_vars->ec_weekday_schedule, batt_vars->ec_weekend_schedule, batt_vars->ec_tou_matrix, batt_vars->ec_realtime_buy);
+        }
+
+        if (batt_vars->batt_dispatch == dispatch_t::FOM_PV_SMOOTHING) {
+            dispatch_model = new dispatch_pvsmoothing_front_of_meter_t(battery_model, _dt_hour, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
+                batt_vars->batt_current_choice, batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
+                batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
+                batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
+                batt_vars->batt_minimum_modetime,
+                batt_vars->batt_dispatch, batt_vars->batt_dispatch_wf_forecast, batt_vars->batt_meter_position,
+                nyears, batt_vars->batt_look_ahead_hours, batt_vars->batt_dispatch_update_frequency_hours,
+                batt_vars->batt_dispatch_auto_can_charge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_gridcharge,
+                batt_vars->batt_dispatch_auto_can_fuelcellcharge, batt_vars->batt_dispatch_auto_can_curtailcharge,
+                batt_vars->inverter_paco, batt_vars->batt_cost_per_kwh,
+                batt_vars->batt_cycle_cost_choice, batt_vars->batt_cycle_cost, batt_vars->om_batt_variable_cost_per_kwh,
+                eta_pvcharge, eta_gridcharge, eta_discharge, batt_vars->batt_dispatch_pvs_nameplate_ac,
+                batt_vars->batt_dispatch_pvs_ac_lb, batt_vars->batt_dispatch_pvs_ac_lb_enable, batt_vars->batt_dispatch_pvs_ac_ub,
+                batt_vars->batt_dispatch_pvs_ac_ub_enable, batt_vars->batt_dispatch_pvs_curtail_as_control, batt_vars->batt_dispatch_pvs_curtail_if_violation,
+                batt_vars->batt_dispatch_pvs_forecast_shift_periods, batt_vars->batt_dispatch_pvs_kf, batt_vars->batt_dispatch_pvs_ki, batt_vars->batt_dispatch_pvs_kp,
+                batt_vars->batt_dispatch_pvs_max_ramp, batt_vars->batt_dispatch_pvs_short_forecast_enable,
+                batt_vars->batt_dispatch_pvs_soc_rest, batt_vars->batt_dispatch_pvs_timestep_multiplier, batt_vars->grid_interconnection_limit_kW);
+        }
+        else {
+            dispatch_model = new dispatch_automatic_front_of_meter_t(battery_model, _dt_hour, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
+                batt_vars->batt_current_choice, batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
+                batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
+                batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
+                batt_vars->batt_minimum_modetime,
+                batt_vars->batt_dispatch, batt_vars->batt_dispatch_wf_forecast, batt_vars->batt_meter_position,
+                nyears, batt_vars->batt_look_ahead_hours, batt_vars->batt_dispatch_update_frequency_hours,
+                batt_vars->batt_dispatch_auto_can_charge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_gridcharge,
+                batt_vars->batt_dispatch_auto_can_fuelcellcharge, batt_vars->batt_dispatch_auto_can_curtailcharge,
+                batt_vars->inverter_paco, batt_vars->batt_cost_per_kwh,
+                batt_vars->batt_cycle_cost_choice, batt_vars->batt_cycle_cost, batt_vars->om_batt_variable_cost_per_kwh,
+                batt_vars->forecast_price_series_dollar_per_kwh, utilityRate,
+                eta_pvcharge, eta_gridcharge, eta_discharge, batt_vars->grid_interconnection_limit_kW,
+                batt_vars->forecast_cleared_capacities_kw, batt_vars->capacity_forecast_type, batt_vars->cleared_capacity_percent);
+
+            if (batt_vars->batt_dispatch == dispatch_t::FOM_CUSTOM_DISPATCH)
+            {
+                if (dispatch_automatic_front_of_meter_t* dispatch_fom = dynamic_cast<dispatch_automatic_front_of_meter_t*>(dispatch_model))
+                {
+                    if (batt_vars->batt_custom_dispatch.size() != 8760 * step_per_hour) {
+                        throw exec_error("battery", util::format("Battery custom dispatch time step (%d minutes) does not match simulation time step (%d minutes). Length of batt_custom_dispatch (%d) must be steps_per_hour (%lg) * 8760.", batt_vars->batt_custom_dispatch.size() / 8760 * 60, (int)(60 / step_per_hour), batt_vars->batt_custom_dispatch.size(), (double)step_per_hour));
+                    }
+                    dispatch_fom->set_custom_dispatch(batt_vars->batt_custom_dispatch);
+                }
+            }
+        }
+    }
+    else
+    {
+        if (batt_vars->ec_rate_defined) {
+            util_rate_data = new rate_data();
+            rate_setup::setup(&vt, (int)step_per_year, batt_vars->analysis_period, *util_rate_data, "cmod_battery");
+        }
+        else if (batt_vars->batt_dispatch == dispatch_t::RETAIL_RATE) {
+            throw exec_error("Battery", "Cannot select retail rate dispatch without providing utility rate data.");
+        }
+        dispatch_model = new dispatch_automatic_behind_the_meter_t(battery_model, _dt_hour, batt_vars->batt_minimum_SOC, batt_vars->batt_maximum_SOC,
+            batt_vars->batt_current_choice, batt_vars->batt_current_charge_max, batt_vars->batt_current_discharge_max,
+            batt_vars->batt_power_charge_max_kwdc, batt_vars->batt_power_discharge_max_kwdc,
+            batt_vars->batt_power_charge_max_kwac, batt_vars->batt_power_discharge_max_kwac,
+            batt_vars->batt_minimum_modetime,
+            batt_vars->batt_dispatch, batt_vars->batt_dispatch_wf_forecast, batt_vars->batt_meter_position, nyears,
+            batt_vars->batt_look_ahead_hours, batt_vars->batt_dispatch_update_frequency_hours,
+            batt_vars->batt_dispatch_auto_can_charge, batt_vars->batt_dispatch_auto_can_clipcharge, batt_vars->batt_dispatch_auto_can_gridcharge,
+            batt_vars->batt_dispatch_auto_can_fuelcellcharge, batt_vars->batt_dispatch_auto_can_curtailcharge,
+            util_rate_data, batt_vars->batt_cost_per_kwh, batt_vars->batt_cycle_cost_choice, batt_vars->batt_cycle_cost, batt_vars->om_batt_variable_cost_per_kwh, batt_vars->grid_interconnection_limit_kW,
+            batt_vars->batt_dispatch_charge_only_system_exceeds_load, batt_vars->batt_dispatch_discharge_only_load_exceeds_system,
+            batt_vars->batt_dispatch_auto_btm_can_discharge_to_grid, batt_vars->batt_minimum_outage_SOC, batt_vars->batt_dispatch_load_forecast
+        );
+        if (batt_vars->batt_dispatch == dispatch_t::CUSTOM_DISPATCH)
+        {
+            if (dispatch_automatic_behind_the_meter_t* dispatch_btm = dynamic_cast<dispatch_automatic_behind_the_meter_t*>(dispatch_model))
+            {
+                if (batt_vars->batt_custom_dispatch.size() != 8760 * step_per_hour) {
+                    throw exec_error("battery", util::format("Input battery power targets time step (%d minutes) does not match simulation time step (%d minutes). Length of batt_custom_dispatch (%d) must be steps_per_hour (%lg) * 8760.", batt_vars->batt_custom_dispatch.size() / 8760 * 60, (int)(60 / step_per_hour), batt_vars->batt_custom_dispatch.size(), (double)step_per_hour));
+                }
+                dispatch_btm->set_custom_dispatch(batt_vars->batt_custom_dispatch);
+            }
+        }
+    }
+
+    if (batt_vars->batt_topology == ChargeController::AC_CONNECTED) {
+        charge_control = new ACBatteryController(dispatch_model, battery_metrics, batt_vars->batt_ac_dc_efficiency, batt_vars->batt_dc_ac_efficiency);
+    }
+    else if (batt_vars->batt_topology == ChargeController::DC_CONNECTED) {
+        charge_control = new DCBatteryController(dispatch_model, battery_metrics, batt_vars->batt_dc_dc_bms_efficiency, batt_vars->batt_inverter_efficiency_cutoff);
+    }
+
+    parse_configuration();
+}
+
+battstor_heuristic_dispatch::~battstor_heuristic_dispatch()
+{
+    delete dispatch_model;
+    delete charge_control;
+    delete util_rate_data;
+    delete utilityRate;
+}
+
+battstor_heuristic_dispatch::battstor_heuristic_dispatch(const battstor_heuristic_dispatch& orig)
+    : battstor(orig)
+{
+    manual_dispatch = orig.manual_dispatch;
+    wf_look_ahead = orig.wf_look_ahead;
+    wf_look_behind = orig.wf_look_behind;
+    wf_input_forecast = orig.wf_input_forecast;
+    load_look_ahead = orig.load_look_ahead;
+    load_look_behind = orig.load_look_behind;
+    load_input_forecast = orig.load_input_forecast;
+    input_target = orig.input_target;
+    input_custom_dispatch = orig.input_custom_dispatch;
+    pv_prediction = orig.pv_prediction;
+    load_prediction = orig.load_prediction;
+    cliploss_prediction = orig.cliploss_prediction;
+    prediction_index = orig.prediction_index;
+
+    analyze_outage = orig.analyze_outage;
     dm_percent_discharge = orig.dm_percent_discharge;
-
     dm_percent_gridcharge = orig.dm_percent_gridcharge;
-
     target_power = orig.target_power;
     target_power_monthly = orig.target_power_monthly;
-
     e_charge = orig.e_charge;
     e_discharge = orig.e_discharge;
-
     fuelcellPower = orig.fuelcellPower;
 
-    // outputs
+    // outputs - shallow copy (owned by the var_table)
     outTotalCharge = orig.outTotalCharge;
     outAvailableCharge = orig.outAvailableCharge;
     outBoundCharge = orig.outBoundCharge;
@@ -1732,7 +1663,7 @@ step_per_hour = orig.step_per_hour;
     outBatteryToSystemLoad = orig.outBatteryToSystemLoad;
     outFuelCellToGrid = orig.outFuelCellToGrid;
     outBatteryConversionPowerLoss = orig.outBatteryConversionPowerLoss;
-    outBatterySystemLoss =  orig.outBatterySystemLoss;
+    outBatterySystemLoss = orig.outBatterySystemLoss;
     outBatteryToInverterDC = orig.outBatteryToInverterDC;
     outInterconnectionLoss = orig.outInterconnectionLoss;
     outCritLoadUnmet = orig.outCritLoadUnmet;
@@ -1752,7 +1683,6 @@ step_per_hour = orig.step_per_hour;
     outBenefitGridcharge = orig.outBenefitGridcharge;
     outBenefitClipcharge = orig.outBenefitClipcharge;
     outBenefitDischarge = orig.outBenefitDischarge;
-
     outPVS_outpower = orig.outPVS_outpower;
     outPVS_battpower = orig.outPVS_battpower;
     outPVS_battsoc = orig.outPVS_battsoc;
@@ -1761,22 +1691,15 @@ step_per_hour = orig.step_per_hour;
     outPVS_P_pv_ac = orig.outPVS_P_pv_ac;
     outPVS_PV_ramp_interval = orig.outPVS_PV_ramp_interval;
     outPVS_forecast_pv_energy = orig.outPVS_forecast_pv_energy;
-
+    outAdjustLosses = orig.outAdjustLosses;
+    outDispatchPeriod = orig.outDispatchPeriod;
 
     outAverageCycleEfficiency = orig.outAverageCycleEfficiency;
     outAverageRoundtripEfficiency = orig.outAverageRoundtripEfficiency;
     outSystemChargePercent = orig.outSystemChargePercent;
     outGridChargePercent = orig.outGridChargePercent;
 
-    outAdjustLosses = orig.outAdjustLosses;
-
-    outDispatchPeriod = orig.outDispatchPeriod;
-
-    // copy models
-    if (orig.batt_vars) batt_vars = orig.batt_vars;
-    battery_metrics = new battery_metrics_t(orig._dt_hour);
-
-
+    // Deep copy dispatch chain
     if (orig.dispatch_model) {
         if (auto disp_man = dynamic_cast<dispatch_manual_t*>(orig.dispatch_model))
             dispatch_model = new dispatch_manual_t(*disp_man);
@@ -1789,11 +1712,11 @@ step_per_hour = orig.step_per_hour;
         else
             throw general_error("dispatch_model in battstor is not of recognized type.");
 
+        // dispatch_model owns the battery, replace shallow-copied battery_model pointer
+        delete battery_model;
         battery_model = dispatch_model->battery_model();
     }
-    else {
-        dispatch_model = nullptr;
-    }
+
     if (orig.charge_control) {
         if (dynamic_cast<ACBatteryController*>(orig.charge_control))
             charge_control = new ACBatteryController(dispatch_model, battery_metrics, batt_vars->batt_ac_dc_efficiency,
@@ -1803,50 +1726,13 @@ step_per_hour = orig.step_per_hour;
         else
             throw general_error("charge_control in battstor is not of recognized type.");
     }
-    else {
-        charge_control = nullptr;
-        if (orig.battery_model) {
-            battery_model = new battery_t(*orig.battery_model);
-        }
-        else {
-            battery_model = nullptr;
-        }
-    }
-    utilityRate = NULL;
+
     if (orig.utilityRate)
         utilityRate = new UtilityRate(*orig.utilityRate);
-    util_rate_data = NULL;
     if (orig.util_rate_data)
         util_rate_data = new rate_data(*orig.util_rate_data);
-
 }
 
-battstor_heuristic_dispatch::battstor_heuristic_dispatch(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
-                                                         const std::shared_ptr<batt_variables>& batt_vars_in)
-    : battstor(vt, setup_model, nrec, dt_hr, batt_vars_in)
-{
-    if (en) {
-        parse_configuration();
-    }
-}
-
-battstor_heuristic_dispatch::battstor_heuristic_dispatch(const battstor_heuristic_dispatch& orig)
-    : battstor(orig)
-{
-    manual_dispatch = orig.manual_dispatch;
-    wf_look_ahead = orig.wf_look_ahead;
-    wf_look_behind = orig.wf_look_behind;
-    wf_input_forecast = orig.wf_input_forecast;
-    load_look_ahead = orig.load_look_ahead;
-    load_look_behind = orig.load_look_behind;
-    load_input_forecast = orig.load_input_forecast;
-    input_target = orig.input_target;
-    input_custom_dispatch = orig.input_custom_dispatch;
-    pv_prediction = orig.pv_prediction;
-    load_prediction = orig.load_prediction;
-    cliploss_prediction = orig.cliploss_prediction;
-    prediction_index = orig.prediction_index;
-}
 
 bool battstor_heuristic_dispatch::uses_forecast() {
     if (batt_vars->batt_meter_position == dispatch_t::FRONT) {
@@ -1872,7 +1758,7 @@ void battstor::initialize_time(size_t year_in, size_t hour_of_year, size_t step_
     year_index = (hour * step_per_hour) + step;
     step_per_year = 8760 * step_per_hour;
 }
-void battstor::advance(var_table*, double P_gen, double V_gen, double P_load, double P_crit_load, double ac_wiring_loss, double ac_loss_post_battery, double P_gen_clipped, double xfmr_ll, double xfmr_nll)
+void battstor_heuristic_dispatch::advance(var_table*, double P_gen, double V_gen, double P_load, double P_crit_load, double ac_wiring_loss, double ac_loss_post_battery, double P_gen_clipped, double xfmr_ll, double xfmr_nll)
 {
     BatteryPower* powerflow = dispatch_model->getBatteryPower();
     powerflow->reset();
@@ -1905,19 +1791,19 @@ void battstor::advance(var_table*, double P_gen, double V_gen, double P_load, do
     outputs_topology_dependent();
     metrics();
 }
-void battstor::setSharedInverter(SharedInverter* sharedInverter)
+void battstor_heuristic_dispatch::setSharedInverter(SharedInverter* sharedInverter)
 {
     if (DCBatteryController* tmp = dynamic_cast<DCBatteryController*>(charge_control))
         tmp->setSharedInverter(sharedInverter);
     dispatch_model->getBatteryPower()->setSharedInverter(sharedInverter);
 }
 
-void battstor::setXfmrRating(double xfmrRating)
+void battstor_heuristic_dispatch::setXfmrRating(double xfmrRating)
 {
     dispatch_model->getBatteryPower()->acXfmrRating = xfmrRating;
 }
 
-void battstor::outputs_fixed()
+void battstor_heuristic_dispatch::outputs_fixed()
 {
     auto state = battery_model->get_state();
 
@@ -1954,7 +1840,7 @@ void battstor::outputs_fixed()
     }
 }
 
-void battstor::outputs_topology_dependent()
+void battstor_heuristic_dispatch::outputs_topology_dependent()
 {
     // Power output (all Powers in kWac)
     outBatteryPowerAC[index] = (ssc_number_t)(dispatch_model->power_tofrom_battery_ac());
@@ -2035,7 +1921,7 @@ void battstor::outputs_topology_dependent()
     }
 }
 
-void battstor::metrics()
+void battstor_heuristic_dispatch::metrics()
 {
     size_t annual_index = year;
     outBatteryBankReplacement[annual_index] = (ssc_number_t)battery_model->getNumReplacementYear();
@@ -2085,7 +1971,7 @@ void battstor::metrics()
 }
 
 // function needed to correctly calculate P_grid due to additional losses in P_gen post battery like wiring, curtailment, availablity
-void battstor::update_grid_power(compute_module&, double P_gen_ac, double P_load_ac, size_t index_replace)
+void battstor_heuristic_dispatch::update_grid_power(compute_module&, double P_gen_ac, double P_load_ac, size_t index_replace)
 {
     // Need to get this tolerance instead of the one defined in the header of battery capacity
     BatteryPower* powerflow = dispatch_model->getBatteryPower();
@@ -2130,14 +2016,14 @@ void battstor::update_grid_power(compute_module&, double P_gen_ac, double P_load
     outGridPower[index_replace] = (ssc_number_t)(P_grid);
 }
 
-bool battstor::is_outage_step(size_t idx) {
+bool battstor_heuristic_dispatch::is_outage_step(size_t idx) {
     if (idx < batt_vars->grid_outage_steps.size()) {
         return batt_vars->grid_outage_steps[idx];
     }
     return false;
 }
 
-bool battstor::is_offline(size_t index) {
+bool battstor_heuristic_dispatch::is_offline(size_t index) {
     double soc = (double) outSOC[index];
     double prev_soc = soc;
     if (index > 0) {
@@ -2149,7 +2035,7 @@ bool battstor::is_offline(size_t index) {
     return ((soc - min_soc) < low_tolerance) && ((prev_soc - min_soc) < low_tolerance);
 }
 
-void battstor::calculate_monthly_and_annual_outputs(compute_module& cm)
+void battstor_heuristic_dispatch::calculate_monthly_and_annual_outputs(compute_module& cm)
 {
     // single value metrics
     cm.assign("average_battery_conversion_efficiency", var_data((ssc_number_t)outAverageCycleEfficiency));
@@ -2347,6 +2233,7 @@ public:
     cm_battery()
     {
         add_var_info(_cm_vtab_battery);
+        add_var_info(vtab_battery_kernel_inputs);
         add_var_info(vtab_battery_inputs);
         add_var_info(vtab_forecast_price_signal);
         add_var_info(vtab_batt_adjustment_factors);

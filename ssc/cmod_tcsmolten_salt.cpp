@@ -62,6 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "csp_system_costs.h"
 
 #include "lib_battery.h"
+#include "cmod_battery.h"
 #include "cmod_battery_stateful.h"
 
 #include <ctime>
@@ -917,15 +918,15 @@ static var_info vtab_battery_csp_outputs[] = {
 static var_info vtab_battery_costs_io[] = {
 
 // VARTYPE       DATATYPE    NAME                                  LABEL                                                            UNITS           META     GROUP                  REQUIRED_IF     CONSTRAINTS      UI_HINTS
-    { SSC_INPUT, SSC_NUMBER, "batt_cost_per_kwh",                  "Battery cost per kWh (DC)",                                     "$/kWh",        "",      "BatterySystem",       "",             "",              "" }, 
-    { SSC_INPUT, SSC_NUMBER, "batt_cost_per_kw",                   "Battery cost per kW (DC)",                                      "$/kW",         "",      "BatterySystem",       "",             "",              "" },
-    { SSC_INPUT, SSC_NUMBER, "batt_contingency_rate",              "Battery contingency rate (% of direct costs)",                  "%",            "",      "BatterySystem",       "",             "",              "" },
-    { SSC_INPUT, SSC_NUMBER, "batt_eng_EPC_cost",                  "Battery engineering and other EPC costs (% of direct costs)",   "%",            "",      "BatterySystem",       "",             "",              "" },
-    { SSC_INPUT, SSC_NUMBER, "batt_eng_EPC_cost_fixed",            "Battery engineering and other EPC costs (fixed costs)",         "$",            "",      "BatterySystem",       "",             "",              "" },
-    { SSC_INPUT, SSC_NUMBER, "batt_permit_EPC_cost",               "Battery permitting and other EPC costs (% of direct costs)",    "%",            "",      "BatterySystem",       "",             "",              "" },
-    { SSC_INPUT, SSC_NUMBER, "batt_permit_EPC_cost_fixed",         "Battery permitting and other EPC costs (fixed costs)",          "$",            "",      "BatterySystem",       "",             "",              "" },
-    { SSC_INPUT, SSC_NUMBER, "batt_sales_tax_basis",               "Battery sales tax basis as percent of direct cost",             "%",            "",      "BatterySystem",       "",             "",              "" },
-    { SSC_INPUT, SSC_NUMBER, "batt_sales_tax_rate",                "Battery sales tax rate",                                        "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "battery_per_kWh",                  "Battery cost per kWh (DC)",                                     "$/kWh",        "",      "BatterySystem",       "",             "",              "" }, 
+    { SSC_INPUT, SSC_NUMBER, "battery_per_kW",                   "Battery cost per kW (DC)",                                      "$/kW",         "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "standalonebatt.cost.contingency_percent",              "Battery contingency rate (% of direct costs)",                  "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "standalonebatt.cost.epc.nonfixed",                  "Battery engineering and other EPC costs (% of direct costs)",   "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "standalonebatt.cost.epc.fixed",            "Battery engineering and other EPC costs (fixed costs)",         "$",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "standalonebatt.cost.plm.nonfixed",               "Battery permitting and other EPC costs (% of direct costs)",    "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "standalonebatt.cost.plm.fixed",         "Battery permitting and other EPC costs (fixed costs)",          "$",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "standalonebatt.cost.sales_tax.percent",               "Battery sales tax basis as percent of direct cost",             "%",            "",      "BatterySystem",       "",             "",              "" },
+    { SSC_INPUT, SSC_NUMBER, "standalonebatt.cost.sales_tax.value",                "Battery sales tax rate",                                        "%",            "",      "BatterySystem",       "",             "",              "" },
 
     // TODO: How do we want to handle replacement costs?
     //{ SSC_INPUT, SSC_ARRAY,  "om_replacement_cost1",               "Cost to replace battery per kWh",                               "$/kWh",        "",      "BatterySystem",       "",             "",              "" },
@@ -937,6 +938,9 @@ static var_info vtab_battery_costs_io[] = {
 
     //{ SSC_OUTPUT, SSC_NUMBER, "batt_total_replacement_cost",       "Battery total replacement cost over lifetime",                 "$",            "",      "BatterySystem",       "",             "",              "" },
 var_info_invalid };
+
+extern var_info
+    vtab_battery_replacement_cost[];
 
 
 bool SortByDouble(const pair<int, double>& lhs,
@@ -952,8 +956,9 @@ public:
         add_var_info(vtab_adjustment_factors);
         add_var_info(vtab_sf_adjustment_factors);
         add_var_info(vtab_technology_outputs);
-        // Battery inputs - Starting with the stateful model for now
-        add_var_info(vtab_battery_stateful_inputs);     // TODO: how should we handle required inputs? Breaks UI
+        // Battery inputs - kernel-only table (no dispatch, no SAM cmod-only inputs)
+        add_var_info(vtab_battery_kernel_inputs);
+        add_var_info(vtab_battery_replacement_cost);
         add_var_info(vtab_battery_costs_io);
         add_var_info(vtab_battery_csp_outputs);
     } 
@@ -2210,10 +2215,16 @@ public:
         // *************************************************************************
 
         bool is_battery_included = as_boolean("includes_battery");
+        std::unique_ptr<battstor> batt_storage = nullptr;
         std::unique_ptr<C_csp_battery> battery = nullptr;
         if (is_battery_included) {
-            auto battery_params = create_battery_params(this->get_var_table(), 1.0 / steps_per_hour);
-            battery = std::unique_ptr<C_csp_battery>(new C_csp_battery(battery_params));
+            size_t nrec_battery = (size_t)steps_per_hour * 8760;
+            batt_storage = std::unique_ptr<battstor>(new battstor(*this->get_var_table(),
+                /*setup_model*/ true, nrec_battery, 1.0 / steps_per_hour,
+                /*batt_vars_in*/ nullptr));
+            battery = std::unique_ptr<C_csp_battery>(new C_csp_battery(batt_storage->battery_model,
+                batt_storage->batt_vars->batt_chem, batt_storage->batt_vars->batt_life_model,
+                1.0 / steps_per_hour));
 
             // TODO: Go through the outputs and determine which ones we actually want to report.
             battery->mc_reported_outputs.assign(C_csp_battery::Voltage, allocate("battery_voltage", n_steps_fixed), n_steps_fixed);
@@ -3194,19 +3205,19 @@ public:
         // Battery Cost Calculations
         // *****************************************************
         if (is_battery_included) {
-            double batt_cost_per_kwh = as_double("batt_cost_per_kwh");
-            double batt_cost_per_kw = as_double("batt_cost_per_kw");
-            double batt_contingency_rate = as_double("batt_contingency_rate");
-            double batt_eng_EPC_cost = as_double("batt_eng_EPC_cost");
-            double batt_eng_EPC_cost_fixed = as_double("batt_eng_EPC_cost_fixed");
-            double batt_permit_EPC_cost = as_double("batt_permit_EPC_cost");
-            double batt_permit_EPC_cost_fixed = as_double("batt_permit_EPC_cost_fixed");
-            double batt_sales_tax_basis = as_double("batt_sales_tax_basis");
-            double batt_sales_tax_rate = as_double("batt_sales_tax_rate");
+            double batt_cost_per_kwh = as_double("battery_per_kWh");
+            double batt_cost_per_kw = as_double("battery_per_kW");
+            double batt_contingency_rate = as_double("standalonebatt.cost.contingency_percent");
+            double batt_eng_EPC_cost = as_double("standalonebatt.cost.epc.nonfixed");
+            double batt_eng_EPC_cost_fixed = as_double("standalonebatt.cost.epc.fixed");
+            double batt_permit_EPC_cost = as_double("standalonebatt.cost.plm.nonfixed");
+            double batt_permit_EPC_cost_fixed = as_double("standalonebatt.cost.plm.fixed");
+            double batt_sales_tax_basis = as_double("standalonebatt.cost.sales_tax.percent");
+            double batt_sales_tax_rate = as_double("standalonebatt.cost.sales_tax.value");
 
             // TODO: Check these -> nominal power could be handled differently...
-            double batt_nominal_capacity_kwh = battery->params->nominal_energy;
-            double batt_nominal_power_kw = battery->params->voltage->dynamic.C_rate * batt_nominal_capacity_kwh;
+            double batt_nominal_capacity_kwh = battery->battery->nominal_energy();
+            double batt_nominal_power_kw = batt_storage->batt_vars->batt_power_discharge_max_kwdc;
 
             double batt_direct_cost = batt_nominal_capacity_kwh * batt_cost_per_kwh + batt_nominal_power_kw * batt_cost_per_kw;
             batt_direct_cost *= (1.0 + ( batt_contingency_rate * 0.01));

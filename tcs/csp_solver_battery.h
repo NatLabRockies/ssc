@@ -34,7 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __csp_solver_battery_
 
 #include "lib_battery.h"
+#include "../ssc/cmod_battery.h"
 
+struct battstor_csp : public battstor {
+    battstor_csp(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
+                 const std::shared_ptr<batt_variables>& batt_vars_in = 0);
+    battstor_csp(const battstor_csp& orig);
+    ~battstor_csp() override = default;
+    
+};
 
 class C_csp_battery
 {
@@ -116,11 +124,14 @@ public:
     double dt_hr = 1.0;
     int control_mode = 1;
     int last_idx = 0;   // TODO: where is this suppose to be initialized
-    std::shared_ptr<battery_params> params;
-    std::unique_ptr<battery_t> battery;
+    battery_t* battery = nullptr;           // Non-owning: caller retains ownership
+    int chem = 0;                           // battery_params::CHEM value, used in write_outputs
+    int life_model = 0;                     // lifetime_params::MODEL_CHOICE value, used in write_outputs
     C_csp_reported_outputs mc_reported_outputs;
 
-    C_csp_battery(std::shared_ptr<battery_params> parameters);
+    /// Construct from a non-owning battery_t pointer plus the chemistry and life-model
+    /// selectors needed for reporting. The caller (typically an SSC cmod) owns the battery_t.
+    C_csp_battery(battery_t* battery_in, int chem_in, int life_model_in, double dt_hr_in);
 
     ~C_csp_battery(){};
 

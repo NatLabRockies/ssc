@@ -1096,6 +1096,7 @@ cm_pvsamv1::cm_pvsamv1()
     add_var_info(vtab_adjustment_factors);
     add_var_info(vtab_dc_adjustment_factors);
     add_var_info(vtab_technology_outputs);
+    add_var_info(vtab_battery_kernel_inputs);
     add_var_info(vtab_battery_inputs);
     add_var_info(vtab_batt_adjustment_factors);
     add_var_info(vtab_forecast_price_signal);

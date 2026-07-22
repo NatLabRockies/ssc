@@ -108,10 +108,11 @@ static C_csp_reported_outputs::S_output_info S_output_info[] =
 };
 
 
-C_csp_battery::C_csp_battery(std::shared_ptr<battery_params> parameters) {
-    params = parameters;        // Battery parameters
-    dt_hr = params->dt_hr;     // [hr] time step for battery model
-    battery = std::unique_ptr<battery_t>(new battery_t(params));
+C_csp_battery::C_csp_battery(battery_t* battery_in, int chem_in, int life_model_in, double dt_hr_in) {
+    battery = battery_in;   // Non-owning
+    chem = chem_in;
+    life_model = life_model_in;
+    dt_hr = dt_hr_in;
     mc_reported_outputs.construct(S_output_info);
 };
 
@@ -165,7 +166,7 @@ void C_csp_battery::write_outputs() {
     //mc_reported_outputs.value(C_csp_battery::percent_unavailable_prev, cap->percent_unavailable_prev);     // [%] Percent of system that was down last step
     //mc_reported_outputs.value(C_csp_battery::chargeChange, cap->chargeChange);             // [0/1] Whether charge mode changed since last step
 
-    if (params->chem == battery_params::CHEM::LEAD_ACID) {
+    if (chem == battery_params::CHEM::LEAD_ACID) {
         mc_reported_outputs.value(C_csp_battery::q1_0, cap->leadacid.q1_0);                // [Ah] Lead acid - Cell charge available
         mc_reported_outputs.value(C_csp_battery::q2_0, cap->leadacid.q2_0);                // [Ah] Lead acid - Cell charge bound
         mc_reported_outputs.value(C_csp_battery::qn, cap->leadacid.q1);                    // [Ah] Lead acid - Cell capacity at n-hr discharge rate
@@ -195,7 +196,7 @@ void C_csp_battery::write_outputs() {
     mc_reported_outputs.value(C_csp_battery::rainflow_Ylt, lifetime->cycle->rainflow_Ylt);         // [%] Rainflow cycle range of last half cycle
     mc_reported_outputs.value(C_csp_battery::rainflow_jlt, lifetime->cycle->rainflow_jlt);         // [1] Rainflow number of turning points
     //mc_reported_outputs.value(rainflow_peaks,             // [%] Rainflow peaks of cycle_DOD
-    if (params->lifetime->model_choice == lifetime_params::CALCYC) {
+    if (life_model == lifetime_params::CALCYC) {
         mc_reported_outputs.value(C_csp_battery::q_relative_calendar, lifetime->calendar->q_relative_calendar);            // [%] Relative capacity due to calendar effects
         mc_reported_outputs.value(C_csp_battery::dq_relative_calendar_old, lifetime->calendar->dq_relative_calendar_old);  // [%] Change in capacity of last time step
     }
@@ -206,7 +207,7 @@ void C_csp_battery::write_outputs() {
         mc_reported_outputs.value(C_csp_battery::cum_dt, lifetime->cycle->cum_dt);                 // [day] Elapsed time for current day
     }
 
-    if (params->lifetime->model_choice == lifetime_params::NMC) {
+    if (life_model == lifetime_params::NMC) {
         mc_reported_outputs.value(C_csp_battery::q_relative_li, lifetime->nmc_li_neg->q_relative_li);      // [%] Relative capacity due to loss of lithium inventory
         mc_reported_outputs.value(C_csp_battery::q_relative_neg, lifetime->nmc_li_neg->q_relative_neg);    // [%] Relative capacity due to loss of anode material
         mc_reported_outputs.value(C_csp_battery::dq_relative_li1, lifetime->nmc_li_neg->dq_relative_li1);  // [1] Cumulative capacity change from time-dependent Li loss
@@ -242,4 +243,24 @@ void C_csp_battery::write_output_intervals(double report_time_start,
 {
     mc_reported_outputs.send_to_reporting_ts_array(report_time_start,
         v_temp_ts_time_end, report_time_end);
+}
+
+battstor_csp::battstor_csp(var_table& vt, bool setup_model, size_t nrec, double dt_hr,
+    const std::shared_ptr<batt_variables>& batt_vars_in)
+    : battstor(vt, setup_model, nrec, dt_hr, batt_vars_in)
+{
+    // Additional initialization for CSP battery storage can be added here if needed
+    // Charge limits and priority
+    /*
+    batt_vars->batt_initial_SOC = 50.0; //%
+    batt_vars->batt_maximum_SOC = 95.0; //%
+    batt_vars->batt_minimum_SOC = 15.0; //%
+    batt_vars->batt_minimum_modetime = 10; //minutes
+    */
+}
+
+battstor_csp::battstor_csp(const battstor_csp& orig)
+    : battstor(orig)
+{
+    
 }

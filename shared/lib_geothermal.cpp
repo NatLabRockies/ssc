@@ -1050,14 +1050,14 @@ double CGeothermalAnalyzer::Gringarten()
     double c_r = mo_geo_in.md_EGSSpecificHeatConstant; //rock specific heat capacity;
     double p_r = mo_geo_in.md_EGSRockDensity; //rock density
     double n_f = mo_geo_in.md_EGSNumberOfFractures;
-    double Q = EGSFlowPerFracture(EGSAverageWaterTemperatureC2()) / (60*60*24); // m3/day / 60min*60sec*24 hour volumetric flow per fracture
+    double Q =  mp_geo_out->md_NumberOfWells * EGSFlowPerFracture(EGSAverageWaterTemperatureC2()) / (60*60*24); // m3/s (m3/day / 60min*60sec*24 hour volumetric flow per fracture
     double h_f = mo_geo_in.md_EGSFractureLength; // fracture height (m)
     double w_f = mo_geo_in.md_EGSFractureWidthM; //fracture width (m)
-    double x_e = mo_geo_in.md_EGSFractureSpacing; //fracture spacing (m)
+    double x_e = mo_geo_in.md_EGSFractureSpacing * 0.5; //fracture half-spacing (m)
     double t = mp_geo_out->ElapsedHours * 3600; //elapsed time (s)
 
     //dimensionless fracture spacing
-    double x_ED = ((p_w * c_w) / (2 * k_r)) * (Q / (n_f * h_f * w_f)) * x_e;
+    double x_ED = ((p_w * c_w) / (2 * k_r)) * (Q / (h_f * w_f)) * x_e;
     double T_D = 0; //dimensionless temperature
     double t_it = 0;
     double td_x1y1 = 0;
@@ -1070,8 +1070,10 @@ double CGeothermalAnalyzer::Gringarten()
     double y2 = 0;
     double y = x_ED;
     int i = 0;
+    
     //dimensionless time
-    double t_D = (pow(p_w * c_w, 2) / (4 * k_r * p_r * c_r)) * pow(Q / (n_f * h_f * w_f), 2) * t;
+    double t_D = (pow(p_w * c_w, 2) / (4 * k_r * p_r * c_r)) * pow(Q / (h_f * w_f), 2) * t;
+    t_it = t_d_vec[0] - t_D;
     double x = t_D;
     if (t_D < t_d_vec[0]) {
         //T_D = 1.0;
@@ -1079,19 +1081,19 @@ double CGeothermalAnalyzer::Gringarten()
     }
     else if (t_D > t_d_vec[t_d_vec.size() - 1]) {
         //T_D = 1.0;
-        T_D = 0.0;
+        T_D = 1.0;
     }
     else {
         while (t_it <= 0) {
-            t_it = t_d_vec[i] - t_D;
             i++;
+            t_it = t_d_vec[i] - t_D;
         }
         x2 = t_d_vec[i];
         x1 = t_d_vec[i - 1];
         if (x_ED <= 0.1) {
             td_x1y1 = Td_xed0[i - 1];
             td_x2y1 = Td_xed0[i];
-            td_x1y1 = Td_xed0[i - 1];
+            td_x1y2 = Td_xed0[i - 1];
             td_x2y2 = Td_xed0[i];
             y1 = 0.1;
             y2 = 0.1;
@@ -1099,7 +1101,7 @@ double CGeothermalAnalyzer::Gringarten()
         else if (x_ED > 0.1 && x_ED <= 0.2) {
             td_x1y1 = Td_xed0[i - 1];
             td_x2y1 = Td_xed0[i];
-            td_x1y1 = Td_xed1[i - 1];
+            td_x1y2 = Td_xed1[i - 1];
             td_x2y2 = Td_xed1[i];
             y1 = 0.1;
             y2 = 0.2;
@@ -1107,7 +1109,7 @@ double CGeothermalAnalyzer::Gringarten()
         else if (x_ED > 0.2 && x_ED <= 0.5) {
             td_x1y1 = Td_xed1[i - 1];
             td_x2y1 = Td_xed1[i];
-            td_x1y1 = Td_xed2[i - 1];
+            td_x1y2 = Td_xed2[i - 1];
             td_x2y2 = Td_xed2[i];
             y1 = 0.2;
             y2 = 0.5;
@@ -1115,7 +1117,7 @@ double CGeothermalAnalyzer::Gringarten()
         else if (x_ED > 0.5 && x_ED <= 1) {
             td_x1y1 = Td_xed2[i - 1];
             td_x2y1 = Td_xed2[i];
-            td_x1y1 = Td_xed3[i - 1];
+            td_x1y2 = Td_xed3[i - 1];
             td_x2y2 = Td_xed3[i];
             y1 = 0.5;
             y2 = 1.0;
@@ -1123,7 +1125,7 @@ double CGeothermalAnalyzer::Gringarten()
         else if (x_ED > 1 && x_ED <= 2) {
             td_x1y1 = Td_xed3[i - 1];
             td_x2y1 = Td_xed3[i];
-            td_x1y1 = Td_xed4[i - 1];
+            td_x1y2 = Td_xed4[i - 1];
             td_x2y2 = Td_xed4[i];
             y1 = 1.0;
             y2 = 2.0;
@@ -1131,21 +1133,32 @@ double CGeothermalAnalyzer::Gringarten()
         else if (x_ED > 2 && x_ED <= 5) {
             td_x1y1 = Td_xed4[i - 1];
             td_x2y1 = Td_xed4[i];
-            td_x1y1 = Td_xed5[i - 1];
+            td_x1y2 = Td_xed5[i - 1];
             td_x2y2 = Td_xed5[i];
             y1 = 2.0;
             y2 = 5.0;
         }
-        else {
+        else if (x_ED > 5 && x_ED < 10) {
             td_x1y1 = Td_xed5[i - 1];
             td_x2y1 = Td_xed5[i];
-            td_x1y1 = Td_xed5[i - 1];
-            td_x2y2 = Td_xed5[i];
+            td_x1y2 = Td_xed6[i - 1];
+            td_x2y2 = Td_xed6[i];
             y1 = 5.0;
-            y2 = 5.0;
+            y2 = 10.0;
+        }
+        else {
+            td_x1y1 = Td_xed6[i - 1];
+            td_x2y1 = Td_xed6[i];
+            td_x1y2 = Td_xed6[i - 1];
+            td_x2y2 = Td_xed6[i];
+            y1 = 10.0;
+            y2 = 10.0;
         }
         if (y2 != y1 && x2 != x1) {
             T_D = ((y2 - y) / (y2 - y1)) * ((x2 - x) / (x2 - x1) * td_x1y1 + (x - x1) / (x2 - x1) * td_x2y1) + ((y - y1) / (y2 - y1)) * ((x2 - x) / (x2 - x1) * td_x1y2 + (x - x1) / (x2 - x1) * td_x2y2);
+        }
+        else if (y2 == y1) {
+            T_D = ((x-x1) * (td_x2y2 - td_x2y1)) / (x2 - x1) + td_x2y1;
         }
         else {
             //T_D = 1.0;

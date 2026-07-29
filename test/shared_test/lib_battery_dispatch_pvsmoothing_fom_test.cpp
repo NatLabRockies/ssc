@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -77,8 +77,8 @@ TEST_F(PVSmoothing_lib_battery_dispatch, PV_Phoenix_all_on) {
         ssc_data_get_number(dat, "batt_pvs_energy_to_grid_percent_sam", &grid_percent_sam);
 
         // values from Phoenix_Validation_testing.py EPRI code
-        EXPECT_NEAR(violation_count, 15, 0.001);
-        EXPECT_NEAR(violation_percent, 0.0285, 0.001);
+        EXPECT_NEAR(violation_count, 14, 0.001);
+        EXPECT_NEAR(violation_percent, 0.0266, 0.001);
         EXPECT_NEAR(grid_percent, 99.89, 0.01);
         EXPECT_NEAR(grid_percent_sam, 98.89, 0.01);
     }

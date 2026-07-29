@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -132,16 +132,6 @@ void C_csp_tou::init(bool is_leapyear)
                     " Please select a time >= 0", "TOU initialization"));
             }
         }
-
-        if (m_use_rule_2)
-        {
-            if (m_f_q_dot_pc_overwrite <= 0.0 ||
-                m_q_dot_rec_des_mult <= 0.0)
-            {
-                throw(C_csp_exception("Block Dispatch Rule 2 was selected, but the parameters entered were invalid."
-                    " Both values must be greater than 0", "TOU initialization"));
-            }
-        }
     }
 
     m_isleapyear = is_leapyear;
@@ -154,11 +144,9 @@ void C_csp_tou::call(double time_s, C_csp_tou::S_csp_tou_outputs& tou_outputs)
 {
     double offtaker_power;
     mc_offtaker_schedule.get_timestep_data(time_s, tou_outputs.m_f_turbine, offtaker_power, tou_outputs.m_csp_op_tou);
-    mc_elec_pricing_schedule.get_timestep_data(time_s, tou_outputs.m_price_mult, tou_outputs.m_elec_price,
-        tou_outputs.m_pricing_tou);
-
-    mc_heat_pricing_schedule.get_timestep_data(time_s, tou_outputs.m_heat_mult, tou_outputs.m_heat_price,
-        tou_outputs.m_heat_tou);
+    mc_elec_pricing_schedule.get_timestep_data(time_s, tou_outputs.m_price_mult, tou_outputs.m_elec_price, tou_outputs.m_pricing_tou);
+    mc_pv_generation_profile.get_timestep_data(time_s, tou_outputs.m_pv_mult, tou_outputs.m_pv_gen, tou_outputs.m_pv_tou);
+    mc_heat_pricing_schedule.get_timestep_data(time_s, tou_outputs.m_heat_mult, tou_outputs.m_heat_price, tou_outputs.m_heat_tou);
 
     if (m_is_tod_pc_target_also_pc_max) {
         tou_outputs.m_wlim_dispatch = tou_outputs.m_f_turbine;

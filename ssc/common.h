@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@ extern var_info vtab_equip_reserve[];
 extern var_info vtab_depreciation[];
 extern var_info vtab_depreciation_inputs[];
 extern var_info vtab_depreciation_outputs[];
+extern var_info vtab_tax_outputs[];
+extern var_info vtab_itc_outputs[];
 extern var_info vtab_tax_credits[];
 extern var_info vtab_payment_incentives[];
 extern var_info vtab_tax_credits_heat[];
@@ -75,6 +77,8 @@ extern var_info vtab_utility_rate_common[];
 extern var_info vtab_hybrid_tech_inputs[];
 extern var_info vtab_hybrid_tech_om_outputs[];
 extern var_info vtab_hybrid_fin_om[];
+
+extern var_info vtab_non_energy_cash_flow[];
 
 bool calculate_p50p90(compute_module *cm);
 

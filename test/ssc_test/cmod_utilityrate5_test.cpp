@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 
 
 Redistribution and use in source and binary forms, with or without
@@ -732,7 +732,7 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_subhourly_ge
 
 }
 
-// If these results change, validate with https://github.com/NREL/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
+// If these results change, validate with https://github.com/NatLabRockies/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
 TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover) {
     ssc_data_t data = new var_table;
 
@@ -790,7 +790,7 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover) {
 
 }
 
-// If these results change, validate with https://github.com/NREL/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
+// If these results change, validate with https://github.com/NatLabRockies/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
 TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_april_reset) {
     ssc_data_t data = new var_table;
 
@@ -854,7 +854,7 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_ap
     ssc_data_free(data);
 }
 
-// If these results change, validate with https://github.com/NREL/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
+// If these results change, validate with https://github.com/NatLabRockies/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
 TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_jan_reset) {
     ssc_data_t data = new var_table;
 
@@ -917,7 +917,7 @@ TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_ja
 
 }
 
-// If these results change, validate with https://github.com/NREL/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
+// If these results change, validate with https://github.com/NatLabRockies/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/SAM%202020.11.29%20Rollover%20Month%20Tests/2020.11.29_net_billing_carryover.xlsx
 TEST(cmod_utilityrate5_eqns, Test_Residential_TOU_Rates_net_billing_carryover_lower_sell_rate) {
     ssc_data_t data = new var_table;
 
@@ -1754,7 +1754,7 @@ TEST(cmod_utilityrate5_eqns, Test_seasonal_per_kw_charge_w_no_demand_charge) {
     ssc_data_set_matrix(data, "ur_ec_tou_mat", p_ur_ec_tou_mat, 10, 6);
     ssc_data_set_number(data, "ur_dc_enable", 1);
 
-    // Demand charge data required as of https://github.com/NREL/ssc/pull/1293 
+    // Demand charge data required as of https://github.com/NatLabRockies/ssc/pull/1293 
     ssc_number_t p_ur_dc_sched_weekday[288] = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
     ssc_data_set_matrix(data, "ur_dc_sched_weekday", p_ur_dc_sched_weekday, 12, 24);
     ssc_number_t p_ur_dc_sched_weekend[288] = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };

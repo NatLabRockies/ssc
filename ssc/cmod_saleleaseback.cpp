@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -929,9 +929,10 @@ public:
 	{
 		int i = 0;
 
-        if (is_assigned("en_electricity_rates") && as_number("en_electricity_rates") == 0 && as_number("ppa_soln_mode") == 0)
-            throw exec_error("saleleaseback", "PPA price from which to calculate parasitic load costs is not specified. Check inputs for Revenue and Electricity Purchases.");
-
+        if (is_assigned("en_electricity_rates")) {
+            if (as_number("en_electricity_rates") == 0 && as_number("ppa_soln_mode") == 0)
+                throw exec_error("singleowner", "PPA price from which to calculate parasitic load costs is not specified. Check inputs for Revenue and Electricity Purchases.");
+        }
 		// cash flow initialization
 		int nyears = as_integer("analysis_period");
 		cf.resize_fill( CF_max, nyears+1, 0.0 );
@@ -1645,7 +1646,7 @@ public:
 		double ppa_old=ppa;
 
         // Installed costs and construction costs can be claimed in the basis, but reserves are not
-// See https://github.com/NREL/SAM/issues/1803 and linked issues for more details
+// See https://github.com/NatLabRockies/SAM/issues/1803 and linked issues for more details
         sale_of_property = cost_prefinancing + sponsor_pretax_development_fee + cost_other_financing + cost_equity_closing + constr_total_financing;
         pre_depr_alloc_basis = sale_of_property;
         pre_itc_qual_basis = pre_depr_alloc_basis;

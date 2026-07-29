@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -167,6 +167,8 @@ public:
     double get_T_htf_cold_des();    //[K]
 
     double get_q_dot_rec_des();     //[MWt]
+
+    double get_design_rec_pumping_power();  //[MWe]
 
     void get_design_geometry(double& L_tower_piping /*m*/, double& od_tube_calc /*m*/);
 

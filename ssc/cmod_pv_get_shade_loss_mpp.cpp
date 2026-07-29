@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ GetShadeLoss(G,D,Tc,ModsPerString,StrShade,VMaxSTCStrUnshaded,VStrMPPT,ShadeDB )
 %gammaPmp is the temperature coefficient of max power,
 % reported in datasheet, VMaxSTCStrUnshaded is the unshaded Vmp of the string at STC,
 % VStrMPPT is the lower and upper bounds of the inverter's MPPT range, and
-% Shade DB is the database of shading losses (created by the DBX scripts at NREL)
+% Shade DB is the database of shading losses (created by the DBX scripts at NLR)
 */
 #include <functional>   // std::greater
 #include <algorithm>    // std::sort

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -177,21 +177,23 @@ bool winddata_provider::can_interpolate( int index1, int index2, int ncols, doub
 	return false;
 }
 
-bool winddata_provider::read( double requested_height,
-	double *speed,
-	double *direction,
-	double *temperature,
-	double *pressure,
-	double *closest_speed_meas_height_in_file,
-	double *closest_dir_meas_height_in_file,
-	bool bInterpolate /*= false*/)
-{	
-	std::vector<double> values;
-	if ( !read_line( values ) )
-		return false;
-	
-	if (values.size() < m_heights.size() || values.size() < m_dataid.size())
-		return false;
+bool winddata_provider::read(double requested_height,
+    double* speed,
+    double* direction,
+    double* temperature,
+    double* pressure,
+    double* closest_speed_meas_height_in_file,
+    double* closest_dir_meas_height_in_file,
+    bool bInterpolate /*= false*/)
+{
+    std::vector<double> values;
+    if (!read_line(values))
+        return false;
+
+    if (values.size() < m_heights.size() || values.size() < m_dataid.size()) {
+        m_errorMsg = util::format("Error: the number of data columns (%d), measurement heights (%d), and data heights (%d) must be the same", values.size(), m_heights.size(), m_dataid.size());
+        return false;
+    }
 
 	int ncols = (int)values.size();
 
@@ -287,8 +289,22 @@ bool winddata_provider::read( double requested_height,
 		&& !my_isnan( *temperature )
 		&& !my_isnan( *pressure );
 
+    if (found_all == false)
+    {
+        std::string missing = "";
+        if (my_isnan(*speed))
+             missing += "speed ";
+        if (my_isnan(*direction))
+            missing += "direction ";
+        if (my_isnan(*temperature))
+            missing += "temperature ";
+        if (my_isnan(*pressure))
+            missing += "pressure ";
+        m_errorMsg = util::format("data not found in weather file for %s", missing.c_str());
+    }
+
 	//add error checking. direction error checking performed in the averaging function.
-	if (*speed < 0 || *speed > 120) //units are m/s, wind speed cannot be negative and highest recorded wind speed ever was 113 m/s (https://en.wikipedia.org/wiki/Wind_speed)
+ 	if (*speed < 0 || *speed > 120) //units are m/s, wind speed cannot be negative and highest recorded wind speed ever was 113 m/s (https://en.wikipedia.org/wiki/Wind_speed)
 	{
 		found_all = false;
 		m_errorMsg = util::format("Error: wind speed of %g m/s found in weather file, this speed is outside the possible range of 0 to 120 m/s", *speed);
@@ -309,35 +325,30 @@ bool winddata_provider::read( double requested_height,
 
 }
 
+void winddata_provider::rewind() {
+    // Empty but defined
+}
+
 windfile::windfile()
-	: winddata_provider()
+	: winddata_provider(), m_nrec(0), m_index(0)
 {
-	m_nrec = 0;
 	close();
 }
 
 windfile::windfile( const std::string &file )
-	: winddata_provider()
+	: winddata_provider(), m_nrec(0), m_index(0)
 {
-	m_nrec = 0;
 	close();
 	open( file );
 }
 
-windfile::~windfile()
+bool windfile::ok() const
 {
-  	m_ifs.close();
-}
-
-bool windfile::ok()
-{
-    if (!m_ifs.good())
-        m_errorMsg = "file stream error reading file";
-  	return m_ifs.good();
+    return m_nrec > 0 && m_cache.size() == m_nrec;
 }
 
 
-std::string windfile::filename()
+std::string windfile::filename() const
 {
 	return m_file;
 }
@@ -347,14 +358,15 @@ bool windfile::open( const std::string &file )
 	close();
 	if (file.empty()) return false;
 	
-	m_ifs.open(file);
-	if (!m_ifs.good())
+    std::ifstream ifs(file);
+	if (!ifs.good())
 	{
 		m_errorMsg = "could not open file for reading: " + file;
 		return false;
 	}
 
     // store number of header rows: legacy srw should be 5, csv 2
+    std::string buf;
     size_t nhdrs = 0;
 
     // *** Legacy SRW format: Header with 5 lines *** //
@@ -371,15 +383,15 @@ bool windfile::open( const std::string &file )
         /* read header rows */
 
         // read line 1 header info
-        getline(m_ifs, m_buf);
+        getline(ifs, buf);
         nhdrs++;
         std::vector<std::string> cols;
-        int ncols = locate2(m_buf, cols, ',');
+        int ncols = locate2(buf, cols, ',');
 
         if (ncols < 8)
         {
             m_errorMsg = util::format("error reading header (line 1).  At least 8 columns required, %d found.", ncols);
-            m_ifs.close();
+            ifs.close();
             return false;
         }
 
@@ -398,18 +410,18 @@ bool windfile::open( const std::string &file )
         catch (const std::invalid_argument&) {/* nothing to do */ };
 
         // read line 2, description
-        getline(m_ifs, desc);
+        getline(ifs, desc);
         nhdrs++;
         trim(desc);
 
         // read line 3, column names (must be pressure, temperature, speed, direction)
-        getline(m_ifs, m_buf);
+        getline(ifs, buf);
         nhdrs++;
-        ncols = locate2(m_buf, cols, ',');
+        ncols = locate2(buf, cols, ',');
         if (ncols < 4)
         {
             m_errorMsg = util::format("header line 3 contains %d data types. requires at least 4: temperature, speed, direction, and atmospheric pressure.", ncols);
-            m_ifs.close();
+            ifs.close();
             return false;
         }
 
@@ -439,7 +451,7 @@ bool windfile::open( const std::string &file )
             else if (ctype.length() > 0)
             {
                 m_errorMsg = util::format("error reading data column type specifier in col %d of %d: '%s' len: %d", i + 1, ncols, ctype.c_str(), ctype.length());
-                m_ifs.close();
+                ifs.close();
                 return false;
             }
         }
@@ -447,17 +459,17 @@ bool windfile::open( const std::string &file )
         m_heights.resize(m_dataid.size(), -1);
 
         // read line 4, units for each column (ignore this for now)
-        getline(m_ifs, m_buf);
+        getline(ifs, buf);
         nhdrs++;
 
         // read line 5, height in meters for each data column
-        getline(m_ifs, m_buf);
+        getline(ifs, buf);
         nhdrs++;
-        ncols = locate2(m_buf, cols, ',');
+        ncols = locate2(buf, cols, ',');
         if (ncols != (int)m_heights.size())
         {
             m_errorMsg = util::format("number of columns in header line 5 must match line 3: %d required but %d found", (int)m_heights.size(), ncols);
-            m_ifs.close();
+            ifs.close();
             return false;
         }
 
@@ -474,10 +486,10 @@ bool windfile::open( const std::string &file )
         std::string tz_site, tz_data, hdr_item;
 
         // line 1 site information
-        getline(m_ifs, m_buf);
+        getline(ifs, buf);
         nhdrs++;
         std::vector<std::string> hdr;
-        int ncols = locate2(m_buf, hdr, ',');
+        int ncols = locate2(buf, hdr, ',');
 
         lat = std::numeric_limits<float>::quiet_NaN();
         lon = std::numeric_limits<float>::quiet_NaN();
@@ -516,21 +528,22 @@ bool windfile::open( const std::string &file )
         }
         // if elevation not in weather file, set to zero
         // TO DO check to see where and whether elevation is used (check SSC and SAM and UI callbacks)
-        if (isnan(elev)) {
+        if (std::isnan(elev)) {
             elev = 0;
         }
  
-        // time stamps expected to be in local time. wind data files provide both site timezone and data timezone in header
+        // time stamps expected to be in local time. wind data files provide both site time zone and data time zone in header
         // if the values are different, we can't determine the time zone of the time stamps for financial model time-dependent features (TOU, TOD, etc.)
-        if (tz_data != tz_site) {
+        // if one of the values is empty, we assume the other is the time zone of the data
+        if (tz_data != tz_site && !(tz_site.empty() || tz_data.empty())) {
             m_errorMsg = util::format("data must be in local time: data time zone %s and site time zone %s are not the same", tz_data.c_str(), tz_site.c_str());
             return false;
         }
         // line 2 data column headings
-        getline(m_ifs, m_buf);
+        getline(ifs, buf);
         nhdrs++;
         std::vector<std::string> cols;
-        ncols = locate2(m_buf, cols, ',');
+        ncols = locate2(buf, cols, ',');
 
         // get data column positions
         // this approach ignores columns that may contain other data that is not used by wind model
@@ -540,7 +553,8 @@ bool windfile::open( const std::string &file )
             hdr_item = util::lower_case(trimboth(cols[i]));
 
             // find columns for wind data at different heights    
-            if (hdr_item.find("temp") != std::string::npos)
+            // some endpoints like wtk-alaska-v1-0-0 and wtk-led-conus have "virtual potential temperature" and "air temperature"
+            if (hdr_item.find("temp") != std::string::npos && hdr_item.find("virtual") == std::string::npos)
             {
                 m_dataid.push_back(TEMP);
                 m_heights.push_back(col_or_nan(cols[i]));
@@ -553,7 +567,9 @@ bool windfile::open( const std::string &file )
                 m_heights.push_back(col_or_nan(cols[i]));
                 m_colid.push_back(i);
             }
-            else if (hdr_item.find("speed") != std::string::npos)
+            // some files use a mix of "wind speed" and "windspeed"
+            // some endpoints like wtk-alaska-v1-0-0 and wtk-led-conus have "vertical wind speed" and "wind speed"
+            else if (hdr_item.find("speed") != std::string::npos && hdr_item.find("vertical") == std::string::npos )
             {
                 m_dataid.push_back(SPEED);
                 m_heights.push_back(col_or_nan(cols[i]));
@@ -568,31 +584,56 @@ bool windfile::open( const std::string &file )
         }
     }
 
-	// read all lines to determine the number of records in the file
-	while (getline(m_ifs, m_buf))
-		m_nrec++;
+    std::string row_buf;
+    while (getline(ifs, row_buf))
+    {
+        std::vector<std::string> cols;
+        int ncols = locate2(row_buf, cols, ',');
 
-    // rewind the file and reposition right after header lines
-    m_ifs.clear();
-    m_ifs.seekg(0);
-    for (size_t i = 0; i < nhdrs; i++) // csv
-		getline(m_ifs, m_buf);
+        std::vector<double> row;
+        row.reserve(m_colid.size());
 
-    // number of data records (without headers)
-    //m_nrec = m_nrec - nhdrs;
+        for (int i = 0; i < ncols; i++)
+        {
+            if (std::find(m_colid.begin(), m_colid.end(), i) != m_colid.end())
+            {
+                if (util::lower_case(cols[i]) == "n/a")
+                    row.push_back(std::numeric_limits<double>::quiet_NaN());
+                else if (cols[i].empty())
+                {
+                    m_errorMsg = util::format("data is missing from column %d", i + 1);
+                    return false;
+                }
+                else
+                    row.push_back(std::stof(cols[i]));
+            }
+        }
 
-    // weather file name
+        if (row.size() != m_colid.size())
+        {
+            m_errorMsg = util::format("line contains %d columns, should contain %d", ncols, (int)m_colid.size());
+            return false;
+        }
+
+        m_cache.push_back(std::move(row));
+    }
+
+    if (m_cache.empty())
+    {
+        m_errorMsg = "no data records found in wind resource file: " + file;
+        return false;
+    }
+
+    ifs.close();
+    m_nrec = m_cache.size();
     m_file = file;
-
-	// ready to read line-by-line
-    // columns should correspond to data types in m_dataid and measurement heights in m_heights
-	return true;
+    m_index = 0;
+    return true;
 }
 
 void windfile::close()
 {
-  	m_ifs.close();
-
+    m_cache.clear();
 	m_file.clear();
 	city.clear();
 	state.clear();
@@ -602,6 +643,7 @@ void windfile::close()
 	year = 1900;
 	lat = lon = elev = 0.0;
 	m_nrec = 0;
+    m_index = 0;
 }
 
 size_t windfile::nrecords()
@@ -612,37 +654,11 @@ size_t windfile::nrecords()
 // read temperature, pressure, speed, direction data at different heights from line
 bool windfile::read_line( std::vector<double> &values )
 {
-	if ( !ok() ) return false;
-
-	std::vector<std::string> cols; // columns from file
-    getline(m_ifs, m_buf);
-	int ncols = locate2(m_buf, cols, ',');
-
-    // read only columns that are in m_colid (list of columns numbers that contain data)
-    for (size_t i = 0; i < ncols; i++)
+    if (m_index >= m_nrec)
     {
-        if (std::find(m_colid.begin(), m_colid.end(), i) != m_colid.end())
-        {
-            // WIND Toolkit API returns "N/A" in data columns for requested heights that are not available
-            // this can happen when requesting data for all available heights by not including any attributes
-            // in the API call
-            if (util::lower_case(cols[i]) == "n/a")
-                values.push_back(std::numeric_limits<double>::quiet_NaN());
-            else if (cols[i] == "") // missing data
-            {
-                m_errorMsg = util::format("data is missing from column %d", i+1);
-                return false;
-            }
-            else
-                values.push_back(std::stof(cols[i]));
-        }
-    }
-
-    if (values.size() != m_colid.size())
-    {
-        m_errorMsg = util::format("line contains %d columns, should contain %d", ncols, m_colid.size());
+        m_errorMsg = "windfile: read past end of cached records";
         return false;
     }
-
+    values = m_cache[m_index++];
     return true;
 }

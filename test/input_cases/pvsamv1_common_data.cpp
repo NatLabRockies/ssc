@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -441,6 +441,7 @@ void belpe_default(ssc_data_t& data)
 */
 void battery_data_default(ssc_data_t& data) {
 	ssc_data_set_number(data, "en_batt", 0);
+	ssc_data_set_number(data, "en_standalone_batt", 0);
 	ssc_data_set_number(data, "batt_replacement_option", 0);
 
     ssc_data_set_number(data, "adjust_constant", 0.0);

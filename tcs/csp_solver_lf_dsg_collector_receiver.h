@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -133,6 +133,7 @@ private:
 	double m_m_dot_loop_des;	//[kg/s] LOOP design point mass flow rate
 
 	double m_W_dot_sca_tracking_nom;	//[MWe] Tracking parasitics when trough is on sun
+    double m_W_dot_pump_des_est;        //[MWe]
 	// *******************************************
 	// *******************************************
 
@@ -399,6 +400,7 @@ public:
     virtual double get_max_power_delivery(double T_cold_in);    //MWt
 	virtual double get_tracking_power();		//MWe
 	virtual double get_col_startup_power();		//MWe-hr
+    virtual double get_design_pumping_power();  //[MWe]
 
 	virtual void off(const C_csp_weatherreader::S_outputs &weather,
 		const C_csp_solver_htf_1state &htf_state_in,

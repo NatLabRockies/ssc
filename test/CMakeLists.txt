@@ -28,7 +28,8 @@ set(SRC_TO_TEST
 		../ssc/cmod_utilityrate5.cpp
         ../ssc/cmod_battery.cpp
         ../ssc/cmod_battwatts.cpp
-        ../ssc/cmod_fuelcell.cpp)
+        ../ssc/cmod_fuelcell.cpp
+        ../ssc/common_financial.cpp)
 
 
 #####################################################################################################################

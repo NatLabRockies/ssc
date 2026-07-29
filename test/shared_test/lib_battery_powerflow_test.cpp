@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -3118,7 +3118,7 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_system_w_ac_losses) {
     EXPECT_NEAR(m_batteryPower->powerLoad, 50, error);
 }
 
-// Test to reproduce https://github.com/NREL/sam/issues/1914
+// Test to reproduce https://github.com/NatLabRockies/sam/issues/1914
 TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, AC_ExcessSystemLoss) {
     m_batteryPower->connectionMode = ChargeController::AC_CONNECTED;
 

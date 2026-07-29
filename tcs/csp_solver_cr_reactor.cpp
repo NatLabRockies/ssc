@@ -446,3 +446,10 @@ double C_csp_cr_reactor::get_collector_area()
     // Collector area is not a relevant metric for an electric resistance heater
     return std::numeric_limits<double>::quiet_NaN();
 }
+
+double C_csp_cr_reactor::get_design_pumping_power() {
+    throw(C_csp_exception("C_reac::get_design_pumping_power() is not complete"));
+
+    return std::numeric_limits<double>::quiet_NaN(); //MWe-h
+
+}

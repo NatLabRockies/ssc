@@ -167,6 +167,8 @@ public:
 
     virtual double get_collector_area();
 
+    virtual double get_design_pumping_power();  //[MWe]
+
     virtual double get_design_electric_to_heat_cop() override;
 
     void get_design_parameters(double& E_su_design /*MWt-hr*/,

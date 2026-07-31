@@ -672,8 +672,6 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_OUTPUT,    SSC_NUMBER, "sales_energy_capacity_factor",       "Capacity factor considering only positive net generation periods",                                                                        "%",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "kwh_per_kw",                         "First year kWh/kW",                                                                                                                       "kWh/kW",       "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "annual_total_water_use",             "Total annual water usage, cycle + mirror washing",                                                                                        "m3",           "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_NUMBER, "capacity_factor_highest_1000_ppas",  "Capacity factor at 1000 highest ppa timesteps",                                                                                           "-",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
-{ SSC_OUTPUT,    SSC_NUMBER, "capacity_factor_highest_2000_ppas",  "Capacity factor at 2000 highest ppa timesteps",                                                                                           "-",            "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 
 { SSC_OUTPUT,    SSC_NUMBER, "disp_objective_ann",                 "Annual sum of dispatch objective function value",                                                                                         "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
 { SSC_OUTPUT,    SSC_NUMBER, "disp_iter_ann",                      "Annual sum of dispatch solver iterations",                                                                                                "",             "",                                  "",                                         "sim_type=1",                                                       "",              ""},
@@ -2307,53 +2305,11 @@ public:
             kWh_sales_energy_per_kW_nameplate = annual_sales_energy / nameplate;
         }
 
-        assign("capacity_factor", (ssc_number_t)(kWh_per_kW / ((double)n_steps_fixed / (double)steps_per_hour)*100.));
+        assign("capacity_factor", (ssc_number_t)(kWh_per_kW / ((double)n_steps_fixed / (double)steps_per_hour) * 100.));
         assign("sales_energy_capacity_factor", (ssc_number_t)(kWh_sales_energy_per_kW_nameplate / ((double)n_steps_fixed / (double)steps_per_hour) * 100.));
         assign("kwh_per_kw", (ssc_number_t)kWh_per_kW);
 
-        ssc_number_t* p_pricing_mult = as_array("pricing_mult", &count);
-
-        std::vector<pair<size_t, double>> ppa_pairs;
-        ppa_pairs.resize(count);
-        for (size_t i = 0; i < count; i++) {
-            ppa_pairs[i].first = i;
-            ppa_pairs[i].second = p_pricing_mult[i];
-        }
-
-        //std::sort(ppa_pairs.begin(), ppa_pairs.end(), SortByPPAPrice);
-        size_t n_ppa_steps = 1000;
-
-        double total_energy_in_sub_period = 0.0;
-        for (size_t i = 0; i < n_ppa_steps; i++) {
-            size_t j = ppa_pairs[i].first;
-            total_energy_in_sub_period += p_gen[j] * sim_setup.m_report_step / 3600.0;     //[kWe-hr]
-        }
-
-        double total_energy_nameplate = nameplate * n_ppa_steps * sim_setup.m_report_step / 3600.0;     //[kWe-hr]
-
-        double cap_fac_highest_1000_ppas = 0.0;
-        if (nameplate > 0.0) {
-            cap_fac_highest_1000_ppas = total_energy_in_sub_period / total_energy_nameplate * 100.0;    //[%]        
-        }
-
-        assign("capacity_factor_highest_1000_ppas", cap_fac_highest_1000_ppas);
-
-        n_ppa_steps = 2000;
-
-        total_energy_in_sub_period = 0.0;
-        for (size_t i = 0; i < n_ppa_steps; i++) {
-            size_t j = ppa_pairs[i].first;
-            total_energy_in_sub_period += p_gen[j] * sim_setup.m_report_step / 3600.0;     //[kWe-hr]
-        }
-
-        total_energy_nameplate = nameplate * n_ppa_steps * sim_setup.m_report_step / 3600.0;     //[kWe-hr]
-
-        double cap_fac_highest_2000_ppas = 0.0;
-        if (nameplate > 0.0) {
-            cap_fac_highest_2000_ppas = total_energy_in_sub_period / total_energy_nameplate * 100.0;    //[%]
-        }
-
-        assign("capacity_factor_highest_2000_ppas", cap_fac_highest_2000_ppas);
+        // (IPH) PPA-weighted capacity-factor metrics removed: no electric output (p_gen = 0).
 
         if (p_electric_resistance != NULL) {
             delete p_electric_resistance;

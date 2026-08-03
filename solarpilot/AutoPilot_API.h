@@ -114,6 +114,7 @@ public:
 	bool IsSimulationCancelled();
     //other
     sp_optimize *GetOptimizationObject();
+    SolarField* GetSolarFieldObject() { return _SF; }
     
     struct API_CANT_TYPE { enum A {NONE, ON_AXIS, EQUINOX, SOLSTICE_SUMMER, SOLSTICE_WINTER }; };
 	

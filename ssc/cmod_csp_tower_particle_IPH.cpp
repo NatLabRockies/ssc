@@ -308,6 +308,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
 { SSC_INPUT,     SSC_NUMBER, "rec_ref_cost",                       "Receiver reference cost",                                                                                                                 "$",            "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "rec_ref_area",                       "Receiver reference area for cost scale",                                                                                                  "",             "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "rec_cost_exp",                       "Receiver cost scaling exponent",                                                                                                          "",             "",                                  "System Costs",                             "*",                                                                "",              ""},
+{ SSC_INPUT,     SSC_NUMBER, "rec_fixed_cost",                     "Receiver fixed cost per receiver",                                                                                                        "$",            "",                                  "System Costs",                             "?=0",                                                              "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "rec_lift_spec_cost",                 "Receiver lift specific cost",                                                                                                             "$-s/m-kg",     "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "site_spec_cost",                     "Site improvement cost",                                                                                                                   "$/m2",         "",                                  "System Costs",                             "*",                                                                "",              ""},
 { SSC_INPUT,     SSC_NUMBER, "heliostat_spec_cost",                "Heliostat field cost",                                                                                                                    "$/m2",         "",                                  "System Costs",                             "*",                                                                "",              ""},
@@ -1951,10 +1952,13 @@ public:
         assign("tower_total_height", (ssc_number_t)tower_total_height);                 //[m]
         assign("csp.pt.cost.tower", (ssc_number_t)tower_cost);
 
+        double rec_fixed_cost = as_double("rec_fixed_cost");              //[$/receiver]
         double receiver_cost = 0.0;
-        for (size_t i = 0; i<num_recs; i++)
-            receiver_cost += N_mspt::receiver_cost(A_rec_aperture.at(i), as_double("rec_ref_cost"), as_double("rec_ref_area"), as_double("rec_cost_exp"));
+        for (size_t i = 0; i < num_recs; i++)
+            receiver_cost += rec_fixed_cost + N_mspt::receiver_cost(A_rec_aperture.at(i), as_double("rec_ref_cost"),
+                as_double("rec_ref_area"), as_double("rec_cost_exp"));
         assign("csp.pt.cost.receiver", (ssc_number_t)receiver_cost);
+
 
         double rec_lift_height = THT + max_rec_height_offset + h_helio / 2.;
         double rec_lift_cost =

@@ -940,7 +940,8 @@ static var_info vtab_battery_costs_io[] = {
 var_info_invalid };
 
 extern var_info
-    vtab_battery_replacement_cost[];
+    vtab_battery_replacement_cost[],
+    vtab_battery_kernel_inputs[];
 
 
 bool SortByDouble(const pair<int, double>& lhs,
@@ -957,8 +958,8 @@ public:
         add_var_info(vtab_sf_adjustment_factors);
         add_var_info(vtab_technology_outputs);
         // Battery inputs - kernel-only table (no dispatch, no SAM cmod-only inputs)
-        add_var_info(vtab_battery_kernel_inputs);
         add_var_info(vtab_battery_replacement_cost);
+        add_var_info(vtab_battery_kernel_inputs);
         add_var_info(vtab_battery_costs_io);
         add_var_info(vtab_battery_csp_outputs);
     } 

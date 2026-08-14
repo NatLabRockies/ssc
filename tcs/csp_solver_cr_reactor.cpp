@@ -200,8 +200,9 @@ double C_csp_cr_reactor::get_max_power_delivery(double T_htf_cold_in /*C*/)    /
 
 double C_csp_cr_reactor::get_tracking_power()	//MWe
 {
-    throw(C_csp_exception("C_csp_cr_reactor::get_tracking_power(...) is not complete"));
-    return std::numeric_limits<double>::quiet_NaN();
+    // Now the csp solver method needs design power up front for net electricity mode, so need to assign this something
+    // No trackers in a reactor, so use 0
+    return 0; //MWe
 }
 
 double C_csp_cr_reactor::get_col_startup_power()		//MWe-hr
@@ -448,8 +449,10 @@ double C_csp_cr_reactor::get_collector_area()
 }
 
 double C_csp_cr_reactor::get_design_pumping_power() {
-    throw(C_csp_exception("C_reac::get_design_pumping_power() is not complete"));
 
-    return std::numeric_limits<double>::quiet_NaN(); //MWe-h
+    // Now the csp solver method needs design power up front for net electricity mode, so need to assign this something
+    // Because we are not yet modeling reactor pumping power, use 0
+    return 0; //MWe
 
 }
+

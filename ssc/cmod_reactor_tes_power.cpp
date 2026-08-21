@@ -457,8 +457,10 @@ static var_info _cm_vtab_reactor_tes_power[] = {
     { SSC_OUTPUT,    SSC_MATRIX, "cycle_eff_load_table",               "Cycle efficiency vs. thermal load",                                                                                                       "",             "",                                  "",                                         "sim_type=1",                                                       "",              "COL_LABEL=THERMLOAD_EFFICIENCY,ROW_LABEL=NO_ROW_LABEL" },
     { SSC_OUTPUT,    SSC_MATRIX, "cycle_Tdb_table",                    "Normalized cycle efficiency and condenser power vs. ambient temperature",                                                                 "",             "",                                  "",                                         "sim_type=1",                                                       "",              "COL_LABEL=AMBTEMP_EFF_CONDPOW,ROW_LABEL=NO_ROW_LABEL" },
 
-    var_info_invalid };
+    { SSC_OUTPUT,       SSC_NUMBER,      "annual_fuel_usage",           "Annual Fuel Usage",                    "kWht",         "",      "Annual",      "",               "",                    "" },
 
+
+    var_info_invalid };
 
 bool SortByDouble(const pair<int, double>& lhs,
     const pair<int, double>& rhs);
@@ -762,6 +764,9 @@ public:
                 if (is_ppa_price_input_assigned) {
                     size_t count_ppa_price_input;
                     ssc_number_t* ppa_price_input_array = as_array("ppa_price_input", &count_ppa_price_input);
+                    if (ppa_price_input_array == nullptr || count_ppa_price_input < 1) {
+                        throw exec_error("reactor_tes_power", "ppa_price_input is assigned but contains no values");
+                    }
                     ppa_price_year1 = (double)ppa_price_input_array[0];  // [$/kWh]
                 }
                 else {
@@ -1390,6 +1395,11 @@ public:
         accumulate_annual_for_year("P_cycle", "annual_W_cycle_gross", 1000.0*sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed/steps_per_hour);        //[kWhe]
         accumulate_annual_for_year("P_cooling_tower_tot", "annual_W_cooling_tower", 1000.0*sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);        //[kWhe]
 
+        // Fuel is computed on MWht basis
+        assign("system_heat_rate", var_data((ssc_number_t)1.0)); // thermal to electric conversion
+        double ts_hour = 1 / (double)(steps_per_hour);
+        accumulate_annual_for_year("reactor_thermal_power", "annual_fuel_usage", ts_hour * 1000.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour); // Convert MWht to kWht
+
         //accumulate_annual_for_year("disp_objective", "disp_objective_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour);
         //accumulate_annual_for_year("disp_solve_iter", "disp_iter_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour);
         //accumulate_annual_for_year("disp_presolve_nconstr", "disp_presolve_nconstr_ann", sim_setup.m_report_step / 3600.0/ as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour);
@@ -1481,10 +1491,10 @@ public:
             }
 
             std::sort(ppa_pairs.begin(), ppa_pairs.end(), SortByDouble);
-            int n_ppa_steps = 1000;
+            int n_ppa_steps = (int)std::min(count, (size_t)1000);
 
             double total_energy_in_sub_period = 0.0;
-            for (size_t i = 0; i < n_ppa_steps; i++) {
+            for (size_t i = 0; i < (size_t)n_ppa_steps; i++) {
                 size_t j = ppa_pairs[i].first;
                 total_energy_in_sub_period += p_gen[j] * sim_setup.m_report_step / 3600.0;     //[kWhe]
             }
@@ -1498,10 +1508,10 @@ public:
 
             assign("capacity_factor_highest_1000_ppas", cap_fac_highest_1000_ppas);
 
-            n_ppa_steps = 2000;
+            n_ppa_steps = (int)std::min(count, (size_t)2000);
 
             total_energy_in_sub_period = 0.0;
-            for (size_t i = 0; i < n_ppa_steps; i++) {
+            for (size_t i = 0; i < (size_t)n_ppa_steps; i++) {
                 size_t j = ppa_pairs[i].first;
                 total_energy_in_sub_period += p_gen[j] * sim_setup.m_report_step / 3600.0;     //[kWhe]
             }
@@ -1529,10 +1539,10 @@ public:
             }
 
             std::sort(tdry_pairs.begin(), tdry_pairs.end(), SortByDouble);
-            int n_tdry_steps = 100;
+            int n_tdry_steps = (int)std::min(count, (size_t)100);
 
             double total_energy_in_sub_period_tdry = 0.0;
-            for (size_t i = 0; i < n_tdry_steps; i++) {
+            for (size_t i = 0; i < (size_t)n_tdry_steps; i++) {
                 size_t j = tdry_pairs[i].first;
                 total_energy_in_sub_period_tdry += p_gen[j] * sim_setup.m_report_step / 3600.0;     //[kWhe]
             }
@@ -1552,6 +1562,7 @@ public:
             assign("capacity_factor_highest_2000_ppas", nan_output);
             assign("capacity_factor_warmest_100_Tambs", nan_output);
         }
+
         // **********************************************************
         // **********************************************************
 
@@ -1562,6 +1573,9 @@ public:
                 // Get first year base ppa price
                 size_t count_ppa_price_input;
                 ssc_number_t* ppa_price_input_array = as_array("ppa_price_input", &count_ppa_price_input);
+                if (ppa_price_input_array == nullptr || count_ppa_price_input < 1) {
+                    throw exec_error("reactor_tes_power", "ppa_price_input is assigned but contains no values");
+                }
                 double ppa_price_year1 = (double)ppa_price_input_array[0];  // [$/kWh]
 
                 double T_amb_hot = 30.0;    //[C]

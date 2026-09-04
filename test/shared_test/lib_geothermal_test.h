@@ -409,9 +409,12 @@ public:
 				geoPlant_outputs.maf_hourly_power = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
                 geoPlant_outputs.maf_timestep_dry_bulb = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
                 geoPlant_outputs.maf_timestep_wet_bulb = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
-                geoPlant_outputs.maf_frac_max_eff = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
-                geoPlant_outputs.maf_max_secondlaw = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
                 geoPlant_outputs.maf_AE = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_getem_2nd_law_total_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_carnot_od_scaling = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_cycle_net_power_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_plant_net_power_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_brine_pumping_power_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
 
 		
 		//====================================================================================================================================================================
@@ -440,9 +443,12 @@ public:
 			delete [] geoPlant_outputs.maf_ReplacementsByYear;
             delete geoTester;
 
-            delete [] geoPlant_outputs.maf_frac_max_eff;
-            delete [] geoPlant_outputs.maf_max_secondlaw;
             delete [] geoPlant_outputs.maf_AE;
+            delete [] geoPlant_outputs.maf_getem_2nd_law_total_od;
+            delete [] geoPlant_outputs.maf_carnot_od_scaling;
+            delete[] geoPlant_outputs.maf_cycle_net_power_od;
+            delete[] geoPlant_outputs.maf_plant_net_power_od;
+            delete[] geoPlant_outputs.maf_brine_pumping_power_od;
 	}
 
 };

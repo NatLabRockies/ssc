@@ -527,6 +527,46 @@ void CGeothermalAnalyzer::init()
 
 //bool CGeothermalAnalyzer::IsHourly() { return (mo_geo_in.mi_MakeupCalculationsPerYear == 8760) ? true : false; }
 
+double CGeothermalAnalyzer::PlantGrossPowerkW_offdesign(double T_resource_od_C /*C*/, double T_amb_od_C /*C*/){
+
+    // Only use this method for Binary
+    if(me_makeup == MA_EGS_FLASH || me_makeup == MA_FLASH){
+
+        return PlantGrossPowerkW();
+    }
+
+    double T_cycle_in_od_C = T_resource_od_C - DT_prod_well(mo_geo_in.md_dtProdWellChoice);      //[C] apply production well temperature loss
+
+    // Off-design, so want to calculate as a function of brine and ambient temperatures
+    double AE_od = geothermal::oGFC.GetAEForBinaryWattHrUsingC(T_cycle_in_od_C, T_amb_od_C);     //[watt-hr/lb_m]
+
+    // Adjust 2nd law efficiency for off-design
+    double T_cycle_in_od_K = physics::CelciusToKelvin(T_cycle_in_od_C);
+    double T_amb_od_K = physics::CelciusToKelvin(T_amb_od_C);
+    double carnot_eff_od = 1 - T_amb_od_K / T_cycle_in_od_K;  
+
+    // Get carnot ratio and then carnot scaling
+    double carnot_ratio = carnot_eff_od / mp_geo_out->m_carnot_eff_des;
+    double carnot_od_scaling = Getem_Binary_OD_Scaling(carnot_ratio);
+
+    // Get off-design 2nd law efficiency
+    double getem_2nd_law_total_od = mp_geo_out->m_getem_2nd_law_total_design * carnot_od_scaling;   //[-]
+
+    // Get actual brine effectiveness
+    double plant_brine_effectiveness_od = AE_od * getem_2nd_law_total_od;       //[watt-hr/lb_m]
+
+    double brine_flow_rate = flowRateTotal();           //[lb_m /hr]
+
+    double cycle_net_power = plant_brine_effectiveness_od * brine_flow_rate / 1000.0;   //[kWe]
+
+    // Set some hourly reporting outputs
+    mp_geo_out->md_AE = AE_od * brine_flow_rate / 1000.0;           //[kWe]
+    mp_geo_out->md_carnot_od_scaling = carnot_od_scaling;           //[-]
+    mp_geo_out->md_getem_2nd_law_total_od = getem_2nd_law_total_od; //[-]
+
+    return cycle_net_power;
+}
+
 double CGeothermalAnalyzer::PlantGrossPowerkW(void)
 {
 	double dPlantBrineEfficiency = 0;  // plant Brine Efficiency as a function of temperature
@@ -548,7 +588,7 @@ double CGeothermalAnalyzer::PlantGrossPowerkW(void)
         mp_geo_out->md_max_secondlaw = max_2nd_law_eff;       //[-]
 
         double E_avail = GetAEBinaryAtTemp(md_WorkingTemperatureC - DT_prod_well(mo_geo_in.md_dtProdWellChoice));  //[watt-hr/lb]
-        mp_geo_out->md_AE = E_avail;    //[watt-hr/lb]
+        mp_geo_out->md_AE = E_avail * flowRateTotal() / 1000.0;    //[kWe]
 
         dPlantBrineEfficiency = max_2nd_law_eff * mo_geo_in.md_PlantEfficiency * frac_max_eff * E_avail;	//[watt-hr/lb]
 
@@ -604,6 +644,10 @@ double CGeothermalAnalyzer::MaxSecondLawEfficiency()
 		return (GetPlantBrineEffectiveness() / dGetemAEForSecondLaw);
 }
 
+double CGeothermalAnalyzer::Getem_Binary_OD_Scaling(double carnot_ratio){
+
+    return -10.956 * pow(carnot_ratio, 2) + 22.422 * carnot_ratio - 10.466;
+}
 
 double CGeothermalAnalyzer::FractionOfMaxEfficiency()
 {
@@ -639,7 +683,7 @@ double CGeothermalAnalyzer::FractionOfMaxEfficiency()
 
 	}
 	else // Binary and EGS
-		return -10.956 * pow(carnot_ratio, 2) + 22.422 * carnot_ratio - 10.466;
+		return Getem_Binary_OD_Scaling(carnot_ratio);
 }
 
 bool CGeothermalAnalyzer::CanReplaceReservoir(double dTimePassedInYears)
@@ -1762,24 +1806,43 @@ double CGeothermalAnalyzer::GetPlantBrineEffectiveness(void)
     //	double dAEMaxPossible = (geothermal::IMITATE_GETEM) ? GetAEBinary() -  GetAEBinaryAtTemp(TamphSiO2) : GetAE() - dAE_At_Exit; // watt-hr/lb - [10B.GeoFluid].H54 "maximum possible available energy accounting for the available energy lost due to a silica constraint on outlet temperature"
 
         double dMaxBinaryBrineEffectiveness = std::numeric_limits<double>::quiet_NaN();
-        double AE = GetAE();
-        double AEBinary = GetAEBinary();
+        double AE_used = std::numeric_limits<double>::quiet_NaN();
         if( geothermal::IMITATE_GETEM ){
 
-            mp_geo_out->max_secondlaw = (1 - (GetAEBinaryAtTemp(TamphSiO2) / GetAEBinary()) - 0.375);
-            dMaxBinaryBrineEffectiveness = GetAEBinary() * (mp_geo_out->max_secondlaw);
+            AE_used = GetAEBinary();
+            mp_geo_out->max_secondlaw = (1 - (GetAEBinaryAtTemp(TamphSiO2) / AE_used) - 0.375);
+            dMaxBinaryBrineEffectiveness = AE_used * (mp_geo_out->max_secondlaw);
+            
         }
         else {
 
-            mp_geo_out->max_secondlaw = (1 - (dAE_At_Exit / GetAE()) - 0.375);
-            dMaxBinaryBrineEffectiveness = GetAE() * (mp_geo_out->max_secondlaw);
+            AE_used = GetAE();
+            mp_geo_out->max_secondlaw = (1 - (dAE_At_Exit / AE_used) - 0.375);
+            dMaxBinaryBrineEffectiveness = AE_used * (mp_geo_out->max_secondlaw);
         }
 
+        double total_brine_effectiveness = dMaxBinaryBrineEffectiveness * mo_geo_in.md_PlantEfficiency;     //[W-hr/lb_m] 
+
+        if(!mp_geo_out->m_is_getem_cycle_designed){
+
+            mp_geo_out->m_is_getem_cycle_designed = true;
+            
+            mp_geo_out->m_getem_2nd_law_total_design = total_brine_effectiveness / AE_used;     //[-]
+
+            // Design values - need to move these somewhere and only calculate them once
+            double T_amb_des_C = mo_geo_in.md_TemperatureWetBulbC;          //[C] This design point cycle temperature should not change
+            double T_amb_des_K = physics::CelciusToKelvin(T_amb_des_C);
+
+            double T_resource_hot_des_C = GetTemperaturePlantDesignC();                     //[C] This value should not change during an annual simulation
+            double T_cycle_in_des_C = T_resource_hot_des_C - DT_prod_well(mo_geo_in.md_dtProdWellChoice);      //[C] apply production well temperature loss
+            double T_cycle_in_des_K = physics::CelciusToKelvin(T_cycle_in_des_C);           //[K]
+            mp_geo_out->m_carnot_eff_des = 1 - T_amb_des_K / T_cycle_in_des_K;
+        }
         
         //double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * ((GetTemperaturePlantDesignC() < 150) ? 0.14425 * exp(0.008806 * GetTemperaturePlantDesignC()) : mp_geo_out->max_secondlaw);
         //double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * (mp_geo_out->max_secondlaw);
 
-        return dMaxBinaryBrineEffectiveness * mo_geo_in.md_PlantEfficiency;     //[W-hr/lb_m] 
+        return total_brine_effectiveness;
     }
 }
 
@@ -2520,6 +2583,9 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 			}
 
 			fMonthlyPowerTotal = 0;
+            double cycle_net_power_od = std::numeric_limits<double>::quiet_NaN();
+            double plant_net_power_od = std::numeric_limits<double>::quiet_NaN();
+            double brine_pumping_power_od = std::numeric_limits<double>::quiet_NaN();
 			for (unsigned int hour = 0; hour < (unsigned int)util::hours_in_month(month); hour++)
 			{
 				if (mo_geo_in.mi_simulation_timestep_type == HOURLY_TIMESTEPS || (hour == 0))
@@ -2547,9 +2613,14 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
 					mp_geo_out->maf_timestep_pressure[iElapsedTimeSteps] = (float)mo_pb_in.P_amb;
 
 					// record outputs based on current inputs
-					if (mo_geo_in.mi_cycle_model_type == GETEM_CYCLE) // model choice 0 = GETEM
-						mp_geo_out->maf_timestep_power[iElapsedTimeSteps] = (float)MAX(PlantGrossPowerkW() - mp_geo_out->md_PumpWorkKW, 0) * mo_geo_in.haf[iElapsedHours];
-					else
+                    if( mo_geo_in.mi_cycle_model_type == GETEM_CYCLE ) { // model choice 0 = GETEM
+                        //cycle_net_power_od = PlantGrossPowerkW_offdesign(md_WorkingTemperatureC, mo_pb_in.T_db);
+                        //plant_net_power_od = std::max(cycle_net_power_od - mp_geo_out->md_PumpWorkKW, 0.0);
+                        //double W_dot_plant_net_avail_calc = plant_net_power_od * mo_geo_in.haf[iElapsedHours];
+                        mp_geo_out->maf_timestep_power[iElapsedTimeSteps] = (float)MAX(PlantGrossPowerkW() - mp_geo_out->md_PumpWorkKW, 0) * mo_geo_in.haf[iElapsedHours];
+                        //mp_geo_out->maf_timestep_power[iElapsedTimeSteps] = W_dot_plant_net_avail_calc;     //[kWe]
+                    }
+                    else
 					{	// run power block model
 						if (!mo_PowerBlock.Execute((ml_HourCount - 1) * 3600, mo_pb_in))
 							ms_ErrorString = "There was an error running the power block model: " + mo_PowerBlock.GetLastError();
@@ -2566,9 +2637,12 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
                     mp_geo_out->maf_timestep_dry_bulb[iElapsedHours] = (float)mo_pb_in.T_db;
                     mp_geo_out->maf_timestep_wet_bulb[iElapsedHours] = (float)mo_pb_in.T_wb;
 
-                    mp_geo_out->maf_frac_max_eff[iElapsedHours] = mp_geo_out->md_frac_max_eff;
-                    mp_geo_out->maf_max_secondlaw[iElapsedHours] = mp_geo_out->md_max_secondlaw;
                     mp_geo_out->maf_AE[iElapsedHours] = mp_geo_out->md_AE;
+                    mp_geo_out->maf_getem_2nd_law_total_od[iElapsedHours] = mp_geo_out->md_getem_2nd_law_total_od;
+                    mp_geo_out->maf_carnot_od_scaling[iElapsedHours] = mp_geo_out->md_carnot_od_scaling;
+                    mp_geo_out->maf_cycle_net_power_od[iElapsedHours] = cycle_net_power_od;
+                    mp_geo_out->maf_plant_net_power_od[iElapsedHours] = plant_net_power_od;
+                    mp_geo_out->maf_brine_pumping_power_od[iElapsedHours] = mp_geo_out->md_PumpWorkKW;
                     
 					//md_ElapsedTimeInYears = year + util::percent_of_year(month,hour);
 					if (!ms_ErrorString.empty()) { return false; }
@@ -2580,9 +2654,12 @@ bool CGeothermalAnalyzer::RunAnalysis(bool(*update_function)(float, void*), void
                     mp_geo_out->maf_timestep_dry_bulb[iElapsedHours] = (float)mo_pb_in.T_db;
                     mp_geo_out->maf_timestep_wet_bulb[iElapsedHours] = (float)mo_pb_in.T_wb;
 
-                    mp_geo_out->maf_frac_max_eff[iElapsedHours] = mp_geo_out->md_frac_max_eff;
-                    mp_geo_out->maf_max_secondlaw[iElapsedHours] = mp_geo_out->md_max_secondlaw;
                     mp_geo_out->maf_AE[iElapsedHours] = mp_geo_out->md_AE;
+                    mp_geo_out->maf_getem_2nd_law_total_od[iElapsedHours] = mp_geo_out->md_getem_2nd_law_total_od;
+                    mp_geo_out->maf_carnot_od_scaling[iElapsedHours] = mp_geo_out->md_carnot_od_scaling;
+                    mp_geo_out->maf_cycle_net_power_od[iElapsedHours] = cycle_net_power_od;
+                    mp_geo_out->maf_plant_net_power_od[iElapsedHours] = plant_net_power_od;
+                    mp_geo_out->maf_brine_pumping_power_od[iElapsedHours] = mp_geo_out->md_PumpWorkKW;
                 }
 
 				iElapsedHours++;

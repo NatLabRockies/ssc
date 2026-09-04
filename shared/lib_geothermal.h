@@ -191,8 +191,11 @@ struct SGeothermal_Outputs
         md_FailedInjFlowRatio = md_FailedProdFlowRatio = 0;
         ElapsedHours = ElapsedMonths = 0;
 
-        md_frac_max_eff = md_max_secondlaw = md_AE = std::numeric_limits<double>::quiet_NaN();
+        md_frac_max_eff = md_max_secondlaw = md_AE =
+            md_carnot_od_scaling = md_getem_2nd_law_total_od = std::numeric_limits<double>::quiet_NaN();
 
+        m_is_getem_cycle_designed = false;
+        m_getem_2nd_law_total_design = m_carnot_eff_des = std::numeric_limits<double>::quiet_NaN();
 	}
 
 	//Following list of variables used as inputs in cmod_geothermal_costs.cpp for calculating direct geothermal plant cost:
@@ -262,10 +265,17 @@ struct SGeothermal_Outputs
 	double md_BottomHolePressure; //double GetBottomHolePressure(void) { return moPPC.GetBottomHolePressure(); }
     double md_FractionGFInjected;
 
+    // Messy (for now) design-point calculations
+    bool m_is_getem_cycle_designed;     // initializes to false; calculates once in GetBrinePlantEffectiveness and switches to true to skip future calcs
+    double m_getem_2nd_law_total_design;    // [-]
+    double m_carnot_eff_des;            // [-] Carnot efficiency at design
+
     // Report off-design power cycle outputs
     double md_frac_max_eff;     //[-] fraction of design second law efficiency
     double md_max_secondlaw;    //[-] maximum second law efficiency
     double md_AE;               //[watt-hr/lb] actual brine effectiveness
+    double md_carnot_od_scaling;        //[-]
+    double md_getem_2nd_law_total_od;   //[-]
 
 	// output arrays
 	double * maf_ReplacementsByYear;			// array of ones and zero's over time, ones representing years where reservoirs are replaced
@@ -281,9 +291,12 @@ struct SGeothermal_Outputs
 	double * maf_hourly_power;				// hourly values even if the timestep is monthly
 
 
-    double * maf_frac_max_eff;
-    double * maf_max_secondlaw;
-    double * maf_AE;
+    double * maf_AE;                        //[kWe]
+    double * maf_getem_2nd_law_total_od;    //[-]
+    double * maf_carnot_od_scaling;         //[-]
+    double * maf_cycle_net_power_od;        //[kWe]
+    double * maf_plant_net_power_od;        //[kWe] Pre-availability derate
+    double * maf_brine_pumping_power_od;    //[kWe]
 
 };
 
@@ -333,9 +346,15 @@ private:
 	void init(void); // code common to both constructors
 	//bool IsHourly(void);
 	double PlantGrossPowerkW(void);
+
+    double PlantGrossPowerkW_offdesign(double T_brine_od_C /*C*/, double T_amb_od_C /*C*/);
+
     double GrossPowerMW(void);
 	double MaxSecondLawEfficiency(void);
 	double FractionOfMaxEfficiency(void);
+
+    double Getem_Binary_OD_Scaling(double carnot_ratio);
+
 	bool CanReplaceReservoir(double dTimePassedInYears);
 	void CalculateNewTemperature(double dElapsedTimeInYears);
 

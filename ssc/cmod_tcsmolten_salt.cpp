@@ -350,6 +350,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "disp_csu_cost_rel",                  "Cycle startup cost",                                                                                                                      "$/MWe-cycle/start", "",                             "System Control",                           "",                                                                 "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "disp_pen_ramping",                   "Dispatch cycle production change penalty",                                                                                                "$/MWe-change", "",                                  "System Control",                           "",                                                                 "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "disp_inventory_incentive",           "Dispatch storage terminal inventory incentive multiplier",                                                                                "",             "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_NUMBER, "disp_tes_min_buffer",                "Dispatch minimum TES buffer in hours of cycle thermal input",                                                                             "hr",           "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,     SSC_NUMBER, "q_rec_standby",                      "Receiver standby energy consumption",                                                                                                     "kWt",          "",                                  "System Control",                           "?=9e99",                                                           "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_NUMBER, "q_rec_heattrace",                    "Receiver heat trace energy consumption during startup",                                                                                   "kWhe",         "",                                  "System Control",                           "?=0.0",                                                            "",              "SIMULATION_PARAMETER"},
 
@@ -2564,7 +2565,7 @@ public:
             dispatch.params.set_user_params(as_boolean("can_cycle_use_standby"), as_double("disp_time_weighting"),
                 disp_rsu_cost_calc, heater_startup_cost, disp_csu_cost_calc, as_double("disp_pen_ramping"),
                 as_double("disp_inventory_incentive"), 0.001, max_pv_gen,
-                as_double("q_rec_standby"), as_double("q_rec_heattrace"));
+                as_double("q_rec_standby"), as_double("q_rec_heattrace"), as_double("disp_tes_min_buffer"));
 
         }
 

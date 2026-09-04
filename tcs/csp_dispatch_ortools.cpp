@@ -76,8 +76,12 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
 
     params.dt = 1. / (double)solver_params.steps_per_hour;  //hr
 
-    params.e_tes_min = pointers.tes->get_min_charge_energy();
+    params.e_tes_min = pointers.tes->get_min_charge_energy() + params.tes_min_buffer * pointers.mpc_pc->get_max_thermal_power();
     params.e_tes_max = pointers.tes->get_max_charge_energy();
+    if (params.e_tes_min > params.e_tes_max) {
+        params.e_tes_min = params.e_tes_max;
+        // FIXME: It would be good to throw a warning here, but the dispatch model doesn't have access to the solver object to throw a warning. This should be fixed in the future.
+    }
     params.e_pb_startup_cold = pointers.mpc_pc->get_cold_startup_energy();
     params.e_pb_startup_hot = pointers.mpc_pc->get_hot_startup_energy();
     params.e_rec_startup = pointers.col_rec->get_startup_energy();
@@ -236,7 +240,8 @@ void csp_dispatch_ortools::build_dispatch_model()
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Ec"] * 1.0001,     "u_csu",    &cont_vars.ucsu);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Wdotu"] * 1.1,     "wdot",     &cont_vars.wdot);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Wdotu"] * 1.1,     "delta_w",  &cont_vars.delta_w);
-    solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Eu"],              "s",        &cont_vars.s);
+
+    solver->MakeNumVarArray(m_nstep_opt, P["El"], P["Eu"], "s", &cont_vars.s);
 
     // Binary variables
     solver->MakeBoolVarArray(m_nstep_opt, "y_r",    &bin_vars.yr);
@@ -1106,7 +1111,8 @@ void csp_dispatch_ortools::update_initial_conditions(double q_dot_to_pb, double 
     pointers.tes->discharge_avail_est(T_htf_cold_des, pointers.siminfo->ms_ts.m_step, q_disch, m_dot_disch, T_tes_return);
     init_conditions.e_tes0 = q_disch * pointers.siminfo->ms_ts.m_step / 3600. + params.e_tes_min;        //MWh
     if (init_conditions.e_tes0 < params.e_tes_min)
-        init_conditions.e_tes0 = params.e_tes_min;
+        // TODO: Update lower bounds of s[t]
+        init_conditions.e_tes0 = params.e_tes_min;      // TODO: need to update this based on the buffer...
     if (init_conditions.e_tes0 > params.e_tes_max)
         init_conditions.e_tes0 = params.e_tes_max;
 
@@ -1240,10 +1246,14 @@ void csp_dispatch_ortools::s_params::create_parameter_map(unordered_map<std::str
 {
     /*
      A central location for making sure the parameters from the model are accurately calculated for use in the dispatch optimization model.
+
+    FIXME: Remove this extra mapping of parameters and use the s_params struct directly in the optimization model.
+    This will require changing the optimization model to use a struct instead of a map for parameters.
     */
     param_map.clear();
     param_map["T"] = nt;
     param_map["delta"] = dt;
+    param_map["El"] = e_tes_min;
     param_map["Eu"] = e_tes_max;
     param_map["Er"] = e_rec_startup;
     param_map["Ec"] = e_pb_startup_cold;

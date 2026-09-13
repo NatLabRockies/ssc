@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -222,7 +222,12 @@ static var_info _cm_vtab_geothermal[] = {
 
 	{ SSC_OUTPUT,		SSC_NUMBER,		"capacity_factor",					  "Capacity factor",									"",			"",					 "",					"*",				"",					"" },
 	{ SSC_OUTPUT,		SSC_NUMBER,		 "kwh_per_kw",						  "First year kWh/kW",									 "",		"",					 "",					 "*",				"",					"" },
-	
+
+    { SSC_OUTPUT,       SSC_NUMBER,		"dt_rock_well_head",                  "dT used in calculations",							 "C",		"",             "GeoHourly",				 "",                 "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,		"brine_effectiveness",                "Brine effectiveness used in calculations",							 "w-h/lb",		"",             "GeoHourly",				 "",                 "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,		"max_brine_effectiveness",                "Maximum brine effectiveness",							 "w-h/lb",		"",             "GeoHourly",				 "",                 "",                "" },
+
+
 		//Outputs Used in cmod_geothermal_costs:
 	{ SSC_OUTPUT,       SSC_NUMBER,		"eff_secondlaw",                        "Second Law Efficiency",							 "C",		"",             "GeoHourly",				 "",                 "",                "" },
 	{ SSC_OUTPUT,		SSC_NUMBER,		"qRejectTotal",							"Total Heat Rejection",								 "btu/h",	"",				"GeoHourly",				 "",				 "",				""},
@@ -410,6 +415,11 @@ public:
 
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
         assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+
+        assign("dt_rock_well_head", var_data((ssc_number_t)geo_outputs.md_dtRockWellHead));
+        assign("brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
+        assign("max_brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_MaxBrineEffectiveness));
+
 
 		if (iControl == 1) {
 			

@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -188,7 +188,7 @@ protected:
     }
 };
 /**
-*    Test which uses the example in bifacialvf.py within github.com/NREL/bifacialvf
+*    Test which uses the example in bifacialvf.py within github.com/NatLabRockies/bifacialvf
 */
 
 class BifacialIrradTest : public ::testing::Test {
@@ -278,7 +278,7 @@ protected:
         int nb3 = sprintf(device_matrix, "%s/test/input_cases/mhk/wave_power_matrix.csv", SSCDIR);
         */
         std::string sscdir(SSCDIR);
-        // Truth datasets for github.com/NREL/bifacialvf test case
+        // Truth datasets for github.com/NatLabRockies/bifacialvf test case
         frontSkyConfigFactorsFile = sscdir + "/test/input_cases/bifacialvf_data/expectedFrontSkyConfigFactors.txt";
         rearSkyConfigFactorsFile = sscdir + "/test/input_cases/bifacialvf_data/expectedRearSkyConfigFactors.txt";
         pvFrontSHFile = sscdir + "/test/input_cases/bifacialvf_data/expectedPVFrontSH.txt";

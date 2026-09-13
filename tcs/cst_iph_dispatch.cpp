@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ cst_iph_dispatch_opt::cst_iph_dispatch_opt()
     params.clear();
 }
 
-void cst_iph_dispatch_opt::init(double hs_q_dot_des, double hs_eta_des)
+void cst_iph_dispatch_opt::init(double hs_q_dot_des, double hs_eta_des, double fixed_parasitic)
 {
     set_default_solver_parameters();
 
@@ -301,13 +301,6 @@ void cst_iph_dispatch_opt::calculate_parameters(unordered_map<std::string, doubl
 
 bool cst_iph_dispatch_opt::optimize()
 {
-
-    //First check to see whether we should call the AMPL engine instead. 
-    if( solver_params.is_ampl_engine )
-    {
-        return optimize_ampl();
-    }
-
     /* 
     Formulate the optimization problem for dispatch generation. We are trying to minimize operating cost subject to heat load and inventory
     constraints.
@@ -931,46 +924,46 @@ bool cst_iph_dispatch_opt::set_dispatch_outputs()
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)
             % (solver_params.optimize_frequency * solver_params.steps_per_hour);
 
-        disp_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
-        disp_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
-        disp_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || disp_outputs.is_pc_sb_allowed;
+        dispatch_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
+        dispatch_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
+        dispatch_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || dispatch_outputs.is_pc_sb_allowed;
 
-        disp_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step);
+        dispatch_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step);
 
         // Artificially set target higher to deal with end of TES effects
         if (m_current_read_step > 1) {
             if ((outputs.tes_charge_expected.at(m_current_read_step - 1) > 0.)
                 && (outputs.tes_charge_expected.at(m_current_read_step) == 0.)) {       // Did we run out of TES this time step?
-                disp_outputs.q_pc_target = params.heat_load.at(m_current_read_step);        // Set to heat load this time step
+                dispatch_outputs.q_pc_target = params.heat_load.at(m_current_read_step);        // Set to heat load this time step
             }
             else if ((outputs.tes_charge_expected.at(m_current_read_step - 1) == 0.0)   // Did we run out of TES last time step?
                 && (outputs.q_pb_target.at(m_current_read_step - 1) > 0.0)) {               // and we generating last time step?
-                disp_outputs.q_pc_target = params.heat_load.at(m_current_read_step);        // Set to heat load this time step
-                disp_outputs.is_pc_su_allowed = true;
+                dispatch_outputs.q_pc_target = params.heat_load.at(m_current_read_step);        // Set to heat load this time step
+                dispatch_outputs.is_pc_su_allowed = true;
             }
         }
 
-        if (disp_outputs.q_pc_target + 1.e-5 < params.q_hs_min) {
-            disp_outputs.is_pc_su_allowed = false;
-            disp_outputs.q_pc_target = 0.0;
+        if (dispatch_outputs.q_pc_target + 1.e-5 < params.q_hs_min) {
+            dispatch_outputs.is_pc_su_allowed = false;
+            dispatch_outputs.q_pc_target = 0.0;
         }
-        disp_outputs.q_dot_pc_max = disp_outputs.q_pc_target;
+        dispatch_outputs.q_dot_pc_max = dispatch_outputs.q_pc_target;
 
-        disp_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);     // TODO: I don't really understand what this one does to the solver...
+        dispatch_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);     // TODO: I don't really understand what this one does to the solver...
 
-        disp_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
-        disp_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
+        dispatch_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
+        dispatch_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
 
-        disp_outputs.etasf_expect = params.eta_sf_expected.at(m_current_read_step);
-        disp_outputs.qsf_expect = params.q_sfavail_expected.at(m_current_read_step);
-        disp_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
-        disp_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
-        disp_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
+        dispatch_outputs.etasf_expect = params.eta_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsf_expect = params.q_sfavail_expected.at(m_current_read_step);
+        dispatch_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
+        dispatch_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "csp_dispatch");
     }
-    disp_outputs.time_last = pointers.siminfo->ms_ts.m_time;
+    dispatch_outputs.time_last = pointers.siminfo->ms_ts.m_time;
 
     return true;
 }

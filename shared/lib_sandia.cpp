@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -294,8 +294,8 @@ bool sandia_module_t::operator() ( pvinput_t const &in, double TcellC, double op
 		double AMa = sandia_absolute_air_mass(in.Zenith, in.Elev);
 
 		//C Calculate F1 function:
-		double F1 = sandia_f1(AMa,A0,A1,A2,A3,A4);
-
+		//double F1 = sandia_f1(AMa,A0,A1,A2,A3,A4);
+        double F1 = in.SCF;
 		//C Calculate F2 function:
 		double F2 = sandia_f2(in.IncAng,B0,B1,B2,B3,B4,B5);
 

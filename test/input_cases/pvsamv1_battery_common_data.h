@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -836,6 +836,72 @@ void commercial_multiarray_default(ssc_data_t& data) {
     ssc_data_set_number(data, "prop_tax_assessed_decline", 0);
     ssc_data_set_number(data, "real_discount_rate", 6.4000000000000004);
     ssc_data_set_number(data, "insurance_rate", 0.5);
+
+    ssc_number_t itc_amount[1] = { 0 };
+    ssc_number_t itc_fed_percent[1] = { 26 };
+    ssc_number_t itc_amount_max[1] = { 1e+38 };
+    ssc_data_set_array(data, "itc_fed_amount", itc_amount, 1);
+    ssc_data_set_array(data, "itc_sta_amount", itc_amount, 1);
+    ssc_data_set_array(data, "itc_fed_percent", itc_fed_percent, 1);
+    ssc_data_set_array(data, "itc_sta_percent", itc_amount, 1);
+    ssc_data_set_array(data, "itc_fed_percent_maxvalue", itc_amount_max, 1);
+    ssc_data_set_array(data, "itc_sta_percent_maxvalue", itc_amount_max, 1);
+    ssc_data_set_number(data, "itc_fed_amount_deprbas_fed", 1);
+    ssc_data_set_number(data, "itc_fed_amount_deprbas_sta", 1);
+    ssc_data_set_number(data, "itc_sta_amount_deprbas_fed", 0);
+    ssc_data_set_number(data, "itc_sta_amount_deprbas_sta", 0);
+    ssc_data_set_number(data, "itc_fed_percent_deprbas_fed", 1);
+    ssc_data_set_number(data, "itc_fed_percent_deprbas_sta", 1);
+    ssc_data_set_number(data, "itc_sta_percent_deprbas_fed", 0);
+    ssc_data_set_number(data, "itc_sta_percent_deprbas_sta", 0);
+    ssc_number_t p_ptc_fed_amount[1] = { 0 };
+    ssc_data_set_array(data, "ptc_fed_amount", p_ptc_fed_amount, 1);
+    ssc_data_set_number(data, "ptc_fed_term", 10);
+    ssc_data_set_number(data, "ptc_fed_escal", 0);
+    ssc_number_t p_ptc_sta_amount[1] = { 0 };
+    ssc_data_set_array(data, "ptc_sta_amount", p_ptc_sta_amount, 1);
+    ssc_data_set_number(data, "ptc_sta_term", 10);
+    ssc_data_set_number(data, "ptc_sta_escal", 0);
+    ssc_data_set_number(data, "depr_alloc_macrs_5_percent", 90);
+    ssc_data_set_number(data, "depr_alloc_macrs_15_percent", 1.5);
+    ssc_data_set_number(data, "depr_alloc_sl_5_percent", 0);
+    ssc_data_set_number(data, "depr_alloc_sl_15_percent", 2.5);
+    ssc_data_set_number(data, "depr_alloc_sl_20_percent", 3);
+    ssc_data_set_number(data, "depr_alloc_sl_39_percent", 0);
+    ssc_data_set_number(data, "depr_alloc_custom_percent", 0);
+    ssc_number_t p_depr_custom_schedule[1] = { 0 };
+    ssc_data_set_array(data, "depr_custom_schedule", p_depr_custom_schedule, 1);
+    ssc_data_set_number(data, "depr_bonus_sta", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_macrs_5", 1);
+    ssc_data_set_number(data, "depr_bonus_sta_macrs_15", 1);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_5", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_15", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_20", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_sl_39", 0);
+    ssc_data_set_number(data, "depr_bonus_sta_custom", 0);
+    ssc_data_set_number(data, "depr_bonus_fed", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_macrs_5", 1);
+    ssc_data_set_number(data, "depr_bonus_fed_macrs_15", 1);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_5", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_15", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_20", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_sl_39", 0);
+    ssc_data_set_number(data, "depr_bonus_fed_custom", 0);
+    ssc_data_set_number(data, "depr_itc_sta_macrs_5", 1);
+    ssc_data_set_number(data, "depr_itc_sta_macrs_15", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_5", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_15", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_20", 0);
+    ssc_data_set_number(data, "depr_itc_sta_sl_39", 0);
+    ssc_data_set_number(data, "depr_itc_sta_custom", 0);
+    ssc_data_set_number(data, "depr_itc_fed_macrs_5", 1);
+    ssc_data_set_number(data, "depr_itc_fed_macrs_15", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_5", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_15", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_20", 0);
+    ssc_data_set_number(data, "depr_itc_fed_sl_39", 0);
+    ssc_data_set_number(data, "depr_itc_fed_custom", 0);
+
 	ssc_number_t p_dc_degradation[1] = { 0.5 };
 	ssc_data_set_array(data, "dc_degradation", p_dc_degradation, 1);
 	ssc_data_set_number(data, "en_dc_lifetime_losses", 0);

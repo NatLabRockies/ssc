@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -586,7 +586,7 @@ int C_monotonic_eq_solver::solver_core(double x_guess_1, double y1, double x_gue
 				}
 
                 double x_at_lowest = std::numeric_limits<double>::quiet_NaN();
-                if (is_last_x_best(x_at_lowest, y_target))
+                if ( is_a_prior_x_best(x_at_lowest, y_target))
                 {
                     m_x_guess = x_at_lowest;
                     m_y_err = call_mono_eq_calc_y_err(m_x_guess, y_target);
@@ -616,7 +616,7 @@ int C_monotonic_eq_solver::solver_core(double x_guess_1, double y1, double x_gue
 				}
 
                 double x_at_lowest = std::numeric_limits<double>::quiet_NaN();
-                if (is_last_x_best(x_at_lowest, y_target))
+                if ( is_a_prior_x_best(x_at_lowest, y_target))
                 {
                     m_x_guess = x_at_lowest;
                     m_y_err = call_mono_eq_calc_y_err(m_x_guess, y_target);
@@ -646,7 +646,7 @@ int C_monotonic_eq_solver::solver_core(double x_guess_1, double y1, double x_gue
                 }
 
                 double x_at_lowest = std::numeric_limits<double>::quiet_NaN();
-                if (is_last_x_best(x_at_lowest, y_target))
+                if ( is_a_prior_x_best(x_at_lowest, y_target))
                 {
                     m_x_guess = x_at_lowest;
                     m_y_err = call_mono_eq_calc_y_err(m_x_guess, y_target);
@@ -680,7 +680,7 @@ int C_monotonic_eq_solver::solver_core(double x_guess_1, double y1, double x_gue
 				}
 
                 double x_at_lowest = std::numeric_limits<double>::quiet_NaN();
-                if (is_last_x_best(x_at_lowest, y_target))
+                if ( is_a_prior_x_best(x_at_lowest, y_target))
                 {
                     m_x_guess = x_at_lowest;
                     m_y_err = call_mono_eq_calc_y_err(m_x_guess, y_target);
@@ -710,7 +710,7 @@ int C_monotonic_eq_solver::solver_core(double x_guess_1, double y1, double x_gue
 				}
 
                 double x_at_lowest = std::numeric_limits<double>::quiet_NaN();
-                if (is_last_x_best(x_at_lowest, y_target))
+                if ( is_a_prior_x_best(x_at_lowest, y_target))
                 {
                     m_x_guess = x_at_lowest;
                     m_y_err = call_mono_eq_calc_y_err(m_x_guess, y_target);
@@ -740,7 +740,7 @@ int C_monotonic_eq_solver::solver_core(double x_guess_1, double y1, double x_gue
 				}
 
                 double x_at_lowest = std::numeric_limits<double>::quiet_NaN();
-                if (is_last_x_best(x_at_lowest, y_target))
+                if ( is_a_prior_x_best(x_at_lowest, y_target))
                 {
                     m_x_guess = x_at_lowest;
                     m_y_err = call_mono_eq_calc_y_err(m_x_guess, y_target);
@@ -964,15 +964,19 @@ int C_monotonic_eq_solver::call_mono_eq(double x, double *y)
 	return ms_eq_tracker_temp.err_code;
 }
 
-bool C_monotonic_eq_solver::is_last_x_best(double & x_at_lowest, double y_target)
+bool C_monotonic_eq_solver::is_a_prior_x_best(double & x_at_lowest, double y_target)
 {
     C_monotonic_eq_solver::S_eq_chars s_eq_chars_min_abs_diff;
 
-    bool is_use_last_x = false;
+    bool is_use_earlier_x = false;
     x_at_lowest = std::numeric_limits<double>::quiet_NaN();
 
     if (get_min_abs_diff_no_err(s_eq_chars_min_abs_diff, y_target))
     {
+        // If a feasible solution exists,
+        //    check if the solution resulting in the minimum absolute error is different than the most recently solved solution (m_y_err)
+        //    if so, return true and return optimal x in double reference in argument
+
         double y_err = s_eq_chars_min_abs_diff.y - y_target;
         if (m_is_err_rel)
             y_err = y_err / std::abs(y_target);
@@ -982,17 +986,68 @@ bool C_monotonic_eq_solver::is_last_x_best(double & x_at_lowest, double y_target
         {
             x_at_lowest = s_eq_chars_min_abs_diff.x;
 
-            is_use_last_x = true;
+            is_use_earlier_x = true;
         }
     }
 
-    return is_use_last_x;
+    return is_use_earlier_x;
+}
+
+bool C_monotonic_eq_solver::get_smallest_neg_diff_no_err(double y_target,
+    double& x_at_smallest_negative_error, double& y_err_smallest_negative)
+{
+    // This method returns a boolean representing whether a feasible solution was found
+    //    and a double reference returning the x value resulting in the smallest negative error
+    //    and a double reference returing the smallest negative error
+    x_at_smallest_negative_error = std::numeric_limits<double>::quiet_NaN();
+    y_err_smallest_negative = std::numeric_limits<double>::quiet_NaN();
+
+    int len = ms_eq_call_tracker.size();
+    if( len == 0 )
+    {
+        return false;
+    }
+
+    bool is_feasible_neg_error_found = false;
+    double smallest_negative_err = std::numeric_limits<double>::quiet_NaN();
+    double y_err = std::numeric_limits<double>::quiet_NaN();
+    C_monotonic_eq_solver::S_eq_chars i_ms_eq;
+
+    for( int i = 0; i < len; i++ )
+    {
+        i_ms_eq = ms_eq_call_tracker[i];
+        if( i_ms_eq.err_code == 0 && std::isfinite(i_ms_eq.y) )
+        {
+            y_err = i_ms_eq.y - y_target;
+            if( m_is_err_rel )
+            {
+                y_err = y_err / std::abs(y_target);
+            }
+
+            if( is_feasible_neg_error_found && y_err < 0.0 && y_err > y_err_smallest_negative )
+            {
+                y_err_smallest_negative = y_err;
+                x_at_smallest_negative_error = i_ms_eq.x;
+            }
+            else if( !is_feasible_neg_error_found && y_err < 0.0 )
+            {
+                y_err_smallest_negative = y_err;
+                is_feasible_neg_error_found = true;
+                x_at_smallest_negative_error = i_ms_eq.x;
+            }
+        }
+    }
+
+    return is_feasible_neg_error_found;
 }
 
  bool C_monotonic_eq_solver::get_min_abs_diff_no_err(C_monotonic_eq_solver::S_eq_chars & s_eq_chars_min_abs_diff,
                                             double y_target)
 {
-    int len = ms_eq_call_tracker.size();
+     // This method returns a boolean representing whether a feasible solution was found
+     //    and a S_eq_chars reference containing of the feasible solution resulting the minimum absolute error versus y_target
+
+     int len = ms_eq_call_tracker.size();
     if (len == 0)
     {
         return false;

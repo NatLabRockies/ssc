@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -351,7 +351,7 @@ void rate_data::init_energy_rates(bool gen_only, int m) {
 		// 4. assumption is that all periods in same month have same tier breakdown
 		// 5. assumption is that tier numbering is correct for the kWh/kW breakdown
 		// That is, first tier must be kWh/kW
-        // See example at: https://github.com/NREL/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/block_step/GPC_PLL_Tiered_Bill_Calc_Example_v3_btm_tests.xlsx
+        // See example at: https://github.com/NatLabRockies/SAM-documentation/blob/master/Unit%20Testing/Utility%20Rates/block_step/GPC_PLL_Tiered_Bill_Calc_Example_v3_btm_tests.xlsx
 		if (has_kwh_per_kw_rate(m))
 		{
             std::vector<double> kWh_per_kW_tiers; // Fill this first so we can see where the kWh tiers break

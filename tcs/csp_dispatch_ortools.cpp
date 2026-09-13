@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Sustainable Energy, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,16 +41,15 @@ using namespace operations_research;
 csp_dispatch_ortools::csp_dispatch_ortools()
 {
     outputs.clear();
-
-
 }
 
-void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
+void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, double fixed_parasitic)
 {
     // Moved to the init call because solver is not being initialized when in debug mode
     // TODO: Create a switch to select the solver type based on input
-    //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("XPRESS"));     // Requires license
     solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("CBC"));          // Best open-source solver available
+    //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("XPRESS"));     // Requires license
+    //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("GUROBI"));     // Requires license
     //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("SCIP"));
     //solver = std::unique_ptr<MPSolver>(MPSolver::CreateSolver("GLPK"));
 
@@ -75,7 +74,6 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
     MPsolver_params.SetDoubleParam(MPSolverParameters::DoubleParam::RELATIVE_MIP_GAP, solver_params.mip_gap);
     // Maximum number of iterations cannot be set easily in OR-Tools, I believe we can set it specific to the solver.
 
-
     params.dt = 1. / (double)solver_params.steps_per_hour;  //hr
 
     params.e_tes_min = pointers.tes->get_min_charge_energy();
@@ -91,7 +89,7 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
     params.q_pb_des = cycle_q_dot_des;
     params.eta_pb_des = cycle_eta_des;
     params.q_pb_max = pointers.mpc_pc->get_max_thermal_power();
-    params.q_pb_min = pointers.mpc_pc->get_min_thermal_power();
+    params.q_pb_min = std::min(pointers.mpc_pc->get_min_thermal_power() * 1.5, pointers.mpc_pc->get_max_thermal_power());   // Add a buffer to prevent controller from failing to operate in net power mode
     params.q_rec_min = pointers.col_rec->get_min_power_delivery();
     params.w_rec_pump = pointers.col_rec->get_pumping_parasitic_coef();
 
@@ -105,13 +103,17 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des)
         params.is_parallel_heater = true;
         params.q_eh_min = pointers.par_htr->get_min_power_delivery() * ( 1 + 1e-8 ); // ensures controller doesn't shut down heater at minimum load
         params.q_eh_max = pointers.par_htr->get_max_power_delivery(std::numeric_limits<double>::quiet_NaN());
+        params.e_eh_su = pointers.par_htr->get_startup_energy(); // [MWht]
+        params.dt_eh_startup = pointers.par_htr->get_startup_time();
         params.eta_eh = pointers.par_htr->get_design_electric_to_heat_cop();
+        // Add parameters for heater startup power
     }
     else {
         params.is_parallel_heater = false;
     }
 
     double w_pb_des = cycle_q_dot_des * params.eta_pb_des;
+    params.sys_par_fixed = fixed_parasitic;
 
     params.eff_table_load.init_linear_cycle_efficiency_table(params.q_pb_min, params.q_pb_des, params.eta_pb_des, pointers.mpc_pc);
     params.eff_table_Tdb.init_efficiency_ambient_temp_table(params.eta_pb_des, w_pb_des, pointers.mpc_pc, &params.wcondcoef_table_Tdb);
@@ -136,7 +138,7 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
         pmean += ts_params.sell_price.at(t);
     pmean /= (double)ts_params.sell_price.size();
 
-    // Modify objective function
+    // Modify objective function - Maximize revenue from power sales, minimize startup costs and penalties
     MPObjective* objective = solver->MutableObjective();                   // OR-Tools objective function
     double tadj = P["disp_time_weighting"];
     for (int t = 0; t < m_nstep_opt; t++) {
@@ -159,7 +161,13 @@ void csp_dispatch_ortools::update_objective_function(unordered_map<std::string, 
 
         if (params.is_parallel_heater) {
             objective->SetCoefficient(cont_vars.qeh[t], -(P["delta"] * ts_params.sell_price.at(t) * (1. / tadj) * (1 / P["eta_eh"])));
+            // Assumes heater startup energy happens instantaneously at beginning of time step (we would need to reformulate if we wanted to model startup over multiple time steps)
+            objective->SetCoefficient(bin_vars.yhsup[t], -(ts_params.sell_price.at(t) * params.e_eh_su * (1. / tadj) * (1 / P["eta_eh"])));
             objective->SetCoefficient(bin_vars.yhsup[t], -(1. / tadj) * P["hsu_cost"]);
+        }
+
+        if (params.is_pv_included) {
+            objective->SetCoefficient(cont_vars.w_pv[t], P["delta"] * ts_params.sell_price.at(t) * tadj);
         }
 
         tadj *= P["disp_time_weighting"];
@@ -179,7 +187,7 @@ void csp_dispatch_ortools::build_dispatch_model()
 
     // Continuous variables
     solver->MakeNumVarArray(m_nstep_opt, 0.0, MPSolver::infinity(), "x_r",      &cont_vars.xr);
-    solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Qru"],             "x_rsu",    &cont_vars.xrsu);
+    solver->MakeNumVarArray(m_nstep_opt, 0.0, MPSolver::infinity(), "x_rsu",    &cont_vars.xrsu);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Er"] * 1.0001,     "u_rsu",    &cont_vars.ursu);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Qu"],              "x",        &cont_vars.x);
     solver->MakeNumVarArray(m_nstep_opt, 0.0, P["Ec"] * 1.0001,     "u_csu",    &cont_vars.ucsu);
@@ -211,6 +219,10 @@ void csp_dispatch_ortools::build_dispatch_model()
         solver->MakeBoolVarArray(m_nstep_opt, "y_hsup", &bin_vars.yhsup);
     }
 
+    if (params.is_pv_included) {
+        solver->MakeNumVarArray(m_nstep_opt, 0.0, P["w_pv_max"], "w_pv", &cont_vars.w_pv);
+    }
+
     // Objective function
     update_objective_function(P);
 
@@ -234,6 +246,7 @@ void csp_dispatch_ortools::build_dispatch_model()
             constraints.receiver_startup_inventory0 = c;
         }
     }
+
     // Receiver inventory bound when starting
     // ursu[t] <= Er * yrsu[t]
     for (int t = 0; t < m_nstep_opt; ++t) {
@@ -288,6 +301,43 @@ void csp_dispatch_ortools::build_dispatch_model()
         c->SetUB(0.0);
     }
 
+    // Enforces receiver startup time requirement
+    // Aux. Receiver startup energy limit -> forces startup time requirement
+    // xrsu[t] >= Delta^su * Qin[t] * (yrsu[t] - yrsu[t-1])
+    for (int t = 0; t < m_nstep_opt; ++t) {
+        std::string name = "receiver_startup_time_req_" + std::to_string(t);
+        c = solver->MakeRowConstraint(name);
+        c->SetCoefficient(cont_vars.xrsu[t], 1.0);
+        c->SetCoefficient(bin_vars.yrsu[t], - params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+        if (t > 0) {
+            c->SetCoefficient(bin_vars.yrsu[t - 1], params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+            c->SetLB(0.0);
+        }
+        else
+            c->SetLB(-(init_conditions.is_rec_starting0 ? 1. : 0.) * params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+        constraints.receiver_startup_time_req[t] = c;
+    }
+
+    // Removes receiver start-ups requiring more than 2 time periods
+    // yrsu[t-1] + yrsu[t] + yrsu[t+1] <= 2 (only enforce hourly for now)
+    // NOTE: last time step not enforced
+    if (P["delta"] >= 1.) {
+        for (int t = 0; t < m_nstep_opt - 1; ++t) {
+            std::string name = "rec_SU_duration_limit_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            c->SetCoefficient(bin_vars.yrsu[t], 1.0);
+            c->SetCoefficient(bin_vars.yrsu[t + 1], 1.0);
+            if (t > 0) {
+                c->SetCoefficient(bin_vars.yrsu[t - 1], 1.0);
+                c->SetUB(2.0);
+            }
+            else {
+                c->SetUB(2.0 - (init_conditions.is_rec_starting0 ? 1. : 0.));
+                constraints.receiver_SU_duration_limit0 = c;
+            }
+        }
+    }
+
     // Receiver startup and operation consumption limit
     // xr[t] + xrsu[t] <= Qin[t]
     for (int t = 0; t < m_nstep_opt; ++t) {
@@ -310,12 +360,13 @@ void csp_dispatch_ortools::build_dispatch_model()
         constraints.receiver_production_limit[t] = c;
     }
 
-    // Receiver minimum operation limit
-    // xr[t] >= Qrl * yr[t]
+    // Receiver minimum operation limit (startup + operation)
+    // xr[t] + xrsu[t] >= Qrl * yr[t]
     for (int t = 0; t < m_nstep_opt; ++t) {
         std::string name = "receiver_minimum_limit_" + std::to_string(t);
         c = solver->MakeRowConstraint(name);
         c->SetCoefficient(cont_vars.xr[t], 1.0);
+        c->SetCoefficient(cont_vars.xrsu[t], 1.0);
         c->SetCoefficient(bin_vars.yr[t], -P["Qrl"]);
         c->SetLB(0.0);
     }
@@ -687,7 +738,6 @@ void csp_dispatch_ortools::build_dispatch_model()
             c->SetUB(rhs);
         }
 
-
         // Cycle operation and standby cannot coincide
         // y[t] + ycsb[t] <= 1
         for (int t = 0; t < m_nstep_opt; ++t) {
@@ -834,6 +884,16 @@ void csp_dispatch_ortools::build_dispatch_model()
         constraints.storage_minimum_cycle_operating[t] = c;
     }
 
+    if (params.is_pv_included) {
+        // PV generation limit (a take it or leave it policy)
+        // w_pv[t] < W_pv_avail[t]
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            std::string name = "pv_generation_limit_" + std::to_string(t);
+            c = solver->MakeRowConstraint(name);
+            constraints.pv_generation_limit[t] = c;
+        }
+    }
+
 }
 
 bool csp_dispatch_ortools::check_setup(int nstep)
@@ -849,6 +909,8 @@ bool csp_dispatch_ortools::check_setup(int nstep)
 
     if ((int)ts_params.wnet_lim_min.size() < nstep)   return false;
     if ((int)ts_params.delta_rs.size() < nstep)   return false;
+
+    if ((int)ts_params.pv_generation.size() < nstep) return false;
     
     // TODO: add other checks
 
@@ -875,6 +937,8 @@ bool csp_dispatch_ortools::update_horizon_parameters(C_csp_tou& mc_tou)
         // Set the maximum net power cycle output
         double w_lim_temp = tou_outputs.m_wlim_dispatch * W_dot_max; // MWe
         if (w_lim_temp < ts_params.w_lim.at(t)) ts_params.w_lim.at(t) = w_lim_temp;       // update if lower than default value
+
+        ts_params.pv_generation.at(t) = tou_outputs.m_pv_gen / 1.e3; // kWe -> MWe
     }
     return true;
 }
@@ -883,7 +947,7 @@ void csp_dispatch_ortools::update_initial_conditions(double q_dot_to_pb, double 
 {
     //note the states of the power cycle and receiver
     init_conditions.is_rec_operating0 = pointers.col_rec->get_operating_state() == C_csp_collector_receiver::ON;
-    init_conditions.is_rec_starting0 = false;
+    init_conditions.is_rec_starting0 = pointers.col_rec->get_operating_state() == C_csp_collector_receiver::STARTUP;
     init_conditions.rec_startup_energy0 = 0.;       // TODO: pull this from receiver class?
 
     init_conditions.is_pb_operating0 = pointers.mpc_pc->get_operating_state() == C_csp_power_cycle::ON;
@@ -1083,6 +1147,11 @@ void csp_dispatch_ortools::s_params::create_parameter_map(unordered_map<std::str
     param_map["rsu_cost"] = rsu_cost;
     param_map["csu_cost"] = csu_cost;
     param_map["pen_delta_w"] = pen_delta_w;
+
+    if (is_pv_included) {
+        param_map["w_pv_max"] = w_pv_max;
+        param_map["pv_op_cost"] = pv_op_cost;
+    }
 }
 
 void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>& P) {
@@ -1110,6 +1179,24 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
     // Receiver startup energy limit
     // xrsu[t] <= Qru * yrsu[t]
     // No update required
+
+    // Enforces receiver startup time requirement
+    // xrsu[t] >= Delta^su * Qin[t] * (yrsu[t] - yrsu[t-1])
+    // Update solar resource
+    for (int t = 0; t < m_nstep_opt; ++t) {
+        constraints.receiver_startup_time_req[t]->SetCoefficient(bin_vars.yrsu[t], -params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+        if (t > 0) {
+            constraints.receiver_startup_time_req[t]->SetCoefficient(bin_vars.yrsu[t - 1], params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+            constraints.receiver_startup_time_req[t]->SetLB(0.0);
+        }
+        else
+            constraints.receiver_startup_time_req[t]->SetLB(-(init_conditions.is_rec_starting0 ? 1. : 0.) * params.dt_rec_startup * ts_params.q_sfavail_expected.at(t));
+    }
+
+    // Removes receiver start-ups requiring more than 2 time periods
+    // yrsu[t-1] + yrsu[t] + yrsu[t+1] <= 2
+    // Update initial condition
+    constraints.receiver_SU_duration_limit0->SetUB(2.0 - (init_conditions.is_rec_starting0 ? 1. : 0.));
 
     // Receiver startup and operation consumption limit
     // xr[t] + xrsu[t] <= Qin[t]
@@ -1314,7 +1401,12 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
             if (params.can_cycle_use_standby) c->SetCoefficient(bin_vars.ycsb[t], -P["Wb"]);
 
             c->SetCoefficient(cont_vars.x[t], -P["Lc"]);
-            c->SetUB(ts_params.w_lim.at(t));
+
+            if (params.is_parallel_heater) c->SetCoefficient(cont_vars.qeh[t], - (1 / P["eta_eh"]));
+
+            if (params.is_pv_included) c->SetCoefficient(cont_vars.w_pv[t], 1.0);
+
+            c->SetUB(ts_params.w_lim.at(t) + params.sys_par_fixed);     // Add fixed system parasitic power to limit
         }
     }
 
@@ -1344,6 +1436,16 @@ void csp_dispatch_ortools::update_constraints(unordered_map<std::string, double>
     // update receiver startup
     for (int t = 0; t < m_nstep_opt - 1; ++t) {
         constraints.storage_minimum_cycle_operating[t]->SetCoefficient(cont_vars.s[t], -1.0 / (ts_params.delta_rs.at(t) * P["delta"]));
+    }
+
+    if (params.is_pv_included) {
+        // ******************* PV Generation *******************
+        // PV generation limit (a take it or leave it policy)
+        // w_pv[t] < W_pv_avail[t]
+        for (int t = 0; t < m_nstep_opt; ++t) {
+            constraints.pv_generation_limit[t]->SetCoefficient(cont_vars.w_pv[t], 1.);
+            constraints.pv_generation_limit[t]->SetUB(ts_params.pv_generation.at(t));
+        }
     }
 }
 
@@ -1380,7 +1482,7 @@ bool csp_dispatch_ortools::optimize()
     //throw C_csp_exception("Setup and ran first dispatch optimization problem for Debugging");
 
     set_outputs_from_solution(P);
-    print_dispatch_update();
+    //print_dispatch_update();
 
     if (result_status == MPSolver::OPTIMAL || result_status == MPSolver::FEASIBLE)
         return true; // Successful solve
@@ -1389,6 +1491,11 @@ bool csp_dispatch_ortools::optimize()
 }
 
 void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, double>& P) {
+    // sets output structure from optimization solution
+    // TODO: This layer was required for lp_solve because the lp object was destroyed and rebuilt each solve.
+    //      With or-tools, this is no longer necessary, but it is retained to minimize changes to the rest of the dispatch code.
+    // In the future (once all dispatch models using or-tools), this could be merged with set_dispatch_outputs to eliminate redundant code.
+
     int nt = (int)m_nstep_opt;
 
     outputs.clear();
@@ -1412,8 +1519,34 @@ void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, 
         outputs.tes_charge_expected.at(t) = cont_vars.s.at(t)->solution_value();
         // receiver production
         outputs.q_sf_expected.at(t) = cont_vars.xr.at(t)->solution_value();
-        // electricity production
-        outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value();
+        // net electricity production
+        //outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value();
+
+
+        // TODO: save parasitic losses and pass through cmod
+        outputs.w_pb_target.at(t) = cont_vars.wdot.at(t)->solution_value() * (1.0 - ts_params.w_condf_expected.at(t));
+        if (bin_vars.ycsu.at(t)->solution_value()) {
+            outputs.w_pb_target.at(t) /= (1.0 - params.dt_pb_startup_cold);     // Start-up adjustment
+        }
+        // Parasitic losses
+        outputs.sys_parasitic.at(t) = (cont_vars.xr.at(t)->solution_value() * P["Lr"]
+            + cont_vars.xrsu.at(t)->solution_value() * P["Lr"]
+            + bin_vars.yrsu.at(t)->solution_value() * ((P["Wrsb"] / P["delta"]) + (P["Ehs"] / P["delta"]))
+            + bin_vars.yr.at(t)->solution_value() * P["Wh"]
+            + cont_vars.x.at(t)->solution_value() * P["Lc"])
+            + params.sys_par_fixed;
+
+        outputs.w_pb_target.at(t) -= outputs.sys_parasitic.at(t);
+
+        //if (params.can_cycle_use_standby) outputs.w_pb_target.at(t) -= bin_vars.ycsb.at(t)->solution_value() * P["Wb"];
+        if (params.is_parallel_heater) {
+            double heater_power = cont_vars.qeh.at(t)->solution_value() * (1 / P["eta_eh"]);
+            if (bin_vars.yhsup.at(t)->solution_value()) {
+                heater_power /= (1.0 - params.dt_eh_startup);
+            }
+            outputs.w_pb_target.at(t) -= heater_power;
+            //outputs.w_pb_target.at(t) -= bin_vars.yhsup.at(t)->solution_value() * params.e_eh_su * (1 / P["eta_eh"]);
+        }
 
         // cycle standby
         if (params.can_cycle_use_standby)
@@ -1431,6 +1564,10 @@ void csp_dispatch_ortools::set_outputs_from_solution(unordered_map<std::string, 
             outputs.htr_operation.at(t) = false;
             outputs.q_eh_target.at(t) = 0.;
         }
+
+        // PV target power - that is being sent to the grid
+        if (params.is_pv_included)
+            outputs.w_pv_target.at(t) = cont_vars.w_pv.at(t)->solution_value();
     }
 }
 
@@ -1443,17 +1580,21 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
         m_current_read_step = (int)(pointers.siminfo->ms_ts.m_time * solver_params.steps_per_hour / 3600. - .001)
             % (solver_params.optimize_frequency * solver_params.steps_per_hour);
 
+        if (m_current_read_step > (int)outputs.q_pb_target.size())
+            throw C_csp_exception("Current read step is greater than solution horizon.", "csp_dispatch");
 
-        disp_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
-        disp_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
-        disp_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || disp_outputs.is_pc_sb_allowed;
+        dispatch_outputs.is_rec_su_allowed = outputs.rec_operation.at(m_current_read_step);
+        dispatch_outputs.is_pc_sb_allowed = outputs.pb_standby.at(m_current_read_step);
+        dispatch_outputs.is_pc_su_allowed = outputs.pb_operation.at(m_current_read_step) || dispatch_outputs.is_pc_sb_allowed;
 
-        disp_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.q_pc_target = outputs.q_pb_target.at(m_current_read_step) + outputs.q_pb_startup.at(m_current_read_step);
 
-        disp_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.q_dot_elec_to_CR_heat = outputs.q_sf_expected.at(m_current_read_step);
 
-        disp_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
-        disp_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
+        dispatch_outputs.q_eh_target = outputs.q_eh_target.at(m_current_read_step);
+        dispatch_outputs.is_eh_su_allowed = outputs.htr_operation.at(m_current_read_step);
+
+        dispatch_outputs.w_dot_target = outputs.w_pb_target.at(m_current_read_step);
 
         //quality checks
         /*
@@ -1463,18 +1604,17 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
             q_pc_target = dispatch.params.q_pb_standby*1.e-3;
         */
 
-        if (disp_outputs.q_pc_target + 1.e-5 < params.q_pb_min)
-        {
-            disp_outputs.is_pc_su_allowed = false;
-            disp_outputs.q_pc_target = 0.0;
+        if (dispatch_outputs.q_pc_target + 1.e-5 < params.q_pb_min) {
+            dispatch_outputs.is_pc_su_allowed = false;
+            dispatch_outputs.q_pc_target = 0.0;
         }
 
         // Calculate approximate upper limit for power cycle thermal input at current electricity generation limit
         if (ts_params.w_lim.at(m_current_read_step) < 1.e-6) {
-            disp_outputs.q_dot_pc_max = 0.0;
+            dispatch_outputs.q_dot_pc_max = 0.0;
         }
         else if (ts_params.w_lim.at(m_current_read_step) / params.eta_pb_des > params.q_pb_max) { // Output limit is greater than max
-            disp_outputs.q_dot_pc_max = fmax(params.q_pb_max, disp_outputs.q_pc_target);
+            dispatch_outputs.q_dot_pc_max = fmax(params.q_pb_max, dispatch_outputs.q_pc_target);
         }
         else {
             double wcond;
@@ -1482,33 +1622,36 @@ bool csp_dispatch_ortools::set_dispatch_outputs()
             double eta_calc = params.eta_pb_des * eta_corr;
             double eta_diff = 1.;
             int i = 0;
-            while (eta_diff > 0.001 && i < 20)
-            {
+            while (eta_diff > 0.001 && i < 20) {
                 double q_pc_est = ts_params.w_lim.at(m_current_read_step) / eta_calc;			// Estimated power cycle thermal input at w_lim
                 double eta_new = pointers.mpc_pc->get_efficiency_at_load(q_pc_est / params.q_pb_des) * eta_corr;		// Calculated power cycle efficiency
                 eta_diff = std::abs(eta_calc - eta_new);
                 eta_calc = eta_new;
                 i++;
             }
-            disp_outputs.q_dot_pc_max = fmin(disp_outputs.q_dot_pc_max, ts_params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitic)
-            disp_outputs.q_dot_pc_max = fmax(disp_outputs.q_dot_pc_max, disp_outputs.q_pc_target);				             // calculated q_pc_target accounts for parasitic --> can be higher than approximate limit 
+            dispatch_outputs.q_dot_pc_max = fmin(dispatch_outputs.q_dot_pc_max, ts_params.w_lim.at(m_current_read_step) / eta_calc); // Restrict max pc thermal input to *approximate* current allowable value (doesn't yet account for parasitic)
+            dispatch_outputs.q_dot_pc_max = fmax(dispatch_outputs.q_dot_pc_max, dispatch_outputs.q_pc_target);				         // calculated q_pc_target accounts for parasitic --> can be higher than approximate limit 
         }
 
-        disp_outputs.etasf_expect = ts_params.eta_sf_expected.at(m_current_read_step);
-        disp_outputs.qsf_expect = ts_params.q_sfavail_expected.at(m_current_read_step);
-        disp_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
-        disp_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
-        disp_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
-        disp_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
-        disp_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
-        disp_outputs.rev_expect = disp_outputs.wpb_expect * ts_params.sell_price.at(m_current_read_step);
-        disp_outputs.etapb_expect = disp_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
+        dispatch_outputs.etasf_expect = ts_params.eta_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsf_expect = ts_params.q_sfavail_expected.at(m_current_read_step);
+        dispatch_outputs.qsfprod_expect = outputs.q_sf_expected.at(m_current_read_step);
+        dispatch_outputs.qsfsu_expect = outputs.q_rec_startup.at(m_current_read_step);
+        dispatch_outputs.tes_expect = outputs.tes_charge_expected.at(m_current_read_step);
+        dispatch_outputs.qpbsu_expect = outputs.q_pb_startup.at(m_current_read_step);
+        dispatch_outputs.wpb_expect = outputs.w_pb_target.at(m_current_read_step);
+        dispatch_outputs.sys_parasitic = outputs.sys_parasitic.at(m_current_read_step);
+        dispatch_outputs.rev_expect = dispatch_outputs.wpb_expect * ts_params.sell_price.at(m_current_read_step);
+        dispatch_outputs.etapb_expect = dispatch_outputs.wpb_expect / (std::max)(1.e-6, outputs.q_pb_target.at(m_current_read_step))
             * (outputs.pb_operation.at(m_current_read_step) ? 1. : 0.);
+
+        dispatch_outputs.pv_expect = outputs.w_pv_target.at(m_current_read_step);
+
 
         if (m_current_read_step > solver_params.optimize_frequency* solver_params.steps_per_hour)
             throw C_csp_exception("Counter synchronization error in dispatch optimization routine.", "csp_dispatch");
     }
-    disp_outputs.time_last = pointers.siminfo->ms_ts.m_time;
+    dispatch_outputs.time_last = pointers.siminfo->ms_ts.m_time;
 
     return true;
 }
@@ -1521,17 +1664,27 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
     else {
         // Only print header when not appending
         outputfile.open(filepath);
-        std::string var_header = "Time, Objective, Objective_wo_weight, Price, y_rsu, y_rsup, yr, u_rsu, x_rsu, x_r, y_csu, y_csup, y, u_csu, x, w_dot, delta_w, s, w_lim, wnet_lim_min";
+        std::string var_header = "Time, Objective, Objective_wo_weight, Price, Qin, ";
+        var_header += "y_rsu, y_rsup, yr, u_rsu, x_rsu, x_r, ";
+        var_header += "y_csu, y_csup, y, u_csu, x, w_dot, delta_w, s, w_lim, wnet_lim_min, sys_parasitic";
+
+        if (params.is_parallel_heater) {
+            var_header += ", y_eh, y_reh, y_hsup, q_eh";
+        }
+        if (params.is_pv_included) {
+            var_header += ", w_pv, w_pv_avail";
+        }
         outputfile << var_header << std::endl;
     }
 
     double tol = 1.e-2;
+    double sys_parasitic;
     double objective_value;
     double common_coeff;
 
     double obj_wo_weight;  // Objective function value without time weighting
     double coeff_wo_weight;
-    for (int t = 0; t < m_nstep_opt; ++t) {
+    for (int t = 0; t < solver_params.optimize_frequency; ++t) {
         // Calculate objective value for time t
         objective_value = 0.0;
         obj_wo_weight = 0.0;
@@ -1541,6 +1694,11 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
 
         objective_value += common_coeff * ts_params.sell_price.at(t) * (1. - ts_params.w_condf_expected.at(t)) * cont_vars.wdot[t]->solution_value();
         obj_wo_weight += coeff_wo_weight * ts_params.sell_price.at(t) * (1. - ts_params.w_condf_expected.at(t)) * cont_vars.wdot[t]->solution_value();
+
+        // TODO: Update this
+        if (params.is_pv_included) {
+            objective_value += common_coeff * ts_params.sell_price.at(t) * cont_vars.w_pv[t]->solution_value();
+        }
 
         // Cost terms
         common_coeff = - params.dt * ts_params.sell_price.at(t) * (1. / std::pow(params.time_weighting, t));
@@ -1599,10 +1757,19 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
             objective_value += params.dt * std::pow(params.time_weighting, t) * pmean * params.eta_pb_des * params.inventory_incentive * cont_vars.s[t]->solution_value();
         }
 
+        sys_parasitic = (cont_vars.wdot.at(t)->solution_value() * ts_params.w_condf_expected.at(t)
+            + cont_vars.xr.at(t)->solution_value() * params.w_rec_pump
+            + cont_vars.xrsu.at(t)->solution_value() * params.w_rec_pump
+            + bin_vars.yrsu.at(t)->solution_value() * ((params.w_rec_ht / params.dt) + (params.w_stow / params.dt))
+            + bin_vars.yr.at(t)->solution_value() * params.w_track
+            + cont_vars.x.at(t)->solution_value() * params.w_cycle_pump
+            + params.sys_par_fixed);
+
         outputfile << t
             << ", " << objective_value
             << ", " << obj_wo_weight
             << ", " << ts_params.sell_price[t]
+            << ", " << ts_params.q_sfavail_expected[t]
             << ", " << bin_vars.yrsu[t]->solution_value()
             << ", " << bin_vars.yrsup[t]->solution_value()
             << ", " << bin_vars.yr[t]->solution_value()
@@ -1619,7 +1786,18 @@ void csp_dispatch_ortools::printResultsFile(std::string filepath, bool append) {
             << ", " << ((std::abs(cont_vars.s[t]->solution_value()) < tol) ? 0.0 : cont_vars.s[t]->solution_value())
             << ", " << ts_params.w_lim.at(t)
             << ", " << ts_params.wnet_lim_min.at(t)
-            << std::endl;
+            << ", " << sys_parasitic;
+        if (params.is_parallel_heater) {
+            outputfile << ", " << bin_vars.yeh[t]->solution_value()
+                << ", " << bin_vars.yreh[t]->solution_value()
+                << ", " << bin_vars.yhsup[t]->solution_value()
+                << ", " << ((std::abs(cont_vars.qeh[t]->solution_value()) < tol) ? 0.0 : cont_vars.qeh[t]->solution_value());
+        }
+        if (params.is_pv_included) {
+            outputfile << ", " << ((std::abs(cont_vars.w_pv[t]->solution_value()) < tol) ? 0.0 : cont_vars.w_pv[t]->solution_value())
+                << ", " << ts_params.pv_generation.at(t);
+        }
+        outputfile << std::endl;
     }
     outputfile.close();
 }

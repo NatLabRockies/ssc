@@ -1,7 +1,7 @@
 /*
 BSD 3-Clause License
 
-Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NREL/ssc/blob/develop/LICENSE
+Copyright (c) Alliance for Energy Innovation, LLC. See also https://github.com/NatLabRockies/ssc/blob/develop/LICENSE
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,13 +46,15 @@ static C_csp_reported_outputs::S_output_info S_output_info[]=
 	csp_info_invalid
 };
 
-C_pc_heat_sink::C_pc_heat_sink()
+C_pc_heat_sink::C_pc_heat_sink() : C_csp_power_cycle(HEAT)
 {
 	mc_reported_outputs.construct(S_output_info);
 
     m_max_frac = std::numeric_limits<double>::quiet_NaN();
 
 	m_m_dot_htf_des = std::numeric_limits<double>::quiet_NaN();
+
+    m_W_dot_pumping_power_des = std::numeric_limits<double>::quiet_NaN();
 }
 
 void C_pc_heat_sink::check_double_params_are_set()
@@ -116,6 +118,8 @@ void C_pc_heat_sink::init(C_csp_power_cycle::S_solved_params &solved_params)
 
 	m_m_dot_htf_des = ms_params.m_q_dot_des*1.E3 / (cp_htf_des*(ms_params.m_T_htf_hot_des - ms_params.m_T_htf_cold_des));	//[kg/s]
 
+    m_W_dot_pumping_power_des = ms_params.m_htf_pump_coef * m_m_dot_htf_des / 1.E3;   //[MWe]
+     
 	// Set 'solved_params' structure
 	solved_params.m_W_dot_des = 0.0;		//[MWe] Assuming heat sink is not generating electricity FOR THIS MODEL
 	solved_params.m_eta_des = 1.0;			//[-] Same
@@ -212,6 +216,17 @@ double C_pc_heat_sink::get_max_q_pc_startup()
 double C_pc_heat_sink::get_htf_pumping_parasitic_coef()
 {
 	return ms_params.m_htf_pump_coef* (m_m_dot_htf_des) / (ms_params.m_q_dot_des*1000.0);	// kWe/kWt
+}
+
+double C_pc_heat_sink::get_design_pumping_power() {
+
+    return m_W_dot_pumping_power_des;   //[MWe]
+}
+
+double C_pc_heat_sink::get_design_cooling_power() {
+
+    // No cooling parasitics for heat sink
+    return 0.0;
 }
 
 void C_pc_heat_sink::call(const C_csp_weatherreader::S_outputs &weather,

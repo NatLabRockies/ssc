@@ -226,6 +226,7 @@ public:
         double sys_par_fixed;               //[MWe] Fixed parasitic load of the system
 
         double inventory_incentive;         //[-]   Terminal storage inventory objective incentive multiplier
+        double tes_min_buffer;              //[hr] TES minimum buffer in hours of cycle design thermal input
 
         // Heater parameters
         bool is_parallel_heater;            //[-] Is there a heater parallel to the receiver?
@@ -327,7 +328,7 @@ public:
 
         void set_user_params(bool cycle_use_standby, double disp_time_weighting,
             double disp_rsu_cost, double disp_hsu_cost, double disp_csu_cost, double disp_pen_delta_w, double disp_inventory_incentive,
-            double disp_pv_op_cost, double max_pv_gen, double rec_standby_loss, double rec_heattrace)
+            double disp_pv_op_cost, double max_pv_gen, double rec_standby_loss, double rec_heattrace, double tes_buffer)
         {
             can_cycle_use_standby = cycle_use_standby;
             time_weighting = disp_time_weighting;
@@ -349,14 +350,16 @@ public:
 
             q_rec_standby = rec_standby_loss;   //TODO: Update to pull from receiver model
             w_rec_ht = rec_heattrace;           //TODO: Update to pull from receiver model
+
+            tes_min_buffer = tes_buffer;
         }
 
         void set_user_params(bool cycle_use_standby, double disp_time_weighting,
             double disp_rsu_cost, double disp_hsu_cost, double disp_csu_cost, double disp_pen_delta_w, double disp_inventory_incentive,
-            double rec_standby_loss, double rec_heattrace)
+            double rec_standby_loss, double rec_heattrace, double tes_buffer)
         {
             this->set_user_params(cycle_use_standby, disp_time_weighting, disp_rsu_cost, disp_hsu_cost, disp_csu_cost, disp_pen_delta_w,
-                disp_inventory_incentive, 0.0, 0.0, rec_standby_loss, rec_heattrace);
+                disp_inventory_incentive, 0.0, 0.0, rec_standby_loss, rec_heattrace, tes_buffer);
         }
 
 

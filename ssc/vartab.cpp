@@ -235,7 +235,7 @@ void var_table::clear()
     {
 		// debug heap corruption
         it->second->clear();
-		delete it->second; // delete the var_data object
+//		if (it->second) delete it->second; // delete the var_data object
 	}
     m_hash.erase(m_hash.begin(), m_hash.end());
 	if (!m_hash.empty()) m_hash.clear();

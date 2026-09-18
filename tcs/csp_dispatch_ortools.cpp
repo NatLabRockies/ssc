@@ -1120,6 +1120,15 @@ void csp_dispatch_ortools::update_initial_conditions(double q_dot_to_pb, double 
         // TODO: should we update battery capacity over time as well?
         init_conditions.batt_soc0 = pointers.battery->battery->SOC() / 100.0;
     }
+
+    // Disable power cycle startup during "required" hours
+    for (int t = 0; t < m_nstep_opt; ++t) {
+        bin_vars.ycsu[t]->SetBounds(0.0, 1.0); // Resetting bounds between solver calls
+        //if (ts_params.required_periods.at(t)) {       // TODO: re-enable this when required periods are implemented
+        if (ts_params.sell_price.at(t) > 10000.0) {
+            bin_vars.ycsu[t]->SetBounds(0.0, 0.0);  // Disable startup
+        }
+    };
 }
 
 bool csp_dispatch_ortools::predict_performance(int step_start, int ntimeints, int divs_per_int)

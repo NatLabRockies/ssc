@@ -290,6 +290,15 @@ struct battstor
 	// for user schedule
 	void check_replacement_schedule();
 
+  /// Run the underlying battery replacement model for the given timestep.
+    void runReplacement(size_t year, size_t hour_of_year, size_t step_of_hour);
+
+	/// Run the underlying battery cell model at the requested power (kW).
+	/// Positive = discharge, negative = charge. Thin wrapper over
+	/// battery_t::runPower so derived hosts (e.g. CSP) don't have to reach
+	/// into battery_model directly.
+	void runPower(double P_kw);
+
 	// time quantities
 	size_t step_per_hour;
 	size_t step_per_year;

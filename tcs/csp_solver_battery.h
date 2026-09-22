@@ -125,6 +125,7 @@ public:
     int control_mode = 1;
     int last_idx = 0;   // TODO: where is this suppose to be initialized
     battery_t* battery = nullptr;           // Non-owning: caller retains ownership
+    battstor* battstor_csp = nullptr;
     int chem = 0;                           // battery_params::CHEM value, used in write_outputs
     int life_model = 0;                     // lifetime_params::MODEL_CHOICE value, used in write_outputs
     C_csp_reported_outputs mc_reported_outputs;
@@ -132,6 +133,8 @@ public:
     /// Construct from a non-owning battery_t pointer plus the chemistry and life-model
     /// selectors needed for reporting. The caller (typically an SSC cmod) owns the battery_t.
     C_csp_battery(battery_t* battery_in, int chem_in, int life_model_in, double dt_hr_in);
+
+    C_csp_battery(battstor* batt_storage, double dt_hr_in); 
 
     ~C_csp_battery(){};
 

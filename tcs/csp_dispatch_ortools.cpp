@@ -119,30 +119,36 @@ void csp_dispatch_ortools::init(double cycle_q_dot_des, double cycle_eta_des, do
     //Battery storage parameters
     if (pointers.battery != NULL) {
         params.is_battery_included = true;
-        double min_soc = pointers.battery->battery->SOC_min();
-        double max_soc = pointers.battery->battery->SOC_max();
-        params.batt_soc_min = min_soc * 0.01;      // TODO: We could make these percentages within the dispatch model
-        params.batt_soc_max = max_soc * 0.01;
-        params.batt_capacity = pointers.battery->battery->energy_max(100.0, 0.0) / 1.e3; // [kWh] -> [MWh]
+        //double min_soc = pointers.battery->battery->SOC_min();
+        double min_soc = pointers.battery->battstor_csp->batt_vars->batt_minimum_SOC / 100.0;
+        params.batt_soc_min = min_soc;
+        //double max_soc = pointers.battery->battery->SOC_max();
+        double max_soc = pointers.battery->battstor_csp->batt_vars->batt_maximum_SOC / 100.0;
+        params.batt_soc_max = max_soc;
+        //params.batt_soc_min = min_soc * 0.01;      // TODO: We could make these percentages within the dispatch model
+        //params.batt_soc_max = max_soc * 0.01;
+        //params.batt_capacity = pointers.battery->battery->energy_max(100.0, 0.0) / 1.e3; // [kWh] -> [MWh]
+        params.batt_capacity = pointers.battery->battstor_csp->batt_vars->batt_kwh / 1.e3; // [kWh] -> [MWh]
 
-        battery_state state = pointers.battery->battery->get_state();
+        //battery_state state = pointers.battery->battstor_csp->battery;
         battery_params batt_params = pointers.battery->battery->get_params();
         double crate = batt_params.voltage->dynamic.C_rate;
 
-        double battery_max = pointers.battery->battery->nominal_energy() * crate;
-        params.batt_charge_power_max = battery_max / 1.e3;
-        params.batt_discharge_power_max = battery_max / 1.e3;
+        /*double battery_max = pointers.battery->battery->nominal_energy() * crate;
+        params.batt_charge_power_max = battery_max / 1.e3;*/
+        params.batt_charge_power_max = pointers.battery->battstor_csp->batt_vars->batt_power_charge_max_kwac / 1.e3;
+        params.batt_discharge_power_max = pointers.battery->battstor_csp->batt_vars->batt_power_discharge_max_kwac / 1.e3;
 
         // TODO: These are not going to work if the initial SOC near the bounds
         //params.batt_charge_power_max = std::abs(pointers.battery->battery->calculate_max_charge_kw() / 1.e3);   // kW -> MW
         //params.batt_discharge_power_max = pointers.battery->battery->calculate_max_discharge_kw() / 1.e3; // kW -> MW
 
         // TODO: update the parameters below.
-        params.batt_charge_efficiency = 1.0;        //0.99; // 0.938;
-        params.batt_discharge_efficiency = 0.978919;//0.99; // 0.938;
-        params.batt_charge_cost = 0.9;
-        params.batt_discharge_cost = 0.9;
-        params.batt_lifecycle_cost = 26.5;
+        params.batt_charge_efficiency = pointers.battery->battstor_csp->batt_vars->batt_ac_dc_efficiency / 100.0;        //0.99; // 0.938;
+        params.batt_discharge_efficiency = pointers.battery->battstor_csp->batt_vars->batt_dc_ac_efficiency / 100.0;//0.99; // 0.938;
+        params.batt_charge_cost = 0.9; //$/MWh
+        params.batt_discharge_cost = 0.9; //$/MWh
+        params.batt_lifecycle_cost = 26.5; //$/MWh-cycle, Todo: add variable to System Control, pass through dispatch  
     }
     else {
         params.is_battery_included = false;

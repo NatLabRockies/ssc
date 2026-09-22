@@ -462,8 +462,8 @@ public:
                 // TODO: Do we need to add battery capacity to hybridSystemCapacity?
 
                 hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("total_installed_cost");
-                hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("batt_total_installed_cost");   // Adding battery installed costs
-
+                //hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("batt_total_installed_cost");   // Adding battery installed costs
+                //TODO: don't add in this battery cost, potentially double counting
                 // TODO: how do we want to handle construction financing costs?
                 //ssc_number_t construction_financing_cost = ((var_table*)compute_module_outputs)->as_double("construction_financing_cost");
                 

@@ -116,6 +116,15 @@ C_csp_battery::C_csp_battery(battery_t* battery_in, int chem_in, int life_model_
     mc_reported_outputs.construct(S_output_info);
 };
 
+C_csp_battery::C_csp_battery(battstor* batt_storage, double dt_hr_in) {
+    battery = batt_storage->battery_model;
+    battstor_csp = batt_storage;
+    chem = batt_storage->batt_vars->batt_chem;
+    life_model = batt_storage->batt_vars->batt_life_model;
+    dt_hr = dt_hr_in;
+    mc_reported_outputs.construct(S_output_info);
+};
+
 void C_csp_battery::call(double target_power) {
     // to change timestep -> see stateful
     //battery->ChangeTimestep(dt_hr);
@@ -131,8 +140,18 @@ void C_csp_battery::call(double target_power) {
     size_t hour = (size_t)(year_one_index / steps_per_hour);
     size_t step_of_hour = year_one_index - (hour * steps_per_hour);
 
-    battery->runReplacement(year, hour, step_of_hour);
-    battery->runPower(target_power);
+    if (battstor_csp) {
+        battstor_csp->runReplacement(year, hour, step_of_hour);
+    }
+    else {
+        battery->runReplacement(year, hour, step_of_hour);
+    }
+    if (battstor_csp) {
+        battstor_csp->runPower(target_power);
+    }
+    else {
+        battery->runPower(target_power);
+    }
     write_outputs();
 };
 

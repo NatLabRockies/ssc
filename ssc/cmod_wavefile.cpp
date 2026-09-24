@@ -353,7 +353,11 @@ public:
                 p_minute[r] = (ssc_number_t)std::stod(values[minute_index]);
                 p_month[r] = (ssc_number_t)std::stod(values[month_index]);
                 wave_heights[r] = (ssc_number_t)std::stod(values[height_index]);
+                if (wave_heights[r] < 0 || wave_heights[r] > 999)
+                    throw exec_error("wave_file_reader", "Wave height data is outside of numerical bounds at row " + std::to_string(r));
                 wave_periods[r] = (ssc_number_t)std::stod(values[period_index]);
+                if (wave_periods[r] < 0 || wave_periods[r] > 999)
+                    throw exec_error("wave_file_reader", "Wave period data is outside of numerical bounds at row " + std::to_string(r));
 
                 //Make JPD from time series data
 

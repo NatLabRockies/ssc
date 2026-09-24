@@ -364,3 +364,104 @@ TEST_F(CmodSingleOwnerTest, NonEnergyRevenueFixedDebt) {
     }
 
 }
+
+TEST_F(CmodSingleOwnerTest, NonEnergyRevenueDSCR) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/singleowner/2022.08.08_develop_branch_PVWatts_Single_Owner_cmod_singleowner.json";
+
+    std::ifstream file(file_inputs);
+    std::ostringstream tmp;
+    tmp << file.rdbuf();
+    file.close();
+    ssc_data_t dat_inputs = json_to_ssc_data(tmp.str().c_str());
+
+    tmp.str("");
+    int errors = run_module(dat_inputs, "singleowner");
+
+    EXPECT_FALSE(errors);
+
+    std::vector<double> default_revenue = { 0, 9112020.5977755021, 9157125.0997344907, 9202452.8689781744, 9248005.0106796212, 9293782.6354824826, 9339786.8595281206, 9386018.804482786, 9432479.5975649767, 9479170.3715729229, 9526092.2649122048, 9573246.4216235224, 9620633.9914105572, 9668256.1296680402, 9716113.9975098986, 9764208.7617975734, 9812541.5951684713, 9861113.6760645546, 9909926.1887610722, 9958980.3233954422, 10008277.275996249, 10057818.24851243, 10107604.448842568, 10157637.090864338, 10207917.394464117, 10258446.585566713 };
+    std::vector<double> default_costs = { 0, 1500000, 1537499.9999999998, 1575937.4999999998, 1615335.9374999993, 1655719.3359374991, 1697112.3193359368, 1739540.127319335, 1783028.6305023183, 1827604.3462648757, 1873294.4549214977, 1920126.8162945351, 1968129.9867018983, 2017333.2363694457, 2067766.5672786813, 2119460.7314606486, 2172447.2497471645, 2226758.4309908431, 2282427.3917656145, 2339488.0765597541, 2397975.2784737479, 2457924.6604355914, 2519372.7769464813, 2582357.0963701429, 2646916.0237793964, 2713088.9243738805 };
+    std::vector<double> default_ebitda = { 0, 7612020.5977755021, 7619625.0997344907, 7626515.3689781744, 7632669.0731796222, 7638063.2995449835, 7642674.540192184, 7646478.677163451, 7649450.9670626586, 7651566.0253080474, 7652797.8099907069, 7653119.6053289874, 7652504.0047086589, 7650922.8932985943, 7648347.4302312173, 7644748.0303369248, 7640094.3454213068, 7634355.2450737115, 7627498.7969954573, 7619492.2468356881, 7610301.9975225013, 7599893.5880768392, 7588231.671896087, 7575279.9944941951, 7561001.3706847206, 7545357.6611928325 };
+
+    // Confirm arrays match default run with 0 non-energy revenue.
+    int arr_length;
+    auto pRevArray = ssc_data_get_array(dat_inputs, "cf_total_revenue", &arr_length);
+    for (size_t i = 0; i < default_revenue.size(); i++) {
+        EXPECT_NEAR(pRevArray[i], default_revenue[i], 0.1) << " revenue issue at index i=" << i;
+    }
+
+    auto pCostArray = ssc_data_get_array(dat_inputs, "cf_operating_expenses", &arr_length);
+    for (size_t i = 0; i < default_costs.size(); i++) {
+        EXPECT_NEAR(pCostArray[i], default_costs[i], 0.1) << " cost issue at index i=" << i;
+    }
+
+    auto pEbitdaArray = ssc_data_get_array(dat_inputs, "cf_ebitda", &arr_length);
+    for (size_t i = 0; i < default_ebitda.size(); i++) {
+        EXPECT_NEAR(pEbitdaArray[i], default_ebitda[i], 0.1) << " ebitda issue at index i=" << i;
+    }
+
+    // Get default debt level
+    ssc_number_t debt_frac;
+    ssc_data_get_number(dat_inputs, "debt_fraction", &debt_frac);
+    EXPECT_NEAR(42.26, debt_frac, 0.1);
+
+    std::vector<double> post_share_revenue;
+    std::vector<double> post_share_costs;
+    std::vector<double> post_share_ebitda;
+
+    std::vector<double> non_energy_revenue(25, 100000);
+    std::vector<double> non_energy_expenses(25, 50000);
+    std::vector<double> non_energy_revenue_ret = { 100 };
+    std::vector<double> non_energy_expenses_ret = { 100 };
+
+    post_share_revenue.push_back(0.0);
+    post_share_costs.push_back(0.0);
+    post_share_ebitda.push_back(0.0);
+    for (size_t i = 1; i < default_revenue.size(); i++) {
+        post_share_revenue.push_back(default_revenue[i] + 100000);
+        post_share_costs.push_back(default_costs[i] + 50000);
+        post_share_ebitda.push_back(post_share_revenue[i] - post_share_costs[i]);
+    }
+
+    ssc_data_set_array(dat_inputs, "non_energy_revenue", non_energy_revenue.data(), (int)non_energy_revenue.size());
+    ssc_data_set_array(dat_inputs, "non_energy_expenses", non_energy_expenses.data(), (int)non_energy_expenses.size());
+    ssc_data_set_array(dat_inputs, "non_energy_revenue_ret", non_energy_revenue_ret.data(), (int)non_energy_revenue_ret.size());
+    ssc_data_set_array(dat_inputs, "non_energy_expenses_ret", non_energy_expenses_ret.data(), (int)non_energy_expenses_ret.size());
+
+    ssc_data_set_number(dat_inputs, "non_energy_revenue_escal", -2.5);
+    ssc_data_set_number(dat_inputs, "non_energy_expenses_escal", -2.5);
+    ssc_data_set_number(dat_inputs, "non_energy_revenue_ds", 1);
+    ssc_data_set_number(dat_inputs, "non_energy_expenses_ds", 1);
+
+    errors = run_module(dat_inputs, "singleowner");
+    EXPECT_FALSE(errors);
+
+    // Expect 50% reductions in values
+    pRevArray = ssc_data_get_array(dat_inputs, "cf_total_revenue", &arr_length);
+    for (size_t i = 0; i < post_share_revenue.size(); i++) {
+        EXPECT_NEAR(pRevArray[i], post_share_revenue[i], 0.1) << " revenue issue at index i=" << i;
+    }
+
+    pCostArray = ssc_data_get_array(dat_inputs, "cf_operating_expenses", &arr_length);
+    for (size_t i = 0; i < post_share_costs.size(); i++) {
+        EXPECT_NEAR(pCostArray[i], post_share_costs[i], 0.1) << " cost issue at index i=" << i;
+    }
+
+    pEbitdaArray = ssc_data_get_array(dat_inputs, "cf_ebitda", &arr_length);
+    for (size_t i = 0; i < post_share_ebitda.size(); i++) {
+        EXPECT_NEAR(pEbitdaArray[i], post_share_ebitda[i], 0.1) << " ebitda issue at index i=" << i;
+    }
+
+    ssc_data_get_number(dat_inputs, "debt_fraction", &debt_frac);
+    EXPECT_NEAR(42.56, debt_frac, 0.1); // Slight increase due to increased revenue
+
+    ssc_data_set_number(dat_inputs, "non_energy_revenue_ds", 0);
+    ssc_data_set_number(dat_inputs, "non_energy_expenses_ds", 0);
+
+    errors = run_module(dat_inputs, "singleowner");
+    EXPECT_FALSE(errors);
+
+    ssc_data_get_number(dat_inputs, "debt_fraction", &debt_frac);
+    EXPECT_NEAR(42.26, debt_frac, 0.1);
+}

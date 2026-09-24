@@ -616,7 +616,7 @@ bool CGeothermalAnalyzer::CanReplaceReservoir(double dTimePassedInYears)
 
 void CGeothermalAnalyzer::CalculateNewTemperature(double dElapsedTimeInYears)
 {
-	if (me_makeup != MA_EGS_FLASH || me_makeup != MA_EGS_BINARY)
+	if (me_makeup != MA_EGS_FLASH && me_makeup != MA_EGS_BINARY)
 		md_WorkingTemperatureC = md_WorkingTemperatureC * (1 - (mo_geo_in.md_TemperatureDeclineRate / 12));
 	else
 	{
@@ -634,6 +634,7 @@ void CGeothermalAnalyzer::CalculateNewTemperature(double dElapsedTimeInYears)
 		double dNewEGSProductionTemperatureC = GetResourceTemperatureC() + ((dNewInjectionTemperatureC - GetResourceTemperatureC()) * dFunctionOfRockProperties);
 
 		md_WorkingTemperatureC = dNewEGSProductionTemperatureC;
+        if (mo_geo_in.me_pc == SIMPLE_FRACTURE) md_WorkingTemperatureC = Gringarten();
 	}
 }
 
@@ -1048,14 +1049,15 @@ double CGeothermalAnalyzer::Gringarten()
     double k_r = mo_geo_in.md_EGSThermalConductivity; //rock thermal conductivity
     double c_r = mo_geo_in.md_EGSSpecificHeatConstant; //rock specific heat capacity;
     double p_r = mo_geo_in.md_EGSRockDensity; //rock density
-    double Q = EGSFlowPerFracture(EGSAverageWaterTemperatureC2()); // volumetric flow per fracture
+    double n_f = mo_geo_in.md_EGSNumberOfFractures;
+    double Q = EGSFlowPerFracture(EGSAverageWaterTemperatureC2()) / (60*60*24); // m3/day / 60min*60sec*24 hour volumetric flow per fracture
     double h_f = mo_geo_in.md_EGSFractureLength; // fracture height (m)
     double w_f = mo_geo_in.md_EGSFractureWidthM; //fracture width (m)
     double x_e = mo_geo_in.md_EGSFractureSpacing; //fracture spacing (m)
     double t = mp_geo_out->ElapsedHours * 3600; //elapsed time (s)
 
     //dimensionless fracture spacing
-    double x_ED = ((p_w * c_w) / (2 * k_r)) * (Q / (h_f * w_f)) * x_e;
+    double x_ED = ((p_w * c_w) / (2 * k_r)) * (Q / (n_f * h_f * w_f)) * x_e;
     double T_D = 0; //dimensionless temperature
     double t_it = 0;
     double td_x1y1 = 0;
@@ -1069,7 +1071,7 @@ double CGeothermalAnalyzer::Gringarten()
     double y = x_ED;
     int i = 0;
     //dimensionless time
-    double t_D = (pow(p_w * c_w, 2) / (4 * k_r * p_r * c_r)) * pow(Q / (h_f * w_f), 2) * t;
+    double t_D = (pow(p_w * c_w, 2) / (4 * k_r * p_r * c_r)) * pow(Q / (n_f * h_f * w_f), 2) * t;
     double x = t_D;
     if (t_D < t_d_vec[0]) {
         //T_D = 1.0;
@@ -1317,9 +1319,9 @@ double CGeothermalAnalyzer::EGSThermalConductivity()
 double CGeothermalAnalyzer::EGSFlowPerFracture(double tempC)
 {	// m^3 per day
 	//double dFlowInTimePeriod = (IsHourly()) ? 60*60  : 60*60*24 ; // hourly analysis uses hourly flow, monthly analysis uses daily flow
-	//double dFlowInTimePeriod = 60 * 60 * 24; // hourly analysis and monthly analyses use daily flow
+	double dFlowInTimePeriod = 60 * 60 * 24; // hourly analysis and monthly analyses use daily flow
     //m^3 / s
-	return ((mo_geo_in.md_ProductionFlowRateKgPerS / geothermal::EGSWaterDensity(tempC)) / mo_geo_in.md_EGSNumberOfFractures);
+	return ((mo_geo_in.md_ProductionFlowRateKgPerS / geothermal::EGSWaterDensity(tempC)) / mo_geo_in.md_EGSNumberOfFractures) * dFlowInTimePeriod;
 }
 
 double CGeothermalAnalyzer::EGSAlpha(void)
@@ -1722,6 +1724,7 @@ double CGeothermalAnalyzer::GetPlantBrineEffectiveness(void)
 	mp_geo_out->max_secondlaw = (1 - ((geothermal::IMITATE_GETEM) ? GetAEBinaryAtTemp(TamphSiO2) / GetAEBinary() : dAE_At_Exit / GetAE()) - 0.375);
 	//double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * ((GetTemperaturePlantDesignC() < 150) ? 0.14425 * exp(0.008806 * GetTemperaturePlantDesignC()) : mp_geo_out->max_secondlaw);
     double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * (mp_geo_out->max_secondlaw);
+    mp_geo_out->md_MaxBrineEffectiveness = dMaxBinaryBrineEffectiveness;
 
 	return (mo_geo_in.me_ct == FLASH) ? FlashBrineEffectiveness() : dMaxBinaryBrineEffectiveness * mo_geo_in.md_PlantEfficiency;
 }
@@ -2572,6 +2575,7 @@ bool CGeothermalAnalyzer::InterfaceOutputsFilled(void)
 	// doesn't matter, since this is called from the user interface and not repetatively.
 	GetNumberOfWells();
 	mp_geo_out->md_PlantBrineEffectiveness = GetPlantBrineEffectiveness();
+    mp_geo_out->md_dtRockWellHead = DT_prod_well(mo_geo_in.md_dtProdWellChoice); // track dT value used in calculations - input or calculated
 	ReplaceReservoir(0.0); // set the working temp so the further calculations are correct
 	mp_geo_out->md_GrossPlantOutputMW = PlantGrossPowerkW() / 1000;
     mp_geo_out->md_GrossPowerkW = GrossPowerMW();

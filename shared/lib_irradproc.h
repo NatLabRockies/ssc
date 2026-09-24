@@ -1024,6 +1024,7 @@ protected:
     double elevation;               // site elevation (meters)
     double pressure;
     double tamb;
+    double pwater;
 
     // Model settings
     int skyModel;					///< sky model selection as defined in \link Irradiance_IO::SKYMODEL 
@@ -1142,10 +1143,10 @@ public:
     void set_location(double lat, double lon, double tz);
 
     /// Get optional parameters for solarpos_spac calculation
-    void get_optional(double* elev, double* pres, double* t_amb);
+    void get_optional(double* elev, double* pres, double* t_amb, double* prec_water);
 
     // Set optional parameters for solarpos_spa calculation
-    void set_optional(double elev = 0, double pres = 1013.25, double t_amb = 15);
+    void set_optional(double elev = 0, double pres = 1013.25, double t_amb = 15, double prec_water = std::numeric_limits<double>::quiet_NaN());
 
     //Set whether to use subhourly clipping model
     void set_subhourly_clipping(bool enable = false);

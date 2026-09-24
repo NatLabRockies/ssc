@@ -136,6 +136,10 @@ struct weather_record {
 	double snow;   // snow depth (cm) 0-150
 	double alb;    // ground reflectance 0-1
     double aod;    // aerosol optical depth
+    double pwater; // precipitable water (cm)
+    double csky_dn; // clear sky DNI (W/m2)
+    double csky_df; // clear sky DHI (W/m2)
+    double csky_gh; // clear sky GHI (W/m2)
 };
 
 class weather_data_provider
@@ -145,7 +149,8 @@ public:
 		GHI, DNI, DHI, POA, 
 		TDRY, TWET, TDEW, 
 		WSPD, WDIR, 
-		RH, PRES, SNOW, ALB, AOD,
+		RH, PRES, SNOW, ALB, AOD, PWATER,
+        CSKY_DNI, CSKY_DHI, CSKY_GHI,
 	_MAXCOL_ };
 
 protected:

@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lsqfit.h"
 #include "lib_iec61853.h"
 #include "lib_pv_incidence_modifier.h"
+#include "lib_pv_spectral_correction.h"
 
 const char *iec61853_module_t::module_type_names[_maxTypeNames] = { "monoSi", "multiSi", "CdTe", "CIS", "CIGS", "Amorphous" };
 const char *iec61853_module_t::col_names[COL_MAX] = { "Irr (W/m2)", "Temp (C)", "Pmp (W)", "Vmp (V)", "Voc (V)", "Isc (A)" };
@@ -892,7 +893,8 @@ bool iec61853_module_t::operator() ( pvinput_t const &input, double TcellC, doub
         if( tpoa > poa ) tpoa = poa;
 	
 		// spectral effect via AM modifier
-		double ama = air_mass_modifier( input.Zenith, input.Elev, AMA );
+		//double ama = air_mass_modifier( input.Zenith, input.Elev, AMA );
+        double ama = input.SCF;
 		tpoa *= ama;
 		AOIModifier = tpoa/poa;
 	} 

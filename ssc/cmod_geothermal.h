@@ -276,6 +276,11 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_NUMBER,      "capacity_factor",                    "Capacity factor",                                    "",        "",             "",                 "*",                         "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "kwh_per_kw",                          "First year kWh/kW",                                 "",        "",             "",                 "*",                         "",                "" },
 
+    { SSC_OUTPUT,       SSC_NUMBER,		"dt_rock_well_head",                   "dT used in calculations",							 "C",		"",             "GeoHourly",		"*",                         "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,		"brine_effectiveness",                 "Brine effectiveness used in calculations",			 "w-h/lb",  "",             "GeoHourly",		"*",                         "",                "" },
+    { SSC_OUTPUT,       SSC_NUMBER,		"max_brine_effectiveness",             "Maximum brine effectiveness",						 "w-h/lb",  "",             "GeoHourly",		"*",                         "",                "" },
+
+
 var_info_invalid };
 
 

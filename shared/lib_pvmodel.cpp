@@ -44,7 +44,7 @@ pvinput_t::pvinput_t()
 {
 	Ibeam = Idiff = Ignd = Tdry = poaIrr= Tdew = Wspd = Wdir = Patm
 		= Zenith = IncAng = Elev 
-		= Tilt = Azimuth = HourOfDay = std::numeric_limits<double>::quiet_NaN();
+		= Tilt = Azimuth = HourOfDay = SCF = std::numeric_limits<double>::quiet_NaN();
 
 	radmode = 0;
 	usePOAFromWF = false;
@@ -55,7 +55,7 @@ pvinput_t::pvinput_t( double ib, double id, double ig, double irear, double ip,
 		double ta, double td, double ws, double wd, double patm,
 		double zen, double inc, 
 		double elv, double tlt, double azi,
-		double hrday, int rmode, bool up)
+		double hrday, double scf, int rmode, bool up)
 {
 	Ibeam = ib;
 	Idiff = id;
@@ -73,6 +73,7 @@ pvinput_t::pvinput_t( double ib, double id, double ig, double irear, double ip,
 	Tilt = tlt;
 	Azimuth = azi;
 	HourOfDay = hrday;
+    SCF = scf;
 	radmode = rmode;
 	usePOAFromWF = up;
 }

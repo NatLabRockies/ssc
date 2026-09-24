@@ -514,7 +514,9 @@ public:
         double flash_count = geo_outputs.flash_count;
         assign("flash_count", (ssc_number_t)flash_count);
 
-
+        assign("dt_rock_well_head", var_data((ssc_number_t)geo_outputs.md_dtRockWellHead));
+        assign("brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
+        assign("max_brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_MaxBrineEffectiveness));
 
         //***********************************************************
         // Call cost models

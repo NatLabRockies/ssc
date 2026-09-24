@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cmod_pvsamv1.h"
 #include "lib_pv_io_manager.h"
 #include "lib_resilience.h"
+#include "lib_pv_spectral_correction.h"
 #include "lib_time.h"
 
 // comment following define if do not want shading database validation outputs
@@ -1104,6 +1105,7 @@ cm_pvsamv1::cm_pvsamv1()
     add_var_info(vtab_utility_rate_common); // Required by battery
     add_var_info(vtab_grid_curtailment); // Required by battery
     add_var_info(vtab_hybrid_tech_om_outputs);
+    add_var_info(vtab_spectral_correction); //lib_pv_spectral_correction
 }
 
 
@@ -1131,7 +1133,7 @@ void cm_pvsamv1::exec()
     weather_data_provider* wdprov = Irradiance->weatherDataProvider.get();
     int radmode = Irradiance->radiationMode;
     double bifaciality = 0.0;
-    double elev, pres, t_amb;
+    double elev, pres, t_amb, pwater;
 
     // Get System or Subarray Inputs
     double aspect_ratio = Subarrays[0]->moduleAspectRatio;
@@ -1508,6 +1510,7 @@ void cm_pvsamv1::exec()
 
             double solazi = 0, solzen = 0, solalt = 0;
             int sunup = 0;
+            double scf = 0;
 
             // accumulators for radiation power (W) over this
             // timestep from each subarray
@@ -1593,8 +1596,14 @@ void cm_pvsamv1::exec()
                 double ibeam_csky, iskydiff_csky, ignddiff_csky;
                 double ghi_cs, dni_cs, dhi_cs;
                 double aoi, stilt, sazi, rot, btd;
-
-                irr->get_clearsky_irrad(&ghi_cs, &dni_cs, &dhi_cs);
+                if (isnan(wf.csky_dn) || isnan(wf.csky_df) || isnan(wf.csky_gh)) {
+                    irr->get_clearsky_irrad(&ghi_cs, &dni_cs, &dhi_cs);
+                }
+                else {
+                    ghi_cs = wf.csky_gh;
+                    dni_cs = wf.csky_dn;
+                    dhi_cs = wf.csky_df;
+                }
 
                 // Ensure that the usePOAFromWF flag is false unless a reference cell has been used.
                 //  This will later get forced to false if any shading has been applied (in any scenario)
@@ -1626,9 +1635,10 @@ void cm_pvsamv1::exec()
                 irr->get_angles(&aoi, &stilt, &sazi, &rot, &btd);
                 irr->get_poa(&ibeam, &iskydiff, &ignddiff, 0, 0, 0);
                 irr->get_poa_clearsky(&ibeam_csky, &iskydiff_csky, &ignddiff_csky, 0, 0, 0);
-                irr->get_optional(&elev, &pres, &t_amb);
+                irr->get_optional(&elev, &pres, &t_amb, &pwater);
                 alb = irr->getAlbedo();
                 alb_spatial = irr->getAlbedoSpatial();
+
 
 
                 
@@ -1694,6 +1704,19 @@ void cm_pvsamv1::exec()
                         PVSystem->p_poaNominalFront[nn][idx] = (ssc_number_t)((ipoa[nn]));
                 }
 
+                double ghi = 0;
+                if (isnan(wf.gh)) ghi = Irradiance->p_IrradianceCalculated[0][idx];
+                else ghi = wf.gh;
+                double csky_index = ghi / ghi_cs; //TODO, check if no wf.gh
+                if (isnan(pwater) && as_integer("spectral_correction_model_choice") == 1)
+                {
+                    throw exec_error("pvsamv1", util::format("Precipitable water is NaN at time [y:%d m:%d d:%d h:%d minute:%lg], the chosen spectral correction model does not have the data required.",
+                        wf.year, wf.month, wf.day, wf.hour, wf.minute));
+                    
+                }
+                scf = spectral_correction_factor(this, pwater, solzen, elev, csky_index);
+                /* scf = spectral_correction_factor(model_type, celltech, pwater, solzen, elev, coeff_inputs,
+                     min_prec_water, max_prec_water, min_abs_airmass, max_abs_airmass, csky_index);*/
 
                 // record sub-array contribution to total POA power for this time step  (W)
                 if (radmode != irrad::POA_R)
@@ -1719,7 +1742,7 @@ void cm_pvsamv1::exec()
                             wf.tdry, wf.tdew, wf.wspd, wf.wdir, wf.pres,
                             solzen, aoi, elev,
                             stilt, sazi,
-                            ((double)wf.hour) + wf.minute / 60.0,
+                            ((double)wf.hour) + wf.minute / 60.0, scf,
                             radmode, Subarrays[nn]->poa.usePOAFromWF);
                         // voltage set to -1 for max power
                         if (Subarrays[nn]->useCustomCellTemp == 1)
@@ -2152,7 +2175,7 @@ void cm_pvsamv1::exec()
                                 wf.tdry, wf.tdew, wf.wspd, wf.wdir, wf.pres,
                                 solzen, Subarrays[nn]->poa.angleOfIncidenceDegrees, elev,
                                 Subarrays[nn]->poa.surfaceTiltDegrees, Subarrays[nn]->poa.surfaceAzimuthDegrees,
-                                ((double)wf.hour) + wf.minute / 60.0,
+                                ((double)wf.hour) + wf.minute / 60.0, scf,
                                 radmode, Subarrays[nn]->poa.usePOAFromWF);
                             pvoutput_t out(0, 0, 0, 0, 0, 0, 0, 0);
 
@@ -2205,14 +2228,14 @@ void cm_pvsamv1::exec()
                         wf.tdry, wf.tdew, wf.wspd, wf.wdir, wf.pres,
                         solzen, Subarrays[nn]->poa.angleOfIncidenceDegrees, elev,
                         Subarrays[nn]->poa.surfaceTiltDegrees, Subarrays[nn]->poa.surfaceAzimuthDegrees,
-                        ((double)wf.hour) + wf.minute / 60.0,
+                        ((double)wf.hour) + wf.minute / 60.0, scf,
                         radmode, Subarrays[nn]->poa.usePOAFromWF);
 
                     pvinput_t in_temp_csky(Subarrays[nn]->poa.poaBeamFrontCS, Subarrays[nn]->poa.poaDiffuseFrontCS, Subarrays[nn]->poa.poaGroundFrontCS, Subarrays[nn]->poa.poaRearCS * bifaciality, Subarrays[nn]->poa.poaTotal,
                         wf.tdry, wf.tdew, wf.wspd, wf.wdir, wf.pres,
                         solzen, Subarrays[nn]->poa.angleOfIncidenceDegrees, elev,
                         Subarrays[nn]->poa.surfaceTiltDegrees, Subarrays[nn]->poa.surfaceAzimuthDegrees,
-                        ((double)wf.hour) + wf.minute / 60.0,
+                        ((double)wf.hour) + wf.minute / 60.0, scf,
                         0, false);
                     
                     pvoutput_t out_temp(0, 0, 0, 0, 0, 0, 0, 0);

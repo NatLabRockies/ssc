@@ -177,21 +177,23 @@ bool winddata_provider::can_interpolate( int index1, int index2, int ncols, doub
 	return false;
 }
 
-bool winddata_provider::read( double requested_height,
-	double *speed,
-	double *direction,
-	double *temperature,
-	double *pressure,
-	double *closest_speed_meas_height_in_file,
-	double *closest_dir_meas_height_in_file,
-	bool bInterpolate /*= false*/)
-{	
-	std::vector<double> values;
-	if ( !read_line( values ) )
-		return false;
-	
-	if (values.size() < m_heights.size() || values.size() < m_dataid.size())
-		return false;
+bool winddata_provider::read(double requested_height,
+    double* speed,
+    double* direction,
+    double* temperature,
+    double* pressure,
+    double* closest_speed_meas_height_in_file,
+    double* closest_dir_meas_height_in_file,
+    bool bInterpolate /*= false*/)
+{
+    std::vector<double> values;
+    if (!read_line(values))
+        return false;
+
+    if (values.size() < m_heights.size() || values.size() < m_dataid.size()) {
+        m_errorMsg = util::format("Error: the number of data columns (%d), measurement heights (%d), and data heights (%d) must be the same", values.size(), m_heights.size(), m_dataid.size());
+        return false;
+    }
 
 	int ncols = (int)values.size();
 
@@ -287,8 +289,22 @@ bool winddata_provider::read( double requested_height,
 		&& !my_isnan( *temperature )
 		&& !my_isnan( *pressure );
 
+    if (found_all == false)
+    {
+        std::string missing = "";
+        if (my_isnan(*speed))
+             missing += "speed ";
+        if (my_isnan(*direction))
+            missing += "direction ";
+        if (my_isnan(*temperature))
+            missing += "temperature ";
+        if (my_isnan(*pressure))
+            missing += "pressure ";
+        m_errorMsg = util::format("data not found in weather file for %s", missing.c_str());
+    }
+
 	//add error checking. direction error checking performed in the averaging function.
-	if (*speed < 0 || *speed > 120) //units are m/s, wind speed cannot be negative and highest recorded wind speed ever was 113 m/s (https://en.wikipedia.org/wiki/Wind_speed)
+ 	if (*speed < 0 || *speed > 120) //units are m/s, wind speed cannot be negative and highest recorded wind speed ever was 113 m/s (https://en.wikipedia.org/wiki/Wind_speed)
 	{
 		found_all = false;
 		m_errorMsg = util::format("Error: wind speed of %g m/s found in weather file, this speed is outside the possible range of 0 to 120 m/s", *speed);
@@ -512,13 +528,14 @@ bool windfile::open( const std::string &file )
         }
         // if elevation not in weather file, set to zero
         // TO DO check to see where and whether elevation is used (check SSC and SAM and UI callbacks)
-        if (isnan(elev)) {
+        if (std::isnan(elev)) {
             elev = 0;
         }
  
-        // time stamps expected to be in local time. wind data files provide both site timezone and data timezone in header
+        // time stamps expected to be in local time. wind data files provide both site time zone and data time zone in header
         // if the values are different, we can't determine the time zone of the time stamps for financial model time-dependent features (TOU, TOD, etc.)
-        if (tz_data != tz_site) {
+        // if one of the values is empty, we assume the other is the time zone of the data
+        if (tz_data != tz_site && !(tz_site.empty() || tz_data.empty())) {
             m_errorMsg = util::format("data must be in local time: data time zone %s and site time zone %s are not the same", tz_data.c_str(), tz_site.c_str());
             return false;
         }
@@ -536,7 +553,8 @@ bool windfile::open( const std::string &file )
             hdr_item = util::lower_case(trimboth(cols[i]));
 
             // find columns for wind data at different heights    
-            if (hdr_item.find("temp") != std::string::npos)
+            // some endpoints like wtk-alaska-v1-0-0 and wtk-led-conus have "virtual potential temperature" and "air temperature"
+            if (hdr_item.find("temp") != std::string::npos && hdr_item.find("virtual") == std::string::npos)
             {
                 m_dataid.push_back(TEMP);
                 m_heights.push_back(col_or_nan(cols[i]));
@@ -549,7 +567,9 @@ bool windfile::open( const std::string &file )
                 m_heights.push_back(col_or_nan(cols[i]));
                 m_colid.push_back(i);
             }
-            else if (hdr_item.find("speed") != std::string::npos)
+            // some files use a mix of "wind speed" and "windspeed"
+            // some endpoints like wtk-alaska-v1-0-0 and wtk-led-conus have "vertical wind speed" and "wind speed"
+            else if (hdr_item.find("speed") != std::string::npos && hdr_item.find("vertical") == std::string::npos )
             {
                 m_dataid.push_back(SPEED);
                 m_heights.push_back(col_or_nan(cols[i]));

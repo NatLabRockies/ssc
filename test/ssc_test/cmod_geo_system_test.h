@@ -47,7 +47,7 @@ namespace geo_system_test_ns
 
     const std::string output_file_prefix = "26-09-04-dev";
 
-    const std::vector<std::string> compare_number_variables = { "annual_energy" }; //, "total_capital_cost", "total_getem_om_cost"
+    const std::vector<std::string> compare_number_variables = { "annual_energy", "total_installed_cost" }; //, "total_capital_cost", "total_getem_om_cost"
 
     const std::vector<std::string> compare_array_variables = { "monthly_energy" };
 

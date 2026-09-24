@@ -73,7 +73,7 @@ GTEST_API_ int main(int argc, char **argv) {
     //::testing::GTEST_FLAG(filter) = "CmodFresnelPhysicalTest.MSLFDefault";
     //::testing::GTEST_FLAG(filter) = "CMGeothermalCosts.CostModuleTest_cmod_geothermal_costs";
 
-    ::testing::GTEST_FLAG(filter) = "CmodGeoSystemTest.*";
+    //::testing::GTEST_FLAG(filter) = "CmodGeoSystemTest.*";
     
     //    filter to exclude
     //    ::testing::GTEST_FLAG(filter) = "-PVSmoothing_lib_battery_dispatch*";

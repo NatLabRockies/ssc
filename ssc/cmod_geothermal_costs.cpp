@@ -36,124 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_geothermal.h"
 #include "common.h"
 
-
-static var_info _cm_vtab_geothermal_costs[] = {
-	/*   VARTYPE			DATATYPE         NAME                              LABEL                                                       UNITS		META                      GROUP                   REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
-
-		{ SSC_INPUT,        SSC_NUMBER,     "conversion_type",					"Conversion Type",											"",			"",						"GeoHourly",			    "*",                        "INTEGER",					    "" },
-        { SSC_INPUT,        SSC_NUMBER,     "ppi_base_year",					"PPI Base Year",									"",		"",						"GeoHourly",				"?=19",						"",								"" },
-
-        // Binary Plant Type Inputs:		
-		{ SSC_INPUT,		SSC_NUMBER,     "gross_output",						"Gross output from GETEM",									"MW",		"",						"GeoHourly",				"*",						"",								"" },
-        { SSC_INPUT,		SSC_NUMBER,     "gross_cost_output",						"Gross output from GETEM for cost calculations",									"kW",		"",						"GeoHourly",				"*",						"",								"" },
-
-        { SSC_INPUT,		SSC_NUMBER,		"design_temp",						"Power block design temperature",							"C",        "",						"GeoHourly",				"*",						"",								"" },
-        { SSC_INPUT,        SSC_NUMBER,      "dt_prod_well",                   "Temperature loss in production well",                  "C",              "",             "GeoHourly",        "*",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,     "eff_secondlaw",					"Second Law Efficiency",									"%",		"",						"GeoHourly",				"*",						"",								"" },
-		// Flash Plant Type Inputs:
-		{ SSC_INPUT,		SSC_NUMBER,		"qRejectTotal",						"Total Rejected Heat",										"btu/h",			"",				"GeoHourly",				"conversion_type=1",		"",								""},
-		{ SSC_INPUT,		SSC_NUMBER,		"qCondenser",						"Condenser Heat Rejected",									"btu/h",	"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"v_stage_1",						"Vacumm Pump Stage 1",										"kW",		"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"v_stage_2",						"Vacumm Pump Stage 2",										"kW",		"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"v_stage_3",						"Vacumm Pump Stage 3",										"kW",		"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"GF_flowrate",						"GF Flow Rate",												"lb/h",		"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"qRejectByStage_1",					"Heat Rejected by NCG Condenser Stage 1",					"BTU/hr",	"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"qRejectByStage_2",					"Heat Rejected by NCG Condenser Stage 2",					"BTU/hr",	"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"qRejectByStage_3",					"Heat Rejected by NCG Condenser Stage 3",					"BTU/hr",	"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"ncg_condensate_pump",				"Condensate Pump Work",										"kW",		"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"cw_pump_work",						"CW Pump Work",												"kW",		"",						"GeoHourly",				"conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"pressure_ratio_1",					"Suction Steam Ratio 1",									"",			"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"pressure_ratio_2",					"Suction Steam Ratio 2",									"",			"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"pressure_ratio_3",					"Suction Steam Ratio 3",									"",			"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"condensate_pump_power",			"hp",														"",			"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"cwflow",							"Cooling Water Flow",										"lb/h",		"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"cw_pump_head",						"Cooling Water Pump Head",									"lb/h",		"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"spec_vol",							"Specific Volume",											"cft/lb",	"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"spec_vol_lp",						"LP Specific Volume",										"cft/lb",	"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"x_hp",								"HP Mass Fraction",											"%",		"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"x_lp",								"LP Mass Fraction",											"%",		"",						"GeoHourly",				 "conversion_type=1",		 "",							"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"hp_flash_pressure",				"HP Flash Pressure",										"psia",		"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"lp_flash_pressure",				"LP Flash Pressure",										"psia",		"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-		{ SSC_INPUT,		SSC_NUMBER,		"flash_count",						"Flash Count",												"(1 -2)",	"",						"GeoHourly",				 "conversion_type=1",		"",								"" },
-
-        { SSC_INPUT,        SSC_NUMBER,      "calc_drill_costs",                      "Calculate drill costs",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "?=0",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_cost_curve_welltype",                      "Injection well type",                      "0/1",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.prod_cost_curve_welltype",                      "Production well type",                      "0/1",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_cost_curve_welldiam",                      "Injection well diameter type",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "calc_drill_costs=1",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.prod_cost_curve_welldiam",                      "Production well diameter type",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "calc_drill_costs=1",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_cost_curve",                      "Injection well diameter type",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "calc_drill_costs=1",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.prod_cost_curve",                      "Production well diameter type",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "calc_drill_costs=1",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "resource_depth",                     "Resource Depth",                               "m",              "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem_prod_drilled",                      "Number of drilled production wells",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem_prod_failed",                      "Number of failed production wells",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "",                        "",                "" },
-
-        { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem_inj_drilled",                      "Number of drilled injection wells",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.stim_non_drill",                      "Stimulation non drilling costs",                      "$",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=0" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_non_drill",                      "Exploration non drilling costs",                      "$",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=750000" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_non_drill",                      "Confirmation non drilling costs",                      "$",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=250000" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_multiplier",                      "Exploration cost multiplier",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=0.5" },
-        // added per email from Dayo 8/6/2025
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_lump_sum",                      "Exploration cost lump sum",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=0" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_multiplier",                      "Confirmation cost multiplier",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=1.2" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.expl_num_wells",                      "Number of exploration wells",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=2" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.conf_num_wells",                      "Number of confirmation wells",                      "",             "",             "GeoHourly",        "calc_drill_costs=1",                        "",                "?=2" },
-        // need defaults?
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.pump_fixed",                      "Fixed pump workover and casing cost",                      "$",             "",             "GeoHourly",        "",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.pump_per_foot",                      "Pump cost per foot",                      "$/ft",             "",             "GeoHourly",        "",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.pump_casing_cost",                      "Pump casing cost per foot",                      "$/ft",             "",             "GeoHourly",        "",                        "",                "" },
-
-        // name change to match assign statement
- //       { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.pump_geotherm.cost.pump_depth",                      "Pump depth",                      "ft",             "",             "GeoHourly",        "",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "pump_depth_ft",                      "Pump depth",                      "ft",             "",             "GeoHourly",        "",                        "",                "?=1123120" },
-        { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem",                      "Number of production wells required",                      "",             "",             "GeoHourly",        "",                        "",                "?=3.667" },
-        { SSC_INPUT,        SSC_NUMBER,      "pump_size_hp",                      "Production pump power",                      "hp",             "",             "GeoHourly",        "",                        "",                "?733.646" },
-        { SSC_INPUT,        SSC_NUMBER,      "inj_pump_hp",                      "Injection pump power",                      "hp",             "",             "GeoHourly",        "",                        "",                "" },
-        { SSC_INPUT,        SSC_NUMBER,      "stimulation_type",                      "Which wells are stimulated",                      "0/1/2/3",             "",             "GeoHourly",        "",                        "",                "?=0" },
-
-
-        // Outputs	
-        { SSC_OUTPUT,       SSC_NUMBER,     "baseline_cost",					"Baseline cost",											"$/kW",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "engineering_cost",					"Engineering cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "total_drilling_cost",					"Total drilling cost",											"$",		"",                     "GeoHourly",				"calc_drill_costs=1",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "total_pump_cost",					"Total pumping cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "total_gathering_cost",					"Total gathering well cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "indirect_pump_gathering_cost",					"Indirect pump and field gathering cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "total_pump_gathering_cost",					"Total pump and field gathering system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "pump_only_cost",					"Production pump cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "pump_cost_install",					"Production pump installation cost",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "total_surface_equipment_cost",					"Total surface equipment cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "prod_pump_cost_per_well",					"Production pump cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "inj_pump_cost_per_pump",					"Injection pump cost per pump",											"$/pump",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "inj_num_pumps",					"Number of injection pumps",											"",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "indirect_pump_cost",					"Number of injection pumps",											"",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "prod_pump_cost",					"Production pump system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "inj_pump_cost",					"Injection pump system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "piping_cost_per_well",					"Surface piping cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "field_gathering_num_wells",					"Field gathering system number of wells",											"wells",		"",                     "GeoHourly",				"?",                         "",                            "" },
-
-        //Stimulation costs
-        { SSC_OUTPUT,       SSC_NUMBER,     "stim_cost_per_well",					"Stimulation cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "stim_cost_non_drill",					"Non-drilling stimulation costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-       { SSC_OUTPUT,       SSC_NUMBER,     "stim_total_cost",					"Stimulation Total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-       //Expl and Confirmation drilling costs
-        { SSC_OUTPUT,       SSC_NUMBER,     "total_expl_permitting",			"Exploration permitting total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "expl_total_cost",					"Exploration total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "expl_drilling_cost",					"Exploration drilling costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "conf_total_cost",					"Confirmation total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "conf_drilling_cost",					"Confirmation drilling costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        //Drilling costs
-        { SSC_OUTPUT,       SSC_NUMBER,     "prod_well_cost",					"Production cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "total_drilling_permitting",			"Drilling permitting total costs",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "prod_total_cost",					"Total production well system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "inj_well_cost",					"Injection cost per well",											"$/well",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "inj_total_cost",					"Total injection well system cost",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "atb_exploration_cost",					"Exploration cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "atb_drilling_cost",					"Drilling cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-        { SSC_OUTPUT,       SSC_NUMBER,     "atb_plant_cost",					"Plant cost for ATB comparison",											"$",		"",                     "GeoHourly",				"?",                         "",                            "" },
-
-        var_info_invalid };
-
-
+#include "cmod_geothermal_costs.h"
 
 class cm_geothermal_costs : public compute_module
 {
@@ -289,7 +172,7 @@ private:
 	double tg_cost;
 	double current_cost_ref_tg;
 
-	double plant_equip_cost, baseline_cost;
+	double plant_equip_cost;
     double indirect_plant_cost;
 
 
@@ -364,13 +247,20 @@ public:
 
 	cm_geothermal_costs() {
 
-		add_var_info(_cm_vtab_geothermal_costs);
+		add_var_info(_cm_vtab_geothermal_costs_unique);
+        add_var_info(_cm_vtab_geothermal_costs_upstream);
 	}
 
 
 	void exec() override
 	{
 		SGeothermal_Inputs geo_inputs;
+
+        double conf_drilling_cost = std::numeric_limits<double>::quiet_NaN();
+        double sum_prod_inj_total_cost = std::numeric_limits<double>::quiet_NaN();
+        double total_drilling_cost = std::numeric_limits<double>::quiet_NaN();  
+
+        int resource_type = as_integer("resource_type");
 
         int calc_drill_costs = as_integer("calc_drill_costs");
         if (calc_drill_costs == 1) {
@@ -400,6 +290,7 @@ public:
                 //Drilling cost calculations
             double resource_depth = as_double("resource_depth");
             double inj_well_cost = 0;
+
             if (inj_cost_curve_welldiam == 0) {
                 if (inj_cost_curve_welltype == 0) {
                     switch (inj_cost_curve) {
@@ -489,7 +380,8 @@ public:
                     case 0:
                         prod_well_cost = 0.248457765459742
                             * pow(resource_depth, 2) + 935.898545379353
-                            * resource_depth + 626586.677702712;                        break;
+                            * resource_depth + 626586.677702712;
+                        break;
                     case 1:
                         prod_well_cost = 0.189267288 * pow(resource_depth, 2) + 293.4517365 * resource_depth + 1326526.313;
                         break;
@@ -564,6 +456,15 @@ public:
             double prod_total_cost = prod_wells_drilled * prod_well_cost;
             assign("prod_total_cost", prod_total_cost);
             assign("prod_well_cost", prod_well_cost);
+
+            sum_prod_inj_total_cost = prod_total_cost + inj_total_cost;
+            assign("sum_prod_inj_total_cost", ssc_number_t(sum_prod_inj_total_cost));
+
+            double prod_inj_non_drill_cost = as_double("geotherm.cost.prod_inj_non_drill");
+            double prod_inj_total_cost = prod_total_cost + inj_total_cost + prod_inj_non_drill_cost;
+            assign("prod_inj_total_cost", ssc_number_t(prod_inj_total_cost));
+
+            assign("num_wells_getem_prod_inj_sum", ssc_number_t(prod_wells_drilled + inj_wells_drilled));
             
             // Stimulation costs
             /*
@@ -584,8 +485,6 @@ public:
             if (ppi_base_year < 0) ppi_base_year = 0;
             else if (ppi_base_year >= (int)MAX_PPI_SIZE) ppi_base_year = (int)(MAX_PPI_SIZE-1); // TODO 1995 through 2022 - ppi values should be updated
 
-
-
             double stim_non_drill = as_double("geotherm.cost.stim_non_drill");
             double stim_per_well = 1250000 * drilling_ppi[ppi_base_year];
             int stim_type = as_integer("stimulation_type");
@@ -600,26 +499,34 @@ public:
             assign("stim_cost_non_drill", stim_non_drill);
 
 
+            // Exploraion and confirmation costs
+            /*
+            equations{ 'geotherm.cost.expl_total' } = define() {
+    return  ${geotherm.cost.expl_drill} + ${geotherm.cost.expl_non_drill}; };
+
+
+            equations{ 'geotherm.cost.expl_drill' } = define() {
+    return  ${geotherm.cost.expl_per_well} * ${geotherm.cost.expl_num_wells}; };
+
+        equations{ 'geotherm.cost.expl_per_well' } = define() {
+    return  ${geotherm.cost.expl_multiplier} * ${geotherm.cost.prod_per_well}; };
+
+
+            */
             double expl_non_drill = as_double("geotherm.cost.expl_non_drill");
             double expl_multiplier = as_double("geotherm.cost.expl_multiplier");
             double expl_num_wells = as_double("geotherm.cost.expl_num_wells");
 
-            // expl_multiplier is the Oil and Gas PPI for the base year per Dayo's email 8/6/2025
-            //expl_multiplier = og_support_ppi[ppi_base_year]; values do not match with Dayo's pptx hard code for 2023 ATB in GETEM_ATB.py
-
-            // update per email from Dayo 8/6/2025
-            //double expl_per_well = expl_multiplier * prod_well_cost;
             double expl_lump_sum = as_double("geotherm.cost.expl_lump_sum"); // TODO will need to add this input to the UI
             double expl_per_well = expl_multiplier * expl_lump_sum;
 
-            int resource_type = as_integer("resource_type");
             double percent_ind_cost = 0.04;
-            if (resource_type == 1) percent_ind_cost = 0.05;
+            if( resource_type == 1 ) percent_ind_cost = 0.05;
             double expl_indirect_cost = (prod_well_cost * expl_num_wells) * (1 / (1 - percent_ind_cost) - 1); //num_wells different here
 
 
             double total_predrilling_permitting_cost = 60000 * legal_services_ppi[ppi_base_year];// Sheet2:I48 in GETEM Parameter Equation Breakout.xlsx
-//            double total_predrilling_expl_cost = (resource_type == 0) ? 300000 : 250000 * og_support_ppi[ppi_base_year];
+            //            double total_predrilling_expl_cost = (resource_type == 0) ? 300000 : 250000 * og_support_ppi[ppi_base_year];
             double expl_permitting_cost = 250000 * legal_services_ppi[ppi_base_year]; // Sheet2:I54 in GETEM Parameter Equation Breakout.xlsx
             double total_expl_permitting = total_predrilling_permitting_cost + expl_permitting_cost;
             assign("total_expl_permitting", total_expl_permitting);
@@ -629,43 +536,54 @@ public:
             */
             // update per email from Dayo 8/6/2025
             double expl_total_cost = expl_per_well * expl_num_wells; // +expl_non_drill + total_expl_permitting + expl_indirect_cost;
+
+
+
+            //double expl_per_well = expl_multiplier * prod_well_cost;
+            //double expl_total_cost = expl_per_well * expl_num_wells + expl_non_drill;
             assign("expl_total_cost", expl_total_cost);
             assign("expl_drilling_cost", expl_per_well* expl_num_wells);
+            assign("expl_cost_per_well", expl_per_well);
 
             double conf_non_drill = as_double("geotherm.cost.conf_non_drill");
             double conf_multiplier = as_double("geotherm.cost.conf_multiplier");
-            // update per email from Dayo 8/6/2025
             double conf_num_wells = as_double("geotherm.cost.conf_num_wells");
             double conf_per_well = conf_multiplier * prod_well_cost;
-            // update per email from Dayo 8/6/2025
+
             double conf_total_cost = conf_per_well * conf_num_wells;// +conf_non_drill;
             assign("conf_total_cost", conf_total_cost);
-            assign("conf_drilling_cost", conf_per_well* conf_num_wells);
+            conf_drilling_cost = conf_per_well * conf_num_wells;
+            assign("conf_drilling_cost", conf_drilling_cost);
 
             // update per email from Dayo 6/24/2025
-            assign("atb_exploration_cost", expl_per_well* expl_num_wells + conf_per_well * conf_num_wells);
+            assign("atb_exploration_cost", expl_per_well * expl_num_wells + conf_per_well * conf_num_wells);
             // + expl_non_drilling which is in the NonDrillingCosts.py file in the GETEM-SAM repo
-
 
             double total_drilling_permitting = 1000000 * legal_services_ppi[ppi_base_year]; // Sheet2:I73 in GETEM Parameter Equation Breakout.xlsx
             assign("total_drilling_permitting", total_drilling_permitting);
 
             // update per email from Dayo 8/6/2025
-            double total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost;// +total_drilling_permitting;
+            total_drilling_cost = expl_total_cost + conf_total_cost + inj_total_cost + prod_total_cost + stim_total_cost;// +total_drilling_permitting;
             assign("total_drilling_cost", total_drilling_cost);
 
+            bool is_calculate_drilling_costs = as_boolean("geotherm.cost.drilling.calc");
+            if( is_calculate_drilling_costs ) {
+                assign("total_drilling_cost_used", total_drilling_cost);    //[$]
+            }
+            else {
+                assign("total_drilling_cost_used", as_double("geotherm.cost.drilling.amount_specified"));    //[$]
+            }
+
             // update per email from Dayo 6/24/2025
-            assign("atb_drilling_cost", prod_wells_drilled* prod_well_cost + inj_wells_drilled * inj_well_cost + stim_per_well * stim_num_wells);//  +dev_non_drilling in nondrillingcostdev function in NonDrillingCosts.py in the GETEM-SAM repo
-            
+            assign("atb_drilling_cost", prod_wells_drilled * prod_well_cost + inj_wells_drilled * inj_well_cost + stim_per_well * stim_num_wells);//  +dev_non_drilling in nondrillingcostdev function in NonDrillingCosts.py in the GETEM-SAM repo
+
         }
 		int conversion_type = as_integer("conversion_type");
 
         int ppi_base_year = as_integer("ppi_base_year");
 
-        int resource_type = as_integer("resource_type");
-
-
-        
+        double baseline_cost = std::numeric_limits<double>::quiet_NaN();
+        double unit_plant = as_double("gross_output") * 1.E3;   //[kWe] convert from MWe
 
 		if (conversion_type == 0) {
 			//geo_inputs.me_ct = BINARY;
@@ -674,8 +592,6 @@ public:
 			//double unit_plant = as_double("nameplate");		//Gross plant size
 			double design_temp = as_double("design_temp") - as_double("dt_prod_well");
 			double eff = as_double("eff_secondlaw");	// w-h/lb
-			double unit_plant = as_double("gross_output");
-            unit_plant *= 1000.0; //convert to kW, brought from cmod_geothermal as MW
 
 			//Geofluid Heat Exchangers Equipment Cost Calculations:				
 			size_ratio = unit_plant / ref_plant_size;
@@ -759,21 +675,20 @@ public:
 
             corrected_equip_cost += indirect_plant_cost;
 
+            baseline_cost = corrected_equip_cost;
 
-			// for outputs, to assign, use: ($/kW)
+			// for outputs, to assign, use ($/kW):
 			//assign("dc_cost_multiplier", var_data(static_cast<ssc_number_t>(dc_cost_multiplier)));
-			assign("baseline_cost", var_data(static_cast<ssc_number_t>(corrected_equip_cost)));
+			assign("baseline_cost", var_data(static_cast<ssc_number_t>(baseline_cost)));
 
             double engineering_costs = corrected_equip_cost * unit_plant * 0.5; // $/kW to $ * engineering multiplier per Sheet2:E238 in GETEM Parameter Equation Breakout.xlsx
             assign("engineering_cost", engineering_costs);
 
             assign("atb_plant_cost", corrected_equip_cost * unit_plant);
-        }
+		}
 
 		else if (conversion_type == 1) {
 			//geo_inputs.me_ct = FLASH;
-			double unit_plant = as_double("gross_output");
-            unit_plant *= 1000.0; //kW, comes from cmod_geothermal as MW
             double gross_cost = as_double("gross_cost_output"); //kW
             double GF_flowrate = as_double("GF_flowrate");
 			double qRejectTotal = (as_double("qRejectTotal")*GF_flowrate / 1000) / 1000000;		// Converting from btu/h to MMBTU/h
@@ -927,6 +842,28 @@ public:
             assign("atb_plant_cost", baseline_cost* unit_plant);
 		}
 
+        // Calculate plant cost based on user input for model option
+        bool use_getem_plant_cost = as_boolean("geotherm.cost.plant_auto_estimate");
+        double total_plant_cost_calc = std::numeric_limits<double>::quiet_NaN();
+        if(use_getem_plant_cost){
+            total_plant_cost_calc = baseline_cost * unit_plant;      //[$]
+        }
+        else{
+            double plant_per_kW_input = as_double("geotherm.cost.plant_per_kW_input");  //[$/kWe]
+            total_plant_cost_calc = plant_per_kW_input * unit_plant; //[$]
+        }
+        assign("total_plant_cost", var_data(static_cast<ssc_number_t>(total_plant_cost_calc)));
+
+        bool use_calculated_plant_cost = as_boolean("geotherm.cost.plant_total.calc");
+        double total_plant_cost_used = std::numeric_limits<double>::quiet_NaN();
+        if(use_calculated_plant_cost){
+            total_plant_cost_used = total_plant_cost_calc;  //[$]
+        }
+        else{
+            total_plant_cost_used = as_double("geotherm.cost.plant_total.amount_specified");  //[$]
+        }
+        assign("total_plant_cost_used", var_data(static_cast<ssc_number_t>(total_plant_cost_used)));
+
        //Pump costs
         double workover_casing_cost = as_double("geotherm.cost.pump_casing_cost");
         //double casing_cost = as_double("casing_cost");
@@ -980,7 +917,7 @@ public:
         double pipe_cost_per_foot = 0.4249 * pow(pipe_outer_diam, 2) - 0.0472 * pipe_outer_diam + 40.683;
         double pipe_cost_per_foot_adj = pipe_cost_per_foot * pipe_ppi[ppi_base_year];
         double distance_plant_to_well = 1640.4;
-//        int resource_type = as_integer("resource_type");
+        //int resource_type = as_integer("resource_type");
         if (resource_type == 0) distance_plant_to_well = 2460.63;
         double piping_cost_per_well = pipe_cost_per_foot_adj * distance_plant_to_well; //average distance from well to plant (ft)?
         double prod_wells_drilled = as_double("num_wells_getem_prod_drilled");
@@ -994,8 +931,85 @@ public:
         double indirect_pump_gathering_cost = (total_pump_cost + gathering_cost_total) * (1.0 / (1 - 0.12) - 1);
         assign("indirect_pump_gathering_cost", var_data(static_cast<ssc_number_t>(indirect_pump_gathering_cost)));
 
-        double total_pump_gathering_cost = total_pump_cost + gathering_cost_total + indirect_pump_gathering_cost;
-        assign("total_pump_gathering_cost", var_data(static_cast<ssc_number_t>(total_pump_gathering_cost)));
+        double total_pump_gathering_cost_calc = total_pump_cost + gathering_cost_total + indirect_pump_gathering_cost;
+        assign("total_pump_gathering_cost", var_data(static_cast<ssc_number_t>(total_pump_gathering_cost_calc)));
+
+        bool use_calculated_pump_gathering_cost = as_boolean("geotherm.cost.pumping.calc");
+        double total_pump_gathering_cost_used = std::numeric_limits<double>::quiet_NaN();
+        if(use_calculated_pump_gathering_cost){
+            total_pump_gathering_cost_used = total_pump_gathering_cost_calc;  //[$]
+        }
+        else{
+            total_pump_gathering_cost_used = as_double("geotherm.cost.pumping.amount_specified");  //[$]
+        }
+        assign("total_pump_gathering_cost_used", var_data(static_cast<ssc_number_t>(total_pump_gathering_cost_used)));  //[$])
+
+
+        // Recapitalization costs
+        bool use_calculated_recapitalization_cost = as_boolean("geotherm.cost.recap_use_calc");
+        if(use_calculated_recapitalization_cost){
+            double recap_cost_calc = conf_drilling_cost + sum_prod_inj_total_cost + gathering_cost_total + total_pump_cost;
+            assign("system_recapitalization_cost", recap_cost_calc);
+        }
+        else{
+            assign("system_recapitalization_cost", var_data(static_cast<ssc_number_t>(as_double("geotherm.cost.recap_specified")))); //[$]
+        }
+
+        // Total capital cost
+        double total_capital_cost = total_drilling_cost + total_plant_cost_used + total_pump_gathering_cost_used; //[$]
+        assign("total_capital_cost", var_data(static_cast<ssc_number_t>(total_capital_cost)));
+
+        // Contingency
+        double contingency_rate = as_double("geotherm.cost.contingency_percent"); //[%]
+        double contingency_cost = contingency_rate*1.E-2*(total_capital_cost-sum_prod_inj_total_cost);
+        assign("contingency_cost", var_data(static_cast<ssc_number_t>(contingency_cost)));
+
+        // Total direct cost
+        double total_direct_cost = total_capital_cost + contingency_cost; //[$]
+        assign("total_direct_cost", var_data(static_cast<ssc_number_t>(total_direct_cost)));
+
+        // EPC cost
+        double EPC_percent = as_double("geotherm.cost.epc.percent"); //[%]
+        double EPC_fixed_cost = as_double("geotherm.cost.epc.fixed"); //[$]
+        double EPC_cost = EPC_fixed_cost + (EPC_percent * 1.E-2 * total_direct_cost);
+        assign("epc_total_cost", var_data(static_cast<ssc_number_t>(EPC_cost)));
+
+        // PLM cost
+        double PLM_percent = as_double("geotherm.cost.plm.percent"); //[%]
+        double PLM_fixed_cost = as_double("geotherm.cost.plm.fixed"); //[$]
+        double PLM_cost = PLM_fixed_cost + (PLM_percent * 1.E-2 * total_direct_cost);
+        assign("plm_total_cost", var_data(static_cast<ssc_number_t>(PLM_cost)));
+
+        int geo_fin_model = as_integer("geo_financial_model");
+        double sales_tax_rate = std::numeric_limits<double>::quiet_NaN();
+        if(geo_fin_model < 7){
+            sales_tax_rate = as_double("sales_tax_rate"); //[%]
+        }
+        else{
+            sales_tax_rate = 0.0;
+        }
+        double perc_of_direct_applied_to_sales_tax = as_double("geotherm.cost.sales_tax.percent");    //[%]
+        double sales_tax_cost = perc_of_direct_applied_to_sales_tax * 1.E-2 * sales_tax_rate * 1.E-2 * total_direct_cost;   //[%]
+        assign("sales_tax_cost", var_data(static_cast<ssc_number_t>(sales_tax_cost)));  //[$]
+
+        // Indirect cost
+        bool use_calculated_indirect_cost = as_boolean("geotherm.cost.indirect.calc");
+        double indirect_cost_calc = std::numeric_limits<double>::quiet_NaN();
+        if(use_calculated_indirect_cost){
+            indirect_cost_calc = EPC_cost + PLM_cost + sales_tax_cost;    //[$]
+        }
+        else{
+            indirect_cost_calc = as_double("geotherm.cost.indirect.amount_specified");
+        }
+        assign("indirect_cost", var_data(static_cast<ssc_number_t>(indirect_cost_calc)));  //[$]
+
+        // Total installed cost
+        double total_installed_cost = total_direct_cost + indirect_cost_calc;    //[$]
+        assign("total_installed_cost", var_data(static_cast<ssc_number_t>(total_installed_cost)));
+
+        double net_plant_output = as_double("net_plant_output");    //[MWe]
+        double installed_cost_per_kW = total_installed_cost / (net_plant_output*1.E3);    //[$/kW]
+        assign("installed_cost_per_kW", var_data(static_cast<ssc_number_t>(installed_cost_per_kW)));
 
         //OM Cost calculations
         /*

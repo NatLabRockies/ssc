@@ -93,6 +93,6 @@
 	"adjust_periods" : [ [ 0,  0,  0 ] ],
 	"number_compute_modules" : 0,
 	"number_metrics" : 0,
-	"net_capital_costs" : 353257760,
-	"fixed_om_costs" : 9335362.8
+	"total_installed_cost" : 299303195,
+	"total_getem_om_costs" : 9335362.8
 }

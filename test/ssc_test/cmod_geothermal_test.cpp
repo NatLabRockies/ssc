@@ -44,11 +44,13 @@ TEST_F(CMGeothermal, SingleOwnerDefault_cmod_geothermal) {
 
 	if (!geo_errors)	//(!=geothermal_errors) == True;
 	{
-		ssc_number_t annual_energy, eff_secondlaw;
+		ssc_number_t annual_energy, eff_secondlaw, total_installed_cost;
 		ssc_data_get_number(data, "annual_energy", &annual_energy);
 		ssc_data_get_number(data, "eff_secondlaw", &eff_secondlaw);
+        ssc_data_get_number(data, "total_installed_cost", &total_installed_cost);
         EXPECT_NEAR(annual_energy, 261301614.984375, 0.1);
         EXPECT_GE(eff_secondlaw, 0);
+        EXPECT_NEAR(total_installed_cost, 1795449035.8247542, 0.1);
 	}
 
 }

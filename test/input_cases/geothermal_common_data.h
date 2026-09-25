@@ -162,6 +162,7 @@ static void geothermal_singleowner_default(ssc_data_t &data)
     ssc_data_set_number(data, "geotherm.cost.prod_inj_non_drill", 150000);   // use sam default value
     ssc_data_set_number(data, "geotherm.cost.stim_non_drill", 0);   // use sam default value    
 
+    ssc_data_set_number(data, "geotherm.cost.expl_lump_sum", 0);
 
     ssc_data_set_number(data, "geotherm.cost.expl_non_drill", 750000);
     ssc_data_set_number(data, "geotherm.cost.conf_non_drill", 250000);

@@ -422,7 +422,7 @@ public:
                 ssc_module_hybridize(module);
 
                 var_table& input = compute_module_inputs->table;
-                ssc_data_set_array(static_cast<ssc_data_t>(&input), "gen", pGen, (int)genLength);
+                //ssc_data_set_array(static_cast<ssc_data_t>(&input), "gen", pGen, (int)genLength);
                 ssc_data_set_array(static_cast<ssc_data_t>(&input), "anc_elec_output", pGen, (int)genLength);
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "system_use_lifetime_output", 1); // for fuelcell_annual_energy_discharged   // FIXME: remove?
 
@@ -781,6 +781,17 @@ public:
                 ssc_number_t* om_fuel_cost = fuelcell_outputs.as_array("cf_om_fuel_cost", &count_fc);
                 for (int y = 1; y <= analysisPeriod; y++) {
                     pHybridOMSum[y] += om_production[y] + om_fixed[y] + om_capacity[y] + om_replacement[y] + om_fuel_cost[y];
+                }
+            }
+
+            for (size_t b = 0; b < csp_thermal_storage.size(); b++) {
+                var_table csp_outputs = ((var_table*)outputs)->lookup(csp_thermal_storage[b])->table;
+                size_t count_csp;
+                ssc_number_t* om_production = csp_outputs.as_array("cf_om_production", &count_csp);
+                ssc_number_t* om_fixed = csp_outputs.as_array("cf_om_fixed", &count_csp);
+                ssc_number_t* om_capacity = csp_outputs.as_array("cf_om_capacity", &count_csp);
+                for (int y = 1; y <= analysisPeriod; y++) {
+                    pHybridOMSum[y] += om_production[y] + om_fixed[y] + om_capacity[y];
                 }
             }
 

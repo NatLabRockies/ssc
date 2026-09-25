@@ -142,14 +142,10 @@ void C_csp_battery::call(double target_power) {
 
     if (battstor_csp) {
         battstor_csp->runReplacement(year, hour, step_of_hour);
-    }
-    else {
-        battery->runReplacement(year, hour, step_of_hour);
-    }
-    if (battstor_csp) {
         battstor_csp->runPower(target_power);
     }
     else {
+        battery->runReplacement(year, hour, step_of_hour);
         battery->runPower(target_power);
     }
     write_outputs();

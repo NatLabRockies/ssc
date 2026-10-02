@@ -346,7 +346,7 @@ var_info vtab_tax_outputs[] = {
 { SSC_OUTPUT,       SSC_ARRAY,      "cf_fedtax_taxable_incentives",           "Federal taxable incentives",                   "$",            "",                      "Cash Flow Federal Income Tax",      "*",                     "LENGTH_EQUAL=cf_length",                "" },
 { SSC_OUTPUT,       SSC_ARRAY,      "cf_fedtax_income_with_incentives",       "Federal taxable income",                   "$",            "",                      "Cash Flow Federal Income Tax",      "*",                     "LENGTH_EQUAL=cf_length",                "" },
 { SSC_OUTPUT,       SSC_ARRAY,      "cf_fedtax",				              "Federal tax benefit (liability)",                   "$",            "",                      "Cash Flow Federal Income Tax",      "*",                     "LENGTH_EQUAL=cf_length",                "" },
-
+var_info_invalid
 };
 
 var_info vtab_itc_outputs[] = {

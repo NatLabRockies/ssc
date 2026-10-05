@@ -53,6 +53,7 @@ GTEST_API_ int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
 
     //    filter to include
+    //::testing::GTEST_FLAG(filter) = "CMBatteryStatefulIntegration_cmod_battery_stateful.TestStep:CMBatteryStatefulIntegration_cmod_battery_stateful.RunCurrentControl";
     //    ::testing::GTEST_FLAG(filter) = "CmodPVWatts*:CMPvwatts*";
     //::testing::GTEST_FLAG(filter) = "CmodHybridTest*";
     //::testing::GTEST_FLAG(filter) = "CMPvsamv1BatteryIntegration_cmod_pvsamv1.ResidentialDCBatteryModelPriceSignalDispatchGridExport";

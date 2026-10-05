@@ -214,7 +214,7 @@ void write_battery_state(const battery_state& state, var_table* vt) {
     vt->assign_match_case("P_dischargeable", state.P_dischargeable);
     vt->assign_match_case("P_chargeable", state.P_chargeable);
 
-    auto cap = state.capacity;
+    auto &cap = state.capacity;
     vt->assign_match_case("q0", cap->q0);
     vt->assign_match_case("qmax_lifetime", cap->qmax_lifetime);
     vt->assign_match_case("qmax_thermal", cap->qmax_thermal);
@@ -239,14 +239,14 @@ void write_battery_state(const battery_state& state, var_table* vt) {
 
     vt->assign_match_case("cell_voltage", state.voltage->cell_voltage);
 
-    auto thermal = state.thermal;
+    auto &thermal = state.thermal;
     vt->assign_match_case("q_relative_thermal", thermal->q_relative_thermal);
     vt->assign_match_case("T_batt", thermal->T_batt);
     vt->assign_match_case("T_room", thermal->T_room);
     vt->assign_match_case("heat_dissipated", thermal->heat_dissipated);
     vt->assign_match_case("T_batt_prev", thermal->T_batt_prev);
 
-    auto lifetime = state.lifetime;
+    auto &lifetime = state.lifetime;
     vt->assign_match_case("q_relative", lifetime->q_relative);
     vt->assign_match_case("n_cycles", lifetime->n_cycles);
     vt->assign_match_case("cycle_range", lifetime->cycle_range);
@@ -325,7 +325,7 @@ void read_battery_state(battery_state& state, var_table* vt) {
     vt_get_number(vt, "P_dischargeable", &state.P_dischargeable);
     vt_get_number(vt, "P_chargeable", &state.P_chargeable);
 
-    auto cap = state.capacity;
+    auto &cap = state.capacity;
     vt_get_number(vt, "q0", &cap->q0);
     vt_get_number(vt, "qmax_lifetime", &cap->qmax_lifetime);
     vt_get_number(vt, "qmax_thermal", &cap->qmax_thermal);
@@ -350,14 +350,14 @@ void read_battery_state(battery_state& state, var_table* vt) {
 
     vt_get_number(vt, "cell_voltage", &state.voltage->cell_voltage);
 
-    auto thermal = state.thermal;
+    auto &thermal = state.thermal;
     vt_get_number(vt, "q_relative_thermal", &thermal->q_relative_thermal);
     vt_get_number(vt, "T_batt", &thermal->T_batt);
     vt_get_number(vt, "T_room", &thermal->T_room);
     vt_get_number(vt, "heat_dissipated", &thermal->heat_dissipated);
     vt_get_number(vt, "T_batt_prev", &thermal->T_batt_prev);
 
-    auto lifetime = state.lifetime;
+    auto &lifetime = state.lifetime;
     vt_get_number(vt, "q_relative", &lifetime->q_relative);
     vt_get_number(vt, "q_relative_cycle", &lifetime->cycle->q_relative_cycle);
     vt_get_int(vt, "n_cycles", &lifetime->n_cycles);
@@ -437,7 +437,7 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
     params->dt_hr = dt_hr;
 
     // voltage
-    auto voltage = params->voltage;
+    auto &voltage = params->voltage;
     int choice;
     vt_get_int(vt, "voltage_choice", &choice);
     voltage->voltage_choice = static_cast<voltage_params::MODE>(choice);
@@ -471,7 +471,7 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
     }
 
     // capacity
-    auto capacity = params->capacity;
+    auto &capacity = params->capacity;
     vt_get_number(vt, "initial_SOC", &capacity->initial_SOC);
     vt_get_number(vt, "maximum_soc", &capacity->maximum_SOC);
     vt_get_number(vt, "minimum_soc", &capacity->minimum_SOC);
@@ -492,7 +492,7 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
     }
 
     // lifetime
-    auto lifetime = params->lifetime;
+    auto &lifetime = params->lifetime;
     vt_get_int(vt, "life_model", &choice);
     lifetime->model_choice = static_cast<lifetime_params::MODEL_CHOICE>(choice);
 
@@ -521,7 +521,7 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
     }
 
     // thermal
-    auto thermal = params->thermal;
+    auto &thermal = params->thermal;
     thermal->dt_hr = dt_hr;
     thermal->option = thermal_params::VALUE;
     thermal->resistance = params->voltage->resistance;
@@ -539,7 +539,7 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
     }
 
     // losses
-    auto losses = params->losses;
+    auto &losses = params->losses;
     vt_get_int(vt, "loss_choice", &choice);
     losses->loss_choice = static_cast<losses_params::OPTIONS>(choice);
     if (losses->loss_choice == losses_params::MONTHLY) {
@@ -554,7 +554,7 @@ std::shared_ptr<battery_params> create_battery_params(var_table* vt, double dt_h
     vt_get_array_vec(vt, "availabilty_loss", losses->adjust_loss);
 
     // replacements
-    auto replacements = params->replacement;
+    auto &replacements = params->replacement;
     vt_get_int(vt, "replacement_option", &choice);
     replacements->replacement_option = static_cast<replacement_params::OPTIONS>(choice);
     if (replacements->replacement_option == replacement_params::SCHEDULE) {
@@ -642,8 +642,8 @@ void cm_battery_stateful::exec() {
 
     // Replacements
     size_t lifetime_index = as_integer("last_idx");
-    size_t steps_per_hour = (size_t)(1 / control_dt_hr);
-    size_t steps_per_year = (size_t)(8760 * steps_per_hour);
+    size_t steps_per_hour = (size_t)(1.0 / control_dt_hr);
+    size_t steps_per_year = (size_t)(8760.0 * steps_per_hour);
     size_t year = (size_t)(lifetime_index / steps_per_year);
     size_t year_one_index = lifetime_index - (year * steps_per_year);
     size_t hour = (size_t)(year_one_index / steps_per_hour);

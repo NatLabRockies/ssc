@@ -1748,6 +1748,16 @@ void battstor::check_replacement_schedule()
     battery_model->runReplacement(year, hour, step);
 }
 
+void battstor::runReplacement(size_t year_in, size_t hour_of_year, size_t step_of_hour)
+{
+    battery_model->runReplacement(year_in, hour_of_year, step_of_hour);
+}
+
+void battstor::runPower(double P_kw)
+{
+    battery_model->runPower(P_kw);
+}
+
 
 void battstor::initialize_time(size_t year_in, size_t hour_of_year, size_t step_of_hour)
 {

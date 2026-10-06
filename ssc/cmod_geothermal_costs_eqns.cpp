@@ -73,7 +73,7 @@ bool getem_om_cost_calc(ssc_data_t data)
     vt_get_number(vt, "drilling_cost", &drilling_cost);
     vt_get_number(vt, "field_gathering_system_cost", &field_cost);
     vt_get_number(vt, "GF_flowrate", &flow_rate);
-    vt_get_number(vt, "num_wells", &num_wells);
+    vt_get_number(vt, "num_wells_calc", &num_wells);
     vt_get_number(vt, "water_loss", &water_loss);
     vt_get_number(vt, "total_installed_cost", &total_capital_cost);
     vt_get_number(vt, "pump_cost_install", &pump_cost_install);

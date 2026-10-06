@@ -37,224 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // for adjustment factors
 #include "common.h"
 
+#include "cmod_geothermal_costs.h"
 
+#include "cmod_geothermal_costs_eqns.h"
 
-static var_info _cm_vtab_geothermal[] = {
-//   VARTYPE           DATATYPE         NAME                                   LABEL                                           UNITS             META            GROUP              REQUIRED_IF                 CONSTRAINTS      UI_HINTS
-																		       																														             
-    // control input													       																														             
-    { SSC_INPUT,        SSC_NUMBER,      "ui_calculations_only",               "If = 1, only run UI calculations",             "",               "",             "GeoHourly",        "*",                        "",                "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "system_use_lifetime_output",          "Geothermal lifetime simulation",              "0/1",     "0=SingleYearRepeated,1=RunEveryYear",     "GeoHourly",             "?=0",           "BOOLEAN",                        "" },
-    { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_prod_well_ratio",          "Ratio of injection wells to production wells",              "",     "",     "GeoHourly",             "",           "",                        "" },
-        { SSC_INPUT,        SSC_NUMBER,      "drilling_success_rate",          "Drilling success rate",              "%",     "",     "GeoHourly",             "",           "",                        "" },
-    { SSC_INPUT,        SSC_NUMBER,      "stim_success_rate",          "Stimulation success rate",              "%",     "",     "GeoHourly",             "",           "",                        "" },
-    { SSC_INPUT,        SSC_NUMBER,      "failed_prod_flow_ratio",          "Failed production well flow ratio",              "",     "",     "GeoHourly",             "",           "",                        "" },
-    { SSC_INPUT,        SSC_NUMBER,      "stimulation_type",          "Which wells are stimulated",              "0/1/2/3",     "0=Injection,1=Production,2=Both,3=Neither",     "GeoHourly",             "?=3",           "",                        "" },
+#include "cmod_cb_construction_financing.h"
 
-    //{ SSC_INOUT,        SSC_NUMBER,      "baseline_cost",          "Baseline cost",              "$/kW",     "",     "GeoHourly",             "?=0",           "",                        "" },
-
-    // climate and resource inputs		 								       											   				     
-    { SSC_INPUT,        SSC_STRING,      "file_name",                          "local weather file path",                      "",               "",             "GeoHourly",        "ui_calculations_only=0",   "LOCAL_FILE",      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "resource_potential",                 "Resource Potential",                           "MW",             "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "resource_type",                      "Type of Resource",                             "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "resource_temp",                      "Resource Temperature",                         "C",              "",             "GeoHourly",        "*",                        "MAX=373",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "resource_depth",                     "Resource Depth",                               "m",              "",             "GeoHourly",        "*",                        "",                "" },
-										
-    // Other inputs						 								       											   				     
-    { SSC_INPUT,        SSC_NUMBER,      "geothermal_analysis_period",         "Analysis Lifetime",                            "years",          "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "model_choice",                       "Which model to run (0,1,2)",                   "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_MATRIX,      "reservoir_model_inputs",                       "Reservoir temperatures over time",                   "",               "",             "GeoHourly",        "reservoir_pressure_change_type=3",                        "",         "" },
-
-    // geothermal plant and equipment									       											   				     														             
-    { SSC_INPUT,        SSC_NUMBER,      "specified_pump_work_amount",         "Pump work specified by user",                  "MW",             "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "nameplate",                          "Desired plant output",                         "kW",             "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "analysis_type",                      "Analysis Type",                                "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "num_wells",                          "Number of Wells",                              "",               "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "num_wells_getem",                    "Number of Wells GETEM calc'd",                 "",               "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "conversion_type",                    "Conversion Type",                              "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "plant_efficiency_input",             "Plant efficiency",                             "",               "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "conversion_subtype",                 "Conversion Subtype",                           "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "decline_type",                       "Temp decline Type",                            "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "temp_decline_rate",                  "Temperature decline rate",                     "%/yr",           "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "temp_decline_max",                   "Maximum temperature decline",                  "C",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "dt_prod_well",                   "Temperature loss in production well",                  "C",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "prod_well_choice",                   "Temperature loss in production well choice",                  "0/1",              "",             "GeoHourly",        "*",                        "",                "" },
-
-    { SSC_INPUT,        SSC_NUMBER,      "wet_bulb_temp",                      "Wet Bulb Temperature",                         "C",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "use_weather_file_conditions",                      "Use weather file ambient temperature",                         "0/1",              "",             "GeoHourly",        "?=0",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "ambient_pressure",                   "Ambient pressure",                             "psi",            "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "well_flow_rate",                     "Production flow rate per well",                "kg/s",           "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "pump_efficiency",                    "Pump efficiency",                              "%",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "delta_pressure_equip",               "Delta pressure across surface equipment",      "psi",            "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "excess_pressure_pump",               "Excess pressure @ pump suction",               "psi",            "",             "GeoHourly",        "*",                        "",                "" },
-    /*
-    { SSC_INPUT,        SSC_NUMBER,      "well_diameter",                      "Production well diameter",                     "in",             "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "casing_size",                        "Production pump casing size",                  "in",             "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inj_casing_size",                        "Injection pump casing size",                  "in",             "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inj_well_diam",                      "Injection well diameter",                      "in",             "",             "GeoHourly",        "*",                        "",                "" },
-    */
-    { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_cost_curve_welltype",                      "Injection well type",                      "0/1",             "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.prod_cost_curve_welltype",                      "Production well type",                      "0/1",             "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.inj_cost_curve_welldiam",                      "Injection well diameter type",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "geotherm.cost.prod_cost_curve_welldiam",                      "Production well diameter type",                      "0/1",             "0=LargerDiameter,1=SmallerDiameter",             "GeoHourly",        "*",                        "",                "" },
-
-    { SSC_INPUT,        SSC_NUMBER,      "design_temp",                        "Power block design temperature",               "C",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "specify_pump_work",                  "Did user specify pump work?",                  "0 or 1",         "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-										 																				   				     														             
-    // detailed geothermal inputs		 																				   				     														             
-    { SSC_INPUT,        SSC_NUMBER,      "rock_thermal_conductivity",          "Rock thermal conductivity",                    "J/m-day-C",      "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "rock_specific_heat",                 "Rock specific heat",                           "J/kg-C",         "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "rock_density",                       "Rock density",                                 "kg/m^3",         "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "reservoir_pressure_change_type",     "Reservoir pressure change type",               "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "reservoir_pressure_change",          "Pressure change",                              "psi-h/1000lb",   "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "injectivity_index",          "Injectivity index",                              "lb/hr-psi",   "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "exploration_wells_production",          "Exploration wells used for production",                              "",   "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "reservoir_width",                    "Reservoir width",                              "m",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "reservoir_height",                   "Reservoir height",                             "m",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "reservoir_permeability",             "Reservoir Permeability",                       "darcys",         "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "inj_prod_well_distance",             "Distance from injection to production wells",  "m",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "subsurface_water_loss",              "Subsurface water loss",                        "%",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "fracture_aperature",                 "Fracture aperature",                           "m",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "fracture_length",                 "Fracture length",                           "m",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "fracture_spacing",                 "Fracture spacing",                           "m",              "",             "GeoHourly",        "*",                        "",                "" },
-
-    { SSC_INPUT,        SSC_NUMBER,      "fracture_width",                     "Fracture width",                               "m",              "",             "GeoHourly",        "*",                        "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "num_fractures",                      "Number of fractures",                          "",               "",             "GeoHourly",        "*",                        "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "fracture_angle",                     "Fracture angle",                               "deg",            "",             "GeoHourly",        "*",                        "",                "" },
-
-    // power block inputs (these could change on an hourly basis, but don't here)
-
-	//   VARTYPE           DATATYPE         NAME                                   LABEL                                              UNITS      META            GROUP               REQUIRED_IF                  CONSTRAINTS      UI_HINTS
-																																											     				                
-    // power block parameters needed but not on power block SAM input page																									     				                
-  //{ SSC_INPUT,        SSC_NUMBER,      "tech_type",                          "Technology type ID",                                  "(1-4)",   "",             "GeoHourly",        "*",                         "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_htf_cold_ref",                     "Outlet design temp",                                  "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_htf_hot_ref",                      "Inlet design temp",                                   "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "HTF",                                "Heat trans fluid type ID",                            "(1-27)",  "",             "GeoHourly",        "ui_calculations_only=0",    "INTEGER",         "" },
-																															          										     
-    // power block input parameters																							          										     
-  //{ SSC_INPUT,        SSC_NUMBER,      "P_ref",                              "Design Output",                                       "MW",      "",             "GeoHourly",        "*",                         "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "P_boil",                             "Design Boiler Pressure",                              "bar",     "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "eta_ref",                            "Desgin conversion efficiency",                        "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "q_sby_frac",                         "% thermal power for standby mode",                    "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "startup_frac",                       "% thermal power for startup",                         "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "startup_time",                       "Hours to start power block",                          "hours",   "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "pb_bd_frac",                         "Blowdown steam fraction",                             "%",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_amb_des",                          "Design ambient temperature",                          "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "CT",                                 "Condenser type (Wet, Dry,Hybrid)",                    "(1-3)",   "",             "GeoHourly",        "ui_calculations_only=0",    "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "dT_cw_ref",                          "Design condenser cooling water inlet/outlet T diff",  "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_approach",                         "Approach Temperature",                                "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_ITD_des",                          "Design ITD for dry system",                           "C",       "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "P_cond_ratio",                       "Condenser pressure ratio",                            "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "P_cond_min",                         "Minimum condenser pressure",                          "in Hg",   "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hr_pl_nlev",                         "# part-load increments",                              "(0-9)",   "",             "GeoHourly",        "ui_calculations_only=0",    "INTEGER",         "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl1",                            "HC Control 1",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl2",                            "HC Control 2",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl3",                            "HC Control 3",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl4",                            "HC Control 4",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl5",                            "HC Control 5",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl6",                            "HC Control 6",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl7",                            "HC Control 7",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl8",                            "HC Control 8",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    { SSC_INPUT,        SSC_NUMBER,      "hc_ctl9",                            "HC Control 9",                                        "",        "",             "GeoHourly",        "ui_calculations_only=0",    "",                "" },
-    // dispatch
-    { SSC_INPUT,        SSC_STRING,      "hybrid_dispatch_schedule",           "Daily dispatch schedule",                             "",        "",             "GeoHourly",        "ui_calculations_only=0",    "TOUSCHED",        "" },
-
-    { SSC_INPUT,        SSC_NUMBER,      "allow_reservoir_replacements",           "Allow reservoir replacements",                             "",        "",             "GeoHourly",        "?=0",    "",        "" },
-
-    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",                      "Start day of year for TOD periods",                             "0..6", "0=Monday, 6=Sunday",    "GeoHourly", "?=0", "", "" },
-
-
-	// OUTPUTS
-	// VARTYPE           DATATYPE         NAME                                   LABEL                                               UNITS      META            GROUP             REQUIRED_IF                    CONSTRAINTS      UI_HINTS
-																																																	             
-	// This first batch of outputs is for calculating UI values																																		             
-    { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_output",             "Number of production wells required",                 "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_inj",             "Number of required injection wells calculated by GETEM",                 "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_prod_drilled",             "Number of production wells drilled",                 "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_prod_failed",             "Number of production wells failed during drilling",                 "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "num_wells_getem_inj_drilled",             "Number of injection wells drilled",                 "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-
-    { SSC_OUTPUT,       SSC_NUMBER,      "plant_brine_eff",                    "Plant Brine Efficiency",                              "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "pump_watthr_per_lb",                    "Pump work Efficiency",                              "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "pumpwork_prod",                    "Production Pump work Efficiency",                              "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "pumpwork_inj",                    "Injection Pump work Efficiency",                              "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "inj_pump_hp",                    "Injection Pump horsepower",                              "hp",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-
-
-    { SSC_OUTPUT,       SSC_NUMBER,      "gross_output",                       "Gross output from GETEM",                             "MW",        "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "gross_cost_output",                       "Gross output from GETEM for cost",                             "",        "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-
-    { SSC_OUTPUT,       SSC_NUMBER,      "pump_depth_ft",                      "Pump depth calculated by GETEM",                      "ft",      "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "pump_hp",                            "Pump hp calculated by GETEM",                         "hp",      "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "reservoir_pressure",                 "Reservoir pres calculated by GETEM",                  "",        "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "reservoir_avg_temp",                 "Avg reservoir temp calculated by GETEM",              "C",       "",             "GeoHourly",        "ui_calculations_only=1",   "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,      "bottom_hole_pressure",               "Bottom hole pres calculated by GETEM",                "",        "",             "GeoHourly",        "ui_calculations_only=1",    "",                "" },
-																																																	             
-    // pump work is an output for both the UI call and the model run																																             
-    { SSC_OUTPUT,       SSC_NUMBER,      "pump_work",                          "Pump work calculated by GETEM",                       "MW",      "",             "GeoHourly",        "*",                        "",                "" },
-																																																	             
-    // The array outputs are only meaningful when the model is run (not UI calculations)																											             
-    // User can specify whether the analysis should be done hourly or monthly.  With monthly analysis, there are only monthly results.																             
-    // With hourly analysis, there are still monthly results, but there are hourly (over the whole lifetime of the project) results as well.														             
-//	{ SSC_OUTPUT, SSC_ARRAY, "annual_replacements", "Resource replacement? (1=yes)", "kWhac", "", "GeoHourly", "ui_calculations_only=0", "", "" },
-	{ SSC_OUTPUT,       SSC_ARRAY,      "gen",                                "System power generated",                              "kW",                      "GeoHourly",        "",                         "",                "",                               "" },
-    { SSC_OUTPUT, SSC_MATRIX,			"annual_energy_distribution_time",			"Annual energy production as function of Time",				"",				"",				"Heatmaps",			"",						"",							"" },
-
-    { SSC_OUTPUT,       SSC_ARRAY,      "system_lifetime_recapitalize",       "Resource replacement? (1=yes)", "", "", "GeoHourly", "ui_calculations_only=0", "", "" },
-
-    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_resource_temperature",       "Monthly avg resource temperature",                    "C",       "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_power",                      "Monthly power",                                       "kW",      "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy",                     "Monthly AC energy in Year 1",              "kWh/mo",    "",                 "GeoHourly",       "",                    "LENGTH=12",                              "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "monthly_energy_lifetime",            "Monthly energy before performance adjustments",       "kWh",     "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-
-    { SSC_OUTPUT,       SSC_ARRAY,      "timestep_resource_temperature",      "Resource temperature",              "C",       "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "timestep_test_values",               "Test output values in each time step",                "",        "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-																																													   			                 
-    { SSC_OUTPUT,       SSC_ARRAY,      "timestep_pressure",                  "Atmospheric pressure",              "atm",     "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "timestep_dry_bulb",                  "Dry bulb temperature",              "C",       "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-    { SSC_OUTPUT,       SSC_ARRAY,      "timestep_wet_bulb",                  "Wet bulb temperature",              "C",       "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-																																																	             
-    { SSC_OUTPUT,       SSC_NUMBER,     "lifetime_output",                    "Lifetime output",                                     "kWh",     "",             "GeoHourly",        "ui_calculations_only=0",   "",                "" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"first_year_output",				  "First year output",									 "kWh",		"",				 "GeoHourly",		 "ui_calculations_only=0",	 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"annual_energy",					  "Annual AC energy in Year 1",										"kWh",		"",				"GeoHourly",		 "ui_calculations_only=0",	"",					"" },
-
-
-	{ SSC_OUTPUT,		SSC_NUMBER,		"capacity_factor",					  "Capacity factor",									"",			"",					 "",					"*",				"",					"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		 "kwh_per_kw",						  "First year kWh/kW",									 "",		"",					 "",					 "*",				"",					"" },
-
-    { SSC_OUTPUT,       SSC_NUMBER,		"dt_rock_well_head",                  "dT used in calculations",							 "C",		"",             "GeoHourly",				 "",                 "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,		"brine_effectiveness",                "Brine effectiveness used in calculations",							 "w-h/lb",		"",             "GeoHourly",				 "",                 "",                "" },
-    { SSC_OUTPUT,       SSC_NUMBER,		"max_brine_effectiveness",                "Maximum brine effectiveness",							 "w-h/lb",		"",             "GeoHourly",				 "",                 "",                "" },
-
-
-		//Outputs Used in cmod_geothermal_costs:
-	{ SSC_OUTPUT,       SSC_NUMBER,		"eff_secondlaw",                        "Second Law Efficiency",							 "C",		"",             "GeoHourly",				 "",                 "",                "" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"qRejectTotal",							"Total Heat Rejection",								 "btu/h",	"",				"GeoHourly",				 "",				 "",				""},
-	{ SSC_OUTPUT,		SSC_NUMBER,		"qCondenser",							"Condenser Heat Rejected",							 "btu/h",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"hp_flash_pressure",					"HP Flash Pressure",								 "psia",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"lp_flash_pressure",					"LP Flash Pressure",								 "psia",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"v_stage_1",							"Vacumm Pump Stage 1",								 "kW",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"v_stage_2",							"Vacumm Pump Stage 2",								 "kW",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"v_stage_3",							"Vacumm Pump Stage 3",								 "kW",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"GF_flowrate",							"GF Flow Rate",										 "lb/h",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"qRejectByStage_1",						"Heat Rejected by NCG Condenser Stage 1",			"BTU/h",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"qRejectByStage_2",						"Heat Rejected by NCG Condenser Stage 2",			"BTU/h",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"qRejectByStage_3",						"Heat Rejected by NCG Condenser Stage 3",			"BTU/h",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"ncg_condensate_pump",					"Condensate Pump Work",								"kW",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"cw_pump_work",							"CW Pump Work",										"kW",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"pressure_ratio_1",						"Suction Steam Ratio 1",							"",			"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"pressure_ratio_2",						"Suction Steam Ratio 2",							"",			"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"pressure_ratio_3",						"Suction Steam Ratio 3",							"",			"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"condensate_pump_power",				"hp",												"",			"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"cwflow",								"Cooling Water Flow",								"lb/h",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"cw_pump_head",							"Cooling Water Pump Head",							"lb/h",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"spec_vol",								"HP Specific Volume",								"cft/lb",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"spec_vol_lp",							"LP Specific Volume",								"cft/lb",	"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"x_hp",									"HP Mass Fraction",									"%",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"x_lp",									"LP Mass Fraction",									"%",		"",				"GeoHourly",				 "",				 "",				"" },
-	{ SSC_OUTPUT,		SSC_NUMBER,		"flash_count",							"Flash Count",										"(1 -2)",	"",				"GeoHourly",				 "",				 "",				"" },
-var_info_invalid };
+#include "cmod_geothermal.h"
 
 
 static bool my_update_function( float percent, void *data )
@@ -265,22 +54,118 @@ static bool my_update_function( float percent, void *data )
 		return true;
 }
 
+class cm_geothermal_no_fin : public compute_module
+{
+public:
+
+    cm_geothermal_no_fin() {
+
+        add_var_info(_cm_vtab_geothermal);
+
+        // performance adjustment factors
+        add_var_info(vtab_adjustment_factors);
+
+
+    }
+
+    void exec() {
+
+        std::string geo_cmod_name = "geothermal";
+        ssc_module_t geo_cmod = ssc_module_create(geo_cmod_name.c_str());
+        var_table* geo_vtab = this->get_var_table();
+        ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_vtab);
+
+        assign("calc_drill_costs", 0);
+
+        if( !ssc_module_exec(geo_cmod, geo_cmod_inputs) ) {
+            std::string str = geo_cmod_name + " execution error. ";
+            int idx = 0;
+            int type = -1;
+            while( const char* msg = ssc_module_log(geo_cmod, idx++, &type, nullptr) )
+            {
+                if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
+                    str += std::string(msg);
+                    str += "\t";
+                }
+            }
+            ssc_module_free(geo_cmod);
+            throw std::runtime_error(str);
+        }
+        // *************************************************************
+        // *************************************************************
+
+
+    }
+
+};
+DEFINE_MODULE_ENTRY(geothermal_no_fin, "Geothermal monthly and hourly models using general power block code from TRNSYS Type 224 code by M.Wagner, and some GETEM model code.", 3);
+
+
 class cm_geothermal : public compute_module
 {
 private:
 public:
-	
+
 	cm_geothermal()
 	{
 		add_var_info( _cm_vtab_geothermal );
+
 		// performance adjustment factors
 		add_var_info(vtab_adjustment_factors);
+
+        add_var_info(_cm_vtab_geothermal_fin_in);
+
+        add_var_info(_cm_vtab_geothermal_costs_unique);
+        add_var_info(_cm_vtab_geothermal_om_costs);
+        add_var_info(_cm_vtab_cb_construction_financing_independent);
+
+
+
 //		add_var_info(vtab_technology_outputs);
+
 	}
 
-	void exec( )
-	{
-		int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
+    void exec()
+    {
+        // Replacing 'ui_calculations_only' with 'sim_typ'
+        //"sim_type", "1 (default): timeseries, 2: design only",
+        int sim_type = as_integer("sim_type");  // "1 (default): timeseries, 2: design only",
+
+        // so if ui_calculations_only = 0 -> sim_type = 1; if ui_calculations_only = 1 -> sim_type = 2
+        //int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
+
+        // --------------------------------------------------------------
+        // Get main system paramters
+        double resource_temperature = as_double("resource_temp");    //[C]
+
+        int analysis_type = as_integer("analysis_type");
+        int conversion_type = as_integer("conversion_type");
+        int resource_type = as_integer("resource_type");
+
+        int geo_fin_model = as_integer("geo_financial_model");
+
+        int decline_type_in = as_integer("decline_type");
+        int decline_type = decline_type_in;
+        // Apply decline type logic and reset if necessary
+        // This logic was on the Plant and Equipment page on 5/24/26
+        if( resource_type == HYDROTHERMAL ){
+            decline_type = 0;
+        }
+        else if( conversion_type == BINARY ) {
+            decline_type = decline_type_in;
+        }
+        else{
+            decline_type = 0;
+        }
+
+        int reservoir_pressure_change_type = as_integer("reservoir_pressure_change_type");
+        // Logic from the Plant and Equipment page on 5/24/26
+        if( resource_type != 1 && (reservoir_pressure_change_type == 1 || reservoir_pressure_change_type == 3) ) {
+            reservoir_pressure_change_type = 0;
+        }
+        // --------------------------------------------------------------
+        // --------------------------------------------------------------
+
 
 		// set the geothermal model inputs -------------------------------------
 		SGeothermal_Inputs geo_inputs;
@@ -291,14 +176,14 @@ public:
         geo_inputs.md_DesiredSalesCapacityKW = as_double("nameplate");
 		geo_inputs.md_NumberOfWells = as_double("num_wells");
         geo_inputs.md_WellsStimulated = as_integer("stimulation_type");
-		if ( as_integer("analysis_type") == 0)
+		if (analysis_type  == 0)
 			geo_inputs.me_cb = POWER_SALES;
 		else
 			geo_inputs.me_cb = NUMBER_OF_WELLS;
 
-		if ( as_integer("conversion_type") == 0)
+		if ( conversion_type == 0)
 			geo_inputs.me_ct = BINARY;
-		else if ( as_integer("conversion_type") == 1)
+		else if ( conversion_type == 1)
 			geo_inputs.me_ct = FLASH;
 
 		switch ( as_integer("conversion_subtype") )
@@ -311,10 +196,11 @@ public:
 		geo_inputs.md_PlantEfficiency = as_double("plant_efficiency_input")/100;
 
 		// temperature decline
-		if ( as_integer("decline_type") == 0 )
+		if ( decline_type == 0 )
 			geo_inputs.me_tdm = ENTER_RATE;
-		else if ( as_integer("decline_type") == 1 )
+		else if ( decline_type == 1 )
 			geo_inputs.me_tdm = CALCULATE_RATE;
+
 		geo_inputs.md_TemperatureDeclineRate = as_double("temp_decline_rate")/100;
 		geo_inputs.md_MaxTempDeclineC = as_double("temp_decline_max");
         geo_inputs.md_dtProdWell = as_double("dt_prod_well");
@@ -343,14 +229,19 @@ public:
 		geo_inputs.md_UserSpecifiedPumpWorkKW = as_double("specified_pump_work_amount") * 1000; // entered in MW
 
 		//resource characterization
-		if ( as_integer("resource_type") == 0 )
+        // Set design temp equal to resource temperature
+        double design_temp = resource_temperature;    //[C]
+        assign("design_temp", ssc_number_t(design_temp));
+
+		if ( resource_type == 0 )
 			geo_inputs.me_rt =  HYDROTHERMAL;
-		else if ( as_integer("resource_type") == 1 )
+		else if ( resource_type == 1 )
 			geo_inputs.me_rt = EGS;
+
 		geo_inputs.md_ResourceDepthM = as_double("resource_depth");
-		geo_inputs.md_TemperatureResourceC = as_double("resource_temp");
+		geo_inputs.md_TemperatureResourceC = resource_temperature;
 		geo_inputs.me_dc = TEMPERATURE;
-		geo_inputs.md_TemperaturePlantDesignC = as_double("design_temp");
+		geo_inputs.md_TemperaturePlantDesignC = design_temp;
 		
 		
 
@@ -359,7 +250,7 @@ public:
 		geo_inputs.md_EGSThermalConductivity = as_double("rock_thermal_conductivity");
 		geo_inputs.md_EGSSpecificHeatConstant = as_double("rock_specific_heat");
 		geo_inputs.md_EGSRockDensity = as_double("rock_density");
-		switch(as_integer("reservoir_pressure_change_type"))
+		switch( reservoir_pressure_change_type )
 		{
 			case 0: geo_inputs.me_pc = ENTER_PC; break;				// pressure change entered by user
 			case 1: geo_inputs.me_pc = SIMPLE_FRACTURE; break;		// use fracture flow (EGS only)
@@ -368,7 +259,12 @@ public:
 		}
 		geo_inputs.md_ReservoirDeltaPressure = as_double("reservoir_pressure_change");
         geo_inputs.md_InjectivityIndex = as_double("injectivity_index");
-        geo_inputs.md_ExplorationWellsProd = as_double("exploration_wells_production");
+
+        double num_conf_wells = as_double("geotherm.cost.conf_num_wells");
+        double perc_conf_wells_production = as_double("geotherm.cost.confirm_wells_percent");
+        double num_conf_wells_prod = num_conf_wells * perc_conf_wells_production / 100.0;
+        geo_inputs.md_ExplorationWellsProd = num_conf_wells_prod;
+
 		geo_inputs.md_ReservoirWidthM = as_double("reservoir_width");
 		geo_inputs.md_ReservoirHeightM = as_double("reservoir_height");
 		geo_inputs.md_ReservoirPermeability = as_double("reservoir_permeability");
@@ -387,165 +283,349 @@ public:
 		geo_inputs.mi_ModelChoice = as_integer("model_choice");		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
         if (is_assigned("reservoir_model_inputs")) 
             geo_inputs.md_ReservoirInputs = as_matrix("reservoir_model_inputs");
-		// set geothermal inputs RE how analysis is done and for how long
-		geo_inputs.mi_ProjectLifeYears = 1;
-		if (as_boolean("system_use_lifetime_output")) {
-			geo_inputs.mi_ProjectLifeYears = as_integer("geothermal_analysis_period");
-		}
+
+        bool system_use_lifetime_output = false;
+        int analysis_period_years = 1;              // geo_inputs.mi_ProjectLifeYears = 1;
+        if( geo_fin_model <= 6 ) {
+            system_use_lifetime_output = true;
+            analysis_period_years = as_integer("analysis_period");
+        }
+        else {
+            assign("analysis_period", (ssc_number_t)analysis_period_years);
+        }
+        assign("system_use_lifetime_output", (ssc_number_t)system_use_lifetime_output);
+
+        geo_inputs.mi_ProjectLifeYears = analysis_period_years; // as_integer("geothermal_analysis_period");
+        assign("geothermal_analysis_period", (ssc_number_t)analysis_period_years);
+
 		if ( geo_inputs.mi_ProjectLifeYears == 0)
 			throw general_error("invalid analysis period specified in the geothermal hourly model");
 
+        // running the model, we need to specify other inputs
+        geo_inputs.md_PotentialResourceMW = as_double("resource_potential");
+
+        geo_inputs.md_UseWeatherFileConditions = as_integer("use_weather_file_conditions");
+
+        // we need to create the SPowerBlockInputs & SPowerBlockParameters and set the inputs
+
+        
+
+        // hybrid dispatch schedule, which will set the value for pbInputs.TOU
+        const char* sched = as_string("hybrid_dispatch_schedule");
+        int tou[8760];
+        int start_day = as_number("start_day_of_year");
+        if( !util::translate_schedule(tou, sched, sched, 0, 8, start_day) )
+            throw general_error("could not translate schedule for time-of-use rate");
+
+        // weather file and time-of-use data
+        geo_inputs.mc_WeatherFileName = as_string("file_name");
+        geo_inputs.mia_tou = tou;
+
+
+        // Set power block parameters (parameters don't change hourly)
+        SPowerBlockParameters pbp;
+
+        // power block parameters NOT on the SAM power block input page
+        // tech_type is a flag for which coefficient set to use in the power block (1=tower,2=trough,3=Sliding pressure power cycle formulation, 4=geothermal)
+        pbp.tech_type = 4; //as_integer("tech_type");
+        // the geothermal model is only valid with tech type = 4.  if it's set to any other value, use it as a flag here
+        // bool bFlag = (as_integer("tech_type") == 4);
+        pbp.T_htf_cold_ref = as_double("T_htf_cold_ref");	// design outlet fluid temp
+        pbp.T_htf_hot_ref = resource_temperature;           // [C] design inlet fluid temp
+        pbp.HTF = 3;    // as_integer("HTF");						// heat transfer fluid type - set in interface, but no user input
+
+        // power block parameters that ARE on the SAM power block input page
+        pbp.P_ref = as_double("nameplate") / 1000; // P_ref wants MW, 'nameplate' in kW
+        pbp.P_boil = as_double("P_boil");
+        pbp.eta_ref = as_double("eta_ref");
+        pbp.q_sby_frac = as_double("q_sby_frac");
+        pbp.startup_frac = as_double("startup_frac");
+        pbp.startup_time = as_double("startup_time");
+        pbp.pb_bd_frac = as_double("pb_bd_frac");
+        pbp.T_amb_des = as_double("T_amb_des");
+        pbp.CT = as_integer("CT");
+        pbp.dT_cw_ref = as_double("dT_cw_ref");
+        pbp.T_approach = as_double("T_approach");
+        pbp.T_ITD_des = as_double("T_ITD_des");
+        pbp.P_cond_ratio = as_double("P_cond_ratio");
+        pbp.P_cond_min = as_double("P_cond_min");
+        pbp.n_pl_inc = as_integer("hr_pl_nlev");
+        pbp.F_wc[0] = as_double("hc_ctl1");
+        pbp.F_wc[1] = as_double("hc_ctl2");
+        pbp.F_wc[2] = as_double("hc_ctl3");
+        pbp.F_wc[3] = as_double("hc_ctl4");
+        pbp.F_wc[4] = as_double("hc_ctl5");
+        pbp.F_wc[5] = as_double("hc_ctl6");
+        pbp.F_wc[6] = as_double("hc_ctl7");
+        pbp.F_wc[7] = as_double("hc_ctl8");
+        pbp.F_wc[8] = as_double("hc_ctl9");
+
+    
 		// Create output object
 		SGeothermal_Outputs geo_outputs;
 
 		// --------------------------------------------------------------------------------------------------------------------------
 		std::string err_msg;
-		
+
+        // --------------------------------------------------------------------------
+        // Design point calcs
+
+
 		// in all cases, save the UI values in the outputs
 		// needed to have the gross power plant size for capacity factor
 		// calculation
 		if (FillOutputsForUI(err_msg, geo_inputs, geo_outputs) != 0)
 			throw general_error("input error: " + err_msg + ".");
 
+
+        // Assign total GF Flow Rate
+        double GF_flowrate = geo_outputs.GF_flowrate;       //[lb/hr]
+        assign("GF_flowrate", (ssc_number_t)GF_flowrate);
+
+        // Update SAM powerblock inputs with brine flow rate
+        // Set the power block input values that won't change hourly in geothermal model
+        SPowerBlockInputs pbInputs;
+        pbInputs.mode = 2;
+        pbInputs.m_dot_htf = GF_flowrate / 2.20462;         //[lb/hr] * 1/2.20462 [kg/lb] = [kg/hr]
+        pbInputs.demand_var = pbInputs.m_dot_htf;           //[kg/hr]
+        pbInputs.standby_control = 1;
+        pbInputs.rel_humidity = 0.7;
+
+        assign("num_wells_getem", var_data((ssc_number_t)geo_outputs.md_NumberOfWells));
         assign("num_wells_getem_output", var_data((ssc_number_t)geo_outputs.md_NumberOfWells));
         assign("num_wells_getem_prod_drilled", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsProdDrilled));
         assign("num_wells_getem_prod_failed", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsProdFailed));
         assign("num_wells_getem_inj", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsInj));
         assign("num_wells_getem_inj_drilled", var_data((ssc_number_t)geo_outputs.md_NumberOfWellsInjDrilled));
+        assign("num_confirm_wells_to_production", var_data((ssc_number_t)num_conf_wells_prod));
 
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
         assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+
+        assign("system_capacity", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW*1.E3));
+        assign("cp_system_nameplate", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
+
+        // Hardcode battery nameplate to 0
+        assign("cp_battery_nameplate", 0.0);
+
+
+        // this assignment happens in UI calculations and model run
+        assign("pump_work", var_data((ssc_number_t)geo_outputs.md_PumpWorkKW / 1000)); // kW must be converted to MW
+        assign("net_plant_output", ssc_number_t(geo_outputs.md_GrossPlantOutputMW - (geo_outputs.md_PumpWorkKW / 1000.0))); //[MWe]
+
+        // W to hp = divide by 745.7; kg to lb = multiply by 2.20462;
+        // hr to s = divide by 3600, so kg/s to lb/hr is multiply by 2.20462 and divide by (1/3600) which is multiply by 3600, so total conversion factor is 2.20462 * 3600 = 7936.64
+        double pump_size_hp = geo_outputs.md_pumpwork_prod / 745.7 * geo_inputs.md_ProductionFlowRateKgPerS * 7936.64; // convert W to hp and kg/s to lb/hr
+        assign("pump_size_hp", (ssc_number_t)pump_size_hp);
+
+        
+
+        //Assigning 2nd Law efficiency:
+            //double eff_secondlaw = var_data(static_cast<ssc_number_t>(geo_outputs.eff_secondlaw));
+        double eff_secondlaw = geo_outputs.eff_secondlaw;
+        assign("eff_secondlaw", (ssc_number_t)eff_secondlaw);
+
+        assign("pump_depth_ft", var_data((ssc_number_t)geo_outputs.md_PumpDepthFt));
+        assign("inj_pump_hp", var_data((ssc_number_t)geo_outputs.md_InjPump_hp));
+
+        assign("plant_brine_eff", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
+        assign("pump_watthr_per_lb", var_data((ssc_number_t)geo_outputs.md_PumpWorkWattHrPerLb));
+        assign("pumpwork_prod", var_data((ssc_number_t)geo_outputs.md_pumpwork_prod));      //[W-hr/lb]
+        assign("pumpwork_inj", var_data((ssc_number_t)geo_outputs.md_pumpwork_inj));        //[W-hr/lb]
+        assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
+
+        assign("pump_hp", var_data((ssc_number_t)geo_outputs.md_PumpHorsePower));
+        assign("reservoir_pressure", var_data((ssc_number_t)geo_outputs.md_PressureChangeAcrossReservoir));
+        assign("reservoir_avg_temp", var_data((ssc_number_t)physics::FarenheitToCelcius(geo_outputs.md_AverageReservoirTemperatureF)));
+        assign("bottom_hole_pressure", var_data((ssc_number_t)geo_outputs.md_BottomHolePressure));
+
+        assign("capacity_factor", var_data((ssc_number_t)(0)));
+        assign("kwh_per_kw", var_data((ssc_number_t)0));
+        //assign("reservoir_avg_temp", var_data(ssc_number_t)physics::FarenheitToCelsius(geo_outputs.md_AverageReservoirTemperatureF));
+        //double nameplate = geo_outputs.md_GrossPlantOutputMW * 1000; // in kW
+
+        //Assign HP & LP Flash Pressures: 
+        double hp_flash_pressure = geo_outputs.md_PressureHPFlashPSI;
+        assign("hp_flash_pressure", (ssc_number_t)hp_flash_pressure);
+        double lp_flash_pressure = geo_outputs.md_PressureLPFlashPSI;
+        assign("lp_flash_pressure", (ssc_number_t)lp_flash_pressure);
+
+        //Assign all 3 stages of vacuum pump powers:
+        double v_stage_1 = geo_outputs.v_stage_1;
+        assign("v_stage_1", (ssc_number_t)v_stage_1);
+        double v_stage_2 = geo_outputs.v_stage_2;
+        assign("v_stage_2", (ssc_number_t)v_stage_2);
+        double v_stage_3 = geo_outputs.v_stage_3;
+        assign("v_stage_3", (ssc_number_t)v_stage_3);
+
+        
+
+        //Assigning Rejected Total Heat from Flash Plant:
+        double qRejectTotal = geo_outputs.qRejectedTotal;	//total heat rejected 
+        assign("qRejectTotal", (ssc_number_t)qRejectTotal);
+
+        //Assign qCondenser (Flash Plant Type):
+        double qCondenser = geo_outputs.condenser_q;
+        assign("qCondenser", (ssc_number_t)qCondenser);
+
+        //Assign NCG Condenser Heat Rejecting Stages:
+        double qRejectByStage_1 = geo_outputs.qRejectByStage_1;
+        assign("qRejectByStage_1", (ssc_number_t)qRejectByStage_1);
+        double qRejectByStage_2 = geo_outputs.qRejectByStage_2;
+        assign("qRejectByStage_2", (ssc_number_t)qRejectByStage_2);
+        double qRejectByStage_3 = geo_outputs.qRejectByStage_3;
+        assign("qRejectByStage_3", (ssc_number_t)qRejectByStage_3);
+
+        //Assign NCG Condensate Pump Work & CW Pump Work Value for Calculating NCG Pump Cost: 
+        double ncg_condensate_pump = geo_outputs.ncg_condensate_pump;
+        assign("ncg_condensate_pump", (ssc_number_t)ncg_condensate_pump);
+        double cw_pump_work = geo_outputs.cw_pump_work;
+        assign("cw_pump_work", (ssc_number_t)cw_pump_work);
+
+        //Assign steam suction ratio value for NCG Ejector Cost Calculation
+        double pressure_ratio_1 = geo_outputs.pressure_ratio_1;
+        assign("pressure_ratio_1", (ssc_number_t)pressure_ratio_1);
+        double pressure_ratio_2 = geo_outputs.pressure_ratio_2;
+        assign("pressure_ratio_2", (ssc_number_t)pressure_ratio_2);
+        double pressure_ratio_3 = geo_outputs.pressure_ratio_3;
+        assign("pressure_ratio_3", (ssc_number_t)pressure_ratio_3);
+
+        //Assigning Value of Condensate Pump for Pump Cost Calculation:
+        double condensate_pump_power = geo_outputs.condensate_pump_power;
+        assign("condensate_pump_power", (ssc_number_t)condensate_pump_power);
+
+        //Assign CW Flow and Head for Pump Cost Caclulation:
+        double cwflow = geo_outputs.cwflow;
+        assign("cwflow", (ssc_number_t)cwflow);
+        double cw_pump_head = geo_outputs.cw_pump_head;
+        assign("cw_pump_head", (ssc_number_t)cw_pump_head);
+
+        //Assign Specific Volume and Mass Fraction (x) for Flash Vessel Calculations:
+        double spec_vol = geo_outputs.spec_vol;	//HP Specific Volume
+        assign("spec_vol", (ssc_number_t)spec_vol);
+        double x_hp = geo_outputs.getX_hp;
+        assign("x_hp", (ssc_number_t)x_hp);
+        double spec_vol_lp = geo_outputs.spec_vol_lp;	//LP Specific Volume
+        assign("spec_vol_lp", (ssc_number_t)spec_vol_lp);
+        double x_lp = geo_outputs.getX_lp;
+        assign("x_lp", (ssc_number_t)x_lp);
+
+        //Assign Flash Count: 
+        double flash_count = geo_outputs.flash_count;
+        assign("flash_count", (ssc_number_t)flash_count);
 
         assign("dt_rock_well_head", var_data((ssc_number_t)geo_outputs.md_dtRockWellHead));
         assign("brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
         assign("max_brine_effectiveness", var_data((ssc_number_t)geo_outputs.md_MaxBrineEffectiveness));
 
+        //***********************************************************
+        // Call cost models
+        if( geo_fin_model < 8 ) {
+            // Update geothermal costs by running the geothermal costs cmod
+            std::string geo_cost_module_name = "geothermal_costs";
+            ssc_module_t geo_cost_module = ssc_module_create(geo_cost_module_name.c_str());
+            var_table* geo_cost_vtab = this->get_var_table();
 
-		if (iControl == 1) {
+            ssc_data_t geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
+
+            if( !ssc_module_exec(geo_cost_module, geo_cmod_inputs) ) {
+                std::string str = geo_cost_module_name + " execution error. ";
+                int idx = 0;
+                int type = -1;
+                while( const char* msg = ssc_module_log(geo_cost_module, idx++, &type, nullptr) )
+                {
+                    if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
+                        str += std::string(msg);
+                        str += "\t";
+                    }
+                }
+                ssc_module_free(geo_cost_module);
+                throw std::runtime_error(str);
+            }
+
+            // *************************************************************
+            // *************************************************************
+
+            if( geo_fin_model < 7 ) {
+            std:string construction_financing_module_name = "cb_construction_financing";
+                ssc_module_t construction_financing_module = ssc_module_create(construction_financing_module_name.c_str());
+
+                if( !ssc_module_exec(construction_financing_module, geo_cmod_inputs) ) {
+                    std::string str = construction_financing_module_name + " execution error. ";
+                    int idx = 0;
+                    int type = -1;
+                    while( const char* msg = ssc_module_log(construction_financing_module, idx++, &type, nullptr) )
+                    {
+                        if(/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR) ) {
+                            str += std::string(msg);
+                            str += "\t";
+                        }
+                    }
+                    ssc_module_free(construction_financing_module);
+                    throw std::runtime_error(str);
+                }
+
+                // *****************************************************
+                assign("drilling_cost", as_double("total_drilling_cost_used"));
+                assign("field_gathering_system_cost", as_double("total_surface_equipment_cost"));
+                assign("water_loss", as_double("subsurface_water_loss"));
+                assign("pump_depth", as_double("pump_depth_ft"));
+                assign("pump_type", 0);
+
+                geo_cmod_inputs = static_cast<ssc_data_t>(geo_cost_vtab);
+                getem_om_cost_calc(geo_cmod_inputs);
+            }
+        }        
+        
+        // ***************************************************************
+
+        // Hardcoded outputs
+        // Always use recapitalization for geothermal
+        assign("system_use_recapitalization", 1);
+
+        // Hardcode degradation to 0
+        ssc_number_t* p_deg = allocate("degradation", 1);
+        p_deg[0] = 0.0;
+        //assign("degradation", 0);
+
+		if (sim_type == 2) {
 			
-		// just doing calculations for the UI, not running the model
-
-			// assign values for UI results
+            return;			
 			
-			assign("plant_brine_eff", var_data((ssc_number_t)geo_outputs.md_PlantBrineEffectiveness));
-            assign("pump_watthr_per_lb", var_data((ssc_number_t)geo_outputs.md_PumpWorkWattHrPerLb));
-            assign("pumpwork_prod", var_data((ssc_number_t)geo_outputs.md_pumpwork_prod));
-            assign("pumpwork_inj", var_data((ssc_number_t)geo_outputs.md_pumpwork_inj));
-			assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
-
-			assign("pump_depth_ft", var_data((ssc_number_t)geo_outputs.md_PumpDepthFt));
-			assign("pump_hp", var_data((ssc_number_t)geo_outputs.md_PumpHorsePower));
-
-			assign("reservoir_pressure", var_data((ssc_number_t)geo_outputs.md_PressureChangeAcrossReservoir));
-			assign("reservoir_avg_temp", var_data((ssc_number_t)physics::FarenheitToCelcius(geo_outputs.md_AverageReservoirTemperatureF)));
-			assign("bottom_hole_pressure", var_data((ssc_number_t)geo_outputs.md_BottomHolePressure));
-            assign("inj_pump_hp", var_data((ssc_number_t)geo_outputs.md_InjPump_hp));
-			
-			assign("capacity_factor", var_data((ssc_number_t)(0)));
-			assign("kwh_per_kw", var_data((ssc_number_t)0));
-			//assign("reservoir_avg_temp", var_data(ssc_number_t)physics::FarenheitToCelsius(geo_outputs.md_AverageReservoirTemperatureF));
-			//double nameplate = geo_outputs.md_GrossPlantOutputMW * 1000; // in kW
 		}
 		else {
-			// running the model, we need to specify other inputs
-			geo_inputs.md_PotentialResourceMW = as_double("resource_potential");
 
-            geo_inputs.md_UseWeatherFileConditions = as_integer("use_weather_file_conditions");
+            // since we're going to run the model, we have to allocate the arrays
 
-			// we need to create the SPowerBlockInputs & SPowerBlockParameters and set the inputs
-
-			// Set the power block input values that won't change hourly in geothermal model
-			SPowerBlockInputs pbInputs;
-			pbInputs.mode = 2;
-			if (as_integer("analysis_type") == 0) // used number of wells as calculated by GETEM
-				pbInputs.m_dot_htf = as_double("well_flow_rate")* 3600.0 * as_double("num_wells_getem"); // (kg/sec) * (sec/hour) * (# wells) = total flow (kg/hour)
-			else // use number of wells input by user
-				pbInputs.m_dot_htf = as_double("well_flow_rate")* 3600.0 * as_double("num_wells"); // (kg/sec) * (sec/hour) * (# wells) = total flow (kg/hour)
-			pbInputs.demand_var = pbInputs.m_dot_htf;
-			pbInputs.standby_control = 1;
-			pbInputs.rel_humidity = 0.7;
-			// pbInputs.f_restart = 1.0;		// twn 12.6.12 - f_restart no longer used in Type 224
-
-			// hybrid dispatch schedule, which will set the value for pbInputs.TOU
-			const char *sched = as_string("hybrid_dispatch_schedule");
-			int tou[8760];
-            int start_day = as_number("start_day_of_year");
-			if (!util::translate_schedule(tou, sched, sched, 0, 8, start_day))
-				throw general_error("could not translate schedule for time-of-use rate");
-
-			// weather file and time-of-use data
-			geo_inputs.mc_WeatherFileName = as_string("file_name");
-			geo_inputs.mia_tou = tou;
-
-
-			// Set power block parameters (parameters don't change hourly)
-			SPowerBlockParameters pbp;
-
-			// power block parameters NOT on the SAM power block input page
-			// tech_type is a flag for which coefficient set to use in the power block (1=tower,2=trough,3=Sliding pressure power cycle formulation, 4=geothermal)
-			pbp.tech_type = 4; //as_integer("tech_type");
-			// the geothermal model is only valid with tech type = 4.  if it's set to any other value, use it as a flag here
-			// bool bFlag = (as_integer("tech_type") == 4);
-			pbp.T_htf_cold_ref = as_double("T_htf_cold_ref");	// design outlet fluid temp
-			pbp.T_htf_hot_ref = as_double("T_htf_hot_ref");		// design inlet fluid temp
-			pbp.HTF = as_integer("HTF");						// heat transfer fluid type - set in interface, but no user input
-
-			// power block parameters that ARE on the SAM power block input page
-			pbp.P_ref = as_double("nameplate") / 1000; // P_ref wants MW, 'nameplate' in kW
-			pbp.P_boil = as_double("P_boil");
-			pbp.eta_ref = as_double("eta_ref");
-			pbp.q_sby_frac = as_double("q_sby_frac");
-			pbp.startup_frac = as_double("startup_frac");
-			pbp.startup_time = as_double("startup_time");
-			pbp.pb_bd_frac = as_double("pb_bd_frac");
-			pbp.T_amb_des = as_double("T_amb_des");
-			pbp.CT = as_integer("CT");
-			pbp.dT_cw_ref = as_double("dT_cw_ref");
-			pbp.T_approach = as_double("T_approach");
-			pbp.T_ITD_des = as_double("T_ITD_des");
-			pbp.P_cond_ratio = as_double("P_cond_ratio");
-			pbp.P_cond_min = as_double("P_cond_min");
-			pbp.n_pl_inc = as_integer("hr_pl_nlev");
-			pbp.F_wc[0] = as_double("hc_ctl1");
-			pbp.F_wc[1] = as_double("hc_ctl2");
-			pbp.F_wc[2] = as_double("hc_ctl3");
-			pbp.F_wc[3] = as_double("hc_ctl4");
-			pbp.F_wc[4] = as_double("hc_ctl5");
-			pbp.F_wc[5] = as_double("hc_ctl6");
-			pbp.F_wc[6] = as_double("hc_ctl7");
-			pbp.F_wc[7] = as_double("hc_ctl8");
-			pbp.F_wc[8] = as_double("hc_ctl9");
-
-			// since we're going to run the model, we have to allocate the arrays
-
-			// allocate lifetime annual arrays (one element per year, over lifetime of project)
+        // allocate lifetime annual arrays (one element per year, over lifetime of project)
 //			geo_outputs.maf_ReplacementsByYear = allocate("annual_replacements", geo_inputs.mi_ProjectLifeYears);
-			geo_outputs.maf_ReplacementsByYear = allocate("system_lifetime_recapitalize", geo_inputs.mi_ProjectLifeYears);
-			//ssc_number_t *annual_replacements = allocate( "annual_replacements", geo_inputs.mi_ProjectLifeYears);
+            geo_outputs.maf_ReplacementsByYear = allocate("system_lifetime_recapitalize", geo_inputs.mi_ProjectLifeYears);
+            //ssc_number_t *annual_replacements = allocate( "annual_replacements", geo_inputs.mi_ProjectLifeYears);
 
-			// allocate lifetime monthly arrays (one element per month, over lifetime of project)
-			geo_outputs.maf_monthly_resource_temp = allocate("monthly_resource_temperature", 12 * geo_inputs.mi_ProjectLifeYears);
-			geo_outputs.maf_monthly_power = allocate("monthly_power", 12 * geo_inputs.mi_ProjectLifeYears);
-			geo_outputs.maf_monthly_energy = allocate("monthly_energy_lifetime", 12 * geo_inputs.mi_ProjectLifeYears);
+            // allocate lifetime monthly arrays (one element per month, over lifetime of project)
+            geo_outputs.maf_monthly_resource_temp = allocate("monthly_resource_temperature", 12 * geo_inputs.mi_ProjectLifeYears);
+            geo_outputs.maf_monthly_power = allocate("monthly_power", 12 * geo_inputs.mi_ProjectLifeYears);
+            geo_outputs.maf_monthly_energy = allocate("monthly_energy_lifetime", 12 * geo_inputs.mi_ProjectLifeYears);
 
-			// allocate lifetime timestep arrays (one element per timestep, over lifetime of project)
-			// if this is a monthly analysis, these are redundant with monthly arrays that track same outputs
-			geo_inputs.mi_MakeupCalculationsPerYear = (geo_inputs.mi_ModelChoice == 2) ? 8760 : 12;
-			geo_inputs.mi_TotalMakeupCalculations = geo_inputs.mi_ProjectLifeYears * geo_inputs.mi_MakeupCalculationsPerYear;
+            // allocate lifetime timestep arrays (one element per timestep, over lifetime of project)
+            // if this is a monthly analysis, these are redundant with monthly arrays that track same outputs
+            geo_inputs.mi_MakeupCalculationsPerYear = (geo_inputs.mi_ModelChoice == 2) ? 8760 : 12;
+            geo_inputs.mi_TotalMakeupCalculations = geo_inputs.mi_ProjectLifeYears * geo_inputs.mi_MakeupCalculationsPerYear;
 
-			geo_outputs.maf_timestep_resource_temp = allocate("timestep_resource_temperature", geo_inputs.mi_TotalMakeupCalculations);
-			geo_outputs.maf_timestep_power = allocate("timestep_power", geo_inputs.mi_TotalMakeupCalculations);
+            geo_outputs.maf_timestep_resource_temp = allocate("timestep_resource_temperature", geo_inputs.mi_TotalMakeupCalculations);
+            geo_outputs.maf_timestep_power = allocate("timestep_power", geo_inputs.mi_TotalMakeupCalculations);
             geo_outputs.maf_timestep_test_values = allocate("timestep_test_values", geo_inputs.mi_TotalMakeupCalculations);
 
-			geo_outputs.maf_timestep_pressure = allocate("timestep_pressure", geo_inputs.mi_TotalMakeupCalculations);
-			geo_outputs.maf_timestep_dry_bulb = allocate("timestep_dry_bulb", geo_inputs.mi_TotalMakeupCalculations);
-			geo_outputs.maf_timestep_wet_bulb = allocate("timestep_wet_bulb", geo_inputs.mi_TotalMakeupCalculations);
+            geo_outputs.maf_timestep_pressure = allocate("timestep_pressure", geo_inputs.mi_TotalMakeupCalculations);
+            geo_outputs.maf_timestep_dry_bulb = allocate("timestep_dry_bulb", geo_inputs.mi_TotalMakeupCalculations);
+            geo_outputs.maf_timestep_wet_bulb = allocate("timestep_wet_bulb", geo_inputs.mi_TotalMakeupCalculations);
 
-			size_t n_rec = 8760;
-			if (as_boolean("system_use_lifetime_output")){
-				n_rec *= geo_inputs.mi_ProjectLifeYears;
-			}
-	
+            size_t n_rec = 8760;
+            if( as_boolean("system_use_lifetime_output") ) {
+                n_rec *= geo_inputs.mi_ProjectLifeYears;
+            }
+
+
 			geo_outputs.maf_hourly_power = allocate("tmp", n_rec);
 			ssc_number_t * p_gen = allocate("gen", n_rec);
 
@@ -565,88 +645,6 @@ public:
 			if (RunGeothermalAnalysis(my_update_function, this, err_msg, pbp, pbInputs, geo_inputs, geo_outputs) != 0)
 				throw exec_error("geothermal", "error from geothermal hourly model: " + err_msg + ".");
 
-
-			//Assigning 2nd Law efficiency:
-			//double eff_secondlaw = var_data(static_cast<ssc_number_t>(geo_outputs.eff_secondlaw));
-			double eff_secondlaw = geo_outputs.eff_secondlaw;
-			assign("eff_secondlaw", (ssc_number_t)eff_secondlaw);
-
-			
-
-			//Assign HP & LP Flash Pressures: 
-			double hp_flash_pressure = geo_outputs.md_PressureHPFlashPSI;
-			assign("hp_flash_pressure", (ssc_number_t)hp_flash_pressure);
-			double lp_flash_pressure = geo_outputs.md_PressureLPFlashPSI;
-			assign("lp_flash_pressure", (ssc_number_t)lp_flash_pressure);
-
-			//Assign all 3 stages of vacuum pump powers:
-			double v_stage_1 = geo_outputs.v_stage_1;
-			assign("v_stage_1", (ssc_number_t)v_stage_1);
-			double v_stage_2 = geo_outputs.v_stage_2;
-			assign("v_stage_2", (ssc_number_t)v_stage_2);
-			double v_stage_3 = geo_outputs.v_stage_3;
-			assign("v_stage_3", (ssc_number_t)v_stage_3);
-
-			//Assign total GF Flow Rate: 
-			double GF_flowrate = geo_outputs.GF_flowrate;
-			assign("GF_flowrate", (ssc_number_t)GF_flowrate);
-
-            //Assigning Rejected Total Heat from Flash Plant:
-			double qRejectTotal = geo_outputs.qRejectedTotal;	//total heat rejected 
-			assign("qRejectTotal", (ssc_number_t)qRejectTotal);
-
-			//Assign qCondenser (Flash Plant Type):
-			double qCondenser = geo_outputs.condenser_q;
-			assign("qCondenser", (ssc_number_t)qCondenser);
-
-			//Assign NCG Condenser Heat Rejecting Stages:
-			double qRejectByStage_1 = geo_outputs.qRejectByStage_1;
-			assign("qRejectByStage_1", (ssc_number_t)qRejectByStage_1);
-			double qRejectByStage_2 = geo_outputs.qRejectByStage_2;
-			assign("qRejectByStage_2", (ssc_number_t)qRejectByStage_2);
-			double qRejectByStage_3 = geo_outputs.qRejectByStage_3;
-			assign("qRejectByStage_3", (ssc_number_t)qRejectByStage_3);
-
-			//Assign NCG Condensate Pump Work & CW Pump Work Value for Calculating NCG Pump Cost: 
-			double ncg_condensate_pump = geo_outputs.ncg_condensate_pump;
-			assign("ncg_condensate_pump", (ssc_number_t)ncg_condensate_pump);
-			double cw_pump_work = geo_outputs.cw_pump_work;
-			assign("cw_pump_work", (ssc_number_t)cw_pump_work);
-
-			//Assign steam suction ratio value for NCG Ejector Cost Calculation
-			double pressure_ratio_1 = geo_outputs.pressure_ratio_1;
-			assign("pressure_ratio_1", (ssc_number_t)pressure_ratio_1);
-			double pressure_ratio_2 = geo_outputs.pressure_ratio_2;
-			assign("pressure_ratio_2", (ssc_number_t)pressure_ratio_2);
-			double pressure_ratio_3 = geo_outputs.pressure_ratio_3;
-			assign("pressure_ratio_3", (ssc_number_t)pressure_ratio_3);
-
-			//Assigning Value of Condensate Pump for Pump Cost Calculation:
-			double condensate_pump_power = geo_outputs.condensate_pump_power;
-			assign("condensate_pump_power", (ssc_number_t)condensate_pump_power);
-
-			//Assign CW Flow and Head for Pump Cost Caclulation:
-			double cwflow = geo_outputs.cwflow;
-			assign("cwflow", (ssc_number_t)cwflow);
-			double cw_pump_head = geo_outputs.cw_pump_head;
-			assign("cw_pump_head", (ssc_number_t)cw_pump_head);
-
-			//Assign Specific Volume and Mass Fraction (x) for Flash Vessel Calculations:
-			double spec_vol = geo_outputs.spec_vol;	//HP Specific Volume
-			assign("spec_vol", (ssc_number_t)spec_vol);
-			double x_hp = geo_outputs.getX_hp;
-			assign("x_hp", (ssc_number_t)x_hp);
-			double spec_vol_lp = geo_outputs.spec_vol_lp;	//LP Specific Volume
-			assign("spec_vol_lp", (ssc_number_t)spec_vol_lp);
-			double x_lp = geo_outputs.getX_lp;
-			assign("x_lp", (ssc_number_t)x_lp);
-
-
-			
-
-			//Assign Flash Count: 
-			double flash_count = geo_outputs.flash_count;
-			assign("flash_count", (ssc_number_t)flash_count);
 
 			// Summary calculations
 			ssc_number_t total_energy = 0;
@@ -691,9 +689,7 @@ public:
             accumulate_monthly_for_year("gen", "monthly_energy", 8760.0 / n_rec, n_rec / 8760);
 		}
 
-		// this assignment happens in UI calculations and model run
-		assign("pump_work", var_data((ssc_number_t) geo_outputs.md_PumpWorkKW/1000 ) ); // kW must be converted to MW
-
+		
 	}
 
 };

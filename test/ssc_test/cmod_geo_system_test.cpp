@@ -40,10 +40,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // C:\Users\tneises\Documents\Projects\Repos\ssc\test\input_json\TechnologyModels\geothermal
 
 TEST_F(CmodGeoSystemTest, GeoSystem_Hydro_Mod_Binary) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+
+    std::string test_name = "-Hydro Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
+
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/" + geo_system_test_ns::input_file_prefix +
+    //    "-Hydro Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
     //std::ifstream file(file_inputs);
     //std::ostringstream tmp;
@@ -51,154 +62,297 @@ TEST_F(CmodGeoSystemTest, GeoSystem_Hydro_Mod_Binary) {
     //file.close();
     //ssc_data_t dat_inputs = json_to_ssc_data(tmp.str().c_str());
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "total_capital_cost", "total_getem_om_cost" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
 
     // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_Hydro_Mod_Flash) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-Hydro Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_Hydro_Adv_Binary) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-Hydro Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
+
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+
+
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
 
     // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_Hydro_Adv_Flash) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-Hydro Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-Hydro Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_EGS_Mod_Binary) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_EGS_Mod_Flash) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_EGS_Adv_Binary) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_EGS_Adv_Flash) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_NF_EGS_Mod_Binary) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-NF EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_NF_EGS_Mod_Flash) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-NF EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Moderate Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_NF_EGS_Adv_Binary) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-NF EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Binary_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 TEST_F(CmodGeoSystemTest, GeoSystem_NF_EGS_Adv_Flash) {
-    std::string file_inputs = SSCDIR;
-    file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
-    std::string file_outputs = SSCDIR;
-    file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
 
-    std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
-    std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    std::string test_name = "-NF EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal";
 
-    // Use a permissive absolute tolerance for large numbers similar to other tests
-    Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
+    std::string file_inputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::input_file_prefix + test_name + ".json";
+
+    std::string file_outputs = SSCDIR + geo_system_test_ns::file_location +
+        geo_system_test_ns::output_file_prefix + test_name + "_outputs.json";
+
+    Test("geothermal", file_inputs, file_outputs, geo_system_test_ns::compare_number_variables,
+        geo_system_test_ns::compare_array_variables, 100.0, geo_system_test_ns::weather_file);
+
+    //std::string file_inputs = SSCDIR;
+    //file_inputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal.json";
+    //std::string file_outputs = SSCDIR;
+    //file_outputs += "/test/input_json/TechnologyModels/geothermal/26-09-04-dev-NF EGS Advanced Flash_ATB 2025_Geothermal_Power_Single_Owner_cmod_geothermal_outputs.json";
+    //
+    //std::vector<std::string> compare_number_variables = { "annual_energy", "net_capital_costs", "fixed_om_costs" };
+    //std::vector<std::string> compare_array_variables = { "monthly_energy" };
+    //
+    //// Use a permissive absolute tolerance for large numbers similar to other tests
+    //Test("geothermal", file_inputs, file_outputs, compare_number_variables, compare_array_variables, 100.0, "fargo_nd_46.9_-96.8_mts1_60_tmy.csv");
 }
 
 

@@ -25,6 +25,7 @@ set(SSC_SRC
 		cmod_cashloan.cpp
 		cmod_cashloan_heat.cpp
 		cmod_cb_construction_financing.cpp
+        cmod_cb_construction_financing.h
 		cmod_cb_empirical_hce_heat_loss.cpp
 		cmod_csp_dsg_lf_ui.cpp
         cmod_csp_heatsink.cpp
@@ -42,7 +43,9 @@ set(SSC_SRC
 		cmod_generic_system-builder.cpp
 		cmod_generic_system-builder.h
 		cmod_geothermal.cpp
+        cmod_geothermal.h
 		cmod_geothermal_costs.cpp
+        cmod_geothermal_costs.h
         cmod_geothermal_costs_eqns.cpp
         cmod_geothermal_costs_eqns.h
 		cmod_grid.cpp
@@ -57,6 +60,7 @@ set(SSC_SRC
 		cmod_irradproc.cpp
 		cmod_layoutarea.cpp
 		cmod_lcoefcr.cpp
+        cmod_lcoefcr.h
 		cmod_levpartflip.cpp
 		cmod_linear_fresnel_dsg_iph.cpp
 		cmod_merchantplant.cpp

@@ -51,7 +51,7 @@ static const char* getem_om_cost_calc_doc =
     "     'drilling_cost': double [$] \\n"
     "     'field_gathering_system_cost': double [$] \\n"
     "     'GF_flowrate': double [kg/s] \\n"
-    "     'num_wells': double [-] \\n"
+    "     'num_wells_calc': double [-] \\n"
     "     'water_loss': double [%] \\n"
     "     'total_installed_cost': double [$] \\n"
     "     'pump_cost_install': double [$] \\n"

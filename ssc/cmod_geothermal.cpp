@@ -566,6 +566,7 @@ public:
                 }
 
                 // *****************************************************
+                assign("num_wells_calc", as_double("num_wells_getem"));
                 assign("drilling_cost", as_double("total_drilling_cost_used"));
                 assign("field_gathering_system_cost", as_double("total_surface_equipment_cost"));
                 assign("water_loss", as_double("subsurface_water_loss"));

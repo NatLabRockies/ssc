@@ -295,8 +295,12 @@ void var_table::unassign( const std::string &name )
 	}
 	if (it != m_hash.end())
 	{
-		delete (*it).second; // delete the associated data
-		m_hash.erase( it );
+        // 1. Store the pointer temporarily
+        auto* data_to_delete = it->second;
+        // 2. Erase the item from the map first (this drops the size immediately)
+        m_hash.erase( it );
+        // 3. Safely delete the heap allocation afterward
+        delete data_to_delete;
 	}
 }
 

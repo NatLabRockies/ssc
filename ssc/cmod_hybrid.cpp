@@ -629,7 +629,7 @@ public:
                     battery_discharged.resize(analysisPeriod, first_val);
                 }
                 else if (csp_thermal_storage.size() != 0) {
-                    battery_discharged.resize(1, 0);
+                    battery_discharged.resize(analysisPeriod, 0);
                 }
                 else if (len != analysisPeriod) {
                     throw exec_error("hybrid", util::format("battery_discharged size (%d) incorrect", (int)len));

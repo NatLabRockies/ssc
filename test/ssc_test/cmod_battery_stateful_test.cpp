@@ -340,6 +340,7 @@ TEST_F(CMBatteryStatefulIntegration_cmod_battery_stateful, TestCycleCount) {
     EXPECT_TRUE(vt->is_assigned("cycle_counts"));
     EXPECT_TRUE(vt->is_assigned("cycle_DOD_max"));
 
+    EXPECT_TRUE(ssc_stateful_module_setup(mod, data)); // where unassign is called
     EXPECT_TRUE(ssc_module_exec(mod, data)); // Executing one step with 0 input_current (default) will trip the next day using the nmc lifetime model
 
     vt = static_cast<var_table*>(data);

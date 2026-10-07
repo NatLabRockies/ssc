@@ -341,8 +341,6 @@ static var_info _cm_vtab_host_developer[] = {
 
 	{ SSC_OUTPUT, SSC_NUMBER, "min_dscr", "Minimum DSCR", "", "", "DSCR", "", "" },
 	{ SSC_OUTPUT, SSC_ARRAY, "cf_pretax_dscr", "DSCR (pre-tax)", "", "", "DSCR", "*", "LENGTH_EQUAL=cf_length", "" },
-
-
 var_info_invalid };
 
 extern var_info

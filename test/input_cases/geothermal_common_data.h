@@ -51,21 +51,7 @@ static int n3 = sprintf(geothermal_curtailment_path, "%s/test/input_cases/genera
 */
 static void geothermal_singleowner_default(ssc_data_t &data)
 {
-	//ssc_data_set_number(data, "ui_calculations_only", 0);
-    //ssc_data_set_number(data, "geothermal_analysis_period", 2);
-    //ssc_data_set_number(data, "num_wells_getem", 4.3197474479675293);
-    //ssc_data_set_number(data, "design_temp", 200);
-    //ssc_data_set_number(data, "exploration_wells_production", 0);
-    //ssc_data_set_number(data, "system_capacity", 34788.67578125);
-    //ssc_data_set_number(data, "system_use_recapitalization", 1);
-    //ssc_data_set_number(data, "system_recapitalization_cost", 18771578);
-    //ssc_data_set_number(data, "total_installed_cost", 115551088);
-    //ssc_data_set_number(data, "cp_system_nameplate", 0);
-    //ssc_data_set_number(data, "cp_battery_nameplate", 0);
-    //ssc_data_set_number(data, "construction_financing_cost", 6701963.5);
-
-
-    ssc_data_set_number(data, "ppi_base_year", 19);     // ppi base year wasn't set in prior test and was defaulting to 19 in the var table
+	ssc_data_set_number(data, "ppi_base_year", 19);     // ppi base year wasn't set in prior test and was defaulting to 19 in the var table
 
 	ssc_data_set_string(data, "file_name", geothermal_weather_path);
 	ssc_data_set_number(data, "resource_potential", 210);

@@ -127,12 +127,7 @@ public:
 
     void exec()
     {
-        // Replacing 'ui_calculations_only' with 'sim_typ'
-        //"sim_type", "1 (default): timeseries, 2: design only",
         int sim_type = as_integer("sim_type");  // "1 (default): timeseries, 2: design only",
-
-        // so if ui_calculations_only = 0 -> sim_type = 1; if ui_calculations_only = 1 -> sim_type = 2
-        //int iControl = as_integer("ui_calculations_only");		 // 0=run full model, 1=just do UI calculations
 
         // --------------------------------------------------------------
         // Get main system paramters

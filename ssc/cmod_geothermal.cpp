@@ -211,6 +211,17 @@ public:
 		geo_inputs.md_PressureAmbientPSI = as_double("ambient_pressure" );
         geo_inputs.md_UseWeatherFileConditions = 0; //initially set to zero for UI calculations
 
+        geo_inputs.mi_simulation_timestep_type = static_cast<geo_simulation_timestep_type>(as_integer("simulation_timestep_type"));    // 0=monthly, 1=hourly
+
+        // Need to use this input during annual simulation but not design
+        // So save as a separate member variable, the use this new variable to set md_UseWeatherFileConditions during annual simulation
+        geo_inputs.md_UseWeatherFileConditions_annual_sim = as_integer("use_weather_file_conditions");
+
+        // If hourly timestep, always want to use weather file conditions
+        if( geo_inputs.mi_simulation_timestep_type == HOURLY_TIMESTEPS ){
+            geo_inputs.md_UseWeatherFileConditions_annual_sim = 1;
+        }
+
 		//pumping parameters
 		geo_inputs.md_ProductionFlowRateKgPerS = as_double("well_flow_rate");
 		geo_inputs.md_GFPumpEfficiency = as_double("pump_efficiency")/100;
@@ -280,7 +291,11 @@ public:
         geo_inputs.md_AllowReservoirReplacements = as_boolean("allow_reservoir_replacements");
 
 		// calculate output array sizes
-		geo_inputs.mi_ModelChoice = as_integer("model_choice");		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+		//geo_inputs.mi_ModelChoice = as_integer("model_choice");		                    // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+        //geo_inputs.mi_cycle_model_type = as_integer("geo_cycle_model_type");		            // 0=GETEM, 1=User Defined, 2=Reduced Order
+        geo_inputs.mi_cycle_model_type = static_cast<geo_cycle_model_type>(as_integer("geo_cycle_model_type"));	// GETEM_CYCLE = 0, REDUCED_ORDER_CYCLE = 1, USER_DEFINED_CYCLE = 2, UNDEFINED_CYCLE_MODEL = -1
+
+
         if (is_assigned("reservoir_model_inputs")) 
             geo_inputs.md_ReservoirInputs = as_matrix("reservoir_model_inputs");
 
@@ -304,7 +319,6 @@ public:
         // running the model, we need to specify other inputs
         geo_inputs.md_PotentialResourceMW = as_double("resource_potential");
 
-        geo_inputs.md_UseWeatherFileConditions = as_integer("use_weather_file_conditions");
 
         // we need to create the SPowerBlockInputs & SPowerBlockParameters and set the inputs
 
@@ -400,7 +414,13 @@ public:
         assign("num_confirm_wells_to_production", var_data((ssc_number_t)num_conf_wells_prod));
 
         assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
-        assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+
+        // The GETEM flash model as of 2026.06.26 uses a different value for gross turbine output
+        double gross_cost_output_for_flash = std::numeric_limits<double>::quiet_NaN();
+        if( geo_inputs.me_ct == FLASH ) {
+            gross_cost_output_for_flash = geo_outputs.md_GrossPowerkW;
+        }
+        assign("gross_cost_output", var_data((ssc_number_t)gross_cost_output_for_flash));
 
         assign("system_capacity", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW*1.E3));
         assign("cp_system_nameplate", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
@@ -610,21 +630,37 @@ public:
 
             // allocate lifetime timestep arrays (one element per timestep, over lifetime of project)
             // if this is a monthly analysis, these are redundant with monthly arrays that track same outputs
-            geo_inputs.mi_MakeupCalculationsPerYear = (geo_inputs.mi_ModelChoice == 2) ? 8760 : 12;
-            geo_inputs.mi_TotalMakeupCalculations = geo_inputs.mi_ProjectLifeYears * geo_inputs.mi_MakeupCalculationsPerYear;
+            //geo_inputs.mi_MakeupCalculationsPerYear = (geo_inputs.mi_ModelChoice == 2) ? 8760 : 12;
+            if(geo_inputs.mi_simulation_timestep_type == HOURLY_TIMESTEPS) {
+                geo_inputs.mi_performance_simulations_per_year = 8760;
+            }
+            else {
+                geo_inputs.mi_performance_simulations_per_year = 12;
+            }
+
+            geo_inputs.mi_TotalMakeupCalculations = geo_inputs.mi_ProjectLifeYears * geo_inputs.mi_performance_simulations_per_year;
 
             geo_outputs.maf_timestep_resource_temp = allocate("timestep_resource_temperature", geo_inputs.mi_TotalMakeupCalculations);
             geo_outputs.maf_timestep_power = allocate("timestep_power", geo_inputs.mi_TotalMakeupCalculations);
             geo_outputs.maf_timestep_test_values = allocate("timestep_test_values", geo_inputs.mi_TotalMakeupCalculations);
 
             geo_outputs.maf_timestep_pressure = allocate("timestep_pressure", geo_inputs.mi_TotalMakeupCalculations);
-            geo_outputs.maf_timestep_dry_bulb = allocate("timestep_dry_bulb", geo_inputs.mi_TotalMakeupCalculations);
-            geo_outputs.maf_timestep_wet_bulb = allocate("timestep_wet_bulb", geo_inputs.mi_TotalMakeupCalculations);
-
+            
             size_t n_rec = 8760;
             if( as_boolean("system_use_lifetime_output") ) {
                 n_rec *= geo_inputs.mi_ProjectLifeYears;
             }
+
+            // Still want hourly reporting for some outputs even if simulation timestep is monthly
+            geo_outputs.maf_timestep_dry_bulb = allocate("timestep_dry_bulb", n_rec);
+            geo_outputs.maf_timestep_wet_bulb = allocate("timestep_wet_bulb", n_rec);
+
+            geo_outputs.maf_AE = allocate("AE_od", n_rec);
+            geo_outputs.maf_getem_2nd_law_total_od = allocate("getem_2nd_law_total_od", n_rec);
+            geo_outputs.maf_carnot_od_scaling = allocate("carnot_scaling_od", n_rec);
+            geo_outputs.maf_cycle_net_power_od = allocate("cycle_net_power_od", n_rec);
+            geo_outputs.maf_plant_net_power_od = allocate("plant_net_power_od", n_rec);
+            geo_outputs.maf_brine_pumping_power_od = allocate("brine_pumping_power_od", n_rec);
 
 
 			geo_outputs.maf_hourly_power = allocate("tmp", n_rec);
@@ -681,8 +717,8 @@ public:
 			capacity_fac = total_energy / nameplate;
 			if (geo_inputs.mi_ProjectLifeYears > 0) kWhperkW = kWhperkW / geo_inputs.mi_ProjectLifeYears;
 
-			assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
-            assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
+			//assign("gross_output", var_data((ssc_number_t)geo_outputs.md_GrossPlantOutputMW));
+            //assign("gross_cost_output", var_data((ssc_number_t)geo_outputs.md_GrossPowerkW));
 			assign("capacity_factor", var_data((ssc_number_t)(capacity_fac / 87.6)));		//Divided by 8760 and then multiplied by 100 (or divide by 87.6) to return CF as a %
 			assign("kwh_per_kw", var_data((ssc_number_t)kWhperkW));
 			// 5/28/15 average provided for FCR market

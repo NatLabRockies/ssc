@@ -305,7 +305,8 @@ public:
                 geoPlant_inputs.md_InjectivityIndex = 2500;
 
 				// calculate output array sizes
-				geoPlant_inputs.mi_ModelChoice = 0;		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+				geoPlant_inputs.mi_cycle_model_type = GETEM_CYCLE;		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+                geoPlant_inputs.mi_simulation_timestep_type = MONTHLY_TIMESTEPS;
 				// set geothermal inputs RE how analysis is done and for how long
 				geoPlant_inputs.mi_ProjectLifeYears = geothermal_analysis_period;
 				//if (geoPlant_inputs.mi_ProjectLifeYears == 0)
@@ -314,8 +315,14 @@ public:
 				geoPlant_inputs.md_PotentialResourceMW = resource_potential;
 				geoPlant_inputs.mc_WeatherFileName = geothermal_weather_path;
 				geoPlant_inputs.mia_tou = tou;
-				geoPlant_inputs.mi_MakeupCalculationsPerYear = (geoPlant_inputs.mi_ModelChoice == 2) ? 8760 : 12;
-				geoPlant_inputs.mi_TotalMakeupCalculations = geoPlant_inputs.mi_ProjectLifeYears * geoPlant_inputs.mi_MakeupCalculationsPerYear;
+				//geoPlant_inputs.mi_MakeupCalculationsPerYear = (geoPlant_inputs.mi_ModelChoice == 2) ? 8760 : 12;
+                if( geoPlant_inputs.mi_simulation_timestep_type == HOURLY_TIMESTEPS ) {
+                    geoPlant_inputs.mi_performance_simulations_per_year = 8760;
+                }
+                else {
+                    geoPlant_inputs.mi_performance_simulations_per_year = 12;
+                }
+				geoPlant_inputs.mi_TotalMakeupCalculations = geoPlant_inputs.mi_ProjectLifeYears * geoPlant_inputs.mi_performance_simulations_per_year;
 
                 //Adjustment factors
                 geoPlant_inputs.haf = haf_inputs;
@@ -381,8 +388,15 @@ public:
 				// allocate lifetime timestep arrays (one element per timestep, over lifetime of project)
 				// if this is a monthly analysis, these are redundant with monthly arrays that track same outputs
 		
-				geoPlant_inputs.mi_MakeupCalculationsPerYear = (geoPlant_inputs.mi_ModelChoice == 2) ? 8760 : 12;
-				geoPlant_inputs.mi_TotalMakeupCalculations = geoPlant_inputs.mi_ProjectLifeYears * geoPlant_inputs.mi_MakeupCalculationsPerYear;
+				//geoPlant_inputs.mi_MakeupCalculationsPerYear = (geoPlant_inputs.mi_ModelChoice == 2) ? 8760 : 12;
+				//geoPlant_inputs.mi_TotalMakeupCalculations = geoPlant_inputs.mi_ProjectLifeYears * geoPlant_inputs.mi_MakeupCalculationsPerYear;
+                if( geoPlant_inputs.mi_simulation_timestep_type == HOURLY_TIMESTEPS ) {
+                    geoPlant_inputs.mi_performance_simulations_per_year = 8760;
+                }
+                else {
+                    geoPlant_inputs.mi_performance_simulations_per_year = 12;
+                }
+                geoPlant_inputs.mi_TotalMakeupCalculations = geoPlant_inputs.mi_ProjectLifeYears * geoPlant_inputs.mi_performance_simulations_per_year;
 
 				geoPlant_outputs.maf_timestep_resource_temp = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
 		
@@ -390,10 +404,18 @@ public:
 				geoPlant_outputs.maf_timestep_test_values = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
 
 				geoPlant_outputs.maf_timestep_pressure = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
-				geoPlant_outputs.maf_timestep_dry_bulb = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
-				geoPlant_outputs.maf_timestep_wet_bulb = new double[geoPlant_inputs.mi_TotalMakeupCalculations];
-		
+
+                
 				geoPlant_outputs.maf_hourly_power = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_timestep_dry_bulb = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_timestep_wet_bulb = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_AE = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_getem_2nd_law_total_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_carnot_od_scaling = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_cycle_net_power_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_plant_net_power_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+                geoPlant_outputs.maf_brine_pumping_power_od = new double[geoPlant_inputs.mi_ProjectLifeYears * 8760];
+
 		
 		//====================================================================================================================================================================
 		void * user_data = nullptr;
@@ -421,6 +443,12 @@ public:
 			delete [] geoPlant_outputs.maf_ReplacementsByYear;
             delete geoTester;
 
+            delete [] geoPlant_outputs.maf_AE;
+            delete [] geoPlant_outputs.maf_getem_2nd_law_total_od;
+            delete [] geoPlant_outputs.maf_carnot_od_scaling;
+            delete[] geoPlant_outputs.maf_cycle_net_power_od;
+            delete[] geoPlant_outputs.maf_plant_net_power_od;
+            delete[] geoPlant_outputs.maf_brine_pumping_power_od;
 	}
 
 };

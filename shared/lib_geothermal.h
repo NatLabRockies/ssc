@@ -43,6 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __geothermalEnums__
 #define __geothermalEnums__
 
+enum geo_cycle_model_type {
+    GETEM_CYCLE = 0, REDUCED_ORDER_CYCLE = 1, USER_DEFINED_CYCLE = 2, UNDEFINED_CYCLE_MODEL = -1
+};
+
+enum geo_simulation_timestep_type {
+    MONTHLY_TIMESTEPS = 0, HOURLY_TIMESTEPS = 1, UNDEFINED_TIMESTEPS = -1
+};
+
 enum calculationBasis { NO_CALCULATION_BASIS, POWER_SALES, NUMBER_OF_WELLS };
 enum conversionTypes { NO_CONVERSION_TYPE, BINARY, FLASH }; //}
 enum resourceTypes { NO_RESOURCE_TYPE, HYDROTHERMAL, EGS };
@@ -61,8 +69,10 @@ struct SGeothermal_Inputs
 	{
 		me_cb = NO_CALCULATION_BASIS; me_ct = NO_CONVERSION_TYPE; me_ft = NO_FLASH_SUBTYPE; me_tdm = NO_TEMPERATURE_DECLINE_METHOD;
 		me_rt = NO_RESOURCE_TYPE; me_dc = NOT_CHOSEN; me_pc = NO_PC_CHOICE;
-		mi_ModelChoice = -1; mb_CalculatePumpWork = true;
-		mi_ProjectLifeYears = mi_MakeupCalculationsPerYear = mi_TotalMakeupCalculations = 0;
+        mi_cycle_model_type = UNDEFINED_CYCLE_MODEL;
+        mi_simulation_timestep_type = UNDEFINED_TIMESTEPS;
+        mb_CalculatePumpWork = true;
+		mi_ProjectLifeYears = mi_performance_simulations_per_year = mi_TotalMakeupCalculations = 0;
 		md_DesiredSalesCapacityKW = md_NumberOfWells = md_NumberofWellsInj = md_PlantEfficiency = md_TemperatureDeclineRate = md_MaxTempDeclineC = md_TemperatureWetBulbC = 0.0;
 		md_PressureAmbientPSI = md_ProductionFlowRateKgPerS = md_GFPumpEfficiency = md_PressureChangeAcrossSurfaceEquipmentPSI = md_ExcessPressureBar = 0.0;
 		md_DiameterProductionWellInches = md_DiameterPumpCasingInches = md_DiameterInjPumpCasingInches = md_DiameterInjectionWellInches = md_UserSpecifiedPumpWorkKW = 0.0;
@@ -74,7 +84,7 @@ struct SGeothermal_Inputs
         md_dtProdWell = md_dtProdWellChoice = 0.0;
         md_NumberOfWellsProdExp = md_NumberOfWellsInjDrilled = md_NumberOfWellsProdDrilled = md_FailedWells = md_StimSuccessRate = md_DrillSuccessRate = 0;
         md_FailedInjFlowRatio = md_FailedProdFlowRatio = md_InjWellFriction = md_ProdWellFriction = md_InjWellPressurePSI = md_InjectivityIndex = md_ExplorationWellsProd = 0;
-        md_UseWeatherFileConditions = md_AllowReservoirReplacements = 0.0;
+        md_UseWeatherFileConditions = md_UseWeatherFileConditions_annual_sim = md_AllowReservoirReplacements = 0.0;
 	}
 
 	calculationBasis me_cb;									// { NO_CALCULATION_BASIS, POWER_SALES, NUMBER_OF_WELLS };
@@ -85,12 +95,15 @@ struct SGeothermal_Inputs
 	depthCalculationForEGS me_dc;							// { NOT_CHOSEN, DEPTH, TEMPERATURE };
 	reservoirPressureChangeCalculation me_pc;				// 1=user enter pressure change, 2=SAM calculates it using simple fracture flow (for EGS resourceTypes only), 3=SAM calculates it using k*A (permeability x area)
 
-	int mi_ModelChoice;										// -1 on initialization; 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
-	bool mb_CalculatePumpWork;								// true (default) = getem calculates pump work
+    //mi_ModelChoice = as_integer("model_choice");		 // 0=GETEM, 1=Power Block monthly, 2=Power Block hourly
+	geo_cycle_model_type mi_cycle_model_type;							// 0=GETEM, 1=User Defined, 2=Reduced Order
+    geo_simulation_timestep_type mi_simulation_timestep_type;                    // 0=monthly, 1=hourly
+
+    bool mb_CalculatePumpWork;								// true (default) = getem calculates pump work
     util::matrix_t<double> md_ReservoirInputs;
 
 	size_t mi_ProjectLifeYears;
-	size_t mi_MakeupCalculationsPerYear;					// 12 (monthly) or 8760 (hourly)
+	size_t mi_performance_simulations_per_year;					// 12 (monthly) or 8760 (hourly)
 	size_t mi_TotalMakeupCalculations;						// mi_ProjectLifeYears * mi_MakeupCalculationsPerYear
 
 	double md_DesiredSalesCapacityKW;						// entered or calculated, linked to 'cb'
@@ -114,6 +127,7 @@ struct SGeothermal_Inputs
 	double md_TemperatureWetBulbC;							// degrees celcius - used in Flash brine effectiveness
 	double md_PressureAmbientPSI;							// psi, default=14.7, mostly for use in calculating flash brine effectiveness, but also pump work
     int md_UseWeatherFileConditions;
+    int md_UseWeatherFileConditions_annual_sim;             // 
     double md_ProductionFlowRateKgPerS;						// 70 kilograms per second in one well (default FlowRate in GETEM)
 	double md_GFPumpEfficiency;								// default=0.6 or 60%
 	double md_PressureChangeAcrossSurfaceEquipmentPSI;		// default 25 psi
@@ -177,6 +191,11 @@ struct SGeothermal_Outputs
         md_FailedInjFlowRatio = md_FailedProdFlowRatio = 0;
         ElapsedHours = ElapsedMonths = 0;
 
+        md_frac_max_eff = md_max_secondlaw = md_AE =
+            md_carnot_od_scaling = md_getem_2nd_law_total_od = std::numeric_limits<double>::quiet_NaN();
+
+        m_is_getem_cycle_designed = false;
+        m_getem_2nd_law_total_design = m_carnot_eff_des = std::numeric_limits<double>::quiet_NaN();
 	}
 
 	//Following list of variables used as inputs in cmod_geothermal_costs.cpp for calculating direct geothermal plant cost:
@@ -249,6 +268,18 @@ struct SGeothermal_Outputs
 	double md_BottomHolePressure; //double GetBottomHolePressure(void) { return moPPC.GetBottomHolePressure(); }
     double md_FractionGFInjected;
 
+    // Messy (for now) design-point calculations
+    bool m_is_getem_cycle_designed;     // initializes to false; calculates once in GetBrinePlantEffectiveness and switches to true to skip future calcs
+    double m_getem_2nd_law_total_design;    // [-]
+    double m_carnot_eff_des;            // [-] Carnot efficiency at design
+
+    // Report off-design power cycle outputs
+    double md_frac_max_eff;     //[-] fraction of design second law efficiency
+    double md_max_secondlaw;    //[-] maximum second law efficiency
+    double md_AE;               //[watt-hr/lb] actual brine effectiveness
+    double md_carnot_od_scaling;        //[-]
+    double md_getem_2nd_law_total_od;   //[-]
+
 	// output arrays
 	double * maf_ReplacementsByYear;			// array of ones and zero's over time, ones representing years where reservoirs are replaced
 	double * maf_monthly_resource_temp;
@@ -261,6 +292,15 @@ struct SGeothermal_Outputs
 	double * maf_timestep_dry_bulb;
 	double * maf_timestep_wet_bulb;
 	double * maf_hourly_power;				// hourly values even if the timestep is monthly
+
+
+    double * maf_AE;                        //[kWe]
+    double * maf_getem_2nd_law_total_od;    //[-]
+    double * maf_carnot_od_scaling;         //[-]
+    double * maf_cycle_net_power_od;        //[kWe]
+    double * maf_plant_net_power_od;        //[kWe] Pre-availability derate
+    double * maf_brine_pumping_power_od;    //[kWe]
+
 };
 
 //******************************************************************************************************************************************************************************
@@ -307,11 +347,17 @@ private:
 
 	// functions
 	void init(void); // code common to both constructors
-	bool IsHourly(void);
+	//bool IsHourly(void);
 	double PlantGrossPowerkW(void);
+
+    double PlantGrossPowerkW_offdesign(double T_brine_od_C /*C*/, double T_amb_od_C /*C*/);
+
     double GrossPowerMW(void);
 	double MaxSecondLawEfficiency(void);
 	double FractionOfMaxEfficiency(void);
+
+    double Getem_Binary_OD_Scaling(double carnot_ratio);
+
 	bool CanReplaceReservoir(double dTimePassedInYears);
 	void CalculateNewTemperature(double dElapsedTimeInYears);
 

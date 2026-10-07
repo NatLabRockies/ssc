@@ -70,7 +70,11 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_INPUT,        SSC_NUMBER,      "resource_depth",                     "Resource Depth",                               "m",              "",                         "GeoHourly",     "*",                         "",                "" },
 
     // Other inputs                                                                                                                                                 
-    { SSC_INPUT,        SSC_NUMBER,      "model_choice",                       "Which model to run (0,1,2)",                   "",               "",                         "GeoHourly",     "*",                         "INTEGER",         "" },
+    //{ SSC_INPUT,        SSC_NUMBER,      "model_choice",                       "Cycle performance model (0 = GETEM; 1 = SAM monthly, 2 = SAM hourly)",  "", "",              "GeoHourly",     "*",                         "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "geo_cycle_model_type",               "Cycle performance model (0 = GETEM; 1 = Reduced order, 2 = User Defined)", "", "",            "GeoHourly",     "*",                         "INTEGER",         "" },
+    { SSC_INPUT,        SSC_NUMBER,      "simulation_timestep_type",           "Simulation timestep (0 = monthly, 1 = hourly)", "",              "",                          "GeoHourly",     "*",                         "INTEGER",         "" },
+
+
     { SSC_INPUT,        SSC_MATRIX,      "reservoir_model_inputs",             "Reservoir temperatures over time",             "",               "",                         "GeoHourly",     "reservoir_pressure_change_type=3", "",            "" },
 
     // geothermal plant and equipment                                                                                                                              
@@ -268,6 +272,14 @@ static var_info _cm_vtab_geothermal[] = {
     { SSC_OUTPUT,       SSC_ARRAY,       "timestep_pressure",                  "Atmospheric pressure",                               "atm",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "timestep_dry_bulb",                  "Dry bulb temperature",                               "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
     { SSC_OUTPUT,       SSC_ARRAY,       "timestep_wet_bulb",                  "Wet bulb temperature",                               "C",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+
+    { SSC_OUTPUT,       SSC_ARRAY,       "AE_od",                              "Available energy at surface",                        "kW",      "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "getem_2nd_law_total_od",             "Second law efficiency - binary",                     "-",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "carnot_scaling_od",                  "GETEM Carnot off-design scalar",                     "-",       "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "cycle_net_power_od",                 "Cycle net off-design power",                         "kW",      "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "plant_net_power_od",                 "Plant net power before availability derate",         "kW",      "",             "GeoHourly",        "sim_type=1",               "",                "" },
+    { SSC_OUTPUT,       SSC_ARRAY,       "brine_pumping_power_od",             "Brine pump power",                                   "kW",      "",             "GeoHourly",        "sim_type=1",               "",                "" },
+
 
     { SSC_OUTPUT,       SSC_NUMBER,      "lifetime_output",                    "Lifetime output",                                    "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },
     { SSC_OUTPUT,       SSC_NUMBER,      "first_year_output",                  "First year output",                                  "kWh",     "",             "GeoHourly",        "sim_type=1",               "",                "" },

@@ -468,6 +468,80 @@ namespace geothermal
         T_solubility = (0.0000000000249634 * pow(conc_SiO2, 4)) - (0.00000000425191 * pow(conc_SiO2, 3)) -
             (0.000119669 * pow(conc_SiO2, 2)) + (0.307616 * conc_SiO2) - 0.294394;
     }
+
+    void WellCountDecisionTable(geo_wells_stimulated well_stim, double SWDDE, resourceTypes resource_type,
+            double& prod_wells_exploration, double& inj_wells_exploration)
+    {
+        //int well_stim = mo_geo_in.md_WellsStimulated; //0 - injection only, 1 - production only, 2 - both
+        double production_stim_well = 0; //Column A
+        double injection_stim_well = 0; //Column B
+        double stim_well = 0; //Column C
+        //double SWDDE = mo_geo_in.md_ExplorationWellsProd;
+        switch( well_stim ) {
+        case geo_wells_stimulated::INJECTION_ONLY:
+            if( resource_type == HYDROTHERMAL ) {
+                production_stim_well = SWDDE;
+                injection_stim_well = 0;
+            }
+            else if( SWDDE >= 1.0 ) {
+                production_stim_well = SWDDE - 1;
+                injection_stim_well = 1;
+            }
+            else if( SWDDE > 0.0 ) {
+                production_stim_well = 0;
+                injection_stim_well = SWDDE;
+            }
+            else {
+                production_stim_well = 0;
+                injection_stim_well = 0;
+            }
+            break;
+        case geo_wells_stimulated::PRODUCTION_ONLY:
+            if( resource_type == HYDROTHERMAL ) {
+                production_stim_well = SWDDE;
+                injection_stim_well = 0;
+            }
+            else if( SWDDE >= 1.0 ) {
+                production_stim_well = 1;
+                injection_stim_well = SWDDE - 1;
+            }
+            else if( SWDDE > 0.0 ) {
+                production_stim_well = 0;
+                injection_stim_well = SWDDE;
+            }
+            else {
+                production_stim_well = 0;
+                injection_stim_well = 0;
+            }
+            break;
+        case geo_wells_stimulated::BOTH:
+            if( resource_type == HYDROTHERMAL ) {
+                production_stim_well = SWDDE;
+                injection_stim_well = 0;
+            }
+            else if( SWDDE > 0.0 ) {
+                production_stim_well = SWDDE / 2;
+                injection_stim_well = SWDDE / 2;
+            }
+            else {
+                production_stim_well = 0;
+                injection_stim_well = 0;
+            }
+            break;
+        case geo_wells_stimulated::NEITHER:
+            if( resource_type == HYDROTHERMAL ) {
+                production_stim_well = SWDDE;
+                injection_stim_well = 0;
+            }
+            else {
+                production_stim_well = 0;
+                injection_stim_well = 0;
+            }
+        }
+        prod_wells_exploration = production_stim_well;
+        inj_wells_exploration = injection_stim_well;
+    }
+
     
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Declaration of CGeoFluidContainer2 
@@ -1605,81 +1679,13 @@ double CGeothermalAnalyzer::flowRateTotal(void) {
     }
 }								// lbs per hour, all wells
 
-void CGeothermalAnalyzer::WellCountDecisionTable(void)
-{
-    int well_stim = mo_geo_in.md_WellsStimulated; //0 - injection only, 1 - production only, 2 - both
-    double production_stim_well = 0; //Column A
-    double injection_stim_well = 0; //Column B
-    double stim_well = 0; //Column C
-    double SWDDE = mo_geo_in.md_ExplorationWellsProd;
-    switch (well_stim) {
-    case 0:
-        if (mo_geo_in.me_rt == HYDROTHERMAL) {
-            production_stim_well = SWDDE;
-            injection_stim_well = 0;
-        }
-        else if (SWDDE >= 1.0) {
-            production_stim_well = SWDDE - 1;
-            injection_stim_well = 1;
-        }
-        else if (SWDDE > 0.0) {
-            production_stim_well = 0;
-            injection_stim_well = SWDDE;
-        }
-        else {
-            production_stim_well = 0;
-            injection_stim_well = 0;
-        }
-        break;
-    case 1:
-        if (mo_geo_in.me_rt == HYDROTHERMAL) {
-            production_stim_well = SWDDE;
-            injection_stim_well = 0;
-        }
-        else if (SWDDE >= 1.0) {
-            production_stim_well = 1;
-            injection_stim_well = SWDDE - 1;
-        }
-        else if (SWDDE > 0.0) {
-            production_stim_well = 0;
-            injection_stim_well = SWDDE;
-        }
-        else {
-            production_stim_well = 0;
-            injection_stim_well = 0;
-        }
-        break;
-    case 2:
-        if (mo_geo_in.me_rt == HYDROTHERMAL) {
-            production_stim_well = SWDDE;
-            injection_stim_well = 0;
-        }
-        else if (SWDDE > 0.0) {
-            production_stim_well = SWDDE/2;
-            injection_stim_well = SWDDE/2;
-        }
-        else {
-            production_stim_well = 0;
-            injection_stim_well = 0;
-        }
-        break;
-    case 3:
-        if (mo_geo_in.me_rt == HYDROTHERMAL) {
-            production_stim_well = SWDDE;
-            injection_stim_well = 0;
-        }
-        else {
-            production_stim_well = 0;
-            injection_stim_well = 0;
-        }
-    }
-    mp_geo_out->ProdWellsExploration = production_stim_well;
-    mp_geo_out->InjWellsExploration = injection_stim_well;
-}
-
 double CGeothermalAnalyzer::GetNumberOfWells(void)
 {
-    WellCountDecisionTable();
+    geo_wells_stimulated wells_stim = static_cast<geo_wells_stimulated>(mo_geo_in.md_WellsStimulated);
+
+    geothermal::WellCountDecisionTable(wells_stim, mo_geo_in.md_ExplorationWellsProd, mo_geo_in.me_rt, mp_geo_out->ProdWellsExploration, mp_geo_out->InjWellsExploration);
+    
+    //WellCountDecisionTable();
     bool inj_wells_stimulated = (mo_geo_in.md_WellsStimulated == 0 || mo_geo_in.md_WellsStimulated == 2);
     bool prod_wells_stimulated = (mo_geo_in.md_WellsStimulated == 1 || mo_geo_in.md_WellsStimulated == 2);
     if (mo_geo_in.me_cb == NUMBER_OF_WELLS) {

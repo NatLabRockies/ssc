@@ -51,6 +51,10 @@ enum geo_simulation_timestep_type {
     MONTHLY_TIMESTEPS = 0, HOURLY_TIMESTEPS = 1, UNDEFINED_TIMESTEPS = -1
 };
 
+enum class geo_wells_stimulated {
+    INJECTION_ONLY = 0, PRODUCTION_ONLY = 1, BOTH = 2, NEITHER = 3
+};
+
 enum calculationBasis { NO_CALCULATION_BASIS, POWER_SALES, NUMBER_OF_WELLS };
 enum conversionTypes { NO_CONVERSION_TYPE, BINARY, FLASH }; //}
 enum resourceTypes { NO_RESOURCE_TYPE, HYDROTHERMAL, EGS };
@@ -421,7 +425,7 @@ private:
 	double flowRatePerWell(void);		// take Kg/second input and translate to lbs/hour
 	double flowRateTotal(void);			// flow rate per well * number of wells
 	double GetNumberOfWells(void);
-    void WellCountDecisionTable(void);
+    //void WellCountDecisionTable(void);
 	double GetPlantBrineEffectiveness(void);
 
 	// turbine output

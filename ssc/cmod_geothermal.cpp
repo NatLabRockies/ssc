@@ -161,9 +161,56 @@ public:
         // --------------------------------------------------------------
         // --------------------------------------------------------------
 
+        // Calculate design point production well
+        double dt_prod_well = as_double("dt_prod_well");            //[C]
+        double dtProdWellChoice = as_double("prod_well_choice");    //[-]
+        bool is_prod_well_dt_calc = bool(dtProdWellChoice);
+
+        C_geo_prod_well geo_prod_well(resource_temperature, dt_prod_well, is_prod_well_dt_calc);;
+
+        double conc_SiO2_design_calc_ppm = std::numeric_limits<double>::quiet_NaN();
+        double T_plant_design_calc_C = std::numeric_limits<double>::quiet_NaN();
+
+        geo_prod_well.get_design_calcs(conc_SiO2_design_calc_ppm, T_plant_design_calc_C);
+
+        // Calculate design point surface plant
+        double TemperatureWetBulbC = as_double("wet_bulb_temp");       //[C]
+        double PlantEfficiency = as_double("plant_efficiency_input") / 100; //[-]
+
+        C_geo_surface geo_surface(T_plant_design_calc_C, TemperatureWetBulbC, PlantEfficiency, conc_SiO2_design_calc_ppm);
+
+        double AE_full_brine_dt_design_calc = std::numeric_limits<double>::quiet_NaN();
+        double AE_brine_T_sol_to_to_amb_design_calc = std::numeric_limits<double>::quiet_NaN();
+        double AE_brine_T_plant_to_T_sol_to_amb_design_calc = std::numeric_limits<double>::quiet_NaN();
+        double eta_2nd_law_max_GETEM_and_T_sol_derate = std::numeric_limits<double>::quiet_NaN();
+        double AE_2nd_law_max_GETEM_and_T_sol_derate = std::numeric_limits<double>::quiet_NaN();
+        double total_brine_effectiveness = std::numeric_limits<double>::quiet_NaN();
+        double eta_2nd_low_total_design = std::numeric_limits<double>::quiet_NaN();
+        double T_amb_des_K = std::numeric_limits<double>::quiet_NaN();
+        double T_plant_in_des_K = std::numeric_limits<double>::quiet_NaN();
+        double carnot_eff_des = std::numeric_limits<double>::quiet_NaN();
+
+        geo_surface.get_design_calcs(
+            AE_full_brine_dt_design_calc,
+            AE_brine_T_sol_to_to_amb_design_calc,
+            AE_brine_T_plant_to_T_sol_to_amb_design_calc,
+            eta_2nd_law_max_GETEM_and_T_sol_derate,
+            AE_2nd_law_max_GETEM_and_T_sol_derate,
+            total_brine_effectiveness,
+            eta_2nd_low_total_design,
+            T_amb_des_K,
+            T_plant_in_des_K,
+            carnot_eff_des);
+
+        // inputs used in above in refactor
+        SGeothermal_Inputs geo_inputs;
+
+        geo_inputs.md_dtProdWell = dt_prod_well;            //[C]
+        geo_inputs.md_dtProdWellChoice = dtProdWellChoice;  //[-]
+        geo_inputs.md_TemperatureWetBulbC = TemperatureWetBulbC;    //[C]
+        geo_inputs.md_PlantEfficiency = PlantEfficiency;    //[-]
 
 		// set the geothermal model inputs -------------------------------------
-		SGeothermal_Inputs geo_inputs;
         geo_inputs.md_RatioInjectionToProduction = as_double("geotherm.cost.inj_prod_well_ratio"); // THIS SHOULD BE AN INPUT. ALTHOUGH IT'S FROM THE COST PAGE, IT'S USED IN NON-COST EQUATION
         geo_inputs.md_DrillSuccessRate = as_double("drilling_success_rate") / 100.0;
         geo_inputs.md_StimSuccessRate = as_double("stim_success_rate") / 100.0;
@@ -188,7 +235,6 @@ public:
 			case 2:	geo_inputs.me_ft = DUAL_FLASH_NO_TEMP_CONSTRAINT; break;
 			case 3:	geo_inputs.me_ft = DUAL_FLASH_WITH_TEMP_CONSTRAINT; break;			
 		}
-		geo_inputs.md_PlantEfficiency = as_double("plant_efficiency_input")/100;
 
 		// temperature decline
 		if ( decline_type == 0 )
@@ -198,11 +244,8 @@ public:
 
 		geo_inputs.md_TemperatureDeclineRate = as_double("temp_decline_rate")/100;
 		geo_inputs.md_MaxTempDeclineC = as_double("temp_decline_max");
-        geo_inputs.md_dtProdWell = as_double("dt_prod_well");
-        geo_inputs.md_dtProdWellChoice = as_double("prod_well_choice");
-
+        
 		// flash inputs
-		geo_inputs.md_TemperatureWetBulbC = as_double("wet_bulb_temp");
 		geo_inputs.md_PressureAmbientPSI = as_double("ambient_pressure" );
         geo_inputs.md_UseWeatherFileConditions = 0; //initially set to zero for UI calculations
 

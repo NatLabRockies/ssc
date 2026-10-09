@@ -455,8 +455,20 @@ namespace geothermal
 		return (geoFluidTempF >= 356) ? oMinimumTemperatureQuartz.evaluate(geoFluidTempF) : oMinimumTemperatureChalcedony.evaluate(geoFluidTempF);
 	}
 
+    void brine_concentration(double T_brine_C /*C*/, double& conc_SiO2 /*ppm*/) {
 
+        // Page 138 GETEM Manual
+        conc_SiO2 = -(0.0000001334837 * pow(T_brine_C, 4)) + (0.0000706584462 * pow(T_brine_C, 3)) -
+            (0.0036294799613 * pow(T_brine_C, 2)) + (0.3672417729236 * T_brine_C) + 4.205944351495;     //[ppm]
+    }
 
+    void brine_solubility_temp(double conc_SiO2 /*ppm*/, double& T_solubility /*C*/) {
+
+        // Page 138 GETEM Manual
+        T_solubility = (0.0000000000249634 * pow(conc_SiO2, 4)) - (0.00000000425191 * pow(conc_SiO2, 3)) -
+            (0.000119669 * pow(conc_SiO2, 2)) + (0.307616 * conc_SiO2) - 0.294394;
+    }
+    
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Declaration of CGeoFluidContainer2 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1791,9 +1803,12 @@ double CGeothermalAnalyzer::GetPlantBrineEffectiveness(void)
 
         double T_plant_design_C = GetTemperaturePlantDesignC();     //[C]
 
-        double TSiO2 = -(0.0000001334837 * pow(GetTemperaturePlantDesignC(), 4)) + (0.0000706584462 * pow(GetTemperaturePlantDesignC(), 3)) - (0.0036294799613 * pow(GetTemperaturePlantDesignC(), 2)) + (0.3672417729236 * GetTemperaturePlantDesignC()) + 4.205944351495;
-        double TamphSiO2 = (0.0000000000249634 * pow(TSiO2, 4)) - (0.00000000425191 * pow(TSiO2, 3)) - (0.000119669 * pow(TSiO2, 2)) + (0.307616 * TSiO2) - 0.294394;
-
+        //double TSiO2 = -(0.0000001334837 * pow(GetTemperaturePlantDesignC(), 4)) + (0.0000706584462 * pow(GetTemperaturePlantDesignC(), 3)) - (0.0036294799613 * pow(GetTemperaturePlantDesignC(), 2)) + (0.3672417729236 * GetTemperaturePlantDesignC()) + 4.205944351495;
+        //double TamphSiO2 = (0.0000000000249634 * pow(TSiO2, 4)) - (0.00000000425191 * pow(TSiO2, 3)) - (0.000119669 * pow(TSiO2, 2)) + (0.307616 * TSiO2) - 0.294394;
+        double TSiO2 = std::numeric_limits<double>::quiet_NaN();
+        geothermal::brine_concentration(T_plant_design_C, TSiO2);
+        double TamphSiO2 = std::numeric_limits<double>::quiet_NaN();
+        geothermal::brine_solubility_temp(TSiO2, TamphSiO2);
 
 
         //	double dTemperatureGFExitF = physics::CelciusToFarenheit(TamphSiO2); //109.31
@@ -1803,20 +1818,9 @@ double CGeothermalAnalyzer::GetPlantBrineEffectiveness(void)
 
         // GETEM's "optimizer" seems to pick the max possible brine effectiveness for the default binary plant, so use this as a proxy for now
 
-
-
-    //	double dAEMaxPossible = (geothermal::IMITATE_GETEM) ? GetAEBinary() -  GetAEBinaryAtTemp(TamphSiO2) : GetAE() - dAE_At_Exit; // watt-hr/lb - [10B.GeoFluid].H54 "maximum possible available energy accounting for the available energy lost due to a silica constraint on outlet temperature"
-
-//<<<<<<< HEAD
-//	mp_geo_out->max_secondlaw = (1 - ((geothermal::IMITATE_GETEM) ? GetAEBinaryAtTemp(TamphSiO2) / GetAEBinary() : dAE_At_Exit / GetAE()) - 0.375);
-//	//double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * ((GetTemperaturePlantDesignC() < 150) ? 0.14425 * exp(0.008806 * GetTemperaturePlantDesignC()) : mp_geo_out->max_secondlaw);
-//    double dMaxBinaryBrineEffectiveness = ((geothermal::IMITATE_GETEM) ? GetAEBinary() : GetAE()) * (mp_geo_out->max_secondlaw);
-//    mp_geo_out->md_MaxBrineEffectiveness = dMaxBinaryBrineEffectiveness;
-//=======
         double dMaxBinaryBrineEffectiveness = std::numeric_limits<double>::quiet_NaN();
         double AE_used = std::numeric_limits<double>::quiet_NaN();
         if( geothermal::IMITATE_GETEM ){
-//>>>>>>> geo-cycles
 
             AE_used = GetAEBinary();
             mp_geo_out->max_secondlaw = (1 - (GetAEBinaryAtTemp(TamphSiO2) / AE_used) - 0.375);
@@ -2793,4 +2797,68 @@ int FillOutputsForUI(std::string &err_msg, const SGeothermal_Inputs &geo_inputs,
 		{
 			err_msg = "Unknown error during run"; return 2;
 		}
+}
+
+C_geo_prod_well::C_geo_prod_well(double T_resource_design_C /*C*/,
+    double dt_prod_well_fixed_C /*C*/,
+    bool is_prod_well_dt_calc /*-*/)
+{
+    m_T_resource_design_C = T_resource_design_C;    //[C]
+    m_dt_prod_well_fixed_C = dt_prod_well_fixed_C;  //[C]
+    m_is_prod_well_dt_calc = is_prod_well_dt_calc;  //[-]
+
+    // Calculate concentration and solubility temperature at design
+    m_conc_SiO2_design_calc_ppm = std::numeric_limits<double>::quiet_NaN();
+    geothermal::brine_concentration(m_T_resource_design_C, m_conc_SiO2_design_calc_ppm);
+
+    // Calculate plant inlet temperature by applying production well temperature loss
+    double dt_prod_well = std::numeric_limits<double>::quiet_NaN();
+    if(m_is_prod_well_dt_calc){
+        dt_prod_well = std::numeric_limits<double>::quiet_NaN();
+        throw std::runtime_error("Calculated production well temperature drop is not implemented.");
+    }
+    else{
+        dt_prod_well = m_dt_prod_well_fixed_C;      //[C]
+    }
+
+    m_T_plant_design_calc_C = m_T_resource_design_C - dt_prod_well;
+}
+
+// Geothermal component classes
+C_geo_surface::C_geo_surface(double T_plant_design_C /*C*/,
+    double T_amb_design_C /*C*/,
+    double eta_2nd_law_GETEM /*-*/,
+    double conc_SiO2_design_ppm /*ppm*/)
+{
+    m_T_plant_design_C = T_plant_design_C;      //[C]
+    m_T_amb_design_C = T_amb_design_C;          //[C]
+    m_eta_2nd_law_GETEM = eta_2nd_law_GETEM;    //[-]
+    m_conc_SiO2_design_ppm = conc_SiO2_design_ppm;  //[ppm]
+
+    // Set hardcoded value
+    m_eta_2nd_law_max_GETEM = (1.0 - 0.375);
+
+    // Calculate solubility temperature
+    m_T_solubility_design_calc_C = std::numeric_limits<double>::quiet_NaN();
+    geothermal::brine_solubility_temp(m_conc_SiO2_design_ppm, m_T_solubility_design_calc_C);
+
+    // Calculate available energy (exergy) using T_plant_design, T_amb_design,
+    //  and different assumptions for the brine cold temperature limit
+    m_AE_full_brine_dt_design_calc = geothermal::oGFC.GetAEForBinaryWattHrUsingC(m_T_plant_design_C, m_T_amb_design_C);                 //[watt-hr/lb_m]
+    m_AE_brine_T_sol_to_to_amb_design_calc = geothermal::oGFC.GetAEForBinaryWattHrUsingC(m_T_solubility_design_calc_C, m_T_amb_design_C);      //[watt-hr/lb_m]
+
+    m_AE_brine_T_plant_to_T_sol_to_amb_design_calc = m_AE_full_brine_dt_design_calc - m_AE_brine_T_sol_to_to_amb_design_calc;           //[watt-hr/lb_m]
+
+    m_eta_2nd_law_max_GETEM_and_T_sol_derate = 1.0 - m_AE_brine_T_sol_to_to_amb_design_calc/m_AE_full_brine_dt_design_calc - (1.0 - m_eta_2nd_law_max_GETEM);  //[-]
+
+    m_AE_2nd_law_max_GETEM_and_T_sol_derate = m_AE_full_brine_dt_design_calc * m_eta_2nd_law_max_GETEM_and_T_sol_derate;                //[watt-hr/lb_m]
+
+    m_total_brine_effectiveness = m_AE_2nd_law_max_GETEM_and_T_sol_derate * m_eta_2nd_law_GETEM;                                        //[watt-hr/lb_m]
+
+    m_eta_2nd_low_total_design = m_total_brine_effectiveness / m_AE_full_brine_dt_design_calc;                                          //[-]
+
+    // Calculate Carnot Efficiency design values
+    m_T_amb_des_K = physics::CelciusToKelvin(m_T_amb_design_C);            //[K]
+    m_T_plant_in_des_K = physics::CelciusToKelvin(m_T_plant_design_C);     //[K]
+    m_carnot_eff_des = 1 - m_T_amb_des_K / m_T_plant_in_des_K;             //[-]
 }

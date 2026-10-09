@@ -584,5 +584,91 @@ int RunGeothermalAnalysis(bool(*update_function)(float, void*), void*user_data, 
 
 int FillOutputsForUI(std::string &err_msg, const SGeothermal_Inputs &geo_inputs, SGeothermal_Outputs &geo_outputs);
 
+class C_geo_prod_well
+{
+    double m_T_resource_design_C;   //[C]
+    double m_dt_prod_well_fixed_C;  //[C]
+    bool m_is_prod_well_dt_calc;    //[-]
+
+    double m_conc_SiO2_design_calc_ppm;    //[ppm]
+    double m_T_plant_design_calc_C; //[C]
+
+public:
+    C_geo_prod_well(double T_resource_design_C /*C*/,
+        double dt_prod_well_fixed_C /*C*/,
+        bool is_prod_well_dt_calc /*-*/);
+
+    void get_design_calcs(double& conc_SiO2_design_calc_ppm, double& T_plant_design_calc_C)
+    {
+        conc_SiO2_design_calc_ppm = m_conc_SiO2_design_calc_ppm;
+        T_plant_design_calc_C = m_T_plant_design_calc_C;
+    }
+};
+
+class C_geo_surface
+{
+private:
+
+    // Cycle design parameters - input from upstream
+    double m_T_plant_design_C;  //[C]
+    double m_T_amb_design_C;    //[C]
+    double m_eta_2nd_law_GETEM; //[-]
+
+    double m_conc_SiO2_design_ppm;  //[ppm]
+
+    // Hardcoded cycle design parameters
+    double m_eta_2nd_law_max_GETEM; //[-]
+
+    // Calculated cycle design parameters
+    double m_T_solubility_design_calc_C;   //[C]
+    double m_AE_full_brine_dt_design_calc; //[watt-hr/lb_m]
+
+    double m_AE_brine_T_sol_to_to_amb_design_calc;  //[watt-hr/lb_m]
+
+    double m_AE_brine_T_plant_to_T_sol_to_amb_design_calc; //[watt-hr/lb_m]
+
+    double m_eta_2nd_law_max_GETEM_and_T_sol_derate;    //[-]
+
+    double m_AE_2nd_law_max_GETEM_and_T_sol_derate;     //[watt-hr/lb_m]
+
+    double m_total_brine_effectiveness;                 //[watt-hr/lb_m]
+
+    double m_eta_2nd_low_total_design;                  //[-]
+
+    // Calculate Carnot Efficiency design values
+    double m_T_amb_des_K;                           //[K]
+    double m_T_plant_in_des_K;                      //[K]
+    double m_carnot_eff_des;                        //[-]
+
+public:
+    C_geo_surface(double T_plant_design_C /*C*/,
+        double T_amb_design_C /*C*/,
+        double eta_2nd_law_GETEM /*-*/,
+        double conc_SiO2_design_ppm);
+
+    void get_design_calcs(
+        double& AE_full_brine_dt_design_calc,
+        double& AE_brine_T_sol_to_to_amb_design_calc,
+        double& AE_brine_T_plant_to_T_sol_to_amb_design_calc,
+        double& eta_2nd_law_max_GETEM_and_T_sol_derate,
+        double& AE_2nd_law_max_GETEM_and_T_sol_derate,
+        double& total_brine_effectiveness,
+        double& eta_2nd_low_total_design,
+        double& T_amb_des_K,
+        double& T_plant_in_des_K,
+        double& carnot_eff_des) const
+    {
+        AE_full_brine_dt_design_calc = m_AE_full_brine_dt_design_calc;
+        AE_brine_T_sol_to_to_amb_design_calc = m_AE_brine_T_sol_to_to_amb_design_calc;
+        AE_brine_T_plant_to_T_sol_to_amb_design_calc = m_AE_brine_T_plant_to_T_sol_to_amb_design_calc;
+        eta_2nd_law_max_GETEM_and_T_sol_derate = m_eta_2nd_law_max_GETEM_and_T_sol_derate;
+        AE_2nd_law_max_GETEM_and_T_sol_derate = m_AE_2nd_law_max_GETEM_and_T_sol_derate;
+        total_brine_effectiveness = m_total_brine_effectiveness;
+        eta_2nd_low_total_design = m_eta_2nd_low_total_design;
+        T_amb_des_K = m_T_amb_des_K;
+        T_plant_in_des_K = m_T_plant_in_des_K;
+        carnot_eff_des = m_carnot_eff_des;
+    }
+};
 
 #endif // __geothermalModelDefinitions__

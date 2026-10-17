@@ -69,10 +69,6 @@ BatteryPower::BatteryPower(double dtHour) :
 		powerFuelCellToLoad(0),
 		powerFuelCellToBattery(0),
 		powerPVInverterDraw(0),
-		powerBatteryChargeMaxDC(0),
-		powerBatteryDischargeMaxDC(0),
-		powerBatteryChargeMaxAC(0),
-		powerBatteryDischargeMaxAC(0),
 		powerSystemLoss(0),
 		powerConversionLoss(0),
         powerInterconnectionLimit(1e+38),
@@ -80,11 +76,11 @@ BatteryPower::BatteryPower(double dtHour) :
         powerCurtailmentLimit(1e+38),
         voltageSystem(0),
         acLossWiring(0.0),
-        acLossSystemAvailability(0.0),
-        adjustLosses(0.0),
         acXfmrLoadLoss(0.0),
         acXfmrNoLoadLoss(0.0),
         acXfmrRating(0.0),
+        acLossSystemAvailability(0.0),
+        adjustLosses(0.0),
         isOutageStep(false),
 		connectionMode(0),
         meterPosition(0),
@@ -105,9 +101,13 @@ BatteryPower::BatteryPower(double dtHour) :
 		stateOfChargeMax(1),
 		stateOfChargeMin(0),
 		depthOfDischargeMax(1),
+		tolerance(powerflow_tolerance),
+		powerBatteryChargeMaxDC(0),
+		powerBatteryDischargeMaxDC(0),
+		powerBatteryChargeMaxAC(0),
+		powerBatteryDischargeMaxAC(0),
         currentChargeMax(0),
-        currentDischargeMax(0),
-		tolerance(powerflow_tolerance){}
+        currentDischargeMax(0){}
 
 BatteryPower::BatteryPower(const BatteryPower& orig) {
     sharedInverter = orig.sharedInverter;
@@ -628,7 +628,7 @@ void BatteryPowerFlow::calculateACConnected()
     if (std::abs(P_interconnection_loss_ac) < m_BatteryPower->tolerance) {
         P_interconnection_loss_ac = 0;
     }
-   
+
 	// assign outputs
 	m_BatteryPower->powerBatteryAC = P_battery_ac;
 	m_BatteryPower->powerGrid = P_grid_ac;
@@ -656,7 +656,7 @@ void BatteryPowerFlow::calculateDCConnected()
     // Quantities are AC in KW unless otherwise specified
     double P_load_ac = m_BatteryPower->powerLoad;
     double P_crit_load_ac = m_BatteryPower->powerCritLoad;
-    double P_battery_ac, P_pv_ac, P_gen_ac, P_grid_to_batt_ac, 
+    double P_battery_ac, P_pv_ac, P_gen_ac, P_grid_to_batt_ac,
         P_batt_to_load_ac, P_grid_to_load_ac, P_pv_to_load_ac,
         P_pv_to_grid_ac, P_pv_to_batt_ac, P_batt_to_grid_ac, P_grid_ac, P_conversion_loss_ac,
         P_interconnection_loss_ac, P_crit_load_unmet_ac, P_unmet_losses,
@@ -728,9 +728,9 @@ void BatteryPowerFlow::calculateDCConnected()
                 if (P_pv_to_batt_dc < 0) {
                     P_pv_to_batt_dc = 0.0; // Don't allow losses to drive this negative
                 }
-            }   
+            }
         }
-        
+
         if (P_pv_dc >= P_pv_to_batt_dc + P_system_loss_dc)
         {
             P_pv_to_inverter_dc = P_pv_dc - P_pv_to_batt_dc - P_system_loss_dc;
@@ -792,8 +792,8 @@ void BatteryPowerFlow::calculateDCConnected()
         m_BatteryPower->sharedInverter->calculateACPower(P_gen_dc_inverter, voltage, m_BatteryPower->sharedInverter->Tdry_C);
 
         // Only update inverter efficiency if the inverter is running. Otherwise use max efficency from above
-        if (m_BatteryPower->sharedInverter->powerAC_kW > 0.0 && P_gen_dc_inverter > 0 || std::abs(m_BatteryPower->sharedInverter->powerAC_kW) > m_BatteryPower->sharedInverter->powerNightLoss_kW) {
-            
+        if ((m_BatteryPower->sharedInverter->powerAC_kW > 0.0 && P_gen_dc_inverter > 0) || std::abs(m_BatteryPower->sharedInverter->powerAC_kW) > m_BatteryPower->sharedInverter->powerNightLoss_kW) {
+
             efficiencyDCAC = m_BatteryPower->sharedInverter->efficiencyAC * 0.01;
 
             // Restrict low efficiency so don't get infinites - can sometimes have PV charging scenarios where inverter isn't running
@@ -932,9 +932,9 @@ void BatteryPowerFlow::calculateDCConnected()
             else {
                 P_pv_to_load_ac = std::fmax(0, std::fmin(P_pv_ac, P_crit_load_ac));
                 P_batt_to_load_ac = std::fmax(0, std::fmin(P_battery_ac_post_loss, P_crit_load_ac - P_pv_to_load_ac));
-                P_batt_to_grid_ac = P_battery_ac_post_loss - P_batt_to_load_ac; 
+                P_batt_to_grid_ac = P_battery_ac_post_loss - P_batt_to_load_ac;
             }
-            
+
             if (P_batt_to_grid_ac > tolerance) {
                 // Technically the ac power should be converted back to DC here, but if you include the efficiency it overshoots
                 // This way it can iterate and match the critical load exactly
@@ -969,7 +969,7 @@ void BatteryPowerFlow::calculateDCConnected()
 
     // compute losses
     P_conversion_loss_ac = P_gen_dc - P_gen_ac + P_battery_dc_pre_bms - P_battery_dc;
-    
+
     double P_loss_coverage = 0;
     if (m_BatteryPower->isOutageStep) {
         if (P_ac_losses < 0) {

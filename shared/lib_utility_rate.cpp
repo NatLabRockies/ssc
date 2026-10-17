@@ -167,10 +167,10 @@ size_t UtilityRateCalculator::getEnergyPeriod(size_t hourOfYear)
 }
 
 UtilityRateForecast::UtilityRateForecast(rate_data* util_rate, size_t stepsPerHour, const std::vector<double>& monthly_load_forecast, const std::vector<double>& monthly_gen_forecast, const std::vector<double>& monthly_avg_load_forecast, size_t analysis_period, const util::matrix_t<double>& monthly_peak_forecast) :
-    current_composite_buy_rates(),
     current_composite_sell_rates(),
-    next_composite_buy_rates(),
-    next_composite_sell_rates()
+    current_composite_buy_rates(),
+    next_composite_sell_rates(),
+    next_composite_buy_rates()
 {
 	steps_per_hour = stepsPerHour;
 	dt_hour = 1.0f / stepsPerHour;

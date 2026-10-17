@@ -312,7 +312,7 @@ double sssky_diffuse_table::compute(double surface_tilt) {
     double gamma[n_steps];
     double tan_tilt_gamma[n_steps];
     double Asky_shade[n_steps];
-    for (int n = 0; n < n_steps; n++)
+    for (size_t n = 0; n < n_steps; n++)
     {
         if (surface_tilt != 0) {
             arg[n] = (1 / tand_stilt) - (1 / (gcr * sind_stilt * (1 - n * step)));

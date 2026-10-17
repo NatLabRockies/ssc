@@ -47,11 +47,11 @@ C DiodeFactor = module-specIFic empirical constant
 C BVoc0 = Voc temperature coefficient (V/C)
 C mBVoc = change in BVoc with irradiance
 */
-	if ( Ee > 0.0 ) 
+	if ( Ee > 0.0 )
 	{
 		double dTc = DiodeFactor*((1.38066E-23*(Tc + 273.15))/1.60218E-19);
 		double BVocEe = BVoc0 + mBVoc * (1.0 - Ee);
-  
+
 		return Voc0+NcellSer*dTc*log(Ee)+BVocEe*(Tc-25.0);
 	}
 	else
@@ -131,7 +131,7 @@ C Tc   = cell temperature */
 	double Isc;
 
 	if (radmode == 3) //reference cell
-		Isc = Isc0*(poaIrr / 1000.0)*(1.0 + aIsc*(Tc - 25.0)); //per Cliff: 
+		Isc = Isc0*(poaIrr / 1000.0)*(1.0 + aIsc*(Tc - 25.0)); //per Cliff:
 	else if (radmode == 4) //POA irradiance sensor ("broadband" in Cliff's email)
 		Isc = Isc0*F1*(poaIrr / 1000.0)*(1.0 + aIsc*(Tc - 25.0));
 	else
@@ -165,26 +165,26 @@ C b0,b1,b2,b3,b4,b5 = empirical module-specIFic constants
 		+ b3*IncAng*IncAng*IncAng
 		+ b4*IncAng*IncAng*IncAng*IncAng
 		+ b5*IncAng*IncAng*IncAng*IncAng*IncAng;
-  
+
 	return F2 > 0.0 ? F2 : 0.0;
-} 
+}
 
-static double sandia_f1( double AMa, double a0, double a1, double a2, double a3, double a4 )
-{
-	/*
-C Returns the Sandia Air Mass function
-C AMa = absolute air mass
-C a0,a1,a2,a3,a4 = empirical constants, module-specIFic
-*/
-  
-	double F1 = a0 
-		+ a1*AMa 
-		+ a2*AMa*AMa 
-		+ a3*AMa*AMa*AMa 
-		+ a4*AMa*AMa*AMa*AMa;
-
-	return F1 > 0.0 ? F1 : 0.0;
-} 
+// static double sandia_f1( double AMa, double a0, double a1, double a2, double a3, double a4 )
+// {
+// 	/*
+// C Returns the Sandia Air Mass function
+// C AMa = absolute air mass
+// C a0,a1,a2,a3,a4 = empirical constants, module-specIFic
+// */
+//
+// 	double F1 = a0
+// 		+ a1*AMa
+// 		+ a2*AMa*AMa
+// 		+ a3*AMa*AMa*AMa
+// 		+ a4*AMa*AMa*AMa*AMa;
+//
+// 	return F1 > 0.0 ? F1 : 0.0;
+// }
 
 static double sandia_absolute_air_mass( double SolZen, double Altitude )
 {
@@ -278,10 +278,10 @@ sandia_module_t::sandia_module_t( )
 
 bool sandia_module_t::operator() ( pvinput_t const &in, double TcellC, double opvoltage, pvoutput_t &out ) const
 {
-	
+
 	out.Power = out.Voltage = out.Current = out.Efficiency = out.Voc_oper = out.Isc_oper = 0.0;
 	out.CellTemp = TcellC;
-	
+
 	double Gtotal;
 	if( in.radmode != 3 || !in.usePOAFromWF )
 		Gtotal = in.Ibeam + in.Idiff + in.Ignd;
@@ -321,7 +321,7 @@ bool sandia_module_t::operator() ( pvinput_t const &in, double TcellC, double op
 			I = Imp;
 		}
 		else
-		{		
+		{
 			//C Calculate Ix:
 //			double Ix = sandia_ix(TcellC,Ee,Ix0,aIsc,aImp,C4,C5);
 
@@ -333,14 +333,14 @@ bool sandia_module_t::operator() ( pvinput_t const &in, double TcellC, double op
 
 			//C Calculate Vxx:
 //			double Vxx = 0.5*(Voc + Vmp);
-			
+
 			// calculate current at operating voltage
 			V = opvoltage;
-			
+
 			// is this correct? (taken from SAM uicallback) (i.e. does not Ix, Ixx, etc)
 			I = sandia_current_at_voltage( opvoltage, Vmp, Imp, Voc, Isc );
 		}
-	
+
 		out.Power = V*I;
 		out.Voltage = V;
 		out.Current = I;
@@ -350,7 +350,7 @@ bool sandia_module_t::operator() ( pvinput_t const &in, double TcellC, double op
 		out.Isc_oper = Isc;
 		out.CellTemp = TcellC;
 	}
-	
+
 	return true;
 }
 
@@ -416,12 +416,12 @@ bool sandia_inverter_t::acpower(
 	std::vector<double> PacNoPso_each;
 
     //find total DC input power
-	for (size_t m = 0; m < Pdc.size(); m++) 
+	for (size_t m = 0; m < Pdc.size(); m++)
 	{
 	    Pdc_total += Pdc[m];
 	}
 	//loop through each MPPT input
-	for (size_t m = 0; m < Pdc.size(); m++) 
+	for (size_t m = 0; m < Pdc.size(); m++)
 	{
 		Pac_each.push_back(0);
 		PacNoPso_each.push_back(0);
@@ -455,7 +455,7 @@ bool sandia_inverter_t::acpower(
 			Psoloss_ += PacNoPso_each[m] - Pac_each[m];
 			Pac_ += Pac_each[m];
 		}
-	
+
 	// clipping loss Wac (note that the Pso=0 may have no clipping)
 	double PacNoClip = Pac_;
 	if ( Pac_ > Paco )
@@ -492,7 +492,7 @@ C fd  = fraction of Idc used (empirical constant)
 C DT0 = (Tc-Tm) at E=1000 W/m2 (empirical constant known as dTc), deg C
 */
 
-//C Update from Chris Cameron - email 4/28/10  
+//C Update from Chris Cameron - email 4/28/10
 //C        E = Ibc + fd * Idc
 	double E = poaIrr;
 	return Tm + E / 1000.0 * DT0;
@@ -511,7 +511,7 @@ C a   = empirical constant
 C b   = empirical constant
 */
 
-//C Update from Chris Cameron - email 4/28/10  
+//C Update from Chris Cameron - email 4/28/10
 //C        E = Ibc + fd * Idc
 	double E = poaIrr;
 	return E * exp(a + b * Ws) + Ta;

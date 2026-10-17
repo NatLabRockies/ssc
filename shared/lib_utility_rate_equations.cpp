@@ -137,6 +137,7 @@ rate_data::rate_data() :
 	m_dc_tou_periods_tiers(),
 	m_dc_flat_tiers(),
 	m_num_rec_yearly(),
+    rate_scale(),
 	dc_hourly_peak(),
 	monthly_dc_fixed(12),
 	monthly_dc_tou(12),
@@ -150,13 +151,12 @@ rate_data::rate_data() :
     bd_tou_periods(),
     billing_demand(12),
 	tou_demand_single_peak(false),
+    en_ts_buy_rate(false),
+    en_ts_sell_rate(false),
     enable_nm(false),
     nm_credits_w_rollover(false),
     net_metering_credit_month(11),
-    nm_credit_sell_rate(0.0),
-    rate_scale(),
-    en_ts_buy_rate(false),
-    en_ts_sell_rate(false)
+    nm_credit_sell_rate(0.0)
 {}
 
 rate_data::rate_data(const rate_data& tmp) :
@@ -171,6 +171,7 @@ rate_data::rate_data(const rate_data& tmp) :
 	m_dc_tou_periods_tiers(tmp.m_dc_tou_periods_tiers),
 	m_dc_flat_tiers(tmp.m_dc_flat_tiers),
 	m_num_rec_yearly(tmp.m_num_rec_yearly),
+    rate_scale(tmp.rate_scale),
 	dc_hourly_peak(tmp.dc_hourly_peak),
 	monthly_dc_fixed(tmp.monthly_dc_fixed),
 	monthly_dc_tou(tmp.monthly_dc_tou),
@@ -184,13 +185,12 @@ rate_data::rate_data(const rate_data& tmp) :
     bd_tou_periods(tmp.bd_tou_periods),
     billing_demand(tmp.billing_demand),
 	tou_demand_single_peak(tmp.tou_demand_single_peak),
+    en_ts_buy_rate(tmp.en_ts_buy_rate),
+    en_ts_sell_rate(tmp.en_ts_sell_rate),
     enable_nm(tmp.enable_nm),
     nm_credits_w_rollover(tmp.nm_credits_w_rollover),
     net_metering_credit_month(tmp.net_metering_credit_month),
-    nm_credit_sell_rate(tmp.nm_credit_sell_rate),
-    rate_scale(tmp.rate_scale),
-    en_ts_buy_rate(tmp.en_ts_buy_rate),
-    en_ts_sell_rate(tmp.en_ts_sell_rate)
+    nm_credit_sell_rate(tmp.nm_credit_sell_rate)
 {}
 
 void rate_data::init(int num_rec_yearly) {

@@ -329,7 +329,7 @@ public:
 #define DEFINE_STATEFUL_MODULE_ENTRY(name, desc, ver) \
     static compute_module *_create_ ## name () { auto x = new cm_ ## name; x->set_name(#name); return x; } \
     static int _setup_ ## name (compute_module *cm, var_table *vt) { auto cms = dynamic_cast<cm_ ##name *>(cm); \
-        if (!cms) return 0; return cms->setup(vt);  } \
+        return cms ? cms->setup(vt) : 0; } \
 	module_entry_info cm_entry_ ## name = { \
 		#name, desc, ver, _create_ ## name, _setup_ ## name }; \
 

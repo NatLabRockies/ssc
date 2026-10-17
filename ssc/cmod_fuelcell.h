@@ -48,6 +48,7 @@ public:
 	fuelCellVariables() {/* nothing to do */ };
 	fuelCellVariables(compute_module & cm) :
 		systemUseLifetimeOutput(cm.as_boolean("system_use_lifetime_output")),
+        startDayOfYear(cm.as_number("start_day_of_year")),
 		unitPowerMax_kW(cm.as_double("fuelcell_unit_max_power")),
 		unitPowerMin_kW(cm.as_double("fuelcell_unit_min_power")),
 		shutdown_hours(cm.as_double("fuelcell_shutdown_time")),
@@ -76,8 +77,7 @@ public:
 		discharge_percent(cm.as_vector_double("dispatch_manual_percent_fc_discharge")),
 		discharge_units(cm.as_vector_unsigned_long("dispatch_manual_units_fc_discharge")),
 		scheduleWeekday(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched")),
-		scheduleWeekend(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend")),
-        startDayOfYear(cm.as_number("start_day_of_year"))
+		scheduleWeekend(cm.as_matrix_unsigned_long("dispatch_manual_fuelcell_sched_weekend"))
 	{
 		numberOfYears = 1;
 		if (systemUseLifetimeOutput) {

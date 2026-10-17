@@ -98,7 +98,7 @@ public:
 
     lifetime_t(const lifetime_t &rhs);
 
-    virtual lifetime_t &operator=(const lifetime_t &rhs);
+    lifetime_t &operator=(const lifetime_t &rhs);
 
     virtual lifetime_t *clone() = 0;
 

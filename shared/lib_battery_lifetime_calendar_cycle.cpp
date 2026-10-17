@@ -405,7 +405,7 @@ double lifetime_cycle_t::bilinear(double DOD, int cycle_number) {
         // If we aren't bounded, fill in values
         if (n_rows_lo == 0) {
             // Assumes 0% DOD
-            for (int i = 0; i < n_rows_hi; i++) {
+            for (size_t i = 0; i < n_rows_hi; i++) {
                 C_n_low_vect.push_back(0. + (double)i * 500); // cycles
                 C_n_low_vect.push_back(100.); // 100 % capacity
             }

@@ -56,8 +56,6 @@ double spectral_correction_king(double abs_airmass, double Zenith_deg, double El
 
 double spectral_correction_pelland(double abs_airmass, double csky_index, int celltech, std::vector<double> coeff_inputs = { 0.0 });
 
-static double sandia_absolute_air_mass(double SolZen, double Altitude);
-
 
 double spectral_correction_factor(compute_module* cm, double pwater, double solzen = 0.0, double alt = 0.0, double csky_index = 0.0);
 /// Calculate Irradiance through the cover using the DeSoto model

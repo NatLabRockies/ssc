@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 FuelCellDispatch::FuelCellDispatch(FuelCell * fuelCell, size_t numberOfUnits, int dispatchOption, int shutdownOption, double dt_hour, double fixed_percent, size_t start_day_of_year,
 	std::vector<double> dispatchInput_kW, std::vector<bool> canCharge, std::vector<bool> canDischarge, 
 	std::map<size_t, double> discharge_percent, std::map<size_t, size_t> discharge_units, util::matrix_t<size_t> scheduleWeekday, util::matrix_t<size_t> scheduleWeekend)
-	: m_powerTotal_kW(0), m_numberOfUnits(numberOfUnits), m_dispatchOption(dispatchOption), m_shutdownOption(shutdownOption), dt_hour(dt_hour), m_fixed_percent(fixed_percent * 0.01), 
-	m_dispatchInput_kW(dispatchInput_kW), m_canCharge(canCharge), m_canDischarge(canDischarge), 
+	: m_powerTotal_kW(0), m_numberOfUnits(numberOfUnits), m_dispatchOption(dispatchOption), m_shutdownOption(shutdownOption), dt_hour(dt_hour), m_fixed_percent(fixed_percent * 0.01),
+    m_start_day_of_year(start_day_of_year),
+	m_dispatchInput_kW(dispatchInput_kW), m_canCharge(canCharge), m_canDischarge(canDischarge),
 	m_discharge_percent(discharge_percent), m_discharge_units(discharge_units),
-	m_scheduleWeekday(scheduleWeekday), m_scheduleWeekend(scheduleWeekend),
-    m_start_day_of_year(start_day_of_year)
+	m_scheduleWeekday(scheduleWeekday), m_scheduleWeekend(scheduleWeekend)
 {
 	// Convert percentages to fractions
 	for (auto percent = m_discharge_percent.begin(); percent != m_discharge_percent.end(); percent++) {

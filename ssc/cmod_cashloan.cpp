@@ -487,19 +487,7 @@ public:
 			i++;
 		}
 		
-		double year1_fuel_use = as_double("annual_fuel_usage"); // kWht
-		std::vector<double> fuel_use;
-		if ((as_integer("system_use_lifetime_output") == 1) && is_assigned("annual_fuel_usage_lifetime")) {
-			fuel_use = as_vector_double("annual_fuel_usage_lifetime");
-			if (fuel_use.size() != (size_t)(nyears)) {
-				throw exec_error("cashloan", util::format("fuel usage years (%d) not equal to analysis period years (%d).", (int)fuel_use.size(), nyears));
-			}
-		}
-		else {
-			for (size_t y = 0; y < (size_t)(nyears); y++) {
-				fuel_use.push_back(year1_fuel_use);
-			}
-		}
+		std::vector<double> fuel_use = fuel_use_by_year(this, nyears, "cashloan"); // kWht
     	double nameplate = as_double("system_capacity"); // kW
 		
 		double inflation_rate = as_double("inflation_rate")*0.01;

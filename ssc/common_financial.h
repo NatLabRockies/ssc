@@ -59,6 +59,9 @@ void update_battery_outputs(compute_module* cm, size_t nyears);
 // Prepend the 0 to relevant outputs
 void update_fuelcell_outputs(compute_module* cm, size_t nyears);
 
+// Fuel usage by year (kWht): annual_fuel_usage_lifetime for lifetime analyses when it is assigned, otherwise year 1 annual_fuel_usage for every year
+std::vector<double> fuel_use_by_year(compute_module* cm, int nyears, const std::string& module_name);
+
 class dispatch_calculations
 {
 private:

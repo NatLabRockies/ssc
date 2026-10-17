@@ -686,19 +686,7 @@ public:
 
 		// use named range names for variables whenever possible
 		double nameplate = as_double("system_capacity");
-		double year1_fuel_use = as_double("annual_fuel_usage"); // kWht
-		std::vector<double> fuel_use;
-		if ((as_integer("system_use_lifetime_output") == 1) && is_assigned("annual_fuel_usage_lifetime")) {
-			fuel_use = as_vector_double("annual_fuel_usage_lifetime");
-			if (fuel_use.size() != (size_t)(nyears )) {
-				throw exec_error("merchantplant", util::format("fuel usage years (%d) not equal to analysis period years (%d).", (int)fuel_use.size(), nyears));
-			}
-		}
-		else {
-			for (size_t y = 0; y < (size_t)(nyears); y++) {
-				fuel_use.push_back(year1_fuel_use);
-			}
-		}
+		std::vector<double> fuel_use = fuel_use_by_year(this, nyears, "merchantplant"); // kWht
 
 	
 		double assessed_frac = as_double("prop_tax_cost_assessed_percent")*0.01;

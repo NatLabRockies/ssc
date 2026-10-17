@@ -669,7 +669,7 @@ public:
 
 		// use named range names for variables whenever possible
 		double nameplate = as_double("system_capacity");
-		double year1_fuel_use = as_double("annual_fuel_usage"); // kWht
+		std::vector<double> fuel_use = fuel_use_by_year(this, nyears, "levpartflip"); // kWht
 
 		double assessed_frac = as_double("prop_tax_cost_assessed_percent")*0.01;
 		double salvage_value_frac = as_double("salvage_percentage")*0.01;
@@ -912,7 +912,7 @@ public:
             cf.at(CF_om_capacity_expense,i) *= nameplate;
             cf.at(CF_om_capacity1_expense, i) *= nameplate1;
             cf.at(CF_om_capacity2_expense, i) *= nameplate2;
-			cf.at(CF_om_fuel_expense,i) *= year1_fuel_use;
+			cf.at(CF_om_fuel_expense,i) *= fuel_use[i-1];
 
             //Battery Production OM Costs
             cf.at(CF_om_production1_expense, i) *= battery_discharged[i - 1]; //$/MWh * 0.001 MWh/kWh * kWh = $

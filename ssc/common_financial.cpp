@@ -3776,6 +3776,20 @@ void update_fuelcell_outputs(compute_module* cm, size_t nyears) {
     }
 }
 
+std::vector<double> fuel_use_by_year(compute_module* cm, int nyears, const std::string& module_name) {
+    std::vector<double> fuel_use;
+    if ((cm->as_integer("system_use_lifetime_output") == 1) && cm->is_assigned("annual_fuel_usage_lifetime")) {
+        fuel_use = cm->as_vector_double("annual_fuel_usage_lifetime");
+        if (fuel_use.size() != (size_t)(nyears)) {
+            throw exec_error(module_name, util::format("fuel usage years (%d) not equal to analysis period years (%d).", (int)fuel_use.size(), nyears));
+        }
+    }
+    else {
+        fuel_use.assign((size_t)(nyears), cm->as_double("annual_fuel_usage")); // kWht
+    }
+    return fuel_use;
+}
+
 // CF enum for ITC and depreciation calculations
 enum {
     CF_itc_fed_amount,

@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <fstream>
+#include <sstream>
 
 #include "cmod_custom_generation_test.h"
 
@@ -154,6 +156,77 @@ TEST_F(CMCustomGeneration, cmod_custom_generation_test_adjust_losses) {
     ssc_data_set_number(data, "spec_mode", 2);
     ssc_data_get_number(data, "annual_energy", &annual_energy);
     EXPECT_NEAR(annual_energy, 8760 * 100.0 * 0.95, 0.01);
+}
+
+/// Runs lifetime custom generation where year 2 generates a tenth of the other years, then the
+/// financial model, and checks that fuel expenses follow annual fuel usage instead of staying at year 1 (ssc #1422)
+static void check_lifetime_fuel_expense(ssc_data_t& data, const std::string& json_file, const char* financial_module) {
+    std::string file_inputs = SSCDIR;
+    file_inputs += "/test/input_json/FinancialModels/" + json_file;
+    std::ifstream file(file_inputs);
+    std::ostringstream tmp;
+    tmp << file.rdbuf();
+    file.close();
+    ssc_data_free(data);
+    data = json_to_ssc_data(tmp.str().c_str());
+
+    int analysis_period = 25;
+    ssc_data_set_number(data, "analysis_period", analysis_period);
+    ssc_data_set_number(data, "system_use_lifetime_output", 1);
+    ssc_number_t degradation[1] = { 0 };
+    ssc_data_set_array(data, "ac_degradation", degradation, 1);
+    ssc_data_set_number(data, "adjust_constant", 0);
+    ssc_data_set_number(data, "spec_mode", 2);
+    ssc_data_set_number(data, "derate", 0);
+    ssc_data_set_number(data, "user_capacity_factor", 0);
+    ssc_data_set_number(data, "heat_rate", 10);
+    ssc_data_set_number(data, "conv_eff", 34.118049621582031);
+
+    // Year 2 generates a tenth of the other years
+    std::vector<double> gen_lifetime(8760 * analysis_period, 1000.0);
+    for (size_t i = 8760; i < 8760 * 2; i++)
+        gen_lifetime[i] = 100.0;
+    ssc_data_set_array(data, "energy_output_array_lifetime", gen_lifetime.data(), (int)gen_lifetime.size());
+
+    EXPECT_FALSE(run_module(data, "custom_generation"));
+
+    int n = 0;
+    ssc_number_t* fuel_usage = ssc_data_get_array(data, "annual_fuel_usage_lifetime", &n);
+    ASSERT_TRUE(fuel_usage != nullptr);
+    ASSERT_EQ(n, analysis_period);
+    double year1_fuel = 8760 * 1000.0 * 100.0 / 34.118049621582031; // kWht
+    EXPECT_NEAR(fuel_usage[0], year1_fuel, 1.0);
+    EXPECT_NEAR(fuel_usage[1], year1_fuel / 10.0, 1.0);
+    EXPECT_NEAR(fuel_usage[2], year1_fuel, 1.0);
+
+    EXPECT_FALSE(run_module(data, financial_module));
+
+    ssc_number_t* fuel_expense = ssc_data_get_array(data, "cf_om_fuel_expense", &n);
+    ASSERT_TRUE(fuel_expense != nullptr);
+    ASSERT_EQ(n, analysis_period + 1);
+    double escalation = 1.025; // inflation, no fuel cost escalation
+    EXPECT_NEAR(fuel_expense[2] / fuel_expense[1], 0.1 * escalation, 1e-6) << financial_module;
+    EXPECT_NEAR(fuel_expense[3] / fuel_expense[1], escalation * escalation, 1e-6) << financial_module;
+}
+
+TEST_F(CMCustomGeneration, LifetimeFuelUsage_MerchantPlant) {
+    check_lifetime_fuel_expense(data, "merchantplant/2022.08.08_develop_branch_Generic_System_Merchant_Plant_cmod_merchantplant.json", "merchantplant");
+}
+
+TEST_F(CMCustomGeneration, LifetimeFuelUsage_EquPartFlip) {
+    check_lifetime_fuel_expense(data, "equpartflip/2023.10.27_om-expense-cash-flow_Generic_System_All_Equity_Partnership_Flip_cmod_equpartflip.json", "equpartflip");
+}
+
+TEST_F(CMCustomGeneration, LifetimeFuelUsage_LevPartFlip) {
+    check_lifetime_fuel_expense(data, "levpartflip/2023.10.27_om-expense-cash-flow_Generic_System_Leveraged_Partnership_Flip_cmod_levpartflip.json", "levpartflip");
+}
+
+TEST_F(CMCustomGeneration, LifetimeFuelUsage_SaleLeaseback) {
+    check_lifetime_fuel_expense(data, "saleleaseback/2023.10.27_om-expense-cash-flow_Generic_System_Sale_Leaseback_cmod_saleleaseback.json", "saleleaseback");
+}
+
+TEST_F(CMCustomGeneration, LifetimeFuelUsage_HostDeveloper) {
+    check_lifetime_fuel_expense(data, "host_developer/2023.10.27_om-expense-cash-flow_Generic_System_Host_Developer_cmod_host_developer.json", "host_developer");
 }
 
 /*

@@ -62,6 +62,7 @@ static var_info _cm_vtab_custom_generation[] = {
 	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_energy",              "Annual Energy",                        "kWh",          "",      "Annual",      "*",               "",                    "" },
 
 	{ SSC_OUTPUT,       SSC_NUMBER,      "annual_fuel_usage",           "Annual Fuel Usage",                    "kWht",         "",      "Annual",      "*",               "",                    "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,       "annual_fuel_usage_lifetime",  "Annual Fuel Usage (lifetime)",         "kWht",         "",      "Annual",      "system_use_lifetime_output=1", "",          "" },
 	{ SSC_OUTPUT,       SSC_NUMBER,      "water_usage",                "Annual Water Usage",                   "",             "",      "Annual",      "*",               "",                    "" },
 	{ SSC_OUTPUT,       SSC_NUMBER,      "system_heat_rate",           "Heat Rate Conversion Factor",          "MMBTUs/MWhe",  "",      "Annual",      "*",               "",                    "" },
 
@@ -257,6 +258,7 @@ public:
 			}
 		}
 		double annual_ac_pre_avail = 0, annual_energy = 0;
+		std::vector<double> annual_energy_lifetime(nyears, 0.0); // kWh by year, for lifetime fuel usage
 		idx = 0;
 
 		// Run generic system
@@ -272,6 +274,7 @@ public:
 
 					//apply availability and curtailment
 					enet[idx] *= haf(hour);
+					annual_energy_lifetime[iyear] += enet[idx] * ts_hour;
 
 					if (iyear == 0) {
 						annual_energy += (ssc_number_t)(enet[idx] * ts_hour);
@@ -288,10 +291,19 @@ public:
 		annual_output = accumulate_annual_for_year("gen", "annual_energy", ts_hour, steps_per_hour);
 
 		// if conversion efficiency is zero then set fuel usage to zero per email from Paul 5/17/12
+		double conv_eff = as_double("conv_eff");
 		double fuel_usage = 0.0;
-		if (as_double("conv_eff") != 0.0)
-			fuel_usage = annual_output * 100.0 / as_double("conv_eff");
+		if (conv_eff != 0.0)
+			fuel_usage = annual_output * 100.0 / conv_eff;
 		assign("annual_fuel_usage", (ssc_number_t)fuel_usage);
+
+		// fuel usage by year so the financial models don't hold fuel costs at year 1
+		if (system_use_lifetime_output) {
+			ssc_number_t* fuel_usage_lifetime = allocate("annual_fuel_usage_lifetime", nyears);
+			for (size_t iyear = 0; iyear < nyears; iyear++) {
+				fuel_usage_lifetime[iyear] = (conv_eff != 0.0) ? (ssc_number_t)(annual_energy_lifetime[iyear] * 100.0 / conv_eff) : 0.0;
+			}
+		}
 
 		assign("water_usage", 0.0);
 		assign("system_heat_rate", (ssc_number_t)(as_number("heat_rate") *  as_number("conv_eff") / 100.0));

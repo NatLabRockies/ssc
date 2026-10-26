@@ -1202,8 +1202,6 @@ namespace geothermal
                 InjWellFriction, InjWellPressurePSI, P_hydrostatic_PSI);
 
             dInjectionPumpPower = geothermal::pumpWorkInWattHr(1, inj_pump_work_ft, GFPumpEfficiency, ErrorString) * dFractionOfInletGFInjected; //[W-hr/lbm]
-
-            double abc = 12.3;
         }
 
         ProdWellFriction = std::numeric_limits<double>::quiet_NaN();
@@ -1351,7 +1349,8 @@ namespace geothermal
 
         NumberOfReservoirs_calc = floor(PotentialResourceMW * 1000 / cycle_net_power);
 
-        pump_inj_hp = (inj_pump_work_ft * (inj_flow_rate) / (60 * 33000)) / GFPumpEfficiency;        //[hp]
+        pump_inj_hp = (inj_pump_work_ft * (inj_flow_rate) / (60 * 33000)) / GFPumpEfficiency;   //[hp] This equation is missing the multiplier for water loss
+        double pump_inj_hp_convert_from_kwe = inj_pump_power_kWe / physics::KW_PER_HP;          //[hp]
 
         if (num_wells_calc_basis != NUMBER_OF_WELLS) {
             NumberOfWellsProdExp = (num_wells_calc > prod_wells_exploration) ? num_wells_calc - prod_wells_exploration : 0.0;
@@ -2647,8 +2646,12 @@ double CGeothermalAnalyzer::GetNumberOfWells(void)
         double num_inj_wells_successful = mp_geo_out->md_NumberOfWellsInjDrilled * mo_geo_in.md_DrillSuccessRate;
         double num_inj_wells_failed = mp_geo_out->md_NumberOfWellsInjDrilled * (1 - mo_geo_in.md_DrillSuccessRate);
         //mp_geo_out->md_NumberOfWellsInj = (mo_geo_in.md_DesiredSalesCapacityKW / (netBrineEffectiveness / 1000)) * (mp_geo_out->md_FractionGFInjected) / flowPerWellInj;
-        double pump_inj_hp = (GetInjectionPumpWorkft() * (inj_flow) / (60 * 33000)) / mo_geo_in.md_GFPumpEfficiency;
-        mp_geo_out->md_InjPump_hp = pump_inj_hp;
+
+        // 26-10-26 Old injection pump equation does not consider water loss
+        // --- Use "pumpwork_inj", which includes water loss
+        double inj_pump_power = mp_geo_out->md_pumpwork_inj * (inj_flow) / 1000.0;      //[kWe]
+        mp_geo_out->md_InjPump_hp = inj_pump_power / physics::KW_PER_HP;                //[hp]
+
         if (mo_geo_in.me_rt == EGS) {
             //mp_geo_out->md_NumberOfWellsProdExp = mp_geo_out->md_NumberOfWells - 8;
             if (mo_geo_in.md_WellsStimulated != 1) mp_geo_out->md_NumberOfWellsProdDrilled = mp_geo_out->md_NumberOfWellsProdExp / (mo_geo_in.md_DrillSuccessRate);

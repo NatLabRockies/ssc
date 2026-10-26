@@ -397,7 +397,7 @@ public:
             assign("cp_battery_nameplate", 0.0);
 
             // this assignment happens in UI calculations and model run
-            assign("pump_work", var_data((ssc_number_t)total_pump_power_kWe));              // geo_outputs.md_PumpWorkKW / 1000)); // kW must be converted to MW
+            assign("pump_work", var_data((ssc_number_t)total_pump_power_kWe*1.E-3));              // geo_outputs.md_PumpWorkKW / 1000)); // kW must be converted to MW
             assign("net_plant_output", ssc_number_t(net_plant_power_kWe*1.E-3));            // geo_outputs.md_GrossPlantOutputMW - (geo_outputs.md_PumpWorkKW / 1000.0))); //[MWe]
 
             double total_prod_pump_power_kWe = prod_pump_power_kWe*1.341022;             //[hp] total production pumping pump
@@ -417,7 +417,7 @@ public:
             assign("gross_output", var_data((ssc_number_t)cycle_net_power_design_kWe *1.E-3));  //[MWe] geo_outputs.md_GrossPlantOutputMW));
             
             assign("reservoir_pressure", var_data((ssc_number_t)PressureChangeAcrossReservoir));    //[psi] geo_outputs.md_PressureChangeAcrossReservoir));
-            assign("reservoir_avg_temp", var_data((ssc_number_t)AverageReservoirTemperatureF)); //[F] physics::FarenheitToCelcius(geo_outputs.md_AverageReservoirTemperatureF)));
+            assign("reservoir_avg_temp", var_data((ssc_number_t)physics::FarenheitToCelcius(AverageReservoirTemperatureF))); //[F] physics::FarenheitToCelcius(geo_outputs.md_AverageReservoirTemperatureF)));
 
             // This calculation doesn't seem consistent in the code, so let's try not to use it until we update the code
             assign("bottom_hole_pressure", var_data((ssc_number_t) -6.54321));                   // geo_outputs.md_BottomHolePressure));

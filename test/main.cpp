@@ -78,6 +78,7 @@ GTEST_API_ int main(int argc, char **argv) {
     //::testing::GTEST_FLAG(filter) = "CMGeothermal.SingleOwnerDefault_cmod_geothermal:GeothermalPlantAnalyzer.TestFlashPlant_lib_geothermal:GeothermalPlantAnalyzer.TestBinaryPlant_lib_geothermal";
 
     //::testing::GTEST_FLAG(filter) = "CmodGeoSystemTest.GeoSystem_EGS_Adv_Binary";
+    //::testing::GTEST_FLAG(filter) = "CmodGeoSystemTest.GeoSystem_Hydro_Mod_Flash";
     //::testing::GTEST_FLAG(filter) = "CmodGeoSystemTest.*";
 
 

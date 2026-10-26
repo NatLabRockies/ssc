@@ -1349,8 +1349,7 @@ namespace geothermal
 
         NumberOfReservoirs_calc = floor(PotentialResourceMW * 1000 / cycle_net_power);
 
-        pump_inj_hp = (inj_pump_work_ft * (inj_flow_rate) / (60 * 33000)) / GFPumpEfficiency;   //[hp] This equation is missing the multiplier for water loss
-        double pump_inj_hp_convert_from_kwe = inj_pump_power_kWe / physics::KW_PER_HP;          //[hp]
+        pump_inj_hp = inj_pump_power_kWe / physics::KW_PER_HP;          //[hp]
 
         if (num_wells_calc_basis != NUMBER_OF_WELLS) {
             NumberOfWellsProdExp = (num_wells_calc > prod_wells_exploration) ? num_wells_calc - prod_wells_exploration : 0.0;

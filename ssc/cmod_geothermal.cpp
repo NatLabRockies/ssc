@@ -271,7 +271,8 @@ public:
         C_geo_surface* p_geo_surface = nullptr;
         C_geo_subsurface* p_geo_subsurface = nullptr;
         C_geo_weather_file* p_geo_weather_file = nullptr;
-        if( e_conversion_type == conversionTypes::BINARY && e_resource_type == HYDROTHERMAL ) {
+        if( e_conversion_type == conversionTypes::BINARY && e_resource_type == HYDROTHERMAL && false ) {
+        //if( e_conversion_type == conversionTypes::BINARY  ) {
             p_geo_surface = new C_geo_surface(T_plant_design_calc_C, TemperatureWetBulbC, PlantEfficiency, conc_SiO2_design_calc_ppm,
                 e_resource_type, e_conversion_type, e_decline_type, e_flash_type);
 
@@ -631,7 +632,7 @@ public:
                 assign("annual_energy", var_data((ssc_number_t)(first_year_total_energy)));
                 accumulate_monthly_for_year("gen", "monthly_energy", 8760.0 / n_rec, n_rec / 8760);
 
-                return;
+                //return;
             }
 
         }

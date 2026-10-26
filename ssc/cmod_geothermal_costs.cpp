@@ -254,8 +254,8 @@ public:
 
 	void exec() override
 	{
-        //FILE* fp = fopen("geo_costs_to_lk.lk", "w");
-        //write_cmod_to_lk_script(fp, m_vartab);
+        FILE* fp = fopen("geo_costs_to_lk.lk", "w");
+        write_cmod_to_lk_script(fp, m_vartab);
 
 		SGeothermal_Inputs geo_inputs;
 

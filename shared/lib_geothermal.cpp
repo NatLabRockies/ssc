@@ -110,6 +110,7 @@ namespace geothermal
 	//const double GRAVITY_MS2 = (IMITATE_GETEM) ? 9.807 : physics::GRAVITY_MS2; // meters per second^2; this varies between 9.78 and 9.82 depending on latitude
     const double GRAVITY_MS2 = 9.807;
 	const double DAYS_PER_YEAR = 365.25;
+    const double T_AMB_C_GRADIENT_CALCS = 11.6;     //[C]
 
 	double MetersToFeet(const double &m) { return m * GETEM_FT_IN_METER; }
 	double FeetToMeters(const double &ft) { return ft / GETEM_FT_IN_METER; }
@@ -459,8 +460,9 @@ namespace geothermal
                 double resource_depth_in /*m*/, double T_resource /*C*/, double T_amb /*C*/) // meters
     {
         if( (resource_type == EGS) && (depth_calc_egs_type == TEMPERATURE) ) {
-            throw std::runtime_error("GetResourceDepthM not set up to work with resource_type = EGS and depth_calc_egs_type = TEMPERATURE."
-            " The old implement still just returned the input resource depth");
+            return resource_depth_in;
+            //throw std::runtime_error("GetResourceDepthM not set up to work with resource_type = EGS and depth_calc_egs_type = TEMPERATURE."
+            //" The old implement still just returned the input resource depth");
             //return 1000 * (T_resource - T_amb) / GetTemperatureGradient();
         }
         return resource_depth_in;
@@ -2213,7 +2215,7 @@ double CGeothermalAnalyzer::RameyWellbore()
         working_temp = md_WorkingTemperatureC;
     }
     double utilfactor = 1.0; //capacity factor?
-    double avg_gradient = (GetResourceTemperatureC() - 11.6) / GetResourceDepthM(); //local average geothermal gradient
+    double avg_gradient = (GetResourceTemperatureC() - geothermal::T_AMB_C_GRADIENT_CALCS) / GetResourceDepthM(); //local average geothermal gradient
     double framey = -1.0 * log(1.1 * (0.3048 * (mo_geo_in.md_DiameterPumpCasingInches / (2 * 12)) / sqrt(4.0 * alpharock * time * utilfactor))) - 0.29;
     double c_w = geothermal::EGSSpecificHeat(working_temp);
     double rameyA = mo_geo_in.md_ProductionFlowRateKgPerS * c_w * framey / (2 * physics::PI * mo_geo_in.md_EGSThermalConductivity);
@@ -2245,14 +2247,28 @@ void CGeothermalAnalyzer::ReplaceReservoir(double dElapsedTimeInYears)
 }
 
 double CGeothermalAnalyzer::GetTemperatureGradient(void) // degrees C per km
-{	// Conversation with Chad on August 30th 2010, 10am MT - just use the average gradient, even if it's changing at that point according to the depth/temp graph.
-	if (mo_geo_in.me_rt == HYDROTHERMAL) { return ((mo_geo_in.md_TemperatureResourceC - GetAmbientTemperatureC(BINARY)) / mo_geo_in.md_ResourceDepthM) * 1000; }
-	return ((mo_geo_in.md_TemperatureResourceC - GetAmbientTemperatureC(BINARY)) / mo_geo_in.md_ResourceDepthM) * 1000;
+{	// Conversation with Chad on August 30th 2010 - just use the average gradient, even if it's changing at that point according to the depth/temp graph.
+    double T_amb_C_local = GetAmbientTemperatureC(BINARY);
+    T_amb_C_local = geothermal::T_AMB_C_GRADIENT_CALCS;
+
+    double tempgradient = ((mo_geo_in.md_TemperatureResourceC - T_amb_C_local) / mo_geo_in.md_ResourceDepthM) * 1000;
+    return tempgradient;
+
+    //if (mo_geo_in.me_rt == HYDROTHERMAL) {
+    //    return ((mo_geo_in.md_TemperatureResourceC - GetAmbientTemperatureC(BINARY)) / mo_geo_in.md_ResourceDepthM) * 1000;
+    //}
+	//return ((mo_geo_in.md_TemperatureResourceC - GetAmbientTemperatureC(BINARY)) / mo_geo_in.md_ResourceDepthM) * 1000;
 }
 
 double CGeothermalAnalyzer::GetResourceTemperatureC(void) // degrees C
 {
-	if ((mo_geo_in.me_rt == EGS) && (mo_geo_in.me_dc == DEPTH)) return ((mo_geo_in.md_ResourceDepthM / 1000) * GetTemperatureGradient()) + GetAmbientTemperatureC(BINARY);
+    double T_amb_C_local = GetAmbientTemperatureC(BINARY);
+    T_amb_C_local = geothermal::T_AMB_C_GRADIENT_CALCS;
+
+    if( (mo_geo_in.me_rt == EGS) && (mo_geo_in.me_dc == DEPTH) ) {
+        double ResourceTempCalc = ((mo_geo_in.md_ResourceDepthM / 1000) * GetTemperatureGradient()) + T_amb_C_local;
+        return ResourceTempCalc;
+    }
 	return mo_geo_in.md_TemperatureResourceC;
 }
 
@@ -2260,7 +2276,14 @@ double CGeothermalAnalyzer::GetTemperaturePlantDesignC(void) { return (mo_geo_in
 
 double CGeothermalAnalyzer::GetResourceDepthM(void) // meters
 {
-	if ((mo_geo_in.me_rt == EGS) && (mo_geo_in.me_dc == TEMPERATURE)) return 1000 * (mo_geo_in.md_TemperatureResourceC - GetAmbientTemperatureC(BINARY)) / GetTemperatureGradient();
+    double T_amb_C_local = GetAmbientTemperatureC(BINARY);
+    T_amb_C_local = geothermal::T_AMB_C_GRADIENT_CALCS;
+
+    if( (mo_geo_in.me_rt == EGS) && (mo_geo_in.me_dc == TEMPERATURE) ) {
+        double TempGradient = GetTemperatureGradient();     //[C/km]
+        double resourcedepthcalc = 1000 * (mo_geo_in.md_TemperatureResourceC - T_amb_C_local) / TempGradient;  //[m]
+        return resourcedepthcalc;
+    }
 	return mo_geo_in.md_ResourceDepthM;
 }
 
@@ -2517,13 +2540,13 @@ double CGeothermalAnalyzer::pressureWellHeadPSI()
 
 double CGeothermalAnalyzer::pressureHydrostaticPSI()
 {	// calculate the hydrostatic pressure (at the bottom of the well)
-	double tempAmbientF = physics::CelciusToFarenheit(11.6);
+    double tempAmbientC = geothermal::T_AMB_C_GRADIENT_CALCS; // GETEM assumes 10 deg C ambient temperature here. Above, the assumption is 15 deg C ambient.
+
+    double tempAmbientF = physics::CelciusToFarenheit(tempAmbientC);
 	double pressureAmbientBar = physics::PsiToBar(geothermal::oPressureAmbientConstants.evaluate(tempAmbientF));
     if (tempAmbientF <= 212) pressureAmbientBar = 1.014;
-	double tempF = physics::CelciusToFarenheit(11.6);
-	double densityAmbient = geothermal::LbPerCfToKgPerM3_B(geothermal::oDensityConstants.evaluate(tempF));
+	double densityAmbient = geothermal::LbPerCfToKgPerM3_B(geothermal::oDensityConstants.evaluate(tempAmbientF));
 
-	double tempAmbientC = 11.6; // GETEM assumes 10 deg C ambient temperature here. Above, the assumption is 15 deg C ambient.
 	double tempGradient = (mo_geo_in.me_rt == EGS) ? GetTemperatureGradient() / 1000 : (GetResourceTemperatureC() - tempAmbientC) / GetResourceDepthM();
 
 	// hydrostatic pressure at production well depth (GetResourceDepthFt) in bar

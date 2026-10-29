@@ -53,19 +53,27 @@ public:
     }
 
     void ssc_module_exec_with_error(ssc_module_t module, var_table& input, std::string compute_module) {
-        if (!ssc_module_exec(module, static_cast<ssc_data_t>(&input))) {
-            std::string str = std::string(compute_module) + " execution error. ";
-            int idx = 0;
-            int type = -1;
-            while (const char* msg = ssc_module_log(module, idx++, &type, nullptr))
-            {
-                if (/*/(type == SSC_NOTICE) || */(type == SSC_WARNING) || (type == SSC_ERROR)) {
-                    str += std::string(msg);
-                    str += "\t";
-                }
+        bool ok = ssc_module_exec(module, static_cast<ssc_data_t>(&input));
+
+        // Always drain and relay the sub-module's log, whether it succeeded or failed
+        int idx = 0;
+        int type = -1;
+        std::string err_str = std::string(compute_module) + " execution error. ";
+        while (const char* msg = ssc_module_log(module, idx++, &type, nullptr))
+        {
+            // Relay every message up to cmod_hybrid's own log so callers/UI see it
+            if (idx == 1) this->log("\n----- Notices from " + std::string(compute_module) + ":");
+            this->log(std::string(msg), type);
+
+            if ((type == SSC_WARNING) || (type == SSC_ERROR)) {
+                err_str += std::string(msg);
+                err_str += "\t";
             }
+        }
+
+        if (!ok) {
             ssc_module_free(module);
-            throw std::runtime_error(str);
+            throw std::runtime_error(err_str);
         }
     }
 

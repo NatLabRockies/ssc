@@ -52,15 +52,39 @@ public:
         add_var_info(_cm_vtab_hybrid);
     }
 
+    static ssc_bool_t hybrid_progress_handler(ssc_module_t module, ssc_handler_t handler,
+        int action, float f0, float f1,
+        const char* s0, const char* s1, void* user_data)
+    {
+        // user_data packs: {cm_hybrid* self, float base_percent, float range_percent}
+        auto* ctx = static_cast<std::tuple<cm_hybrid*, float, float>*>(user_data);
+        cm_hybrid* self = std::get<0>(*ctx);
+        float base = std::get<1>(*ctx);
+        float range = std::get<2>(*ctx);
+
+        float overall_percent = base + (f0 / 100.0f) * range;
+        self->update(s0 ? s0 : "", overall_percent);
+        return 1; // return 0 to cancel the sub-module's simulation
+    }
+
+    void ssc_module_exec_with_progress(ssc_module_t module, var_table& input, std::string compute_module, float base_percent, float range_percent) {
+        // Pack the context for the progress handler
+        auto ctx = std::make_tuple(this, base_percent, range_percent);
+        // Set the progress handler for the sub-module
+        bool ok = ssc_module_exec_with_handler(module, static_cast<ssc_data_t>(&input), hybrid_progress_handler, &ctx);
+        propagate_submodule_messages(module, compute_module, ok);
+    }
+
     void ssc_module_exec_with_error(ssc_module_t module, var_table& input, std::string compute_module) {
         bool ok = ssc_module_exec(module, static_cast<ssc_data_t>(&input));
+        propagate_submodule_messages(module, compute_module, ok);
+    }
 
+    void propagate_submodule_messages(ssc_module_t module, std::string compute_module, bool sim_ok) {
         // Always drain and relay the sub-module's log, whether it succeeded or failed
-        int idx = 0;
-        int type = -1;
+        int idx = 0, type = -1;
         std::string err_str = std::string(compute_module) + " execution error. ";
-        while (const char* msg = ssc_module_log(module, idx++, &type, nullptr))
-        {
+        while (const char* msg = ssc_module_log(module, idx++, &type, nullptr)) {
             // Relay every message up to cmod_hybrid's own log so callers/UI see it
             if (idx == 1) this->log("\n----- Notices from " + std::string(compute_module) + ":");
             this->log(std::string(msg), type);
@@ -70,8 +94,7 @@ public:
                 err_str += "\t";
             }
         }
-
-        if (!ok) {
+        if (!sim_ok) {
             ssc_module_free(module);
             throw std::runtime_error(err_str);
         }
@@ -423,8 +446,6 @@ public:
                 std::string& compute_module = csp_thermal_storage[0];
                 var_data* compute_module_inputs = input_table->table.lookup(compute_module);
 
-                
-
                 ssc_module_t module = ssc_module_create(compute_module.c_str());
                 class compute_module* cmod = static_cast<class compute_module*>(module);                // FIXME: Is this needed?
                 ssc_module_hybridize(module);
@@ -448,9 +469,10 @@ public:
                     input.merge(batteryinput, false);
                 }
 
-                ssc_module_exec_with_error(module, input, compute_module);  // Executes CSP compute module
-
-                
+                // Resetting the progress range for the CSP module execution because it takes the majority of the time in the hybrid simulation.
+                float base_percent = 0.0f;
+                float range_percent = 100.0f;
+                ssc_module_exec_with_progress(module, input, compute_module, base_percent, range_percent); 
 
                 // Gather compute module outputs
                 ssc_data_t compute_module_outputs = ssc_data_create();

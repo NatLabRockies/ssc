@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Ambient.h"
 #include "definitions.h"
 
-C_falling_particle_receiver::C_falling_particle_receiver(double h_tower /*m*/, 
+C_falling_particle_receiver::C_falling_particle_receiver(double h_tower /*m*/,
     double T_htf_hot_des /*C*/, double T_htf_cold_des /*C*/,
     double f_rec_min /*-*/, double q_dot_rec_des /*MWt*/,
     double rec_su_delay /*hr*/, double rec_qf_delay /*-*/,
@@ -45,6 +45,7 @@ C_falling_particle_receiver::C_falling_particle_receiver(double h_tower /*m*/,
     int field_fl, util::matrix_t<double> field_fl_props,
     int model_type /*-*/, double fixed_efficiency /*-*/, int rad_model_type /*-*/, int hadv_model_type /*-*/, double hadv_user  /*-*/,
     double ap_height /*m*/, double ap_width /*m*/, double ap_height_ratio /*-*/, double ap_width_ratio /*-*/, double ap_curtain_depth_ratio /*-*/, double rec_orientation /*deg*/,
+    bool is_multistage /**/, util::matrix_t<double>trough_locations /**/, double trough_reset_velocity /*m/s*/,
     double particle_dp /*m*/, double particle_abs /*-*/, double curtain_emis /*-*/, double dthdy /*-*/, 
     double cav_abs /*-*/, double cav_emis /*-*/, double cav_twall /*m*/, double cav_kwall /*m*/, double cav_hext /*W/m2/K*/,
     double deltaT_transport_cold /*K*/, double deltaT_transport_hot /*K*/,
@@ -71,6 +72,9 @@ C_falling_particle_receiver::C_falling_particle_receiver(double h_tower /*m*/,
     m_hadv_user = hadv_user;
     m_hadv_mult = hadv_mult;
 
+    m_drag_method = 0;     // TODO: Make an input?
+    m_relative_gas_velocity = 1.0;
+
     // Cavity and curtain geometry
     m_ap_height = ap_height;
     m_ap_width = ap_width;
@@ -84,9 +88,12 @@ C_falling_particle_receiver::C_falling_particle_receiver(double h_tower /*m*/,
     m_is_ap_at_bot = true;          // Hard-coded to true to match SolarPILOT
     m_is_curtain_flat = true;       // Curved curtain is not implemented yet
     m_curtain_rad = std::numeric_limits<double>::quiet_NaN(); // Curved curtain is not implemented yet
+
+    m_curtain_inlet_method = 1;
+
+    // Additional parammeters for m_curtain_inlet_method = 0
     m_initial_fall_height_fraction = 1. / 12.;   //Gonzalez et al.Solar Energy 213 (2021) 211–224(https://doi.org/10.1016/j.solener.2020.11.012)
     m_initial_fall_height_fixed = 0.3;
-
 
     // Particle and curtain properties
     m_particle_dp = particle_dp;
@@ -95,6 +102,12 @@ C_falling_particle_receiver::C_falling_particle_receiver(double h_tower /*m*/,
     m_dthdy = dthdy;
     m_tauc_mult = tauc_mult;
     m_phi0 = 0.6;
+
+    // Multistage inputs
+    m_is_multistage = is_multistage;
+    m_trough_locations = trough_locations;
+    m_trough_reset_velocity = trough_reset_velocity; 
+    m_trough_reset_phi = m_phi0;  
 
     // Cavity wall properties
     m_cav_abs = cav_abs;
@@ -214,7 +227,30 @@ void C_falling_particle_receiver::init()
         m_mode_prev = C_csp_collector_receiver::OFF;					//[-] 0 = requires startup, 1 = starting up, 2 = running
     }
 
+    // Set locations of multi-stage trough nodes
+    m_is_trough_node.resize(m_n_y, false);
+    m_curtain_dist_nodes.resize(m_n_y, m_curtain_dist);
+    if (m_is_multistage)
+    {
+        double f = 1.0;
+        int jprev = 0;
+        for (size_t i = 0; i < m_trough_locations.nrows(); i++)
+        {
+            double dist_from_top = 1.0 - m_trough_locations.at(i, 0);  // Dimensionless distance between top of curtain and trough location
+            int j = std::round(dist_from_top * (m_n_y - 1));          // Assumes trough is at location of closest discretized node
 
+            if (j == jprev || (j > 0 and m_is_trough_node.at(j - 1)))       // A trough already exists at this node or at the prior node
+                throw(C_csp_exception("Additional curtain axial discretization is needed to simulate the provided trough locations", "Particle receiver initialization"));
+
+            m_is_trough_node.at(j) = true;
+            for (size_t k = jprev; k < j; k++)
+                m_curtain_dist_nodes.at(k) = f * m_curtain_dist;
+            f = m_trough_locations.at(i, 1);
+            jprev = j;
+        }
+        for (size_t k = jprev; k < m_n_y; k++)
+            m_curtain_dist_nodes.at(k) = f * m_curtain_dist;
+    }
 
     // Calculate view factors
     if (m_model_type == 3 && m_rad_model_type > 0)
@@ -249,6 +285,7 @@ void C_falling_particle_receiver::init()
         calculate_view_factors();
 
     }
+
 
     m_stored_soln_idx = 0;
     m_stored_soln_idx_csky = 0;
@@ -1030,6 +1067,8 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
     double dy = m_curtain_height / (m_n_y - 1);
     double dx = m_curtain_width / m_n_x;
 
+    double Aratio = m_ap_area / m_curtain_area;
+
     double Q_inc, Q_refl, Q_rad, Q_adv, Q_cond, Q_thermal, Q_imbalance;
     double Tp_out, T_particle_prop, T_cold_in_rec, cp, cp_cold, cp_hot, particle_density, err, hadv_with_wind, Twavg, Twmax, Twf;
     double qnetc_avg, qnetc_sol_avg, qnetw_avg, qnetw_sol_avg;
@@ -1082,21 +1121,25 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
     }
     else if (m_model_type == 3)        // Quasi-2D physics-based receiver model
     {
-        double vel_out, Tfilm, hadv, fwind, Rwall, tauc1, rhoc1;
+        double vel_out, vel_avg, Tfilm, hadv, fwind, Rwall, tauc1, rhoc1;
         double qnet_ap, qnet_wf, hwconv, qadv, qtot, dh, Tcond_prev, Tcond_next;
         double Twfnew, Tpdiff, Twdiff, Twfdiff;
         util::matrix_t<double> Tp, Tw, Tpnew, Twnew;
 
         Rwall = 1.0 / m_cav_hext + m_cav_twall / m_cav_kwall;  // Cavity wall thermal resistance
-        
+
+
         //--- Solve mass and momentum equations for curtain velocity, thickness, void fraction
+        //    Note that flow solution depends on temperature if m_drag_method > 0
         util::matrix_t<double> mdot_per_elem(m_n_x);  // Mass flow (kg/s) per element
         for (int i = 0; i < m_n_x; i++)
         {
             mdot_per_elem.at(i) = soln.m_dot_tot / m_n_x;  // TODO: Update to allow for multiple mass flow control zones
         }
-        solve_particle_flow(mdot_per_elem, soln.phip, soln.vel, soln.thc);
+        double Ts_approx = 0.5 * (0.5 * (T_cold_in_rec + m_T_particle_hot_target) + T_amb);
+        solve_particle_flow(mdot_per_elem, Ts_approx, T_amb, soln.phip, soln.vel, soln.thc);
         vel_out = calculate_mass_wtd_avg_exit(mdot_per_elem, soln.vel);  // Mass-weighted average exit velocity
+        vel_avg = calculate_mass_wtd_avg(mdot_per_elem, soln.vel);       // Mass-weighted average velocity
 
         //--- Calculate curtain optical properties from solution for curtain void fraction and thickness
         soln.tauc.resize_fill(m_n_y, m_n_x, 0.0);
@@ -1113,11 +1156,13 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
         tauc_avg = sum_over_rows_and_cols(soln.tauc, false) / (m_n_x * m_n_y);  // Average curtain transmittance
         rhoc_avg = sum_over_rows_and_cols(soln.rhoc, false) / (m_n_x * m_n_y);  // Average curtain reflectance
 
+
         //--- Initialize solutions for particle and wall temperatures
         Tp.resize_fill(m_n_y, m_n_x, T_cold_in_rec);        // Particle temperature [K]
         Tpnew.resize_fill(m_n_y, m_n_x, T_cold_in_rec);
         Tw.resize_fill(m_n_y, m_n_x, T_cold_in_rec);       // Back wall temperature [K]
         Twnew.resize_fill(m_n_y, m_n_x, T_cold_in_rec);
+
 
 
         //--- Set initial guess for particle and wall temperatures
@@ -1136,10 +1181,10 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
                 hadv = m_hadv_user;
                 fwind = 1.0;
             }
-            else if (m_hadv_model_type == 1) // Use Sandia's correlations for advective loss
+            else if (m_hadv_model_type == 1 || m_hadv_model_type == 2) // Use Sandia's correlations for advective loss, or NREL correlations re-fit using both free-fall and multistage CFD data
             {
                 Tfilm = 0.5 * (0.5 * (m_T_htf_hot_des + T_cold_in_rec) + T_amb);
-                calculate_advection_coeff_sandia(vel_out, Tfilm, v_wind, wdir, P_amb, hadv, fwind);
+                calculate_advection_coeff(vel_out, vel_avg, Tfilm, v_wind, wdir, P_amb, hadv, fwind);
                 hadv = fmax(hadv, 0.0);
                 hadv *= m_hadv_mult;
             }
@@ -1148,7 +1193,7 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
                 hadv = 0.0;
                 fwind = 1.0;
             }
-            hadv_with_wind = hadv * fwind;
+            hadv_with_wind = hadv * Aratio * fwind;
 
             rhoc_avg = flux_avg = Ec_avg = 0.0;
             vf_to_ap = m_rad_model_type == 1 ? m_vf_curtain_ap_avg : m_vf_rad_type_0;
@@ -1279,11 +1324,11 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
                 hadv = m_hadv_user;
                 fwind = 1.0;
             }
-            else if (m_hadv_model_type == 1) // Use Sandia's correlations for advective loss
+            else if (m_hadv_model_type == 1 || m_hadv_model_type == 2)   // Use Sandia's correlations for advective loss, or NLR correlations re-fit using both free-fall and multistage CFD data
             {
                 Tp_out = calculate_mass_wtd_avg_exit(mdot_per_elem, Tp);
                 Tfilm = 0.5 * (0.5 * (Tp_out + T_cold_in_rec) + T_amb);
-                calculate_advection_coeff_sandia(vel_out,  Tfilm, v_wind, wdir, P_amb, hadv, fwind);
+                calculate_advection_coeff(vel_out, vel_avg, Tfilm, v_wind, wdir, P_amb, hadv, fwind);
                 hadv = fmax(hadv, 0.0);
                 hadv *= m_hadv_mult;
             }
@@ -1292,7 +1337,7 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
                 hadv = 0.0;
                 fwind = 1.0;
             }
-            hadv_with_wind = hadv * fwind;
+            hadv_with_wind = hadv * Aratio * fwind;
 
 
             //-- Solve IR radiative exchange and calculate net incoming radiative energy to each curtain and wall element
@@ -1354,7 +1399,7 @@ void C_falling_particle_receiver::calculate_steady_state_soln(s_steady_state_sol
                     hwconv = m_include_back_wall_convection ? calculate_wall_convection_coeff(soln.vel.at(j, i), (j + 0.5) * dy, 0.5 * (Tw.at(j, i) + Tp.at(j, i)), P_amb) : 0.0;
 
                     // Solve for particle temperature at next vertical node
-                    qadv = hadv_with_wind* (Tp.at(j, i) - T_amb);
+                    qadv = hadv_with_wind * (Tp.at(j, i) - T_amb);
                     if (j < m_n_y - 1)
                     {
                         qtot = qnetc.at(j, i) - qadv - hwconv * (Tp.at(j, i) - Tw.at(j, i));  // Net heat transfer rate into particles [W/m2]
@@ -1884,37 +1929,117 @@ double C_falling_particle_receiver::sandia_efficiency_correlation(bool is_multis
 
 }
 
-// Solve mass and momentum balances for particle velocity, curtain thickness, particle volume fraction
-void C_falling_particle_receiver::solve_particle_flow(util::matrix_t<double>& mdot_per_elem, util::matrix_t<double>& phip, util::matrix_t<double>& vel, util::matrix_t<double>& th)
+double C_falling_particle_receiver::momentum_exchange_coefficient(double solid_velocity, double gas_velocity, double phis, double Ts, double Tamb)
 {
-    // Mass balance: -d/dy (phip*th*rhop*vp) = 0
-    // Momentum equation: -d/dy (phip*th*rhop*vp^2) + (phip*th*rhop*g) = 0 
-    double g = 9.81;
-    double dx = m_curtain_width / m_n_x;
-    double dy = m_curtain_height / (m_n_y - 1);
-    double initial_fall_height = m_initial_fall_height_fraction * m_curtain_height + m_initial_fall_height_fixed;
-    double Tavg = 0.5 * (m_T_htf_cold_des + m_T_htf_hot_des);
-    double rhop = field_htfProps.dens(Tavg, 1.0);
 
+    double Ksg = 0.0;
+    if (m_drag_method == 1 || m_drag_method == 2)  
+    {
+        double rho, visc, Tf, rhof, viscf, Ref, b;
+        rho = ambient_air.dens(Tamb, 101325);
+        visc = ambient_air.visc(Tamb);
+        Tf = 0.5 * (Ts + Tamb);
+        rhof = ambient_air.dens(Tf, 101325);
+        viscf = ambient_air.visc(Tf);
+        Ref = rhof * fabs(solid_velocity - gas_velocity) * m_particle_dp / viscf;
+        b = m_drag_method == 1 ? 0.15 : 0.4;  // 0.15 used by Hruby, 0.4 used by Pasquolotto
+        Ksg = (18 * phis * visc / pow(m_particle_dp, 2)) * (rho / rhof) * (viscf / visc) * (1 + b * pow(Ref, 0.667));
+    }
+    else if (m_drag_method == 3)  // Syamlal_OBrien drag model
+    {
+        double Tf, rhof, viscf, Ref, A, B, urs, Cd;
+        Tf = 0.5 * (Ts + Tamb);
+        rhof = ambient_air.dens(Tf, 101325);
+        viscf = ambient_air.visc(Tf);
+        Ref = rhof * fabs(solid_velocity - gas_velocity) * m_particle_dp / viscf;
+        A = pow(1 - phis, 4.14);
+
+        B = (1 - phis) <= 0.85 ? 0.8 * pow(1 - phis, 1.28) : pow(1 - phis, 2.65);
+        urs = 0.5 * (A - 0.06 * Ref + pow(pow(0.06 * Ref, 2) + 0.12 * Ref * (2 * B - A) + pow(A, 2), 0.5));
+        Cd = pow(0.63 + 4.8 / pow(Ref / urs, 0.5), 2);
+        Ksg = (3 * phis * (1 - phis) * rhof / (4 * pow(urs, 2) * m_particle_dp)) * Cd * (solid_velocity - gas_velocity);
+    }
+
+    return Ksg;
+}
+
+// Solve mass and momentum balances for particle velocity, curtain thickness, particle volume fraction
+void C_falling_particle_receiver::solve_particle_flow(util::matrix_t<double>& mdot_per_elem, double Ts, double Tamb, util::matrix_t<double>& phip, util::matrix_t<double>& vel, util::matrix_t<double>& th)
+{
+    double g = 9.81;
+    int nsub = ceil(400 / (m_n_y - 1));     // Number of sub-intervals for better numerical performance of velocity solutions
+    int ny = nsub * (m_n_y - 1) + 1;        // Total number of nodes used for momentum solutions
+    double dx = m_curtain_width / m_n_x;
+    double dy = m_curtain_height / (ny - 1);
+    double Tavg = 0.5 * (m_T_htf_cold_des + m_T_htf_hot_des);
+    double particle_dens = field_htfProps.dens(Tavg, 1.0);
+
+    util::matrix_t<double> phip1, vel1, th1;
+    phip1.resize_fill(ny, m_n_x, 0.0);
+    vel1.resize_fill(ny, m_n_x, 0.0);
+    th1.resize_fill(ny, m_n_x, 0.0);
+
+    // Set initial flow conditions
+    if (m_curtain_inlet_method == 0)  // Approach used by Gonzalez et al 2023. 1.3m initial particle fall distance for a 12m curtain height, assumed to scale linearly to the actual
+    {
+        double initial_fall_height = m_initial_fall_height_fraction * m_curtain_height + m_initial_fall_height_fixed;
+        for (size_t i = 0; i < m_n_x; i++)
+        {
+            phip1.at(0, i) = m_phi0;    // Initial solids fraction
+            vel1.at(0, i) = pow(2 * g * initial_fall_height, 0.5);                           // Initial particle velocity (m/s) after initial fall height assuming no drag
+            th1.at(0, i) = mdot_per_elem.at(i) / (phip1.at(0, i) * vel1.at(0, i) * particle_dens * dx); // Initial thickness to satisfy curtain mass flow at given initial curtain volume fraction and velocity
+        }
+    }
+    else if (m_curtain_inlet_method == 1)  // Approach used by Gonzalez et al 2021 and Pasqualotto 2024. Initial thickness comes from slot thickness for given particle flow rate (based on modified Beverloo correlation fit by Ho et al 2017)
+    {
+        double C1 = 62;
+        double C2 = 1.4;
+        for (size_t i = 0; i < m_n_x; i++)
+        {
+            double mflux = mdot_per_elem.at(i) / dx;  // Linear mass flux (kg/s/m)
+            phip1.at(0, i) = m_phi0;                // Initial solids fraction
+            th1.at(0, i) = pow((mflux * 60) / (C1 * m_phi0 * particle_dens * pow(g, 0.5)), (1.0 / 1.5)) + C2 * m_particle_dp;  // Initial curtain thickness (m) from fit to modified Beverloo correlation (Ho et al 2017)
+            vel1.at(0, i) = mflux / (phip1.at(0, i) * th1.at(0, i) * particle_dens);  // Initial particle velocity to satisfy curtin mass flow at given initial volume fraction and thickness (m/s)
+        }
+    }
+
+    for (size_t j = 1; j < ny; j++)
+    {
+        int j1 = (int)(j / nsub);  
+
+        bool is_trough = (j % nsub == 0 && m_is_trough_node.at(j1));
+        for (size_t i = 0; i < m_n_x; i++)
+        {
+            double mflux = mdot_per_elem.at(i) / dx;
+            if (is_trough)
+            {
+                phip1.at(j, i) = m_trough_reset_phi;
+                vel1.at(j, i) = m_trough_reset_velocity;
+                th1.at(j, i) = mflux / (phip1.at(j, i) * vel1.at(j, i) * particle_dens);
+            }
+            else
+            {
+                th1.at(j, i) = th1.at(j - 1, i) + m_dthdy * dy;              // Curtain thickness assuming a fixed rate of increase along fall dimension
+                double ug = vel1.at(j-1, i) * m_relative_gas_velocity;     // Local gas velocity based on assumed gas-to-solid velocity ratio
+                double Ksg = momentum_exchange_coefficient(vel1.at(j-1, i), ug, phip1.at(j-1, i), Ts, Tamb);  // Momentum exchange coefficient
+                vel1.at(j, i) = vel1.at(j-1,i) + (dy / mflux) * (phip1.at(j-1,i) * particle_dens * th1.at(j-1,i) * g + th1.at(j-1,i) * Ksg * (ug - vel1.at(j-1,i)));
+                phip1.at(j, i) = mflux / (th1.at(j, i) * vel1.at(j, i) * particle_dens);
+            }
+        }
+    }
+
+    // Extract conditions at tabulated nodes
     phip.resize_fill(m_n_y, m_n_x, 0.0);
     vel.resize_fill(m_n_y, m_n_x, 0.0);
     th.resize_fill(m_n_y, m_n_x, 0.0);
-    
-    // Initial condition
-    for (size_t i = 0; i < m_n_x; i++)
+    for (size_t j = 0; j < m_n_y; j++)
     {
-        phip.at(0, i) = m_phi0;
-        vel.at(0, i) = pow(2 * g * initial_fall_height, 0.5);                           // Initial particle velocity (m/s) after initial fall height assuming no drag
-        th.at(0, i) = mdot_per_elem.at(i) / (phip.at(0, i) * vel.at(0, i) * rhop * dx); // Initial thickness to satisfy curtain mass flow at given initial curtain volume fraction and velocity
-    }
-
-    for (size_t j = 1; j < m_n_y; j++)
-    {
+        int j1 = nsub * j;
         for (size_t i = 0; i < m_n_x; i++)
         {
-            th.at(j,i) = th.at(j-1,i) + m_dthdy * dy;                   // Curtain thickness assuming a fixed rate of increase along fall dimension
-            vel.at(j,i) = vel.at(j-1,i) + dy * g / vel.at(j-1,i);         // From momentum equation: -(phip*th*rhop*vp) * (dvp/dy) + (phip*th*rhop*g) = 0
-            phip.at(j,i) = (phip.at(j-1,i) * th.at(j-1,i) * vel.at(j-1,i)) / (th.at(j,i) * vel.at(j,i)); // From mass balance
+            phip.at(j, i) = phip1.at(j1, i);
+            vel.at(j, i) = vel1.at(j1, i);
+            th.at(j, i) = th1.at(j1, i);
         }
     }
     return;
@@ -1949,36 +2074,60 @@ void C_falling_particle_receiver::calculate_local_curtain_optical_properties(dou
 
 
 // Advective loss coefficients from the best-fit correlations to Sandia's CFD model based on Gonzalez et al. Solar Energy 255 (2023) 301–313 (https://doi.org/10.1016/j.solener.2023.03.046)
-void C_falling_particle_receiver::calculate_advection_coeff_sandia(double vel, double Tprop, double wspd, double wdir, double Pamb, double &hadv, double &fwind)
+void C_falling_particle_receiver::calculate_advection_coeff(double vel_max, double vel_avg, double Tprop, double wspd, double wdir, double Pamb, double &hadv, double &fwind)
 {
-    
-    double A, B, C, D, E, F, G, H;
-    A = -12331;
-    B = 1.949;
-    C = 0.7002;
-    D = 0.2370;
-    E = 0.0089;
-    F = 178.7;
-    G = 134.3;
-    H = 27.49;
 
     double k_air = ambient_air.cond(Tprop);				//[W/m-K] The conductivity of the ambient air
     double mu_air = ambient_air.visc(Tprop);			//[kg/m-s] Dynamic viscosity of the ambient air
     double rho_air = ambient_air.dens(Tprop, Pamb);		//[kg/m^3] Density of the ambient air
-    double Re = rho_air * vel * m_curtain_height / mu_air;
-    double Nu = A + B * pow(Re, C);
-    hadv = Nu * k_air / m_curtain_height;   // Advective loss coefficient without wind (W/m2/K)
+    double Re_max_Hc = rho_air * vel_max * m_curtain_height / mu_air;
+    double Re_avg_Ha = rho_air * vel_avg * m_ap_height / mu_air;
 
-    double wind_factor = 1.0;
     double wdir_eff = wdir - m_rec_orientation;  // Adjust wind direction relative to receiver orientation
     if (wdir_eff < 0)
         wdir_eff = 360 + wdir_eff;
-    double phi_wind = exp(-pow((std::abs(wdir_eff - F) - G) / H, 2));
-    fwind = 1.0 + (D - E * m_ap_height) * wspd * phi_wind;
 
-    // Scale loss coefficient to account for differences in aperture and curtain area
-    // Loss coefficient from Gonzalez et al. assumes equal aperture area and curtain area and will overestimate convective losses if the loss coefficient is applied for cases where curtain area > aperture area
-    hadv *= m_ap_area / m_curtain_area;
+    // Advective loss coefficients from the best-fit correlations to Sandia's CFD model based on Gonzalez et al. Solar Energy 255 (2023) 301–313 (https://doi.org/10.1016/j.solener.2023.03.046)
+    if (m_hadv_model_type == 1)
+    {
+        double A, B, C, D, E, F, G, H;
+        A = -12331;
+        B = 1.949;
+        C = 0.7002;
+        D = 0.2370;
+        E = -0.0089;
+        F = 178.7;
+        G = 134.3;
+        H = 27.49;
+
+        double Nu = A + B * pow(Re_max_Hc, C);
+        hadv = Nu * k_air / m_curtain_height;   // Advective loss coefficient without wind (W/m2/K)
+        double phi_wind = exp(-pow((std::abs(wdir_eff - F) - G) / H, 2));
+        fwind = 1.0 + (D + E * m_ap_height) * wspd * phi_wind;
+
+    }
+
+    // Re-fit advective loss coefficients using both free-fall and multi-stage CFD data
+    else if (m_hadv_model_type == 2)
+    {
+        double C0, C1, C2, D0, D1, D2, D3, D4, E0, E1, E2;
+        C0 = -3673.305;
+        C1 = 0.409;
+        C2 = 0.8171;
+        D0 = 0.1738;
+        D1 = -0.002202;
+        D2 = 0.0;
+        D3 = 1.5843;
+        D4 = 1.1779;
+        E0 = 310.640;
+        E1 = 3.860;
+        E2 = 24.225;
+        double Nu = C0 + C1 * pow(Re_avg_Ha, C2);
+        hadv = Nu * k_air / m_ap_height;   // Advective loss coefficient without wind (W/m2/K)
+        double phi_wind = exp(-pow((std::abs(wdir_eff - E0) - E1) / E2, 2));
+        fwind = 1.0 + (D0 + D1 * pow(m_ap_height,D2) * pow(vel_avg, D3)) * pow(wspd,D4) * phi_wind;
+    }
+
 
     return;
 }
@@ -2024,6 +2173,17 @@ void C_falling_particle_receiver::calculate_view_factors()
         top_height = 0.5 * (m_curtain_height - m_ap_height);
     double side_width = 0.5 * (m_cav_width - m_ap_width);
 
+    std::vector<double> group_dist_to_aperture(ny, 0.0);
+    int i0 = 0;
+    for (j = 0; j < ny; j++)  // Height groups
+    {
+        for (i = 0; i < m_ny_per_group.at(j); i++)
+            group_dist_to_aperture.at(j) += m_curtain_dist_nodes.at(i0 + i) / m_ny_per_group.at(j);  // Average distance to aperture over all grouped nodes
+        i0 += m_ny_per_group.at(j);
+    }
+
+
+
     m_vf.resize_fill(nelem, nelem, 0.0);  // View factor matrix. Curtain height/width elements are ordered as (y0,x0), (y0,x1)... (y0,xn), (y1,x0)...
 
     // View factors from each curtain element to the aperture and front wall(note, this assumes the curtain is flat!)
@@ -2060,7 +2220,7 @@ void C_falling_particle_receiver::calculate_view_factors()
             dxg = m_nx_per_group.at(k) * dx;     // x-extent of this group
 
             i = 1 + j * nx + k;  // Front curtain element index in flattened array
-            m_vf.at(i, 0) = vf_parallel_rect(x0*dx, y0*dy, side_width, top_height, dxg, dyg, m_ap_width, m_ap_height, m_curtain_dist);  // View factor from front curtain element to full aperture
+            m_vf.at(i, 0) = vf_parallel_rect(x0*dx, y0*dy, side_width, top_height, dxg, dyg, m_ap_width, m_ap_height, group_dist_to_aperture.at(j));  // View factor from front curtain element to full aperture
             m_vf.at(0, i) = m_vf.at(i, 0) * (dxg * dyg / m_ap_area);                 // View factor from aperture to front curtain element
             m_vf.at(i, ifw) = 1.0 - m_vf.at(i, 0);                                   // View factor from front curtain element to front wall. Each element can only see the aperture or the front wall 
             m_vf.at(ifw, i) = m_vf.at(i, ifw) * (dxg * dyg / m_cav_front_area);     // View factor from front wall to front curtain element
@@ -2469,7 +2629,7 @@ double C_falling_particle_receiver::calculate_passive_surface_T(double Tguess, d
     return Tw;
 }
 
-// Calculate mass-weighted average particle exit temperature
+// Calculate mass-weighted average of values at exit
 double C_falling_particle_receiver::calculate_mass_wtd_avg_exit(util::matrix_t<double>& m_flow_per_elem, util::matrix_t<double>& mat)
 {
     int nx = (int)mat.ncols();
@@ -2484,6 +2644,30 @@ double C_falling_particle_receiver::calculate_mass_wtd_avg_exit(util::matrix_t<d
     outlet /= mtot;
     return outlet;
 }
+
+// Calculate mass-weighted average over all values
+double C_falling_particle_receiver::calculate_mass_wtd_avg(util::matrix_t<double>& m_flow_per_elem, util::matrix_t<double>& mat)
+{
+    int nx = (int)mat.ncols();
+    int ny = (int)mat.nrows();
+    double mtot = 0.0;
+    double val = 0.0;
+    double v1 = 0.0;
+
+    for (int i = 0; i < nx; i++)
+    {
+        mtot += m_flow_per_elem.at(i);
+        v1 = 0.0;
+        for (int j = 0; j < ny; j++)
+        {
+            v1 += mat.at(j, i) / ny;
+        }
+        val += m_flow_per_elem.at(i) * v1;
+    }
+    val /= mtot;
+    return val;
+}
+
 
 util::matrix_t<double> C_falling_particle_receiver::sum_over_rows(util::matrix_t<double>& mat, bool exclude_last)
 {

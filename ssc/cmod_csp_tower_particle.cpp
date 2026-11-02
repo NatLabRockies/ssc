@@ -164,7 +164,7 @@ static var_info _cm_vtab_csp_tower_particle[] = {
     { SSC_INPUT,     SSC_ARRAY,  "norm_curtain_height",                "Normalized particle curtain height",                                                                                                      "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_ARRAY,  "norm_curtain_width",                 "Normalized particle curtain width",                                                                                                       "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_ARRAY,  "max_curtain_depth",                  "Particle curtain entrance depth",                                                                                                         "m",            "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
-    { SSC_INPUT,     SSC_MATRIX, "norm_heights_depths",                "Normalized troughs heights and depths, pass [[0,0]] for no curtain troughs",                                                              "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
+    { SSC_INPUT,     SSC_MATRIX, "norm_heights_depths",                "Normalized troughs heights and depths for multistage flow configuration",                                                                 "",             "",                                  "Tower and Receiver",                       "rec_flow_config=1",                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "curtain_type",                       "Flat=0;Curved=1",                                                                                                                         "",             "",                                  "Tower and Receiver",                       "?=0",                                                              "",              ""},
     //{ SSC_INPUT,     SSC_NUMBER, "curtain_radius",                     "Particle curtain radius",                                                                                                                 "m",            "",                                  "Tower and Receiver",                       "curtain_type=1",                                                   "",              "" },
     { SSC_INPUT,     SSC_ARRAY,  "is_snout",                           "Is SNOUT enabled?",                                                                                                                       "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
@@ -181,7 +181,7 @@ static var_info _cm_vtab_csp_tower_particle[] = {
     // Falling particle receiver thermal model parameters 
     { SSC_INPUT,     SSC_NUMBER, "rec_model_type",                     "Receiver model type (0 = fixed efficiency, 1 = Sandia FFPR 0D correlation, 2 = Sandia MFPR 0D correlation, 3 = Quasi 2D model)",          "",             "",                                  "Tower and Receiver",                       "?=3",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_rad_model_type",                 "Receiver radiation model type (0 = Simplified formulation from Sandia, 1 = Full formulation)",                                            "",             "",                                  "Tower and Receiver",                       "?=1",                                                              "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "rec_adv_model_type",                 "Receiver advection model type (0 = Fixed advective loss coefficient, 1 = Correlations from Sandia)",                                      "",             "",                                  "Tower and Receiver",                       "?=1",                                                              "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "rec_adv_model_type",                 "Receiver advection model type (0 = Fixed advective loss coefficient, 1 = Freefall correlations from Sandia, 2 = Updated correlations)",   "",             "",                                  "Tower and Receiver",                       "?=1",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_eta_fixed",                      "User-provided fixed receiver efficiency (fraction)",                                                                                      "",             "",                                  "Tower and Receiver",                       "rec_model_type=0",                                                 "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_hadv_fixed",                     "User-provided fixed receiver advective loss coefficient",                                                                                 "W/m2/K",       "",                                  "Tower and Receiver",                       "rec_adv_model_type=0",                                             "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_ny",                             "Number of curtain elements in the vertical dimension",                                                                                    "",             "",                                  "Tower and Receiver",                       "?=13",                                                             "",              "" },
@@ -199,6 +199,10 @@ static var_info _cm_vtab_csp_tower_particle[] = {
     { SSC_INPUT,     SSC_NUMBER, "cav_hext",                           "Cavity wall external convective loss coefficient",                                                                                        "W/m2/K",       "",                                  "Tower and Receiver",                       "?=10.0",                                                           "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_tauc_mult",                      "User-provided multiplier for calculated curtain transmissivity",                                                                          "",             "",                                  "Tower and Receiver",                       "?=1.0",                                                            "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_hadv_mult",                      "User-provided multiplier for calculated advective loss coefficient",                                                                      "",             "",                                  "Tower and Receiver",                       "?=1.0",                                                            "",              ""},
+
+    { SSC_INPUT,     SSC_NUMBER, "rec_flow_config",                    "Particle flow configuration (0 = free-fall, 1 = multistage)",                                                                             "",             "",                                  "Tower and Receiver",                       "?=0",                                                              "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "rec_trough_reset_velocity",          "Particle velocity leaving catch/release troughs (m/s)",                                                                                   "",             "",                                  "Tower and Receiver",                       "?=0.3",                                                            "",              "" },
+
 
         // Field layout and tower/receiver dimensions
         // If field_model_type = 1, tower/receiver dimensions are used as guess values
@@ -839,6 +843,15 @@ public:
             log(err_msg, SSC_WARNING);
         }
 
+        bool rec_is_multistage = as_boolean("rec_flow_config") == 0 ? false : true;
+        double rec_trough_reset_velocity = as_double("rec_trough_reset_velocity");
+        if (! rec_is_multistage)
+        {
+            util::matrix_t<double> trough_locations(1, 2, 0.0);
+            assign("norm_heights_depths", trough_locations);
+        }
+
+
         size_t input_idx;
         double ap_height, ap_width, curtain_height, curtain_width, ap_curtain_depth_ratio, rec_orientation;
         double A_rec_curtain_total = 0.0, A_rec_aperture_total = 0.0, power_fraction_sum = 0.0;
@@ -874,6 +887,7 @@ public:
                 as_integer("rec_htf"), as_matrix("field_fl_props"),
                 as_integer("rec_model_type"), user_efficiency, as_integer("rec_rad_model_type"), as_integer("rec_adv_model_type"), user_hadv,
                 ap_height, ap_width, norm_curtain_height[input_idx], norm_curtain_width[input_idx], ap_curtain_depth_ratio, rec_orientation,
+                rec_is_multistage, as_matrix("norm_heights_depths"), as_double("rec_trough_reset_velocity"),
                 as_double("particle_dp"), as_double("particle_abs"), as_double("curtain_emis"), as_double("curtain_dthdy"),
                 as_double("cav_abs"), as_double("cav_emis"), as_double("cav_twall"), as_double("cav_kwall"), as_double("cav_hext"),
                 as_double("transport_deltaT_cold"), as_double("transport_deltaT_hot"),
@@ -904,6 +918,9 @@ public:
                 }
             }
         }
+
+        //util::matrix_t<double>sp_trough_locations(1, 2, 0.0);
+        //assign("norm_heights_depths", sp_trough_locations);
 
         // Assign design receiver heat loss for SolarPILOT
         std::string hl_msg;

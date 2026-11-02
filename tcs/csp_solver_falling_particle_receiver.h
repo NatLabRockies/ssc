@@ -137,9 +137,12 @@ protected:
     int m_rad_model_type;       // Model used for advective loss (only used if m_model_type == 3):  0 = Sandia's formulation with hard-coded fudged view factor, 1 = new formulation
     double m_vf_rad_type_0;     // "View factor" to use if m_rad_model_type == 0
 
-    int m_hadv_model_type;      // Model used for advective loss (only used if m_model_type ==3): 0 = user-defined constant value, 1 = Sandia's correlation
+    int m_hadv_model_type;      // Model used for advective loss (only used if m_model_type ==3): 0 = user-defined constant value, 1 = Sandia's original correlation, 2 = correlations re-fit including multistage CFD data
     double m_hadv_user;         // User-provided constant advective loss coefficient (Only used if m_model_type >=3 and m_hadv_model = 0)
     double m_hadv_mult;         // User-provided multipler to adjust advective loss coefficient. Only used if m_hdav_model_type == 1
+
+    double m_drag_method;             // Drag method used in particle momentum equation: 0 = no drag, 1 = Hruby et al (1998), 2 = Pasquolotto (2024), 2 = Syamlal O'Brien'
+    double m_relative_gas_velocity;   // Assumed local (gas velocity / particle velocity), only used if m_drag_method > 0
 
     // Cavity and curtain geometry
     double m_ap_height;                 // Aperture height [m]
@@ -151,12 +154,23 @@ protected:
     bool m_is_ap_at_bot;                // Is aperture positioned at the bottom of the cavity? (Hard-coded to true to match SolarPILOT)                                                                        
     bool m_is_curtain_flat;             // [-]  (Hard-coded to false for now, curved curtain is not implemented yet)
     double m_curtain_rad;               // Curtain radius of curvature (only used if m_is_curtain_flat = false) [-]
-    double m_initial_fall_height_fixed;         // Fixed initial fall height [m]
-    double m_initial_fall_height_fraction;      // Initial fall height of particle curtain before reaching top of cavity / cavity height [-]
+
+    // Inputs to define initial curtain conditions
+    int m_curtain_inlet_method;               // Method for describing initial curtain conditions (0 or 1)
+    double m_initial_fall_height_fixed;       // Fixed initial fall height [m]
+    double m_initial_fall_height_fraction;    // Initial fall height of particle curtain before reaching top of cavity / cavity height [-]
+
+    // Multistage inputs
+    bool m_is_multistage;                       // Is the flow configuration multistage?
+    double m_trough_reset_velocity;             // Velocity of particles leaving each trough (m/s) 
+    double m_trough_reset_phi;                  // Solids fraction leaving each trough
+    util::matrix_t<double> m_trough_locations;  // Dimensionless trough locations [distance from bottom of curtain/curtain height, distance from aperture / maximum aperture-to-curtain distance] 
+    std::vector<bool> m_is_trough_node;         // Designates if a trough is present at each axial node
+    std::vector<double> m_curtain_dist_nodes;   // Distance between aperture and curtain at each discretized node [m]
+
 
     // Receiver orientation
     double m_rec_orientation;    // Receiver orientation (0 = north, 90 = east, 180 = south, 270 = west
-
 
     // Particle and curtain properties
     double m_particle_dp;       // Particle diameter [m]
@@ -287,11 +301,13 @@ protected:
 
     double sandia_efficiency_correlation(bool is_multistage, double Q_inc, double v_wind, double wind_direc);
 
-    void solve_particle_flow(util::matrix_t<double>& mdot_per_elem, util::matrix_t<double>& phip, util::matrix_t<double>& vel, util::matrix_t<double>& th);
+    double momentum_exchange_coefficient(double solid_velocity, double gas_velocity, double phis, double Ts, double Tamb);
+
+    void solve_particle_flow(util::matrix_t<double>& mdot_per_elem, double Ts, double Tamb, util::matrix_t<double>& phip, util::matrix_t<double>& vel, util::matrix_t<double>& th);
 
     void calculate_local_curtain_optical_properties(double th, double phip, double& rhoc, double& tauc);
 
-    void calculate_advection_coeff_sandia(double vel, double Tprop, double wspd, double wdir, double Pamb, double& hadv, double& fwind);
+    void calculate_advection_coeff(double vel_max, double vel_avg, double Tprop, double wspd, double wdir, double Pamb, double& hadv, double& fwind);
 
     double calculate_wall_convection_coeff(double vel, double len, double Tprop, double P_amb);
 
@@ -312,6 +328,8 @@ protected:
     double calculate_passive_surface_T(double Tguess, double qnet_rad, double hconv, double Tconv, double Tamb, bool is_axial_conduction, double Tcond_prev, double Tcond_next);
 
     double calculate_mass_wtd_avg_exit(util::matrix_t<double>& m_flow_per_elem, util::matrix_t<double>& mat);
+
+    double calculate_mass_wtd_avg(util::matrix_t<double>& m_flow_per_elem, util::matrix_t<double>& mat);
 
     double vf_parallel_rect(double x1, double y1, double e1, double n1, double dx, double dy, double de, double dn, double z);
 
@@ -341,6 +359,7 @@ public:
         int field_fl, util::matrix_t<double> field_fl_props,
         int model_type /*-*/, double fixed_efficiency /*-*/, int rad_model_type /*-*/, int hadv_model_type /*-*/, double hadv_user  /*-*/,
         double ap_height /*m*/, double ap_width /*m*/, double ap_height_ratio /*-*/, double ap_width_ratio /*-*/, double ap_curtain_depth_ratio /*-*/, double rec_orientation,
+        bool is_multistage /**/, util::matrix_t <double>trough_locations /**/, double trough_reset_velocity /*m/s*/,
         double particle_dp /*m*/, double particle_abs /*-*/, double curtain_emis /*-*/, double dthdy /*-*/,
         double cav_abs /*-*/, double cav_emis /*-*/, double cav_twall /*m*/, double cav_kwall /*m*/, double cav_hext /*W/m2/K*/,
         double deltaT_transport_cold /*K*/, double deltaT_transport_hot /*K*/,

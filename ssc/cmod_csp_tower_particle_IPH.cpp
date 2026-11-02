@@ -167,7 +167,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
     { SSC_INPUT,     SSC_ARRAY,  "norm_curtain_height",                "Normalized particle curtain height",                                                                                                      "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_ARRAY,  "norm_curtain_width",                 "Normalized particle curtain width",                                                                                                       "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
     { SSC_INPUT,     SSC_ARRAY,  "max_curtain_depth",                  "Particle curtain entrance depth",                                                                                                         "m",            "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
-    { SSC_INPUT,     SSC_MATRIX, "norm_heights_depths",                "Normalized troughs heights and depths, pass [[0,0]] for no curtain troughs",                                                              "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
+    { SSC_INPUT,     SSC_MATRIX, "norm_heights_depths",                "Normalized troughs heights and depths for multistage flow configuration",                                                                 "",             "",                                  "Tower and Receiver",                       "rec_flow_config=1",                                                "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "curtain_type",                       "Flat=0;Curved=1",                                                                                                                         "",             "",                                  "Tower and Receiver",                       "?=0",                                                              "",              ""},
     //{ SSC_INPUT,     SSC_NUMBER, "curtain_radius",                     "Particle curtain radius",                                                                                                                 "m",            "",                                  "Tower and Receiver",                       "curtain_type=1",                                                   "",              "" },
     { SSC_INPUT,     SSC_ARRAY,  "is_snout",                           "Is SNOUT enabled?",                                                                                                                       "",             "",                                  "Tower and Receiver",                       "*",                                                                "",              ""},
@@ -184,7 +184,7 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
     // Falling particle receiver thermal model parameters 
     { SSC_INPUT,     SSC_NUMBER, "rec_model_type",                     "Receiver model type (0 = fixed efficiency, 1 = Sandia FFPR 0D correlation, 2 = Sandia MFPR 0D correlation, 3 = Quasi 2D model)",          "",             "",                                  "Tower and Receiver",                       "?=3",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_rad_model_type",                 "Receiver radiation model type (0 = Simplified formulation from Sandia, 1 = Full formulation)",                                            "",             "",                                  "Tower and Receiver",                       "?=1",                                                              "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "rec_adv_model_type",                 "Receiver advection model type (0 = Fixed advective loss coefficient, 1 = Correlations from Sandia)",                                      "",             "",                                  "Tower and Receiver",                       "?=1",                                                              "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "rec_adv_model_type",                 "Receiver advection model type (0 = Fixed advective loss coefficient, 1 = Freefall correlations from Sandia, 2 = Updated correlations)",   "",             "",                                  "Tower and Receiver",                       "?=1",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_eta_fixed",                      "User-provided fixed receiver efficiency (fraction)",                                                                                      "",             "",                                  "Tower and Receiver",                       "rec_model_type=0",                                                 "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_hadv_fixed",                     "User-provided fixed receiver advective loss coefficient",                                                                                 "W/m2/K",       "",                                  "Tower and Receiver",                       "rec_adv_model_type=0",                                             "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_ny",                             "Number of curtain elements in the vertical dimension",                                                                                    "",             "",                                  "Tower and Receiver",                       "?=13",                                                             "",              "" },
@@ -202,6 +202,9 @@ static var_info _cm_vtab_csp_tower_particle_iph[] = {
     { SSC_INPUT,     SSC_NUMBER, "cav_hext",                           "Cavity wall external convective loss coefficient",                                                                                        "W/m2/K",       "",                                  "Tower and Receiver",                       "?=10.0",                                                           "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_tauc_mult",                      "User-provided multiplier for calculated curtain transmissivity",                                                                          "",             "",                                  "Tower and Receiver",                       "?=1.0",                                                            "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "rec_hadv_mult",                      "User-provided multiplier for calculated advective loss coefficient",                                                                      "",             "",                                  "Tower and Receiver",                       "?=1.0",                                                            "",              ""},
+
+    { SSC_INPUT,     SSC_NUMBER, "rec_flow_config",                    "Particle flow configuration (0 = free-fall, 1 = multistage)",                                                                             "",             "",                                  "Tower and Receiver",                       "?=0",                                                              "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "rec_trough_reset_velocity",          "Particle velocity leaving catch/release troughs (m/s)",                                                                                   "m/s",          "",                                  "Tower and Receiver",                       "?=0.3",                                                            "",              ""},
 
     // Field layout and tower/receiver dimensions
     // If field_model_type = 1, tower/receiver dimensions are used as guess values
@@ -710,7 +713,7 @@ public:
         std::clock_t clock_start = std::clock();
         int sim_type = as_integer("sim_type");      // 1 (default): time-series, 2: design only
         bool is_dispatch = as_boolean("is_dispatch");
-        
+
         // === IPH MOD 6: convert heat price $/MMBtu -> $/kWh so dispatch and the financial model can use it ===
         const double MMBTU_TO_KWh = 293.07107;
         if (is_assigned("ppa_price_input_heat_btu"))
@@ -739,11 +742,11 @@ public:
         // Weather reader
         // *****************************************************
         C_csp_weatherreader weather_reader;
-        if (is_assigned("solar_resource_file")){
+        if (is_assigned("solar_resource_file")) {
             weather_reader.m_weather_data_provider = make_shared<weatherfile>(as_string("solar_resource_file"));
             if (weather_reader.m_weather_data_provider->has_message()) log(weather_reader.m_weather_data_provider->message(), SSC_WARNING);
         }
-        if (is_assigned("solar_resource_data")){
+        if (is_assigned("solar_resource_data")) {
             weather_reader.m_weather_data_provider = make_shared<weatherdata>(lookup("solar_resource_data"));
             if (weather_reader.m_weather_data_provider->has_message()) log(weather_reader.m_weather_data_provider->message(), SSC_WARNING);
         }
@@ -800,6 +803,13 @@ public:
             log(err_msg, SSC_WARNING);
         }
 
+        bool rec_is_multistage = as_boolean("rec_flow_config") == 0 ? false : true;
+        if (!rec_is_multistage)
+        {
+            util::matrix_t<double> trough_locations(1, 2, 0.0);
+            assign("norm_heights_depths", trough_locations);
+        }
+
         size_t input_idx;
         double ap_height, ap_width, curtain_height, curtain_width, ap_curtain_depth_ratio, rec_orientation;
         double A_rec_curtain_total = 0.0, A_rec_aperture_total = 0.0, power_fraction_sum = 0.0;
@@ -835,6 +845,7 @@ public:
                 as_integer("rec_htf"), as_matrix("field_fl_props"),
                 as_integer("rec_model_type"), user_efficiency, as_integer("rec_rad_model_type"), as_integer("rec_adv_model_type"), user_hadv,
                 ap_height, ap_width, norm_curtain_height[input_idx], norm_curtain_width[input_idx], ap_curtain_depth_ratio, rec_orientation,
+                rec_is_multistage, as_matrix("norm_heights_depths"), as_double("rec_trough_reset_velocity"),
                 as_double("particle_dp"), as_double("particle_abs"), as_double("curtain_emis"), as_double("curtain_dthdy"),
                 as_double("cav_abs"), as_double("cav_emis"), as_double("cav_twall"), as_double("cav_kwall"), as_double("cav_hext"),
                 as_double("transport_deltaT_cold"), as_double("transport_deltaT_hot"),
@@ -849,14 +860,14 @@ public:
                     design_heat_loss.at(i) = 0.0;
                     std::string msg;
                     msg = util::format("Receiver %d failed to converge at design condition. Setting receiver heat loss to 0.0 for SolarPILOT. \n"
-                        "Resulting heliostat field could be undersized.", i+1);
+                        "Resulting heliostat field could be undersized.", i + 1);
                     log(msg, SSC_WARNING);
                 }
                 else { // Throw error if not running optimization
                     if (sim_type == 1) {
                         std::string msg;
                         msg = util::format("Receiver %d failed to converge at design condition. "
-                            "Aperture size is most likely too large or receiver parameters are unrealistic.", i+1);
+                            "Aperture size is most likely too large or receiver parameters are unrealistic.", i + 1);
                         throw exec_error("csp_tower_particle_iph", msg);
                     }
                     else {
@@ -1124,19 +1135,19 @@ public:
         int steps_per_hour = (int)as_double("time_steps_per_hour");     //[-]
 
         //if the number of steps per hour is not provided (=-1), then assign it based on the weather file step
-        if( steps_per_hour < 0 )
+        if (steps_per_hour < 0)
         {
             double sph_d = 3600. / weather_reader.m_weather_data_provider->step_sec();
-            steps_per_hour = (int)( sph_d + 1.e-5 );
+            steps_per_hour = (int)(sph_d + 1.e-5);
             if ((double)steps_per_hour != sph_d)
                 throw exec_error("CSP Solver", "The time step duration must be evenly divisible within an hour.");
         }
 
         size_t n_steps_fixed = (size_t)steps_per_hour * 8760;   //[-]
-        if( as_boolean("vacuum_arrays") )
-            n_steps_fixed = steps_per_hour * (size_t)( (sim_setup.m_sim_time_end - sim_setup.m_sim_time_start)/3600. );
+        if (as_boolean("vacuum_arrays"))
+            n_steps_fixed = steps_per_hour * (size_t)((sim_setup.m_sim_time_end - sim_setup.m_sim_time_start) / 3600.);
         sim_setup.m_report_step = 3600.0 / (double)steps_per_hour;  //[s] 
- 
+
         // ***********************************************
         // Heat Sink
         // ***********************************************
@@ -1222,7 +1233,7 @@ public:
         {// scope for temp_flux_map
             size_t nx = as_integer("n_flux_x");
             util::matrix_t<double> temp_flux_map;
-            temp_flux_map.resize(mt_flux_maps.nrows(), nx );
+            temp_flux_map.resize(mt_flux_maps.nrows(), nx);
             for (size_t rec = 0; rec < num_recs; rec++) {
                 for (size_t r = 0; r < mt_flux_maps.nrows(); r++) {
                     for (size_t c = 0; c < nx; c++) {
@@ -1381,7 +1392,7 @@ public:
             double heater_mult = as_double("heater_mult");      //[-]
             heater_spec_cost = as_double("heater_spec_cost");   //[$/kWt]
 
-            q_dot_heater_des = q_dot_pc_des*heater_mult;     //[MWt]
+            q_dot_heater_des = q_dot_pc_des * heater_mult;     //[MWt]
 
             double heater_efficiency = as_double("heater_efficiency") / 100.0;          //[-] convert from % input
             double f_q_dot_des_allowable_su = as_double("f_q_dot_des_allowable_su");    //[-] fraction of design power allowed during startup
@@ -1603,7 +1614,7 @@ public:
         // System dispatch
         csp_dispatch_opt dispatch;
 
-        if (is_dispatch && sim_type == 1){
+        if (is_dispatch && sim_type == 1) {
 
             double heater_startup_cost = 0.0;
             if (is_parallel_heater) {
@@ -1622,7 +1633,7 @@ public:
             dispatch.params.set_user_params(can_cycle_use_standby, as_double("disp_time_weighting"),
                 disp_rsu_cost_calc, heater_startup_cost, disp_csu_cost_calc, disp_pen_ramping,
                 as_double("disp_inventory_incentive"), 0.0, 0.0);   // last two stay 0: particles have no freeze protection or heat trace
-            }
+        }
         // *****************************************************
         // Instantiate Solver       
         C_csp_solver csp_solver(weather_reader,
@@ -1723,9 +1734,9 @@ public:
             // Initialize Solver
             csp_solver.init();
         }
-        catch( C_csp_exception &csp_exception ) {
+        catch (C_csp_exception& csp_exception) {
             // Report warning before exiting with error
-            while( csp_solver.mc_csp_messages.get_message(&out_type, &out_msg) ) {
+            while (csp_solver.mc_csp_messages.get_message(&out_type, &out_msg)) {
                 log(out_msg, out_type);
             }
             throw exec_error("csp_tower_particle_iph", csp_exception.m_error_message);
@@ -2132,10 +2143,10 @@ public:
             // Simulate !
             csp_solver.Ssimulate(sim_setup);
         }
-        catch(C_csp_exception &csp_exception)
+        catch (C_csp_exception& csp_exception)
         {
             // Report warning before exiting with error
-            while( csp_solver.mc_csp_messages.get_message(&out_type, &out_msg) )
+            while (csp_solver.mc_csp_messages.get_message(&out_type, &out_msg))
             {
                 log(out_msg);
             }
@@ -2168,7 +2179,7 @@ public:
         size_t rec_n_flux_x = heliostatfields.at(0)->ms_params.m_n_flux_x;
         size_t rec_n_flux_y = heliostatfields.at(0)->ms_params.m_n_flux_y;
 
-        ssc_number_t* eta_map_out = allocate("eta_map_out", n_rows_eta_map, 2+num_recs);
+        ssc_number_t* eta_map_out = allocate("eta_map_out", n_rows_eta_map, 2 + num_recs);
         ssc_number_t* flux_maps_out = allocate("flux_maps_out", n_rows_flux_maps, n_cols_flux_maps);
         ssc_number_t* flux_maps_for_import = allocate("flux_maps_for_import", n_rows_flux_maps, n_cols_flux_maps);
 
@@ -2210,19 +2221,19 @@ public:
         size_t count;
         // === IPH MOD 11: saleable product is THERMAL power to the heat sink. gen_heat [kWt] feeds
         // annual_energy [kWht], the LCOH denominator. No net electricity is produced. ===
-        ssc_number_t *p_q_dot_heat_sink = as_array("q_dot_to_heat_sink", &count);
-        ssc_number_t *p_time_final_hr = as_array("time_hr", &count);
+        ssc_number_t* p_q_dot_heat_sink = as_array("q_dot_to_heat_sink", &count);
+        ssc_number_t* p_time_final_hr = as_array("time_hr", &count);
 
         // 'adjustment_factors' class stores factors in hourly array, so need to index as such
         adjustment_factors haf(this->get_var_table(), "adjust");
         if (!haf.setup(n_steps_full))
             throw exec_error("csp_tower_particle_iph", "failed to setup adjustment factors: " + haf.error());
 
-        ssc_number_t *p_gen_heat = allocate("gen_heat", count);
-        ssc_number_t *p_gen_heat_btu = allocate("gen_heat_btu", count);
-        ssc_number_t *p_gen = allocate("gen", count);
+        ssc_number_t* p_gen_heat = allocate("gen_heat", count);
+        ssc_number_t* p_gen_heat_btu = allocate("gen_heat_btu", count);
+        ssc_number_t* p_gen = allocate("gen", count);
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
-        for( size_t i = 0; i < count; i++ )
+        for (size_t i = 0; i < count; i++)
         {
             size_t hour = (size_t)ceil(p_time_final_hr[i]);
             p_gen_heat[i] = (ssc_number_t)(p_q_dot_heat_sink[i] * 1.E3 * haf(hour));   //[kWt] net thermal power w/ avail derate
@@ -2265,11 +2276,11 @@ public:
         }
 
         //Annual dispatch outputs
-        accumulate_annual_for_year("disp_objective", "disp_objective_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour);
-        accumulate_annual_for_year("disp_solve_iter", "disp_iter_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour);
-        accumulate_annual_for_year("disp_presolve_nconstr", "disp_presolve_nconstr_ann", sim_setup.m_report_step / 3600.0/ as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour);
-        accumulate_annual_for_year("disp_presolve_nvar", "disp_presolve_nvar_ann", sim_setup.m_report_step / 3600.0/ as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour);
-        accumulate_annual_for_year("disp_solve_time", "disp_solve_time_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed/steps_per_hour );
+        accumulate_annual_for_year("disp_objective", "disp_objective_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed / steps_per_hour);
+        accumulate_annual_for_year("disp_solve_iter", "disp_iter_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed / steps_per_hour);
+        accumulate_annual_for_year("disp_presolve_nconstr", "disp_presolve_nconstr_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed / steps_per_hour);
+        accumulate_annual_for_year("disp_presolve_nvar", "disp_presolve_nvar_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed / steps_per_hour);
+        accumulate_annual_for_year("disp_solve_time", "disp_solve_time_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed / steps_per_hour);
         accumulate_annual_for_year("disp_solve_state", "disp_solve_state_ann", sim_setup.m_report_step / 3600.0 / as_double("disp_frequency"), steps_per_hour, 1, n_steps_fixed / steps_per_hour);
 
         // Reporting dispatch solution counts

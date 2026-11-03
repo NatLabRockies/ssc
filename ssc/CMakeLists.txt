@@ -30,6 +30,8 @@ set(SSC_SRC
 		cmod_csp_tower_particle.cpp
         cmod_csp_heatsink.cpp
 		cmod_csp_subcomponent.cpp
+		cmod_csp_tower_particle.cpp
+		cmod_csp_tower_particle_IPH.cpp
         cmod_custom_generation.cpp
 		cmod_etes_electric_resistance.cpp
 		cmod_etes_ptes.cpp

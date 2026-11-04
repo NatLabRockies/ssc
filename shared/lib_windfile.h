@@ -87,6 +87,7 @@ protected:
 	std::vector<int> m_dataid;	// indexes of resource type (temp=1,pres=2,speed=3,dir=4) for each measurement height
 	std::vector<double> m_heights; /// measurement heights corresponding to each index in m_dataid
     std::vector<int> m_colid; // indexes of columns in file that contain temperature, pressure, speed or direction data
+    std::vector<double> m_colscale; // factor applied to the values in each column of m_colid (converts hPa or kPa pressure to Pa)
 	std::vector<double> m_relativeHumidity;
 	std::string m_errorMsg;
 	

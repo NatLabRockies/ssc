@@ -118,6 +118,29 @@ static float col_or_nan(const std::string& s)
         return std::numeric_limits<float>::quiet_NaN();
 }
 
+// Factor that converts a pressure column with the given units to Pa. The wind model takes pressure
+// in atm or Pa and tells them apart by magnitude, so values in hPa (as in WIND Toolkit HRRR downloads)
+// or kPa are converted to Pa when the file is read. Pa, atm and unrecognized units are left as they are.
+static double pressure_units_to_pa(std::string units)
+{
+    units = util::lower_case(trimboth(units));
+    if (units == "hpa" || units == "mbar" || units == "mb" || units == "millibar" || units == "millibars")
+        return 100.;
+    if (units == "kpa")
+        return 1000.;
+    return 1.;
+}
+
+// units in parentheses at the end of a column heading, such as "air pressure at 100m (hPa)"
+static std::string units_from_heading(const std::string& heading)
+{
+    size_t open = heading.rfind('(');
+    size_t close = heading.rfind(')');
+    if (open == std::string::npos || close == std::string::npos || close < open)
+        return "";
+    return heading.substr(open + 1, close - open - 1);
+}
+
 static int locate2(std::string buf, std::vector<std::string> &vstring, char delim)
 {
 	trim(buf);
@@ -458,9 +481,17 @@ bool windfile::open( const std::string &file )
 
         m_heights.resize(m_dataid.size(), -1);
 
-        // read line 4, units for each column (ignore this for now)
+        // read line 4, units for each column (only pressure units are used)
         getline(ifs, buf);
         nhdrs++;
+        ncols = locate2(buf, cols, ',');
+        for (size_t j = 0; j < m_colid.size(); j++)
+        {
+            double scale = 1.;
+            if (m_dataid[j] == PRES && m_colid[j] < ncols)
+                scale = pressure_units_to_pa(cols[m_colid[j]]);
+            m_colscale.push_back(scale);
+        }
 
         // read line 5, height in meters for each data column
         getline(ifs, buf);
@@ -566,6 +597,7 @@ bool windfile::open( const std::string &file )
                 m_dataid.push_back(PRES);
                 m_heights.push_back(col_or_nan(cols[i]));
                 m_colid.push_back(i);
+                m_colscale.push_back(pressure_units_to_pa(units_from_heading(hdr_item)));
             }
             // some files use a mix of "wind speed" and "windspeed"
             // some endpoints like wtk-alaska-v1-0-0 and wtk-led-conus have "vertical wind speed" and "wind speed"
@@ -581,6 +613,8 @@ bool windfile::open( const std::string &file )
                 m_heights.push_back(col_or_nan(cols[i]));
                 m_colid.push_back(i);
             }
+            // only pressure columns are rescaled
+            m_colscale.resize(m_colid.size(), 1.);
         }
     }
 
@@ -595,7 +629,8 @@ bool windfile::open( const std::string &file )
 
         for (int i = 0; i < ncols; i++)
         {
-            if (std::find(m_colid.begin(), m_colid.end(), i) != m_colid.end())
+            auto col = std::find(m_colid.begin(), m_colid.end(), i);
+            if (col != m_colid.end())
             {
                 if (util::lower_case(cols[i]) == "n/a")
                     row.push_back(std::numeric_limits<double>::quiet_NaN());
@@ -605,7 +640,7 @@ bool windfile::open( const std::string &file )
                     return false;
                 }
                 else
-                    row.push_back(std::stof(cols[i]));
+                    row.push_back(std::stof(cols[i]) * m_colscale[col - m_colid.begin()]);
             }
         }
 

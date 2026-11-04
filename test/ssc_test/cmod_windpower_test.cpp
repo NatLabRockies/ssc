@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <vector>
@@ -730,4 +731,89 @@ TEST(Turbine_powercurve_cmod_windpower_eqns, Case4) {
 
     delete vd;
 
+}
+
+// Write the AR Northwestern-Flat Lands SRW file (pressure in atm) as a WIND Toolkit style CSV file or as an SRW
+// file, with pressure converted to the given units
+static std::string write_wind_resource_with_pressure_units(const std::string& srw_file, const std::string& units,
+                                                           double units_per_atm, bool as_srw) {
+    std::ifstream srw(srw_file);
+    std::string line;
+    std::vector<std::string> header;
+    for (size_t i = 0; i < 5; i++) {
+        std::getline(srw, line);
+        header.push_back(line);
+    }
+    std::vector<std::string> types, heights;
+    util::split(header[2], ",").swap(types);
+    util::split(header[4], ",").swap(heights);
+
+    std::string out_file = (std::filesystem::temp_directory_path() / ("ssc_wind_pressure_" + units + (as_srw ? ".srw" : ".csv"))).string();
+    std::ofstream out(out_file);
+    if (as_srw) {
+        out << header[0] << "\n" << header[1] << "\n" << header[2] << "\n";
+        for (size_t j = 0; j < types.size(); j++)
+            out << (j ? "," : "") << (util::lower_case(types[j]) == "pressure" ? units : util::split(header[3], ",")[j]);
+        out << "\n" << header[4] << "\n";
+    }
+    else {
+        out << "SiteID,1,Site Timezone,-6,Data Timezone,-6,Longitude,-94.0,Latitude,36.0\n";
+        out << "Year,Month,Day,Hour,Minute";
+        for (size_t j = 0; j < types.size(); j++) {
+            std::string type = util::lower_case(types[j]);
+            if (type == "temperature") out << ",air temperature at " << heights[j] << "m (C)";
+            else if (type == "pressure") out << ",air pressure at " << heights[j] << "m (" << units << ")";
+            else if (type == "direction") out << ",wind direction at " << heights[j] << "m (deg)";
+            else out << ",wind speed at " << heights[j] << "m (m/s)";
+        }
+        out << "\n";
+    }
+    size_t hour = 0;
+    while (std::getline(srw, line)) {
+        if (line.empty() || line == "\r") continue;
+        std::vector<std::string> values = util::split(line, ",");
+        if (!as_srw) {
+            int month = util::month_of((double)hour);
+            int day = util::day_of_month(month, (double)hour);
+            out << "2013," << month << "," << day << "," << hour % 24 << ",0,";
+        }
+        for (size_t j = 0; j < types.size(); j++) {
+            double value = std::stod(values[j]);
+            if (util::lower_case(types[j]) == "pressure")
+                value *= units_per_atm;
+            out << (j ? "," : "") << util::to_string(value, "%.6f");
+        }
+        out << "\n";
+        hour++;
+    }
+    return out_file;
+}
+
+/// SAM issue 2254: WIND Toolkit HRRR downloads report pressure in hPa
+TEST_F(CMWindPowerIntegration, PressureUnits_cmod_windpower) {
+    const char* SSCDIR = std::getenv("SSCDIR");
+    std::string srw_file = std::string(SSCDIR) + "/test/input_docs/AR Northwestern-Flat Lands.srw";
+
+    ssc_data_set_string(data, "wind_resource_filename", srw_file.c_str());
+    ASSERT_TRUE(compute());
+    ssc_number_t expected_energy;
+    ssc_data_get_number(data, "annual_energy", &expected_energy);
+    ASSERT_GT(expected_energy, 0);
+    ssc_number_t expected_pressure = ssc_data_get_array(data, "pressure", nullptr)[0];
+
+    std::vector<std::pair<std::string, double>> units = {{"atm", 1.}, {"Pa", 101325.}, {"hPa", 1013.25},
+                                                         {"mbar", 1013.25}, {"kPa", 101.325}};
+    for (bool as_srw : {false, true}) {
+        for (auto& unit : units) {
+            std::string file = write_wind_resource_with_pressure_units(srw_file, unit.first, unit.second, as_srw);
+            ssc_data_set_string(data, "wind_resource_filename", file.c_str());
+            ASSERT_TRUE(compute()) << file;
+            ssc_number_t annual_energy;
+            ssc_data_get_number(data, "annual_energy", &annual_energy);
+            EXPECT_NEAR(annual_energy, expected_energy, 1e-4 * expected_energy) << file;
+            // the pressure output is always in atm
+            EXPECT_NEAR(ssc_data_get_array(data, "pressure", nullptr)[0], expected_pressure, 1e-5) << file;
+            std::filesystem::remove(file);
+        }
+    }
 }

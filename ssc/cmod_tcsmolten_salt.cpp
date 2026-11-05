@@ -3071,7 +3071,9 @@ public:
         ssc_number_t *p_W_dot_net = as_array("P_out_net", &count);
         ssc_number_t *p_time_final_hr = as_array("time_hr", &count);
 
-        // 'adjustment_factors' class stores factors in hourly array, so need to index as such
+        // 'adjustment_factors' holds one factor per step of the weather year, so index it by
+        // the step of the year that ends at time_hr. This holds for sub-hourly steps and when
+        // the simulation starts part-way through the year.
         adjustment_factors haf(this->get_var_table(), "adjust");
         if( !haf.setup(n_steps_full) )
             throw exec_error("tcsmolten_salt", "failed to setup adjustment factors: " + haf.error());
@@ -3081,8 +3083,8 @@ public:
         ssc_number_t *p_gen = allocate("gen", count);
         ssc_number_t* p_gensales_after_avail = allocate("gensales_after_avail", count);
         for( size_t i = 0; i < count; i++ ) {
-            size_t hour = (size_t)ceil(p_time_final_hr[i]);
-            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(hour));           //[kWe]
+            size_t step = (size_t)std::llround(p_time_final_hr[i] * steps_per_hour) - 1;
+            p_gen[i] = (ssc_number_t)(p_W_dot_net[i] * 1.E3 * haf(step));           //[kWe]
             if (is_assigned("pv_generation_profile")) {
                 //p_gen[i] += (ssc_number_t)pv_generation_profile[i];               //[kWe]     // TODO: This assumes all PV is sold to grid...
                 p_gen[i] += (ssc_number_t)(disp_pv_expected[i] * 1.E3);             //[kWe]     // TODO: Limits are not withheld 

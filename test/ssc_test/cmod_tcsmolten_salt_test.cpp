@@ -36,6 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cmod_tcsmolten_salt_test.h"
 #include "csp_common_test.h"
 #include <iomanip>
+#include <algorithm>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
 
 
 namespace csp_tower {}
@@ -844,3 +848,98 @@ TEST_F(CmodMSPTTest, ELEC_HEATER) {
 //		}
 //	}
 //}
+
+namespace {
+
+// Writes a copy of the hourly default weather file with every record repeated
+// steps_per_hour times, with the Minute column filled in, so that the tower runs
+// sub-hourly from the weather file alone, as in a 10-minute PySAM run.
+std::string write_subhourly_weather_file(int steps_per_hour)
+{
+    char hourly_path[512];
+    sprintf(hourly_path, "%s/test/input_cases/moltensalt_data/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv", std::getenv("SSCDIR"));
+    std::string subhourly_path = (std::filesystem::temp_directory_path() / "tcsmolten_salt_subhourly_weather.csv").string();
+
+    std::ifstream in(hourly_path);
+    std::ofstream out(subhourly_path);
+    std::string line;
+    for (int header = 0; header < 3 && std::getline(in, line); header++) {
+        out << line << "\n";
+    }
+    while (std::getline(in, line)) {
+        if (line.empty()) continue;
+        // Year,Month,Day,Hour,Minute,...: the minute is the fifth field
+        size_t minute_start = 0;
+        for (int comma = 0; comma < 4; comma++) {
+            minute_start = line.find(',', minute_start) + 1;
+        }
+        size_t minute_end = line.find(',', minute_start);
+        for (int step = 0; step < steps_per_hour; step++) {
+            out << line.substr(0, minute_start) << (step * 60 / steps_per_hour) << line.substr(minute_end) << "\n";
+        }
+    }
+    return subhourly_path;
+}
+
+// Runs the tower over [start_hour, start_hour + window_hours) at the resolution of the
+// weather file, once without losses and once with a 100 % time series loss at a
+// single step, and checks that exactly that step of gen is zeroed.
+void check_timeindex_loss_hits_its_own_step(CmodUnderTest& power_tower, int steps_per_hour, int start_hour, int window_hours)
+{
+    power_tower.SetInput("time_start", 3600. * start_hour);
+    power_tower.SetInput("time_stop", 3600. * (start_hour + window_hours));
+    power_tower.SetInput("vacuum_arrays", 1);
+    power_tower.SetInput("adjust_constant", 0);
+
+    int errors = power_tower.RunModule();
+    ASSERT_FALSE(errors);
+    std::vector<double> gen_no_loss = power_tower.GetOutputVector("gen");
+    ASSERT_EQ(gen_no_loss.size(), (size_t)window_hours * steps_per_hour);
+
+    // Put the loss at the step with the largest output, in the middle of an hour
+    // whenever the run is sub-hourly, so that the loss cannot be mistaken for a loss
+    // at the first step of the hour.
+    size_t k = std::max_element(gen_no_loss.begin(), gen_no_loss.end()) - gen_no_loss.begin();
+    if (steps_per_hour > 1) {
+        k = (k / steps_per_hour) * steps_per_hour + steps_per_hour / 2;
+    }
+    ASSERT_GT(gen_no_loss[k], 0.);
+
+    // The time series loss has one value per step of the weather file (a full year)
+    std::vector<ssc_number_t> loss((size_t)8760 * steps_per_hour, 0.);
+    loss[(size_t)start_hour * steps_per_hour + k] = 100.;
+    power_tower.SetInput("adjust_en_timeindex", 1);
+    power_tower.SetInput("adjust_timeindex", loss.data(), (int)loss.size());
+
+    errors = power_tower.RunModule();
+    ASSERT_FALSE(errors);
+    std::vector<double> gen = power_tower.GetOutputVector("gen");
+    ASSERT_EQ(gen.size(), gen_no_loss.size());
+
+    for (size_t i = 0; i < gen.size(); i++) {
+        if (i == k) {
+            EXPECT_DOUBLE_EQ(gen[i], 0.) << "the loss is at step " << k;
+        }
+        else {
+            EXPECT_NEAR(gen[i], gen_no_loss[i], 1.e-6 * std::fabs(gen_no_loss[i]) + 1.e-9) << "step " << i << " has no loss";
+        }
+    }
+}
+
+}  // namespace
+
+TEST(PowerTowerCmod, Adjust_Timeindex_Subhourly_NoFinancial)
+{
+    const int steps_per_hour = 6;
+    ssc_data_t defaults = tcsmolten_salt_defaults();
+    CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
+    power_tower.SetInput("solar_resource_file", write_subhourly_weather_file(steps_per_hour));
+    check_timeindex_loss_hits_its_own_step(power_tower, steps_per_hour, 24 * 180, 24);
+}
+
+TEST(PowerTowerCmod, Adjust_Timeindex_Hourly_NoFinancial)
+{
+    ssc_data_t defaults = tcsmolten_salt_defaults();
+    CmodUnderTest power_tower = CmodUnderTest("tcsmolten_salt", defaults);
+    check_timeindex_loss_hits_its_own_step(power_tower, 1, 24 * 180, 24);
+}

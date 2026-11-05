@@ -231,6 +231,12 @@ protected:
 
     void runTableModel();
 
+    /// Capacity percent from the calendar table at the given age (days)
+    double capacityFromTable(double day_age);
+
+    /// Age (days) at which the calendar table first reaches the given capacity percent
+    double dayAgeFromTable(double q_relative);
+
     double dt_day;
 
     std::shared_ptr<lifetime_params> params;

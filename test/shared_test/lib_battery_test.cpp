@@ -794,6 +794,73 @@ TEST_F(lib_battery_test, ReplaceByCapacityTest){
     EXPECT_EQ(rep, 1);
 }
 
+// SAM issue 2134: with a calendar table, replacements were undone on the next step because the calendar age
+// was recomputed from the simulation index
+TEST_F(lib_battery_test, ReplaceByCapacityCalendarTable) {
+    // no cycle degradation, calendar table: 100% at day 0, 80% at 10 years, 50% at 20 years
+    double cycle_vals[] = { 20, 0, 100, 20, 5000, 100, 20, 10000, 100, 80, 0, 100, 80, 5000, 100, 80, 10000, 100 };
+    util::matrix_t<double> flatCycleMatrix;
+    flatCycleMatrix.assign(cycle_vals, 6, 3);
+    auto lifetimeTable = new lifetime_calendar_cycle_t(flatCycleMatrix, dtHour, calendarLifeMatrix);
+    auto thermal = new thermal_t(dtHour, mass, surface_area, resistance, Cp, h, capacityVsTemperature, T_room);
+    auto capacity = new capacity_lithium_ion_t(q, SOC_init, SOC_max, SOC_min, dtHour);
+    auto voltage = new voltage_dynamic_t(n_series, n_strings, Vnom_default, Vfull, Vexp, Vnom, Qfull, Qexp, Qnom,
+                                         Vcut, C_rate, resistance, dtHour);
+    auto losses = new losses_t(monthlyLosses, monthlyLosses, monthlyLosses, adjustLosses);
+    batteryModel = std::unique_ptr<battery_t>(new battery_t(dtHour, chemistry, capacity, voltage, lifetimeTable, thermal, losses));
+    batteryModel->setupReplacements(85);
+
+    // the table reaches 85% after 7.5 years, so 16 years need two replacements
+    size_t idx = 0;
+    double min_capacity = 100;
+    for (size_t y = 0; y < 16; y++) {
+        for (size_t t = 0; t < 8760; t++) {
+            double I = 0;
+            batteryModel->runReplacement(y, t, 0);
+            batteryModel->run(idx++, I);
+            min_capacity = fmin(min_capacity, batteryModel->get_state().lifetime->q_relative);
+        }
+    }
+    EXPECT_EQ(batteryModel->getNumReplacementYear(), 2);
+    EXPECT_GT(min_capacity, 84.9);
+    // one year after the second replacement at 15 years
+    EXPECT_NEAR(batteryModel->get_state().lifetime->q_relative, 98, 0.1);
+    EXPECT_NEAR(batteryModel->get_state().lifetime->day_age_of_battery, 365, 1);
+}
+
+TEST_F(lib_battery_test, ReplaceOnScheduleCalendarTable) {
+    double cycle_vals[] = { 20, 0, 100, 20, 5000, 100, 20, 10000, 100, 80, 0, 100, 80, 5000, 100, 80, 10000, 100 };
+    util::matrix_t<double> flatCycleMatrix;
+    flatCycleMatrix.assign(cycle_vals, 6, 3);
+    auto lifetimeTable = new lifetime_calendar_cycle_t(flatCycleMatrix, dtHour, calendarLifeMatrix);
+    auto thermal = new thermal_t(dtHour, mass, surface_area, resistance, Cp, h, capacityVsTemperature, T_room);
+    auto capacity = new capacity_lithium_ion_t(q, SOC_init, SOC_max, SOC_min, dtHour);
+    auto voltage = new voltage_dynamic_t(n_series, n_strings, Vnom_default, Vfull, Vexp, Vnom, Qfull, Qexp, Qnom,
+                                         Vcut, C_rate, resistance, dtHour);
+    auto losses = new losses_t(monthlyLosses, monthlyLosses, monthlyLosses, adjustLosses);
+    batteryModel = std::unique_ptr<battery_t>(new battery_t(dtHour, chemistry, capacity, voltage, lifetimeTable, thermal, losses));
+    // full replacement at the start of year 6, then a 5% augmentation at the start of year 8
+    batteryModel->setupReplacements({0, 0, 0, 0, 0, 100, 0, 5});
+
+    size_t idx = 0;
+    std::vector<double> capacity_end_of_year;
+    for (size_t y = 0; y < 8; y++) {
+        for (size_t t = 0; t < 8760; t++) {
+            double I = 0;
+            batteryModel->runReplacement(y, t, 0);
+            batteryModel->run(idx++, I);
+        }
+        capacity_end_of_year.push_back(batteryModel->get_state().lifetime->q_relative);
+    }
+    EXPECT_EQ(batteryModel->getNumReplacementYear(), 2);
+    // 5 years of calendar fade, then a new battery that is 1 and 2 years old
+    EXPECT_NEAR(capacity_end_of_year[4], 90, 0.1);
+    EXPECT_NEAR(capacity_end_of_year[5], 98, 0.1);
+    EXPECT_NEAR(capacity_end_of_year[6], 96, 0.1);
+    // the 5% augmentation takes the 2 year old battery from 96% to 101% (capped at 100%), then it fades for a year
+    EXPECT_NEAR(capacity_end_of_year[7], 98, 0.1);
+}
+
 TEST_F(lib_battery_test, NMCLifeModel) {
     auto lifetimeModelNMC = new lifetime_nmc_t(dtHour);
     auto thermalModelNMC = new thermal_t(dtHour, mass, surface_area, resistance, Cp, h, T_room);

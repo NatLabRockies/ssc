@@ -241,10 +241,17 @@ TEST_F(lib_battery_lifetime_calendar_matrix_test, replaceBatteryTest) {
 
     cal_model->replaceBattery(5);
 
+    // a partial replacement moves the battery back along the table to the age with the restored capacity
     s = cal_model->get_state();
-    EXPECT_NEAR(s.day_age_of_battery, 0, tol);
+    EXPECT_NEAR(s.day_age_of_battery, 7724.96, tol);
     EXPECT_NEAR(s.calendar->q_relative_calendar, 46.51, tol);
     EXPECT_NEAR(s.calendar->dq_relative_calendar_old, 0, tol);
+
+    // and the next step continues from there instead of returning to the capacity before the replacement
+    cal_model->runLifetimeCalendarModel(idx, T, SOC);
+    s = cal_model->get_state();
+    EXPECT_NEAR(s.day_age_of_battery, 7725, tol);
+    EXPECT_NEAR(s.calendar->q_relative_calendar, 46.51, tol);
 }
 
 TEST_F(lib_battery_lifetime_calendar_model_test, SetUpTest) {

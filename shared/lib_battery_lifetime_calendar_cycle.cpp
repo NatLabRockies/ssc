@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <cmath>
 #include <memory>
+#include <limits>
 
 #include "lib_battery_lifetime.h"
 #include "lib_battery_lifetime_nmc.h"
@@ -532,7 +533,10 @@ double lifetime_calendar_t::capacity_loss_percent() { return fmax(0, 100. - stat
 lifetime_state lifetime_calendar_t::get_state() { return *state; }
 
 double lifetime_calendar_t::runLifetimeCalendarModel(size_t lifetimeIndex, double T, double SOC) {
-    state->day_age_of_battery = lifetimeIndex / (util::hours_per_day / params->dt_hr);
+    // Age the battery by one step rather than recomputing the age from the simulation index, so the age
+    // stays relative to the last replacement (replaceBattery resets it)
+    if (lifetimeIndex > 0)
+        state->day_age_of_battery += params->dt_hr / util::hours_per_day;
 
     if (params->cal_cyc->calendar_choice == calendar_cycle_params::CALENDAR_CHOICE::MODEL)
         runLithiumIonModel(T, SOC);
@@ -559,6 +563,10 @@ void lifetime_calendar_t::runLithiumIonModel(double temp, double SOC) {
 }
 
 void lifetime_calendar_t::runTableModel() {
+    state->calendar->q_relative_calendar = capacityFromTable(state->day_age_of_battery);
+}
+
+double lifetime_calendar_t::capacityFromTable(double day_age) {
     size_t n_rows = params->cal_cyc->calendar_matrix.nrows();
     size_t n = n_rows - 1;
     size_t day_lo = 0;
@@ -570,11 +578,11 @@ void lifetime_calendar_t::runTableModel() {
     for (size_t i = 0; i != n_rows; i++) {
         int day = (int)params->cal_cyc->calendar_matrix.at(i, calendar_cycle_params::DAYS);
         double capacity = (int) params->cal_cyc->calendar_matrix.at(i, calendar_cycle_params::CAPACITY_CAL);
-        if (day <= (int)state->day_age_of_battery) {
+        if (day <= (int)day_age) {
             day_lo = day;
             capacity_lo = capacity;
         }
-        if (day > (int)state->day_age_of_battery) {
+        if (day > (int)day_age) {
             day_hi = day;
             capacity_hi = capacity;
             break;
@@ -587,7 +595,33 @@ void lifetime_calendar_t::runTableModel() {
         capacity_hi = (int) params->cal_cyc->calendar_matrix.at(n, calendar_cycle_params::CAPACITY_CAL);
     }
 
-    state->calendar->q_relative_calendar = util::interpolate((double) day_lo, capacity_lo, (double) day_hi, capacity_hi, state->day_age_of_battery);
+    return util::interpolate((double) day_lo, capacity_lo, (double) day_hi, capacity_hi, day_age);
+}
+
+double lifetime_calendar_t::dayAgeFromTable(double q_relative) {
+    // Inverse of capacityFromTable: the first age at which the table reaches q_relative
+    const util::matrix_t<double>& table = params->cal_cyc->calendar_matrix;
+    size_t n_rows = table.nrows();
+    double day_min = 0;
+    double capacity_min = std::numeric_limits<double>::max();
+    for (size_t i = 0; i + 1 < n_rows; i++) {
+        double day_lo = (int) table.at(i, calendar_cycle_params::DAYS);
+        double day_hi = (int) table.at(i + 1, calendar_cycle_params::DAYS);
+        double capacity_lo = (int) table.at(i, calendar_cycle_params::CAPACITY_CAL);
+        double capacity_hi = (int) table.at(i + 1, calendar_cycle_params::CAPACITY_CAL);
+        if (i == 0 && q_relative >= capacity_lo)
+            return 0;
+        // past the last row, capacityFromTable extrapolates the last segment
+        bool last_segment = i + 2 == n_rows;
+        if (capacity_hi < capacity_lo && (q_relative >= capacity_hi || last_segment))
+            return fmax(0, day_lo + (capacity_lo - q_relative) / (capacity_lo - capacity_hi) * (day_hi - day_lo));
+        if (capacity_hi < capacity_min) {
+            capacity_min = capacity_hi;
+            day_min = day_hi;
+        }
+    }
+    // the table never falls as low as q_relative
+    return day_min;
 }
 
 void lifetime_calendar_t::replaceBattery(double replacement_percent) {
@@ -596,8 +630,11 @@ void lifetime_calendar_t::replaceBattery(double replacement_percent) {
     state->calendar->q_relative_calendar += replacement_percent;
     if (params->cal_cyc->calendar_choice == calendar_cycle_params::MODEL)
         state->calendar->q_relative_calendar = fmin(params->cal_cyc->calendar_q0 * 100, state->calendar->q_relative_calendar);
-    if (params->cal_cyc->calendar_choice == calendar_cycle_params::TABLE)
+    if (params->cal_cyc->calendar_choice == calendar_cycle_params::TABLE) {
         state->calendar->q_relative_calendar = fmin(100, state->calendar->q_relative_calendar);
+        // continue along the table from the age that matches the restored capacity (0 for a full replacement)
+        state->day_age_of_battery = dayAgeFromTable(state->calendar->q_relative_calendar);
+    }
 }
 
 /*

@@ -91,6 +91,7 @@ set(SSC_SRC
 		cmod_snowmodel.cpp
 		cmod_solarpilot.cpp
 		cmod_swh.cpp
+		cmod_swh.h
 		cmod_tcsgeneric_solar.cpp
 		cmod_tcslinear_fresnel.cpp
 		cmod_tcsmolten_salt.cpp

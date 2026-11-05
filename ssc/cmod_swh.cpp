@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lib_irradproc.h"
 #include "lib_time.h"
 #include "lib_util.h"
+#include "cmod_swh.h"
 
 /* -------------------------------------
 
@@ -70,6 +71,23 @@ Still outputs hourly quantities
 #ifndef M_PI
 #define M_PI 3.141592653589793238462643
 #endif
+
+double swh_incidence_angle_modifier(double theta, double iam)
+{
+	double Kta = 0;
+	if (theta <= 60.0)
+		Kta = 1 - iam * (1 / cos(theta * M_PI / 180) - 1);
+	else if (theta <= 90.0)
+		Kta = (1 - iam) * (90.0 - theta) / 30.0;
+	return Kta < 0 ? 0 : Kta;
+}
+
+void swh_effective_incidence_angles(double tilt, double& theta_diffuse, double& theta_ground)
+{
+	// D&B eqns 5.4.1 and 5.4.2 (pp 215) take the tilt in degrees and give the angle in degrees
+	theta_diffuse = 59.7 - 0.1388 * tilt + 0.001497 * tilt * tilt;
+	theta_ground = 90 - 0.5788 * tilt + 0.002693 * tilt * tilt;
+}
 
 static var_info _cm_vtab_swh[] = {
 	/*   VARTYPE           DATATYPE         NAME                      LABEL                              UNITS     META                                  GROUP          REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
@@ -441,34 +459,12 @@ public:
 
 				// -------------------------------------
 				// calculate transmittance through cover
-				double Kta_d = 0.0;
-				double Kta_b = 0.0;
-				double Kta_g = 0.0;
-
-				// incidence angle modifier (IAM) for beam (D&B eqn 6.17.10 pp 297)
-				if (aoi <= 60.0) Kta_b = 1 - iam*(1 / cos(aoi*M_PI / 180) - 1);
-				else if (aoi > 60.0 && aoi <= 90.0)  Kta_b = (1 - iam)*(aoi - 90.0)*M_PI / 180;
-				if (Kta_b < 0) Kta_b = 0;
-
-
-				// effective incidence angle for sky diffuse radiation (D&B eqn 5.4.2 pp 215)
-				double theta_eff_diffuse = 59.7*M_PI / 180 - 0.1388*tilt*M_PI / 180 + 0.001497*tilt*M_PI / 180 * tilt*M_PI / 180;
-				double cos_theta_eff_diffuse = cos(theta_eff_diffuse);
-
-				// incidence angle modifier (IAM) for diffuse (D&B eqn 6.17.10 pp 297)
-				if (theta_eff_diffuse <= M_PI / 3.) Kta_d = 1 - iam*(1 / cos_theta_eff_diffuse - 1);
-				else if (theta_eff_diffuse > M_PI / 3. && theta_eff_diffuse <= M_PI / .2) Kta_d = (1 - iam)*(theta_eff_diffuse - M_PI / 2.);
-				if (Kta_d < 0) Kta_d = 0;
-
-
-				// effective incidence angle modifier for ground reflected radiation (D&B eqn 5.4.1 pp 215)
-				double theta_eff_ground = 90 * M_PI / 180 - 0.5788*tilt*M_PI / 180 + 0.002693*tilt*M_PI / 180 * tilt*M_PI / 180;
-				double cos_theta_eff_ground = cos(theta_eff_ground);
-
-				// incidence angle modifier (IAM) for ground reflected radiation (D&B eqn 6.17.10 pp 297)
-				if (theta_eff_ground <= M_PI / 3) Kta_g = 1 - iam*(1 / cos_theta_eff_ground - 1);
-				else if (theta_eff_ground > M_PI / 3 && theta_eff_ground <= M_PI / 2) Kta_g = (1 - iam)*(theta_eff_ground - M_PI / 2.);
-				if (Kta_g < 0) Kta_g = 0;
+				// incidence angle modifiers (IAM) for beam, sky diffuse and ground reflected radiation (D&B pp 215, 297)
+				double theta_eff_diffuse, theta_eff_ground;
+				swh_effective_incidence_angles(tilt, theta_eff_diffuse, theta_eff_ground);
+				double Kta_b = swh_incidence_angle_modifier(aoi, iam);
+				double Kta_d = swh_incidence_angle_modifier(theta_eff_diffuse, iam);
+				double Kta_g = swh_incidence_angle_modifier(theta_eff_ground, iam);
 
 				// sub hourly update
 				double beam_loss_factor = 1.0;

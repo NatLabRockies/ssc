@@ -628,9 +628,9 @@ public:
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "system_use_lifetime_output", 1);
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "en_batt", 1); // should be done at UI level
 
-                if (csp_thermal_storage.size() == 0) {
-                    ssc_module_exec_with_error(module, input, compute_module);
-                }
+                
+                ssc_module_exec_with_error(module, input, compute_module);
+                
 
                 ssc_data_t compute_module_outputs = ssc_data_create();
 

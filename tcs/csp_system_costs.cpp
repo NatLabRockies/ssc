@@ -87,6 +87,12 @@ void N_mspt::calculate_mspt_etes_costs(
     // Fossil Backup Cost
     double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
+    //Battery cost
+    double batt_kw_design,             //[kWe] Battery design output
+    double batt_kwh_design,            //[kWh] Battery design energy capacity
+    double batt_kw_spec_cost,          //[$/kWe] Battery specific cost
+    double batt_kwh_spec_cost,         //[$/kWh] Battery specific cost
+
     // Contingency Cost
     double contingency_rate,		//[%] Of precontingency direct capital costs
 
@@ -118,6 +124,8 @@ void N_mspt::calculate_mspt_etes_costs(
     double& rad_storage_totcost,
     double& bop_cost,
     double& fossil_backup_cost,
+    double& batt_kw_cost,
+    double& batt_kwh_cost,
     double& direct_capital_precontingency_cost,
     double& contingency_cost,
     double& total_direct_cost,
@@ -166,6 +174,10 @@ void N_mspt::calculate_mspt_etes_costs(
 
     fossil_backup_cost =
         N_mspt::fossil_backup_cost(W_dot_design, fossil_backup_spec_cost);
+
+    batt_kw_cost = N_mspt::batt_kw_cost(batt_kw_design, batt_kw_spec_cost);
+
+    batt_kwh_cost = N_mspt::batt_kwh_cost(batt_kwh_design, batt_kwh_spec_cost);
 
     direct_capital_precontingency_cost =
         N_mspt::direct_capital_precontingency_cost(
@@ -253,6 +265,12 @@ void N_mspt::calculate_mspt_etes__no_rad_cool__costs(
     // Fossil Backup Cost
     double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
+    //Battery Cost
+    double batt_kw_design,             //[kWe] Battery design output
+    double batt_kwh_design,            //[kWh] Battery design energy capacity
+    double batt_kw_spec_cost,          //[$/kWe] Battery specific cost
+    double batt_kwh_spec_cost,         //[$/kWh] Battery specific cost
+
     // Contingency Cost
     double contingency_rate,		//[%] Of precontingency direct capital costs
 
@@ -281,6 +299,8 @@ void N_mspt::calculate_mspt_etes__no_rad_cool__costs(
     double& heater_cost,                            //[$]
     double& bop_cost,                               //[$]
     double& fossil_backup_cost,                     //[$]
+    double& batt_kw_cost,                           //[$]
+    double& batt_kwh_cost,                          //[$]
     double& direct_capital_precontingency_cost,     //[$]
     double& contingency_cost,                       //[$]
     double& total_direct_cost,                      //[$]
@@ -346,6 +366,11 @@ void N_mspt::calculate_mspt_etes__no_rad_cool__costs(
 
         fossil_backup_spec_cost,
 
+        batt_kw_design,
+        batt_kwh_design,
+        batt_kw_spec_cost,
+        batt_kwh_spec_cost,
+
         contingency_rate,
 
         total_land_area,
@@ -374,6 +399,8 @@ void N_mspt::calculate_mspt_etes__no_rad_cool__costs(
         rad_storage_totcost,
         bop_cost,
         fossil_backup_cost,
+        batt_kw_cost,
+        batt_kwh_cost,
         direct_capital_precontingency_cost,
         contingency_cost,
         total_direct_cost,
@@ -420,6 +447,13 @@ void N_mspt::calculate_mspt__no_rad_cool__costs(
     // Fossil Backup Cost
     double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
+
+    //Battery Cost
+    double batt_kw_design,             //[kWe] Battery design output
+    double batt_kwh_design,            //[kWh] Battery design energy capacity
+    double batt_kw_spec_cost,		//[$/kWe] Battery specific cost
+    double batt_kwh_spec_cost,		//[$/kWh] Battery specific cost
+
     // Contingency Cost
     double contingency_rate,		//[%] Of precontingency direct capital costs
 
@@ -446,6 +480,8 @@ void N_mspt::calculate_mspt__no_rad_cool__costs(
     double& power_cycle_cost,                       //[$]
     double& bop_cost,                               //[$]
     double& fossil_backup_cost,                     //[$]
+    double& batt_kw_cost,                           //[$]
+    double& batt_kwh_cost,                          //[$]
     double& direct_capital_precontingency_cost,     //[$]
     double& contingency_cost,                       //[$]
     double& total_direct_cost,                      //[$]
@@ -519,6 +555,11 @@ void N_mspt::calculate_mspt__no_rad_cool__costs(
 
         fossil_backup_spec_cost,
 
+        batt_kw_design,
+        batt_kwh_design,
+        batt_kw_spec_cost,
+        batt_kwh_spec_cost,
+
         contingency_rate,
 
         total_land_area,
@@ -547,6 +588,8 @@ void N_mspt::calculate_mspt__no_rad_cool__costs(
         rad_storage_totcost,
         bop_cost,
         fossil_backup_cost,
+        batt_kw_cost,
+        batt_kwh_cost,
         direct_capital_precontingency_cost,
         contingency_cost,
         total_direct_cost,
@@ -618,20 +661,20 @@ void N_mspt::calculate_etes_costs(
         A_rec, rec_ref_cost, A_rec_ref, rec_cost_scaling_exp,
         radfield_area, coldstorage_vol, radfield_vol, rad_unitcost, rad_installcost,
         rad_volmulti, rad_fluidcost, coldstorage_unitcost,
-        fossil_backup_spec_cost, total_land_area,
-        EPC_land_spec_cost, total_land_spec_cost;
+        fossil_backup_spec_cost, batt_kw_spec_cost, batt_kwh_spec_cost, batt_kw_design, batt_kwh_design,
+        total_land_area, EPC_land_spec_cost, total_land_spec_cost;
 
     A_sf_refl = site_improv_spec_cost = heliostat_spec_cost = heliostat_fixed_cost =
         h_tower = h_rec = h_helio = tower_fixed_cost = tower_cost_scaling_exp =
         A_rec = rec_ref_cost = A_rec_ref = rec_cost_scaling_exp =
         radfield_area = coldstorage_vol = radfield_vol = rad_unitcost = rad_installcost =
         rad_volmulti = rad_fluidcost = coldstorage_unitcost =
-        fossil_backup_spec_cost = total_land_area = 
-        EPC_land_spec_cost = total_land_spec_cost = 0.0;
+        fossil_backup_spec_cost = batt_kw_spec_cost = batt_kwh_spec_cost = batt_kw_design = batt_kwh_design =
+        total_land_area = EPC_land_spec_cost = total_land_spec_cost = 0.0;
 
     // Cost model outputs not relevant to etes - don't pass upstream
     double site_improvement_cost, heliostat_cost, tower_cost, receiver_cost,
-        rad_field_totcost, rad_fluid_totcost, rad_storage_totcost, fossil_backup_cost;
+        rad_field_totcost, rad_fluid_totcost, rad_storage_totcost, fossil_backup_cost, batt_kw_cost, batt_kwh_cost;
     site_improvement_cost = heliostat_cost = tower_cost = receiver_cost =
         rad_field_totcost = rad_fluid_totcost = rad_storage_totcost = fossil_backup_cost = std::numeric_limits<double>::quiet_NaN();
 
@@ -678,6 +721,11 @@ void N_mspt::calculate_etes_costs(
 
         fossil_backup_spec_cost,
 
+        batt_kw_design,
+        batt_kwh_design,
+        batt_kw_spec_cost,
+        batt_kwh_spec_cost,
+
         contingency_rate,
 
         total_land_area,
@@ -706,6 +754,8 @@ void N_mspt::calculate_etes_costs(
         rad_storage_totcost,
         bop_cost,
         fossil_backup_cost,
+        batt_kw_cost,
+        batt_kwh_cost,
         direct_capital_precontingency_cost,
         contingency_cost,
         total_direct_cost,
@@ -897,6 +947,16 @@ double N_mspt::bop_cost(double W_dot_design /*MWe*/, double bop_spec_cost /*$/kW
 double N_mspt::fossil_backup_cost(double W_dot_design /*MWe*/, double fossil_backup_spec_cost /*$/kWe*/)
 {
 	return W_dot_design*1.E3*fossil_backup_spec_cost;	//[$]
+}
+
+double N_mspt::batt_kw_cost(double batt_kW /*kWe*/, double batt_kw_cost /*$/kWe*/)
+{
+    return batt_kW*batt_kw_cost;	//[$]
+}
+
+double N_mspt::batt_kwh_cost(double batt_kWh /*kWh*/, double batt_kwh_cost /*$/kWh*/)
+{
+    return batt_kWh*batt_kwh_cost;	//[$]
 }
 
 double N_mspt::direct_capital_precontingency_cost(double site_improvement_cost /*$*/,

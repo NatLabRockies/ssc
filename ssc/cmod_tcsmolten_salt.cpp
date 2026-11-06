@@ -416,6 +416,9 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "sales_tax_frac",                     "Percent of cost to which sales tax applies",                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "cost_sf_fixed",                      "Solar field fixed cost",                                                                                                                  "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "fossil_spec_cost",                   "Fossil system specific cost",                                                                                                             "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "batt_kw_spec_cost",                   "Battery per kW cost",                                                                                                             "$/kWAC",        "",                                  "System Costs",                             "?=0",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "batt_kwh_spec_cost",                   "Battery per kWh cost",                                                                                                             "$/kWh",        "",                                  "System Costs",                             "?=0",                                                                "",              "" },
+
     { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.per_acre",           "EPC cost per acre",                                                                                                                       "$/acre",       "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.percent",            "EPC cost percent of direct",                                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.per_watt",           "EPC cost per watt",                                                                                                                       "$/W",          "",                                  "System Costs",                             "*",                                                                "",              "" },
@@ -568,6 +571,10 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_OUTPUT,    SSC_NUMBER, "csp.pt.cost.rad_storage",            "Cold storage cost"                                                                                                                        "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "csp.pt.cost.bop",                    "BOP cost",                                                                                                                                "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "csp.pt.cost.fossil",                 "Fossil backup cost",                                                                                                                      "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "csp.pt.cost.batt_kw",                 "Battery power cost",                                                                                                                      "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
+    { SSC_OUTPUT,    SSC_NUMBER, "csp.pt.cost.batt_kwh",                 "Battery energy cost",                                                                                                                      "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
+
+
     { SSC_OUTPUT,    SSC_NUMBER, "ui_direct_subtotal",                 "Direct capital pre-contingency cost",                                                                                                      "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "csp.pt.cost.contingency",            "Contingency cost",                                                                                                                        "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_OUTPUT,    SSC_NUMBER, "total_direct_cost",                  "Total direct cost",                                                                                                                       "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
@@ -2220,13 +2227,15 @@ public:
         // *************************************************************************
 
         bool is_battery_included = as_boolean("includes_battery");
-        std::unique_ptr<battstor> batt_storage = nullptr;
+        //std::unique_ptr<battstor> batt_storage = nullptr;
+        std::shared_ptr<battstor> batt_storage = nullptr;
         std::unique_ptr<C_csp_battery> battery = nullptr;
-        if (is_battery_included) {
+        if (is_battery_included && sim_type == 1) {
             size_t nrec_battery = (size_t)steps_per_hour * 8760;
             batt_storage = std::unique_ptr<battstor>(new battstor(*this->get_var_table(),
                 /*setup_model*/ true, nrec_battery, 1.0 / steps_per_hour,
                 /*batt_vars_in*/ nullptr));
+            //batt_storage = std::make_shared<battstor>(*m_vartab, is_battery_included, nrec_battery, 1.0 / steps_per_hour);
             /*battery = std::unique_ptr<C_csp_battery>(new C_csp_battery(batt_storage->battery_model,
                 batt_storage->batt_vars->batt_chem, batt_storage->batt_vars->batt_life_model,
                 1.0 / steps_per_hour));*/
@@ -2943,6 +2952,13 @@ public:
         double W_dot_design = as_double("P_ref");
         double power_cycle_spec_cost = as_double("plant_spec_cost");
 
+        double batt_kw_design = 0.0;
+        double batt_kwh_design = 0.0;
+        if (is_battery_included) {
+            batt_kwh_design = battery->battstor_csp->batt_vars->batt_kwh;
+            batt_kw_design = battery->battstor_csp->batt_vars->batt_kw;
+        }
+
         // Set heater thermal power and cost above, because they're dependent on is_heater boolean
 
         double rad_fluidcost = 0.0;
@@ -2978,6 +2994,9 @@ public:
 
         double fossil_backup_spec_cost = as_double("fossil_spec_cost");
 
+        double batt_kw_spec_cost = as_double("batt_kw_spec_cost");
+        double batt_kwh_spec_cost = as_double("batt_kwh_spec_cost");
+
         double contingency_rate = as_double("contingency_rate");
 
         //land area
@@ -2997,12 +3016,12 @@ public:
         double sales_tax_rate = as_double("sales_tax_rate");
 
         double site_improvement_cost, heliostat_cost, tower_cost, receiver_cost, tes_cost, CT_tes_cost, power_cycle_cost,
-            heater_cost, rad_field_totcost, rad_fluid_totcost, rad_storage_totcost, bop_cost, fossil_backup_cost,
+            heater_cost, rad_field_totcost, rad_fluid_totcost, rad_storage_totcost, bop_cost, fossil_backup_cost, batt_kw_cost, batt_kwh_cost,
             direct_capital_precontingency_cost, contingency_cost, total_direct_cost, epc_and_owner_cost, total_land_cost,
             sales_tax_cost, total_indirect_cost, total_installed_cost, estimated_installed_cost_per_cap;
 
         site_improvement_cost = heliostat_cost = tower_cost = receiver_cost = tes_cost = CT_tes_cost = power_cycle_cost =
-            heater_cost = rad_field_totcost = rad_fluid_totcost = rad_storage_totcost = bop_cost = fossil_backup_cost =
+            heater_cost = rad_field_totcost = rad_fluid_totcost = rad_storage_totcost = bop_cost = fossil_backup_cost = batt_kw_cost = batt_kwh_cost =
             direct_capital_precontingency_cost = contingency_cost = total_direct_cost = epc_and_owner_cost = total_land_cost =
             sales_tax_cost = total_indirect_cost = total_installed_cost = estimated_installed_cost_per_cap = std::numeric_limits<double>::quiet_NaN();
 
@@ -3048,6 +3067,12 @@ public:
 
             fossil_backup_spec_cost,
 
+
+            batt_kw_design,
+            batt_kwh_design,
+            batt_kw_spec_cost,
+            batt_kwh_spec_cost,
+
             contingency_rate,
 
             total_land_area,
@@ -3076,6 +3101,8 @@ public:
             rad_storage_totcost,
             bop_cost,
             fossil_backup_cost,
+            batt_kw_cost,
+            batt_kwh_cost,
             direct_capital_precontingency_cost,
             contingency_cost,
             total_direct_cost,
@@ -3107,6 +3134,8 @@ public:
         }
         assign("csp.pt.cost.bop", (ssc_number_t)bop_cost);
         assign("csp.pt.cost.fossil", (ssc_number_t)fossil_backup_cost);
+        assign("csp.pt.cost.batt_kw", (ssc_number_t)batt_kw_cost);
+        assign("csp.pt.cost.batt_kwh", (ssc_number_t)batt_kwh_cost);
         assign("ui_direct_subtotal", (ssc_number_t)direct_capital_precontingency_cost);
         assign("csp.pt.cost.contingency", (ssc_number_t)contingency_cost);
         assign("total_direct_cost", (ssc_number_t)total_direct_cost);

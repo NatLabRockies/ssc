@@ -89,6 +89,12 @@ namespace N_mspt
         // Fossil Backup Cost
         double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
+        //Battery Cost
+        double batt_kw_design,            //[kWe] Battery design power
+        double batt_kwh_design,           //[kWh] Battery design energy
+        double batt_kw_spec_cost,		//[$/kWe] Battery specific cost
+        double batt_kwh_spec_cost,		//[$/kWh] Battery specific cost
+
         // Contingency Cost
         double contingency_rate,		//[%] Of precontingency direct capital costs
 
@@ -120,6 +126,8 @@ namespace N_mspt
         double& rad_storage_totcost,                    //[$]
         double& bop_cost,                               //[$]
         double& fossil_backup_cost,                     //[$]
+        double& batt_kw_cost,                           //[$]
+        double& batt_kwh_cost,                         //[$]
         double& direct_capital_precontingency_cost,     //[$]
         double& contingency_cost,                       //[$]
         double& total_direct_cost,                      //[$]
@@ -173,6 +181,12 @@ namespace N_mspt
         // Fossil Backup Cost
         double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
+        //Battery Cost
+        double batt_kw_design,            //[kWe] Battery design power
+        double batt_kwh_design,           //[kWh] Battery design energy
+        double batt_kw_spec_cost,		//[$/kWe] Battery specific cost
+        double batt_kwh_spec_cost,		//[$/kWh] Battery specific cost
+
         // Contingency Cost
         double contingency_rate,		//[%] Of precontingency direct capital costs
 
@@ -201,6 +215,8 @@ namespace N_mspt
         double& heater_cost,                            //[$]
         double& bop_cost,                               //[$]
         double& fossil_backup_cost,                     //[$]
+        double& batt_kw_cost,                           //[$]
+        double& batt_kwh_cost,                         //[$]
         double& direct_capital_precontingency_cost,     //[$]
         double& contingency_cost,                       //[$]
         double& total_direct_cost,                      //[$]
@@ -246,6 +262,12 @@ namespace N_mspt
         // Fossil Backup Cost
         double fossil_backup_spec_cost,	//[$/kWe] Fossil backup specific cost
 
+        //Battery Cost
+        double batt_kw_design,			//[kWe] Battery design capacity
+        double batt_kwh_design,			//[kWh] Battery design capacity
+        double batt_kw_spec_cost,		//[$/kWe] Battery specific cost
+        double batt_kwh_spec_cost,		//[$/kWh] Battery specific cost
+
         // Contingency Cost
         double contingency_rate,		//[%] Of precontingency direct capital costs
 
@@ -272,6 +294,8 @@ namespace N_mspt
         double& power_cycle_cost,                       //[$]
         double& bop_cost,                               //[$]
         double& fossil_backup_cost,                     //[$]
+        double& batt_kw_cost,                           //[$]
+        double& batt_kwh_cost,                         //[$]
         double& direct_capital_precontingency_cost,     //[$]
         double& contingency_cost,                       //[$]
         double& total_direct_cost,                      //[$]
@@ -418,6 +442,9 @@ namespace N_mspt
 	double bop_cost(double W_dot_design /*MWe*/, double bop_spec_cost /*$/kWe*/);
 
 	double fossil_backup_cost(double W_dot_design /*MWe*/, double fossil_backup_spec_cost /*$/kWe*/);
+
+    double batt_kw_cost(double batt_kW /*kW*/, double batt_kw_spec_cost /*$/kW*/);
+    double batt_kwh_cost(double batt_kWh /*kWh*/, double batt_kwh_spec_cost /*$/kWh*/);
 
 	double direct_capital_precontingency_cost(double site_improvement_cost /*$*/,
 		double heliostat_cost /*$*/,

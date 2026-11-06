@@ -2120,6 +2120,12 @@ public:
 
         double fossil_backup_spec_cost = 0.0;   // as_double("fossil_spec_cost");
 
+
+        double batt_kw_design = 0.0;
+        double batt_kwh_design = 0.0;
+        double batt_kw_spec_cost = 0.0;
+        double batt_kwh_spec_cost = 0.0;
+
         double contingency_rate = as_double("contingency_rate");
 
         // land area
@@ -2139,12 +2145,12 @@ public:
         double sales_tax_rate = as_double("sales_tax_rate");
 
         double site_improvement_cost, heliostat_cost, tower_cost, receiver_cost, tes_cost, CT_tes_cost, power_cycle_cost,
-            heater_cost, rad_field_totcost, rad_fluid_totcost, rad_storage_totcost, bop_cost, fossil_backup_cost,
+            heater_cost, rad_field_totcost, rad_fluid_totcost, rad_storage_totcost, bop_cost, fossil_backup_cost, batt_kw_cost, batt_kwh_cost,
             direct_capital_precontingency_cost, contingency_cost, total_direct_cost, epc_and_owner_cost, total_land_cost,
             sales_tax_cost, total_indirect_cost, total_installed_cost, estimated_installed_cost_per_cap;
 
         site_improvement_cost = heliostat_cost = tower_cost = receiver_cost = tes_cost = CT_tes_cost = power_cycle_cost =
-            heater_cost = rad_field_totcost = rad_fluid_totcost = rad_storage_totcost = bop_cost = fossil_backup_cost =
+            heater_cost = rad_field_totcost = rad_fluid_totcost = rad_storage_totcost = bop_cost = fossil_backup_cost = batt_kw_cost = batt_kwh_cost =
             direct_capital_precontingency_cost = contingency_cost = total_direct_cost = epc_and_owner_cost = total_land_cost =
             sales_tax_cost = total_indirect_cost = total_installed_cost = estimated_installed_cost_per_cap = std::numeric_limits<double>::quiet_NaN();
 
@@ -2200,6 +2206,11 @@ public:
 
             fossil_backup_spec_cost,
 
+            batt_kw_design,
+            batt_kwh_design,
+            batt_kw_spec_cost,
+            batt_kwh_spec_cost,
+
             contingency_rate,
 
             total_land_area,
@@ -2228,6 +2239,8 @@ public:
             rad_storage_totcost,
             bop_cost,
             fossil_backup_cost,
+            batt_kw_cost,
+            batt_kwh_cost,
             direct_capital_precontingency_cost,
             contingency_cost,
             total_direct_cost,

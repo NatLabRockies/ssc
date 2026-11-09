@@ -555,6 +555,8 @@ public:
 	/// Setup the Nominal Operating Cell Temperature (NOCT) model
 	void setupNOCTModel(compute_module* cm, const std::string &prefix);
 
+	void setAnalysisYear(int year);
+
 	/// Assign outputs from member data after the PV Model has run
 	void AssignOutputs(compute_module* cm);
 
@@ -577,6 +579,8 @@ public:
 
 	spe_module_t simpleEfficiencyModel;
 	cec6par_module_t cecModel;
+    std::vector<cec6par_module_t> cecModels;
+    int numberOfYears;
 	noct_celltemp_t nominalOperatingCellTemp;
 	mcsp_celltemp_t mountingSpecificCellTemp;
 	mock_celltemp_t mockCellTemp;

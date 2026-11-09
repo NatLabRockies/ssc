@@ -33,8 +33,148 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <vector>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <random>
+#include <stdexcept>
+
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 #include "lib_pv_io_manager.h"
+
+namespace {
+class CecWorkerDirectory {
+public:
+    std::filesystem::path path;
+
+    CecWorkerDirectory() {
+        std::random_device random;
+        for (int attempt = 0; attempt < 64; ++attempt) {
+            path = std::filesystem::temp_directory_path() / ("ssc-cec-" + std::to_string(random()));
+            if (std::filesystem::create_directory(path)) return;
+        }
+        throw std::runtime_error("Cannot create a temporary CEC worker directory");
+    }
+
+    ~CecWorkerDirectory() {
+        std::error_code error;
+        std::filesystem::remove_all(path, error);
+    }
+};
+
+std::string cec_worker_argument(const std::string& value) {
+#ifdef _WIN32
+    if (value.find('"') != std::string::npos)
+        throw std::runtime_error("Invalid quote in CEC worker path");
+    return "\"" + value + "\"";
+#else
+    std::string quoted = "'";
+    for (char character : value)
+        quoted += character == '\'' ? "'\"'\"'" : std::string(1, character);
+    return quoted + "'";
+#endif
+}
+
+class CecWorkerProcess : public util::sync_piped_process {
+public:
+    void on_stdout(const std::string&) override {}
+};
+
+std::vector<cec6par_module_t> cec_degraded_models(compute_module* cm,
+    const cec6par_module_t& baseline, int years) {
+    const auto executable = std::filesystem::absolute(cm->as_string("cec_degradation_executable"));
+    if (!std::filesystem::is_regular_file(executable))
+        throw std::runtime_error("CEC degradation executable does not exist: " + executable.string());
+
+    rapidjson::Document request;
+    request.SetObject();
+    auto& allocator = request.GetAllocator();
+    request.AddMember("analysis_period", years, allocator);
+    const char* input_names[] = { "voltage_degradation", "current_degradation" };
+    const char* json_names[] = { "V_deg", "I_deg" };
+    for (size_t index = 0; index < 2; ++index) {
+        size_t count = 0;
+        ssc_number_t* values = cm->as_array(input_names[index], &count);
+        if (count != 1 && count != static_cast<size_t>(years))
+            throw std::runtime_error(std::string(input_names[index]) + " must have one or analysis_period entries");
+        rapidjson::Value rates(rapidjson::kArrayType);
+        for (size_t entry = 0; entry < count; ++entry) {
+            if (!std::isfinite(values[entry]) || values[entry] < 0 || values[entry] >= 100)
+                throw std::runtime_error(std::string(input_names[index]) + " must contain finite percentages in [0, 100)");
+            rates.PushBack(static_cast<double>(values[entry]), allocator);
+        }
+        if (count > 1 && values[0] != 0)
+            throw std::runtime_error(std::string(input_names[index]) + " must start with zero for the baseline year");
+        request.AddMember(rapidjson::Value(json_names[index], allocator).Move(), rates, allocator);
+    }
+    rapidjson::Value module(rapidjson::kObjectType);
+    const char* keys[] = { "Vmp", "Imp", "Voc", "Isc", "a", "IL", "Io", "Rs", "Rsh", "Adj", "alpha_sc", "beta_oc", "gamma_pmp" };
+    const double values[] = { baseline.Vmp, baseline.Imp, baseline.Voc, baseline.Isc,
+        baseline.a, baseline.Il, baseline.Io, baseline.Rs, baseline.Rsh, baseline.Adj,
+        baseline.alpha_isc, baseline.beta_voc, cm->as_double("cec_gamma_pmp") };
+    for (size_t index = 0; index < 13; ++index) {
+        if (!std::isfinite(values[index]))
+            throw std::runtime_error(std::string("Nonfinite CEC input: ") + keys[index]);
+        module.AddMember(rapidjson::Value(keys[index], allocator).Move(), values[index], allocator);
+    }
+    request.AddMember("cec_model", module, allocator);
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    if (!request.Accept(writer))
+        throw std::runtime_error("Could not serialize CEC degradation request");
+
+    CecWorkerDirectory directory;
+    const auto input = directory.path / "request.json";
+    const auto output = directory.path / "response.json";
+    {
+        std::ofstream stream(input, std::ios::binary);
+        stream << buffer.GetString();
+        stream.close();
+        if (!stream) throw std::runtime_error("Could not write CEC degradation request");
+    }
+    CecWorkerProcess process;
+    const int exit_code = process.spawn(cec_worker_argument(executable.string()) +
+        " --input " + cec_worker_argument(input.string()) +
+        " --output " + cec_worker_argument(output.string()));
+    std::ifstream stream(output, std::ios::binary);
+    const std::string payload((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    rapidjson::Document response;
+    response.Parse(payload.c_str());
+    if (response.HasParseError() || !response.IsObject() || !response.HasMember("status") || !response["status"].IsString())
+        throw std::runtime_error("CEC degradation worker returned no valid JSON response (exit " + std::to_string(exit_code) + ")");
+    if (std::string(response["status"].GetString()) != "success") {
+        const std::string message = response.HasMember("message") && response["message"].IsString()
+            ? response["message"].GetString() : "Unknown worker error";
+        throw std::runtime_error("CEC degradation worker: " + message);
+    }
+    if (exit_code != 0 || !response.HasMember("years") || !response["years"].IsArray() ||
+        response["years"].Size() != static_cast<rapidjson::SizeType>(years))
+        throw std::runtime_error("CEC degradation worker failed or returned the wrong number of years");
+
+    std::vector<cec6par_module_t> models(years, baseline);
+    for (int year = 0; year < years; ++year) {
+        const auto& row = response["years"][year];
+        if (!row.IsObject() || !row.HasMember("year") || !row["year"].IsInt() || row["year"].GetInt() != year + 1)
+            throw std::runtime_error("CEC degradation worker returned an invalid year index");
+        double* fields[] = { &models[year].Vmp, &models[year].Imp, &models[year].Voc, &models[year].Isc,
+            &models[year].a, &models[year].Il, &models[year].Io, &models[year].Rs, &models[year].Rsh,
+            &models[year].Adj, &models[year].alpha_isc, &models[year].beta_voc };
+        for (size_t index = 0; index < 12; ++index) {
+            if (!row.HasMember(keys[index]) || !row[keys[index]].IsNumber() || !std::isfinite(row[keys[index]].GetDouble()))
+                throw std::runtime_error(std::string("Invalid CEC worker result: ") + keys[index]);
+            *fields[index] = row[keys[index]].GetDouble();
+        }
+        const auto& model = models[year];
+        if (model.Vmp <= 0 || model.Imp <= 0 || model.Voc <= model.Vmp || model.Isc < model.Imp ||
+            model.a <= 0 || model.Il <= 0 || model.Io <= 0 || model.Rs < 0 || model.Rsh <= 0)
+            throw std::runtime_error("CEC degradation worker returned nonphysical module parameters");
+    }
+    return models;
+}
+}
 
 static const int __nday[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 
@@ -377,7 +517,7 @@ void Irradiance_IO::AssignOutputs(compute_module* cm)
 Subarray_IO::Subarray_IO(compute_module* cm, const std::string& cmName, size_t subarrayNumber)
 {
     prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber)) + "_";
-
+    
     enable = true;
     if (subarrayNumber > 1)
         enable = cm->as_boolean(prefix + "enable");
@@ -1042,6 +1182,14 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
     isConcentratingPV = false;
     isBifacial = false;
 
+    const bool useVoltageCurrentDegradation = cm->is_assigned("use_voltage_current_degradation") &&
+        cm->as_boolean("use_voltage_current_degradation");
+    numberOfYears = cm->as_boolean("system_use_lifetime_output") ? cm->as_integer("analysis_period") : 1;
+    if (useVoltageCurrentDegradation &&
+        (modulePowerModel != MODULE_CEC_DATABASE || !cm->as_boolean("system_use_lifetime_output") || numberOfYears < 1))
+        throw exec_error(cmName, "Voltage/current degradation requires the CEC database model and a positive lifetime analysis period.");
+    cecModels.resize(numberOfYears);
+
     if (modulePowerModel == MODULE_SIMPLE_EFFICIENCY)
     {
         simpleEfficiencyModel.VmpNominal = cm->as_double("spe_vmp");
@@ -1116,6 +1264,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
         bifaciality = cm->as_double("cec_bifaciality");
         bifacialTransmissionFactor = cm->as_double("cec_bifacial_transmission_factor");
         groundClearanceHeight = cm->as_double("cec_bifacial_ground_clearance_height");
+
         cecModel.Area = cm->as_double("cec_area");
         referenceArea = cecModel.Area;
         cecModel.Vmp = cm->as_double("cec_v_mp_ref");
@@ -1130,6 +1279,15 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
         cecModel.Rs = cm->as_double("cec_r_s");
         cecModel.Rsh = cm->as_double("cec_r_sh_ref");
         cecModel.Adj = cm->as_double("cec_adjust");
+
+        if (useVoltageCurrentDegradation) {
+            try {
+                cecModels = cec_degraded_models(cm, cecModel, numberOfYears);
+            }
+            catch (const std::exception& error) {
+                throw exec_error(cmName, error.what());
+            }
+        }
 
         selfShadingFillFactor = cecModel.Vmp * cecModel.Imp / cecModel.Voc / cecModel.Isc;
         voltageMaxPower = cecModel.Vmp;
@@ -1525,6 +1683,15 @@ void Module_IO::setupNOCTModel(compute_module* cm, const std::string& prefix)
     case 4: nominalOperatingCellTemp.standoff_tnoct_adj = 11; break; // between 0.5 and 1.5 inches
     case 5: nominalOperatingCellTemp.standoff_tnoct_adj = 18; break; // less than 0.5 inches
     }
+}
+
+void Module_IO::setAnalysisYear(int year)
+{
+    if (year < 0 || static_cast<size_t>(year) >= cecModels.size())
+        throw std::out_of_range("CEC degradation analysis year is out of range");
+    moduleModel = &cecModels[year];
+    voltageMaxPower = cecModels[year].Vmp;
+    selfShadingFillFactor = cecModels[year].Vmp * cecModels[year].Imp / cecModels[year].Voc / cecModels[year].Isc;
 }
 
 void Module_IO::AssignOutputs(compute_module* cm)

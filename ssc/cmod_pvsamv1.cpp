@@ -55,6 +55,11 @@ static var_info _cm_vtab_pvsamv1[] = {
         {SSC_INPUT, SSC_NUMBER,   "system_use_lifetime_output",           "PV lifetime simulation",                              "0/1",    "",                                                                                                                                                                                      "Lifetime",                                              "?=0",                                "INTEGER,MIN=0,MAX=1", "" },
         {SSC_INPUT, SSC_NUMBER,   "analysis_period",                      "Lifetime analysis period",                            "years",  "",                                                                                                                                                                                      "Lifetime",                                              "system_use_lifetime_output=1",       "",                    "" },
         {SSC_INPUT, SSC_ARRAY,    "dc_degradation",                       "Annual DC degradation",                           "%/year", "",                                                                                                                                                                                      "Lifetime",                                              "system_use_lifetime_output=1",       "",                    "" },
+        {SSC_INPUT, SSC_NUMBER,   "use_voltage_current_degradation",      "Enable CEC voltage/current degradation",               "0/1",    "", "Lifetime", "?=0", "BOOLEAN", "" },
+        {SSC_INPUT, SSC_ARRAY,    "voltage_degradation",                  "Annual voltage degradation",                           "%/year", "", "Lifetime", "use_voltage_current_degradation=1", "", "" },
+        {SSC_INPUT, SSC_ARRAY,    "current_degradation",                  "Annual current degradation",                           "%/year", "", "Lifetime", "use_voltage_current_degradation=1", "", "" },
+        {SSC_INPUT, SSC_STRING,   "cec_degradation_executable",           "CEC degradation worker executable path",               "",       "", "Lifetime", "use_voltage_current_degradation=1", "", "" },
+        {SSC_INPUT, SSC_NUMBER,   "cec_gamma_pmp",                        "Maximum power temperature coefficient",                "%/C",    "", "Lifetime", "use_voltage_current_degradation=1", "", "" },
         {SSC_OUTPUT,SSC_ARRAY,    "dc_degrade_factor",                    "Annual DC degradation factor",                        "",       "",                                                                                                                                                                                      "Lifetime",                                              "system_use_lifetime_output=1",       "",                    "" },
         {SSC_INPUT, SSC_NUMBER,   "en_dc_lifetime_losses",                "Enable lifetime daily DC losses",                     "0/1",    "",                                                                                                                                                                                      "Lifetime",                                              "?=0",                                "INTEGER,MIN=0,MAX=1", "" },
         {SSC_INPUT, SSC_ARRAY,    "dc_lifetime_losses",                   "Lifetime daily DC losses",                            "%",      "",                                                                                                                                                                                      "Lifetime",                                              "en_dc_lifetime_losses=1",            "",                    "" },
@@ -1471,6 +1476,12 @@ void cm_pvsamv1::exec()
     //so iyear will always be 0, meaning that timeseries outputs will be output for the entire length of nrec
     for (size_t iyear = 0; iyear < nyears; iyear++)
     {
+
+        if (as_boolean("use_voltage_current_degradation")) {
+            for (size_t nn = 0; nn < num_subarrays; nn++) {
+                Subarrays[nn]->Module->setAnalysisYear(iyear);
+            }
+        }
         for (size_t inrec = 0; inrec < nrec; inrec++)
         {
             idx = inrec + iyear * nrec;

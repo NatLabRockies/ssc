@@ -1,0 +1,6 @@
+pyinstaller>=6
+pyomo>=6.8
+numpy
+pandas
+matplotlib
+pint

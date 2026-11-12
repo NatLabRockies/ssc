@@ -113,6 +113,9 @@ static ssc_equation_entry ssc_equation_table [] = {
         {"Reopt_size_battery_post", Reopt_size_battery_params,
             "Pvwattsv8", Reopt_size_battery_params_doc,
             false, true},
+        {"Reopt_size_battery_post", Reopt_size_battery_params,
+            "Pvwattsv9", Reopt_size_battery_params_doc,
+            false, true},
 
         // Battery
         {"Size_battery",  Size_battery,

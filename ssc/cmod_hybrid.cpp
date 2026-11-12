@@ -92,7 +92,7 @@ public:
 
             for (size_t i = 0; i < vec_cms.size(); i++) {
                 std::string computemodulename = vec_cms[i].str;
-                if ((computemodulename == "pvsamv1") || (computemodulename == "pvwattsv8") || (computemodulename == "windpower") || (computemodulename == "custom_generation"))
+                if ((computemodulename == "pvsamv1") || (computemodulename == "pvwattsv9") || (computemodulename == "windpower") || (computemodulename == "custom_generation"))
                     generators.push_back(computemodulename);
                 else if (computemodulename == "battery")
                     batteries.push_back(computemodulename);
@@ -176,7 +176,7 @@ public:
                     system_use_lifetime_output = compute_module_inputs->table.lookup("system_use_lifetime_output")->num;
 
                 ssc_number_t system_capacity = compute_module_inputs->table.lookup("system_capacity")->num;
-                if ((compute_module == "pvsamv1") || (compute_module == "pvwattsv8")) {
+                if ((compute_module == "pvsamv1") || (compute_module == "pvwattsv9")) {
                     ssc_data_get_number(compute_module_outputs, "system_capacity_ac", &system_capacity);
                 }
                 hybridSystemCapacity += system_capacity;
@@ -205,7 +205,7 @@ public:
                 escal_or_annual(input, pOMCapacity, analysisPeriod, "om_capacity", inflation_rate, system_capacity, false, input.as_double("om_capacity_escal") * 0.01); // $ after multiplying by system capacity
 
                 // production - multiply by yearly gen (initially assume single year) - use degradation - specific to each generator
-                // pvwattsv8 - "degradation" applied in financial model - assuming single year analysis like standalone pvwatts/single owner configuration
+                // pvwattsv9 - "degradation" applied in financial model - assuming single year analysis like standalone pvwatts/single owner configuration
                 // wind - "degradation" applied in financial model - assumes system availability already applied to "gen" output
                 // pvsamv1 - "degradation" applied in performance model
                 ssc_number_t* pEnergyNet = ((var_table*)compute_module_outputs)->allocate("cf_energy_net", analysisPeriod + 1);

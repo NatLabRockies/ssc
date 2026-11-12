@@ -69,7 +69,7 @@ public:
                 auto& current_step = input_table->table.lookup(vec_steps[i].str)->table;
 
                 if (current_step.is_assigned("run")) {
-                    // e.g.  "run": ["pvwattsv8", "windpower"]
+                    // e.g.  "run": ["pvwattsv9", "windpower"]
 
                     // TODO:remove after combine working testing aggregates - vectors or single values, etc.
                     double cumulative_annual_energy = 0, annual_energy;
@@ -117,7 +117,7 @@ public:
 
                 }
                 else if (current_step.is_assigned("add")) {
-                    // e.g.    "combine": ["pvwattsv8:annual_energy", "windpower:annual_energy"]
+                    // e.g.    "combine": ["pvwattsv9:annual_energy", "windpower:annual_energy"]
                     auto& vec_ccombines = current_step.lookup("add")->vec;
 
                     // determine type to combine

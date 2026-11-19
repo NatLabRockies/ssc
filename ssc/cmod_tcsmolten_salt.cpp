@@ -63,7 +63,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lib_battery.h"
 #include "cmod_battery.h"
-#include "cmod_battery_stateful.h"
 
 #include <ctime>
 #include <cmath>
@@ -76,9 +75,10 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_TABLE,  "solar_resource_data",                "Weather resource data in memory",                                                                                                         "",             "",                                  "Solar Resource",                           "?",                                                                "",              "SIMULATION_PARAMETER"},
 
     //Hybrid setup (gen from PV)
-    { SSC_INPUT,    SSC_ARRAY,  "anc_elec_output",                     "Ancillary electrical generation (PV)",                                                                                                    "kWe",          "",                                  "System Control",                           "?",                                                                "",              "" },
+    { SSC_INPUT,    SSC_ARRAY,   "anc_elec_output",                    "Ancillary electrical generation (PV)",                                                                                                    "kWe",          "",                                  "System Control",                           "?",                                                                "",              "" },
     { SSC_INPUT,    SSC_NUMBER,  "is_hybrid",                          "Is the system hybrid",                                                                                                                    "0-1",          "",                                  "System Control",                           "?=0",                                                              "",              "" },
     { SSC_INPUT,    SSC_NUMBER,  "includes_battery",                   "Whether battery is included in simulation",                                                                                               "0/1",          "",                                  "System Design",                            "?=0",                                                              "",              "" },
+    // TODO: Can "includes_battery" be removed? Cmod was reworked to condition off of battery size. Check with Matt on the GUI side.
 
     // Simulation parameters
     { SSC_INPUT,     SSC_NUMBER, "is_dispatch",                        "Allow dispatch optimization?",                                                                                                            "",             "",                                  "System Control",                           "?=0",                                                              "",              ""},
@@ -216,7 +216,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
         // Field layout and tower/receiver dimensions
         // If field_model_type = 1, tower/receiver dimensions are used as guess values
         //        and optimized values are reported as _calc outputs
-    { SSC_INPUT,     SSC_MATRIX, "helio_positions",                    "Heliostat position table - in",                                                                                                           "",             "",                                  "Heliostat Field",                          "field_model_type=2|field_model_type=3",                           "", "COL_LABEL=XY_POSITION" },
+    { SSC_INPUT,     SSC_MATRIX, "helio_positions",                    "Heliostat position table - in",                                                                                                           "",             "",                                  "Heliostat Field",                          "field_model_type=2|field_model_type=3",                            "",              "COL_LABEL=XY_POSITION" },
     { SSC_INPUT,     SSC_NUMBER, "rec_height",                         "Receiver height - in",                                                                                                                    "m",            "",                                  "Tower and Receiver",                       "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "D_rec",                              "The overall outer diameter of the receiver - in",                                                                                         "m",            "",                                  "Tower and Receiver",                       "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "h_tower",                            "Tower height - in",                                                                                                                       "m",            "",                                  "Tower and Receiver",                       "*",                                                                "",              "" },
@@ -261,7 +261,7 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "T_ctes_warm_ini",                    "Initial value of warm tank",                                                                                                              "C",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "T_ctes_cold_ini",                    "Initial value of cold tank",                                                                                                              "C",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "f_ctes_warm_ini",                    "Initial fraction of avail. volume that is warm",                                                                                          "-",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "rad_multiplier",                     "Ratio of radiator field area to solar aperture area",                                                                                    "-",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "rad_multiplier",                     "Ratio of radiator field area to solar aperture area",                                                                                    "-",            "",                                   "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "m_dot_radpanel",                     "Mass flow rate through single radiator panel",                                                                                            "kg/sec",       "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "n_rad_tubes",                        "Number of parallel tubes in single radiator panel",                                                                                       "-",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "W_rad_tubes",                        "Center-to-center distance between tubes in radiator panel",                                                                               "m",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
@@ -269,9 +269,9 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "th_rad_panel",                       "Thickness of radiator panel",                                                                                                             "m",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "D_rad_tubes",                        "Inner diameter of tubes in radiator panel",                                                                                               "m",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "k_panel",                            "Thermal conductivity of radiator panel material",                                                                                         "W/m-K",        "",                                  "RADCOOL",                                  "?=235",                                                            "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "epsilon_radtop",                     "Emissivity of top of radiator panel",                                                                                                    "-",            "",                                  "RADCOOL",                                  "?=.95",                                                            "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "epsilon_radbot",                     "Emissivity of top of radiator panel bottom (facing ground)",                                                                             "-",            "",                                  "RADCOOL",                                  "?=.07",                                                            "",              ""},
-    { SSC_INPUT,     SSC_NUMBER, "epsilon_radgrnd",                    "Emissivity of ground underneath radiator panel",                                                                                         "-",            "",                                  "RADCOOL",                                  "?=.90",                                                            "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "epsilon_radtop",                     "Emissivity of top of radiator panel",                                                                                                    "-",            "",                                   "RADCOOL",                                  "?=.95",                                                            "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "epsilon_radbot",                     "Emissivity of top of radiator panel bottom (facing ground)",                                                                             "-",            "",                                   "RADCOOL",                                  "?=.07",                                                            "",              ""},
+    { SSC_INPUT,     SSC_NUMBER, "epsilon_radgrnd",                    "Emissivity of ground underneath radiator panel",                                                                                         "-",            "",                                   "RADCOOL",                                  "?=.90",                                                            "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "L_rad_sections",                     "Length of individual radiator panel",                                                                                                     "m",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "epsilon_radHX",                      "Effectiveness of HX between radiative field and cold storage",                                                                            "-",            "",                                  "RADCOOL",                                  "?=.8",                                                             "",              ""},
     { SSC_INPUT,     SSC_NUMBER, "ctes_type",                          "Type of cold storage (2=two tank, 3= three node)",                                                                                        "-",            "",                                  "RADCOOL",                                  "?=0",                                                              "",              ""},
@@ -360,20 +360,19 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
 
     // Pricing schedules and multipliers
         // Ideally this would work with sim_type = 2, but UI inputs availability depends on financial mode
-    { SSC_INPUT,     SSC_NUMBER, "ppa_multiplier_model",               "PPA multiplier model 0: dispatch factors dispatch_factorX, 1: hourly multipliers dispatch_factors_ts",                                    "0/1",          "0=diurnal,1=timestep",              "Time of Delivery Factors",                 "?=0", /*need a default so this var works in required_if*/          "INTEGER,MIN=0", "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_NUMBER, "ppa_soln_mode",                      "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                                                                           "",             "",                                  "Financial Solution Mode",                  "sim_type=1&ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",   "SIMULATION_PARAMETER" },
-    { SSC_INPUT,     SSC_ARRAY,  "dispatch_factors_ts",                "Dispatch payment factor array",                                                                                                           "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=1&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_NUMBER, "en_electricity_rates",               "Enable electricity rates for grid purchase",                                                                                              "0/1",          "",                                  "Electricity Rates",                        "?=0",                                                                         "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekday",             "PPA pricing weekday schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekend",             "PPA pricing weekend schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_NUMBER, "ppa_multiplier_model",               "PPA multiplier model 0: dispatch factors dispatch_factorX, 1: hourly multipliers dispatch_factors_ts",                                    "0/1",          "0=diurnal,1=timestep",              "Time of Delivery Factors",                 "?=0", /*need a default so this var works in required_if*/                               "INTEGER,MIN=0", "SIMULATION_PARAMETER" },
+    { SSC_INPUT,     SSC_NUMBER, "ppa_soln_mode",                      "PPA solution mode (0=Specify IRR target, 1=Specify PPA price)",                                                                           "",             "",                                  "Financial Solution Mode",                  "sim_type=1&ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",      "",              "SIMULATION_PARAMETER" },
+    { SSC_INPUT,     SSC_ARRAY,  "dispatch_factors_ts",                "Dispatch payment factor array",                                                                                                           "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=1&csp_financial_model<5&is_dispatch=1&sim_type=1",                 "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_NUMBER, "en_electricity_rates",               "Enable electricity rates for grid purchase",                                                                                              "0/1",          "",                                  "Electricity Rates",                        "?=0",                                                                                   "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekday",             "PPA pricing weekday schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",                 "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_MATRIX, "dispatch_sched_weekend",             "PPA pricing weekend schedule, 12x24",                                                                                                     "",             "",                                  "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",                 "",              "SIMULATION_PARAMETER"},
     { SSC_INPUT,     SSC_ARRAY,  "dispatch_tod_factors",               "TOD factors for periods 1 through 9",                                                                                                     "",
-        "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                                                                                                         "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",              "SIMULATION_PARAMETER" },
+        "We added this array input after SAM 2022.12.21 to replace the functionality of former single value inputs dispatch_factor1 through dispatch_factor9",                                                                                                         "Time of Delivery Factors",                 "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",                 "",              "SIMULATION_PARAMETER" },
 
     // Day of week for weekday/weekend schedules
-    { SSC_INPUT,        SSC_NUMBER,     "start_day_of_year",           "Start day of year for TOD periods",                                                                                                       "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors", "?=0", "", "" },
-
-    { SSC_INPUT,     SSC_ARRAY,  "ppa_price_input",			           "PPA prices - yearly",			                                                                                                          "$/kWh",	      "",	                               "Revenue",			                       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",       "",      	       "SIMULATION_PARAMETER"},
-    { SSC_INPUT,     SSC_MATRIX, "mp_energy_market_revenue",           "Energy market revenue input",                                                                                                             "",             "Lifetime x 2[Cleared Capacity(MW),Price($/MWh)]", "Revenue",                    "csp_financial_model=6&is_dispatch=1&sim_type=1",                              "",              "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_NUMBER, "start_day_of_year",                  "Start day of year for TOD periods",                                                                                                       "0..6", "0=Monday, 6=Sunday",    "Time of Delivery Factors",                                     "?=0",                                                                                   "",              "" },
+    { SSC_INPUT,     SSC_ARRAY,  "ppa_price_input",			           "PPA prices - yearly",			                                                                                                          "$/kWh",	      "",	                               "Revenue",			                       "ppa_multiplier_model=0&csp_financial_model<5&is_dispatch=1&sim_type=1",                 "",      	     "SIMULATION_PARAMETER"},
+    { SSC_INPUT,     SSC_MATRIX, "mp_energy_market_revenue",           "Energy market revenue input",                                                                                                             "",             "Lifetime x 2[Cleared Capacity(MW),Price($/MWh)]", "Revenue",                    "csp_financial_model=6&is_dispatch=1&sim_type=1",                                        "",              "SIMULATION_PARAMETER"},
 
     // Optional Component Initialization (state at start of first timestep)
         // Heliostat field and Receiver
@@ -396,8 +395,8 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_ARRAY,  "is_rec_su_allowed_in",               "User-provided is receiver startup allowed?",                                                                                              "-",            "",                                  "System Control",                           "is_dispatch_targets=1",                                            "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,     SSC_ARRAY,  "is_pc_su_allowed_in",                "User-provided is power cycle startup allowed?",                                                                                           "-",            "",                                  "System Control",                           "is_dispatch_targets=1",                                            "",              "SIMULATION_PARAMETER" },
     { SSC_INPUT,     SSC_ARRAY,  "is_pc_sb_allowed_in",                "User-provided is power cycle standby allowed?",                                                                                           "-",            "",                                  "System Control",                           "is_dispatch_targets=1",                                            "",              "SIMULATION_PARAMETER" },
-    { SSC_INPUT,     SSC_ARRAY,  "q_dot_elec_to_PAR_HTR_in",           "User-provided electrical power to parallel heater",                                                                                       "-",            "",                                  "System Control",                           "is_dispatch_targets=1&is_parallel_htr=1",                                            "",              "SIMULATION_PARAMETER" },
-    { SSC_INPUT,     SSC_ARRAY,  "is_PAR_HTR_allowed_in",              "User-provided is electrical heater operation allowed?",                                                                                   "-",            "",                                  "System Control",                           "is_dispatch_targets=1&is_parallel_htr=1",                                            "",              "SIMULATION_PARAMETER" },
+    { SSC_INPUT,     SSC_ARRAY,  "q_dot_elec_to_PAR_HTR_in",           "User-provided electrical power to parallel heater",                                                                                       "-",            "",                                  "System Control",                           "is_dispatch_targets=1&is_parallel_htr=1",                          "",              "SIMULATION_PARAMETER" },
+    { SSC_INPUT,     SSC_ARRAY,  "is_PAR_HTR_allowed_in",              "User-provided is electrical heater operation allowed?",                                                                                   "-",            "",                                  "System Control",                           "is_dispatch_targets=1&is_parallel_htr=1",                          "",              "SIMULATION_PARAMETER" },
 
     // Costs
     { SSC_INPUT,     SSC_NUMBER, "tower_fixed_cost",                   "Tower fixed cost",                                                                                                                        "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
@@ -416,8 +415,8 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     { SSC_INPUT,     SSC_NUMBER, "sales_tax_frac",                     "Percent of cost to which sales tax applies",                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "cost_sf_fixed",                      "Solar field fixed cost",                                                                                                                  "$",            "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "fossil_spec_cost",                   "Fossil system specific cost",                                                                                                             "$/kWe",        "",                                  "System Costs",                             "*",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "batt_kw_spec_cost",                   "Battery per kW cost",                                                                                                             "$/kWAC",        "",                                  "System Costs",                             "?=0",                                                                "",              "" },
-    { SSC_INPUT,     SSC_NUMBER, "batt_kwh_spec_cost",                   "Battery per kWh cost",                                                                                                             "$/kWh",        "",                                  "System Costs",                             "?=0",                                                                "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "batt_kw_spec_cost",                  "Battery per kW cost",                                                                                                                     "$/kWAC",       "",                                  "System Costs",                             "?=0",                                                              "",              "" },
+    { SSC_INPUT,     SSC_NUMBER, "batt_kwh_spec_cost",                 "Battery per kWh cost",                                                                                                                    "$/kWh",        "",                                  "System Costs",                             "?=0",                                                              "",              "" },
 
     { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.per_acre",           "EPC cost per acre",                                                                                                                       "$/acre",       "",                                  "System Costs",                             "*",                                                                "",              "" },
     { SSC_INPUT,     SSC_NUMBER, "csp.pt.cost.epc.percent",            "EPC cost percent of direct",                                                                                                              "%",            "",                                  "System Costs",                             "*",                                                                "",              "" },
@@ -838,91 +837,90 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
 
 static var_info vtab_battery_csp_outputs[] = {
     // battery pack
-    //{ SSC_OUTPUT,     SSC_ARRAY,     "last_idx",                  "Last index (lifetime)",                                    "",          "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "battery_voltage",           "Voltage",                                                  "V",         "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "battery_power",             "Power",                                                    "kW",        "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_NUMBER,      "batt_annual_discharge_energy",               "Battery annual energy discharged",                      "kWh",      "",                      "Battery",       "",                           "",                               "" },
-    { SSC_OUTPUT,     SSC_ARRAY,     "battery_capacity",          "Capacity",                                                 "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "battery_max_capacity",      "Max Capacity",                                             "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "battery_current",           "Current",                                                  "A",         "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "I_dischargeable",           "Estimated max dischargeable current",                      "A",         "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "I_chargeable",              "Estimated max chargeable current",                         "A",         "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "P_dischargeable",           "Estimated max dischargeable power",                        "kW",        "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "P_chargeable",              "Estimated max chargeable power ",                          "kW",        "",                     "StatePack",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_voltage",             "Battery voltage",                                          "V",         "",                     "StatePack",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_power",               "Battery power",                                            "kW",        "",                     "StatePack",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_NUMBER,    "batt_annual_discharge_energy","Battery annual energy discharged",                         "kWh",      "",                      "Battery",       "",                           "",                               "" },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_capacity",            "Battery capacity",                                         "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_max_capacity",        "Battery max Capacity",                                     "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_current",             "Battery current",                                          "A",         "",                     "StatePack",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "batt_max_discharge_current",  "Battery estimated max dischargeable current",              "A",         "",                     "StatePack",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "batt_max_charge_current",     "Battery estimated max chargeable current",                 "A",         "",                     "StatePack",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "batt_max_discharge_power",    "Battery estimated max dischargeable power",                "kW",        "",                     "StatePack",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "batt_max_charge_power",       "Battery estimated max chargeable power ",                  "kW",        "",                     "StatePack",       "",                           "",                               ""  },
 
     // capacity
-    { SSC_OUTPUT,     SSC_ARRAY,     "battery_soc",               "State of Charge",                                          "%",         "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "q0",                        "Cell capacity at timestep",                                "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "qmax_lifetime",             "Maximum possible cell capacity",                           "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "qmax_thermal",              "Maximum cell capacity adjusted for temperature effects",   "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "cell_current",              "Cell current",                                             "A",         "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "I_loss",                    "Lifetime and thermal losses",                              "A",         "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "charge_mode",               "Charge (0), Idle (1), Discharge (2)",                      "0/1/2",     "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "SOC_prev",                  "State of Charge of last time step",                        "%",         "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "prev_charge",               "Charge mode of last time step",                            "0/1/2",     "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "percent_unavailable",       "Percent of system that is down",                           "%",         "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "percent_unavailable_prev",  "Percent of system that was down last step",                "%",         "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "chargeChange",              "Whether Charge mode changed since last step",              "0/1",       "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "q1_0",                      "Lead acid - Cell charge available",                        "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "q2_0",                      "Lead acid - Cell charge bound",                            "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "qn",                        "Lead acid - Cell capacity at n-hr discharge rate",         "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "q2",                        "Lead acid - Cell capacity at 10-hr discharge rate",        "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_soc",                 "Battery state of charge",                                  "%",         "",                     "StatePack",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q0",                  "Battery cell capacity at timestep",                        "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_qmax_lifetime",       "Battery maximum possible cell capacity",                   "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_qmax_thermal","Battery maximum cell capacity adjusted for temperature effects",   "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_cell_current",        "Battery cell current",                                     "A",         "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_current_loss",        "Battery lifetime and thermal losses",                      "A",         "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_charge_mode",         "Battery mode: Charge (0), Idle (1), Discharge (2)",        "0/1/2",     "",                     "StateCell",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_SOC_prev",           "Battery state of charge of last time step",                 "%",         "",                     "StateCell",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_prev_charge",        "Battery charge mode of last time step",                     "0/1/2",     "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_percent_unavailable", "Battery percent of system that is down",                   "%",         "",                     "StateCell",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_percent_unavailable_prev",   "Battery percent of system that was down last step",         "%",         "",                     "StateCell",       "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_chargeChange",       "Battery whether charge mode changed since last step",       "0/1",       "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q1_0",                "Battery lead acid - Cell charge available",                "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q2_0",                "Battery lead acid - Cell charge bound",                    "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_qn",                  "Battery lead acid - Cell capacity at n-hr discharge rate", "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q2",                 "Battery lead acid - Cell capacity at 10-hr discharge rate", "Ah",        "",                     "StateCell",       "",                           "",                               ""  },
 
     // voltage
-    { SSC_OUTPUT,     SSC_ARRAY,     "cell_voltage",              "Cell voltage",                                             "V",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_cell_voltage",        "Battery cell voltage",                                      "V",         "",                     "StateCell",        "",                           "",                               ""  },
 
     // thermal
-    { SSC_OUTPUT,     SSC_ARRAY,     "q_relative_thermal",        "Relative capacity due to thermal effects",                 "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "T_batt",                    "Battery temperature averaged over time step",              "C",         "",                     "StatePack",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "T_room",                    "Room temperature",                                         "C",         "",                     "StatePack",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "heat_dissipated",           "Heat dissipated due to flux",                              "kW",        "",                     "StatePack",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "T_batt_prev",               "Battery temperature at end of last time step",             "C",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q_relative_thermal",  "Battery relative capacity due to thermal effects",          "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_temperature",         "Battery temperature averaged over time step",                "C",         "",                     "StatePack",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_T_room",              "Battery room temperature",                                   "C",         "",                     "StatePack",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_heat_dissipated",     "Battery heat dissipated due to flux",                        "kW",        "",                     "StatePack",        "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_T_batt_prev",         "Battery temperature at end of last time step",               "C",         "",                     "StateCell",        "",                           "",                               ""  },
 
     // lifetime
-    { SSC_OUTPUT,     SSC_ARRAY,     "q_relative",                "Overall relative capacity due to lifetime effects",        "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "q_relative_cycle",          "Relative capacity due to cycling effects",                 "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "n_cycles",                  "Number of cycles",                                         "",          "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "cycle_range",               "Range of last cycle",                                      "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "cycle_DOD",                 "cycle_DOD of last cycle",                                  "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    //{ SSC_INOUT,        SSC_MATRIX,     "cycle_counts",              "Counts of cycles by DOD",                                  "[%, cycles]","If life_model=0, counts all cycles in simulation; else, cycles per day",                      "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "average_range",             "Average cycle cycle_range",                                "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "rainflow_Xlt",              "Rainflow cycle_range of second to last half cycle",        "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "rainflow_Ylt",              "Rainflow cycle_range of last half cycle",                  "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "rainflow_jlt",              "Rainflow number of turning points",                        "",          "",                     "StateCell",        "",                           "",                               ""  },
-    //{ SSC_INOUT,        SSC_ARRAY,      "rainflow_peaks",            "Rainflow peaks of cycle_DOD",                              "[%]",       "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "q_relative_calendar",       "Relative capacity due to calendar effects",                "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "day_age_of_battery",        "Day age of battery",                                       "day",       "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "dq_relative_calendar_old",  "Change in capacity of last time step",                     "%",         "",                     "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "DOD_max",                   "Max DOD of battery for current day",                      "%",         "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "DOD_min",                   "Min DOD of battery for current day",                      "%",         "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
-    //{ SSC_INOUT,        SSC_ARRAY,      "cycle_DOD_max",             "Max DODs of cycles concluded in current day",             "%",         "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "cum_dt",                    "Elapsed time for current day",                            "day",       "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q_relative",          "Battery overall relative capacity due to lifetime effects",  "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q_relative_cycle",    "Battery relative capacity due to cycling effects",           "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_n_cycles",            "Battery number of cycles",                                   "",          "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_cycle_range",         "Battery range of last cycle",                                "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_cycle_DOD",           "Battery cycle_DOD of last cycle",                            "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    //{ SSC_INOUT,        SSC_MATRIX,     "battery_cycle_counts",      "Battery counts of cycles by DOD",                                  "[%, cycles]","If life_model=0, counts all cycles in simulation; else, cycles per day",                      "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_average_range",       "Battery average cycle cycle_range",                          "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_rainflow_Xlt",        "Battery rainflow cycle_range of second to last half cycle",  "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_rainflow_Ylt",        "Battery rainflow cycle_range of last half cycle",            "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_rainflow_jlt",        "Battery rainflow number of turning points",                  "",          "",                     "StateCell",        "",                           "",                               ""  },
+    //{ SSC_INOUT,        SSC_ARRAY,      "battery_rainflow_peaks",      "Battery rainflow peaks of cycle_DOD",                              "[%]",       "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q_relative_calendar", "Battery relative capacity due to calendar effects",          "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "day_age_of_battery",        "Battery day age of battery",                                 "day",       "",                     "StateCell",        "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_dq_relative_calendar_old",  "Battery change in capacity of last time step",               "%",         "",                     "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_DOD_max",             "Battery max DOD of battery for current day",                 "%",      "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_DOD_min",             "Battery min DOD of battery for current day",                 "%",      "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
+    //{ SSC_INOUT,        SSC_ARRAY,      "battery_cycle_DOD_max",             "Max DODs of cycles concluded in current day",             "%",      "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_cum_dt",              "Battery elapsed time for current day",                       "day",    "Cycles for Life Model",   "StateCell",        "",                           "",                               ""  },
 
-    { SSC_OUTPUT,     SSC_ARRAY,     "q_relative_li",             "Relative capacity due to loss of lithium inventory",      "%",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "q_relative_neg",            "Relative capacity due to loss of anode material",         "%",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "dq_relative_li1",           "Cumulative capacity change from time-dependent Li loss",  "1",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "dq_relative_li2",           "Cumulative capacity change from cycle-dependent Li loss", "1",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "dq_relative_li3",           "Cumulative capacity change from BOL Li loss",             "1",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "dq_relative_neg",           "Cumulative capacity change from negative electrode",      "1",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "b1_dt",                     "b1 coefficient cumulated for current day",                "day^-0.5",  "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "b2_dt",                     "b2 coefficient cumulated for current day",                "1/cycle",   "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "b3_dt",                     "b3 coefficient cumulated for current day",                "1",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "c0_dt",                     "c0 coefficient cumulated for current day",                "Ah",        "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "c2_dt",                     "c2 coefficient cumulated for current day",                "1/cycle",   "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "temp_dt",                   "Temperature cumulated for current day",                   "K",         "NMC Life Model",          "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q_relative_li",       "Battery relative capacity due to loss of lithium inventory",      "%",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_q_relative_neg",      "Battery relative capacity due to loss of anode material",         "%",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_dq_relative_li1",     "Battery cumulative capacity change from time-dependent Li loss",  "1",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_dq_relative_li2",     "Battery cumulative capacity change from cycle-dependent Li loss", "1",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_dq_relative_li3",     "Battery cumulative capacity change from BOL Li loss",             "1",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_dq_relative_neg",     "Battery cumulative capacity change from negative electrode",      "1",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_b1_dt",               "Battery b1 coefficient cumulated for current day",                "day^-0.5",  "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_b2_dt",               "Battery b2 coefficient cumulated for current day",                "1/cycle",   "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_b3_dt",               "Battery b3 coefficient cumulated for current day",                "1",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_c0_dt",               "Battery c0 coefficient cumulated for current day",                "Ah",        "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_c2_dt",               "Battery c2 coefficient cumulated for current day",                "1/cycle",   "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_temp_dt",             "Battery temperature cumulated for current day",                   "K",         "NMC Life Model",       "StateCell",        "",                           "",                               ""  },
 
-    { SSC_OUTPUT,     SSC_ARRAY,     "dq_relative_cal",           "Cumulative capacity change from calendar degradation",    "%",         "LMO/LTO Life Model",      "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "dq_relative_cyc",           "Cumulative capacity change from cycling degradation",     "%",         "LMO/LTO Life Model",      "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "EFC",                       "Total Equivalent Full Cycles",                            "1",         "LMO/LTO Life Model",      "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "EFC_dt",                    "Equivalent Full Cycles cumulated for current day",        "1",         "LMO/LTO Life Model",      "StateCell",        "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_ARRAY,     "temp_avg",                  "Average temperature for current day",                     "K",         "LMO/LTO Life Model",      "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_dq_relative_cal",     "Battery cumulative capacity change from calendar degradation",    "%",         "LMO/LTO Life Model",   "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_dq_relative_cyc",     "Battery cumulative capacity change from cycling degradation",     "%",         "LMO/LTO Life Model",   "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_EFC",                 "Battery total Equivalent Full Cycles",                            "1",         "LMO/LTO Life Model",   "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_EFC_dt",              "Battery equivalent Full Cycles cumulated for current day",        "1",         "LMO/LTO Life Model",   "StateCell",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_temp_avg",            "Battery average temperature for current day",                     "K",         "LMO/LTO Life Model",   "StateCell",        "",                           "",                               ""  },
 
     // losses
-    { SSC_OUTPUT,     SSC_ARRAY,     "loss_kw",                   "Ancillary power loss (kW DC for DC connected, AC for AC connected)", "kW", "",                  "StatePack",          "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_loss_kw",   "Battery ancillary power loss (kW DC for DC connected, AC for AC connected)", "kW",        "",                     "StatePack",        "",                           "",                               ""  },
 
     // replacements
-    { SSC_OUTPUT,     SSC_ARRAY,     "n_replacements",            "Number of replacements at current year",                   "",         "",                      "StatePack",     "",                           "",                               ""  },
-    //{ SSC_INOUT,        SSC_ARRAY,      "indices_replaced",          "Lifetime indices of replacement occurrences",              "",         "",                      "StatePack",     "",                           "",                               ""  },
+    //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_n_replacements",            "Battery number of replacements at current year",              "",         "",                     "StatePack",        "",                           "",                               ""  },
+    //{ SSC_INOUT,        SSC_ARRAY,      "battery_indices_replaced",          "Lifetime indices of replacement occurrences",              "",         "",                      "StatePack",     "",                           "",                               ""  },
 
     var_info_invalid };
 
@@ -2226,11 +2224,9 @@ public:
         // Battery storage (if included)
         // *************************************************************************
 
-        bool is_battery_included = as_boolean("includes_battery");
-        //std::unique_ptr<battstor> batt_storage = nullptr;
         std::shared_ptr<battstor> batt_storage = nullptr;
         std::unique_ptr<C_csp_battery> battery = nullptr;
-        if (is_battery_included) {
+        if (as_double("batt_computed_bank_capacity") > 0.0 && sim_type == 1) {
             size_t nrec_battery = (size_t)steps_per_hour * 8760;
             batt_storage = std::unique_ptr<battstor>(new battstor(*this->get_var_table(),
                 /*setup_model*/ true, nrec_battery, 1.0 / steps_per_hour,
@@ -2241,80 +2237,83 @@ public:
                 1.0 / steps_per_hour));*/
             battery = std::unique_ptr<C_csp_battery>(new C_csp_battery(batt_storage.get(), 1.0 / steps_per_hour));
 
+            int analysis_period = as_integer("analysis_period");
+            int batt_lifetime_allocation = n_steps_fixed * analysis_period;
+
             // TODO: Go through the outputs and determine which ones we actually want to report.
-            battery->mc_reported_outputs.assign(C_csp_battery::Voltage, allocate("battery_voltage", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::Power, allocate("battery_power", n_steps_fixed), n_steps_fixed);
+            battery->mc_reported_outputs.assign(C_csp_battery::Voltage, allocate("battery_voltage", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::Power, allocate("battery_power", batt_lifetime_allocation), batt_lifetime_allocation);
             accumulate_annual_for_year("battery_power", "batt_annual_discharge_energy", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
-            battery->mc_reported_outputs.assign(C_csp_battery::Capacity, allocate("battery_capacity", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::MaxCapacity, allocate("battery_max_capacity", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::Current, allocate("battery_current", n_steps_fixed), n_steps_fixed);
+            battery->mc_reported_outputs.assign(C_csp_battery::Capacity, allocate("battery_capacity", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::MaxCapacity, allocate("battery_max_capacity", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::Current, allocate("battery_current", batt_lifetime_allocation), batt_lifetime_allocation);
 
-            //battery->mc_reported_outputs.assign(C_csp_battery::I_dischargeable, allocate("battery_max_discharge_current", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::I_chargeable, allocate("battery_max_charge_current", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::P_dischargeable, allocate("battery_max_discharge_power", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::P_chargeable, allocate("battery_max_charge_power", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::SOC, allocate("battery_soc", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q0, allocate("battery_q0", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::qmax_lifetime, allocate("battery_qmax_lifetime", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::qmax_thermal, allocate("battery_qmax_thermal", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::cell_current, allocate("battery_cell_current", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::I_loss, allocate("battery_current_loss", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::charge_mode, allocate("battery_charge_mode", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::SOC_prev, allocate("battery_SOC_prev", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::prev_charge, allocate("battery_prev_charge", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::percent_unavailable, allocate("battery_percent_unavailable", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::percent_unavailable_prev, allocate("battery_percent_unavailable_prev", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::chargeChange, allocate("battery_chargeChange", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q1_0, allocate("battery_q1_0", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q2_0, allocate("battery_q2_0", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::qn, allocate("battery_qn", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q2, allocate("battery_q2", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::cell_voltage, allocate("battery_cell_voltage", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_thermal, allocate("battery_q_relative_thermal", n_steps_fixed), n_steps_fixed);
+            //battery->mc_reported_outputs.assign(C_csp_battery::I_dischargeable, allocate("batt_max_discharge_current", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::I_chargeable, allocate("batt_max_charge_current", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::P_dischargeable, allocate("batt_max_discharge_power", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::P_chargeable, allocate("batt_max_charge_power", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::SOC, allocate("battery_soc", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q0, allocate("battery_q0", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::qmax_lifetime, allocate("battery_qmax_lifetime", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::qmax_thermal, allocate("battery_qmax_thermal", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::cell_current, allocate("battery_cell_current", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::I_loss, allocate("battery_current_loss", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::charge_mode, allocate("battery_charge_mode", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::SOC_prev, allocate("battery_SOC_prev", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::prev_charge, allocate("battery_prev_charge", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::percent_unavailable, allocate("battery_percent_unavailable", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::percent_unavailable_prev, allocate("battery_percent_unavailable_prev", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::chargeChange, allocate("battery_chargeChange", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q1_0, allocate("battery_q1_0", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q2_0, allocate("battery_q2_0", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::qn, allocate("battery_qn", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q2, allocate("battery_q2", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::cell_voltage, allocate("battery_cell_voltage", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_thermal, allocate("battery_q_relative_thermal", batt_lifetime_allocation), batt_lifetime_allocation);
 
-            battery->mc_reported_outputs.assign(C_csp_battery::T_batt, allocate("battery_temperature", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::T_room, allocate("battery_T_room", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::heat_dissipated, allocate("battery_heat_dissipated", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::T_batt_prev, allocate("battery_T_batt_prev", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q_relative, allocate("battery_q_relative", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_cycle, allocate("battery_q_relative_cycle", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::n_cycles, allocate("battery_n_cycles", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::cycle_range, allocate("battery_cycle_range", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::cycle_DOD, allocate("battery_cycle_DOD", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::cycle_counts, allocate("battery_cycle_counts", n_steps_fixed), n_steps_fixed);
+            battery->mc_reported_outputs.assign(C_csp_battery::T_batt, allocate("battery_temperature", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::T_room, allocate("battery_T_room", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::heat_dissipated, allocate("battery_heat_dissipated", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::T_batt_prev, allocate("battery_T_batt_prev", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q_relative, allocate("battery_q_relative", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_cycle, allocate("battery_q_relative_cycle", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::n_cycles, allocate("battery_n_cycles", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::cycle_range, allocate("battery_cycle_range", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::cycle_DOD, allocate("battery_cycle_DOD", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::cycle_counts, allocate("battery_cycle_counts", batt_lifetime_allocation), batt_lifetime_allocation);
 
-            battery->mc_reported_outputs.assign(C_csp_battery::average_range, allocate("battery_average_range", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::rainflow_Xlt, allocate("battery_rainflow_Xlt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::rainflow_Ylt, allocate("battery_rainflow_Ylt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::rainflow_jlt, allocate("battery_rainflow_jlt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::rainflow_peaks, allocate("battery_rainflow_peaks", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_calendar, allocate("battery_q_relative_calendar", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::day_age_of_battery, allocate("day_age_of_battery", n_steps_fixed), n_steps_fixed);
-            //battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_calendar_old, allocate("battery_dq_relative_calendar_old", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::DOD_max, allocate("battery_DOD_max", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::DOD_min, allocate("battery_DOD_min", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::cycle_DOD_max, allocate("battery_cycle_DOD_max", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::cum_dt, allocate("battery_cum_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_li, allocate("battery_q_relative_li", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_neg, allocate("battery_q_relative_neg", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_li1, allocate("battery_dq_relative_li1", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_li2, allocate("battery_dq_relative_li2", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_li3, allocate("battery_dq_relative_li3", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_neg, allocate("battery_dq_relative_neg", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::b1_dt, allocate("battery_b1_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::b2_dt, allocate("battery_b2_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::b3_dt, allocate("battery_b3_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::c0_dt, allocate("battery_c0_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::c2_dt, allocate("battery_c2_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::temp_dt, allocate("battery_temp_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_cal, allocate("battery_dq_relative_cal", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_cyc, allocate("battery_dq_relative_cyc", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::EFC, allocate("battery_EFC", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::EFC_dt, allocate("battery_EFC_dt", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::temp_avg, allocate("battery_temp_avg", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::loss_kw, allocate("battery_loss_kw", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::n_replacements, allocate("battery_n_replacements", n_steps_fixed), n_steps_fixed);
-            battery->mc_reported_outputs.assign(C_csp_battery::indices_replaced, allocate("battery_indices_replaced", n_steps_fixed), n_steps_fixed);
+            battery->mc_reported_outputs.assign(C_csp_battery::average_range, allocate("battery_average_range", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::rainflow_Xlt, allocate("battery_rainflow_Xlt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::rainflow_Ylt, allocate("battery_rainflow_Ylt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::rainflow_jlt, allocate("battery_rainflow_jlt", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::rainflow_peaks, allocate("battery_rainflow_peaks", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_calendar, allocate("battery_q_relative_calendar", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::day_age_of_battery, allocate("day_age_of_battery", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_calendar_old, allocate("battery_dq_relative_calendar_old", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::DOD_max, allocate("battery_DOD_max", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::DOD_min, allocate("battery_DOD_min", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::cycle_DOD_max, allocate("battery_cycle_DOD_max", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::cum_dt, allocate("battery_cum_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_li, allocate("battery_q_relative_li", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::q_relative_neg, allocate("battery_q_relative_neg", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_li1, allocate("battery_dq_relative_li1", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_li2, allocate("battery_dq_relative_li2", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_li3, allocate("battery_dq_relative_li3", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_neg, allocate("battery_dq_relative_neg", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::b1_dt, allocate("battery_b1_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::b2_dt, allocate("battery_b2_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::b3_dt, allocate("battery_b3_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::c0_dt, allocate("battery_c0_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::c2_dt, allocate("battery_c2_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::temp_dt, allocate("battery_temp_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_cal, allocate("battery_dq_relative_cal", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::dq_relative_cyc, allocate("battery_dq_relative_cyc", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::EFC, allocate("battery_EFC", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::EFC_dt, allocate("battery_EFC_dt", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::temp_avg, allocate("battery_temp_avg", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::loss_kw, allocate("battery_loss_kw", batt_lifetime_allocation), batt_lifetime_allocation);
+            //battery->mc_reported_outputs.assign(C_csp_battery::n_replacements, allocate("battery_n_replacements", batt_lifetime_allocation), batt_lifetime_allocation);
+            battery->mc_reported_outputs.assign(C_csp_battery::indices_replaced, allocate("battery_indices_replaced", batt_lifetime_allocation), batt_lifetime_allocation);
         }
 
         // TODO: Only support battery if dispatch optimization is selected?
@@ -2954,11 +2953,12 @@ public:
 
         double batt_kw_design = 0.0;
         double batt_kwh_design = 0.0;
-        double batt_kw_spec_cost = 0;
-        double batt_kwh_spec_cost = 0;
-        if (is_battery_included) {
-            batt_kwh_design = battery->battstor_csp->batt_vars->batt_kwh;
-            batt_kw_design = battery->battstor_csp->batt_vars->batt_kw;
+        double batt_kw_spec_cost = 0.0;
+        double batt_kwh_spec_cost = 0.0;
+
+        if (is_assigned("batt_computed_bank_capacity") && is_assigned("batt_power_discharge_max_kwdc")) {
+            batt_kw_design = as_double("batt_power_discharge_max_kwdc");
+            batt_kwh_design = as_double("batt_computed_bank_capacity");
             batt_kw_spec_cost = as_double("batt_kw_spec_cost");
             batt_kwh_spec_cost = as_double("batt_kwh_spec_cost");
         }
@@ -3245,7 +3245,7 @@ public:
         // *****************************************************
         /*
         // Comment this out for now, keep for future ssc cost models callouts?
-        if (is_battery_included) {
+        if (as_double("batt_computed_bank_capacity") > 0.0 && sim_type == 1) {
             double batt_cost_per_kwh = as_double("battery_per_kWh");
             double batt_cost_per_kw = as_double("battery_per_kW");
             double batt_contingency_rate = as_double("standalonebatt.cost.contingency_percent");
@@ -3281,6 +3281,41 @@ public:
         {
             // Simulate !
             csp_solver.Ssimulate(sim_setup);
+
+
+            // Battery replacements over lifetime of plant
+            if (battery != nullptr) {
+                int nyears = as_integer("analysis_period");
+                ssc_number_t* batt_replacements = allocate("batt_bank_replacement", nyears);
+                batt_replacements[0] = battery->battery->getNumReplacementYear();  // First year is already accounted for in the simulation
+                battery->battery->resetReplacement();
+
+                size_t n_battery_target = 0;
+                ssc_number_t* dis_battery_target = as_array("disp_batt_target", &n_battery_target);
+
+                double time_start;			//[s]
+                std::vector<double> time_local;
+                double time_end;			//[s]
+                double time_step = 3600. / steps_per_hour;  // [s]
+
+                time_start = n_steps_fixed * time_step;
+                time_end = time_start + time_step;
+                time_local.push_back(time_end);
+
+                // Start at 1 because the first year is already accounted for in the simulation
+                for (size_t y = 1; y < nyears; y++) {
+                    for (size_t t = 0; t < n_steps_fixed / steps_per_hour; t++) {
+                        battery->call(dis_battery_target[t] * 1.e3);    // MWe to kWe
+                        battery->write_output_intervals(time_start, time_local, time_end);
+                        time_start = time_end;
+                        time_end += time_step;
+                        time_local[0] = time_end;
+                    }
+                    batt_replacements[y] = battery->battery->getNumReplacementYear();
+                    battery->battery->resetReplacement();
+                }
+            }
+
         }
         catch(C_csp_exception &csp_exception)
         {
@@ -3298,6 +3333,8 @@ public:
         {
             log(out_msg, out_type);
         }
+
+
 
         
 

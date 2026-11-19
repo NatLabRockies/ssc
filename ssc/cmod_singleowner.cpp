@@ -736,7 +736,7 @@ public:
 
 
         if (is_assigned("is_hybrid") && as_integer("is_hybrid") == 1) {
-            // already added in additional o and m - this is only necessary if dispatch and replacments at top level as when fuel cell and battery dispatch combined
+            // already added in additional o and m - this is only necessary if dispatch and replacements at top level as when fuel cell and battery dispatch combined
         }
         else {
             if (add_om_num_types > 0) //PV Battery

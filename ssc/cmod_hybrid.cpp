@@ -100,6 +100,47 @@ public:
         }
     }
 
+    // Calculates the battery replacement cost schedule over the analysis period, either from
+    // a computed replacement schedule (capacity-percent or user schedule) or a flat escalated cost.
+    // Returns the battery bank capacity used for the cost calculation.
+    void calculate_battery_replacement_cost_schedule(var_table& input, ssc_data_t compute_module_outputs,
+        int analysisPeriod, ssc_number_t inflation_rate)
+    {
+        double batt_cap = 0.0;
+        if (input.as_integer("batt_replacement_option") > 0) {
+            ssc_number_t* batt_rep = 0;
+            std::vector<ssc_number_t> replacement_percent;
+            size_t count;
+            batt_rep = ((var_table*)compute_module_outputs)->as_array("batt_bank_replacement", &count); // replacements per year calculated
+
+            // replace at capacity percent
+            if (input.as_integer("batt_replacement_option") == 1) {
+                for (int i = 0; i < (int)count; i++) {
+                    replacement_percent.push_back(100);
+                }
+            }
+            else {// user-specified
+                replacement_percent = input.as_vector_ssc_number_t("batt_replacement_schedule_percent");
+            }
+            batt_cap = ((var_table*)compute_module_outputs)->as_double("batt_computed_bank_capacity");
+            // updated 10/17/15 per 10/14/15 meeting
+            ssc_number_t* pOMBattReplacementCost = ((var_table*)compute_module_outputs)->allocate("cf_battery_replacement_cost_schedule", analysisPeriod + 1);
+            escal_or_annual(input, pOMBattReplacementCost, analysisPeriod, "om_batt_replacement_cost", inflation_rate, batt_cap, false, input.as_double("om_replacement_cost_escal") * 0.01);
+
+            for (int i = 0; i < analysisPeriod && i < (int)count; i++) {
+                // the cash flow sheets are 1 indexed, batt_rep and replacement_percent is zero indexed
+                pOMBattReplacementCost[i + 1] = batt_rep[i] * replacement_percent[i] * 0.01 * pOMBattReplacementCost[i + 1];
+            }
+        }
+        else
+        {
+            batt_cap = ((var_table*)compute_module_outputs)->as_double("batt_computed_bank_capacity");
+            // updated 10/17/15 per 10/14/15 meeting
+            ssc_number_t* pOMBattReplacementCost = ((var_table*)compute_module_outputs)->allocate("cf_battery_replacement_cost_schedule", analysisPeriod + 1);
+            escal_or_annual(input, pOMBattReplacementCost, analysisPeriod, "om_batt_replacement_cost", inflation_rate, batt_cap, false, input.as_double("om_replacement_cost_escal") * 0.01);
+        }
+    }
+
     void exec()
     {
         float percent = 0;
@@ -437,7 +478,6 @@ public:
                 ssc_data_free(compute_module_outputs);
             }
 
-            //CSP with thermal storage setup
             if (csp_thermal_storage.size() > 0) { // run single molten salt power tower if present 
 
                 percent = 100.0f * ((float)(generators.size() + csp_thermal_storage.size()) / (float)(generators.size() + csp_thermal_storage.size() + batteries.size() + financials.size()));
@@ -454,6 +494,7 @@ public:
                 //ssc_data_set_array(static_cast<ssc_data_t>(&input), "gen", pGen, (int)genLength);
                 ssc_data_set_array(static_cast<ssc_data_t>(&input), "anc_elec_output", pGen, (int)genLength);
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "system_use_lifetime_output", 1); // for fuelcell_annual_energy_discharged   // FIXME: remove?
+                ssc_data_set_number(static_cast<ssc_data_t>(&input), "en_batt", 1); // TODO: should this be done at UI level?
 
                 // merge in hybrid var_table for configurations where battery and fuel cell dispatch are combined and not in the technology bin
                 std::string hybridVarTable("Hybrid");
@@ -462,7 +503,6 @@ public:
                 input.merge(hybridinput, false);
 
                 if (batteries.size() > 0) {
-
                     std::string batteryVarTable("Battery");
                     var_data* battery_inputs = input_table->table.lookup(batteryVarTable);
                     var_table& batteryinput = battery_inputs->table;
@@ -489,29 +529,31 @@ public:
                 // Gather calculated outputs for financial calculations
                 ssc_number_t system_capacity = ((var_table*)compute_module_outputs)->as_double("nameplate") * 1.e3; // MWe to kWe, net capacity
                 hybridSystemCapacity += system_capacity; // financial calculations -> net?
-                // TODO: Do we need to add battery capacity to hybridSystemCapacity?
+                ssc_number_t battery_capacity = input.lookup("batt_power_discharge_max_kwac")->num;
+                hybridSystemCapacity += battery_capacity;       // TODO: Do we need to add battery capacity to hybridSystemCapacity?
 
-                hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("total_installed_cost");
-                //hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("batt_total_installed_cost");   // Adding battery installed costs
-                //TODO: don't add in this battery cost, potentially double counting
+                hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("total_installed_cost");        // Accounts for battery costs
+
                 // TODO: how do we want to handle construction financing costs?
                 //ssc_number_t construction_financing_cost = ((var_table*)compute_module_outputs)->as_double("construction_financing_cost");
                 
-                // TODO: How to handle Battery degradation? May need to run battery for lifetime output to get degradation and lifetime energy throughput.
-
                 // TODO: figure out what we need here for CSP with thermal storage, and how to handle O&M costs, etc.
 
-                // add production O and M calculations - done below before financial calculations
-                ssc_number_t nameplate = 0;
-                std::vector<double> fuelcell_discharged(analysisPeriod + 1, 0);
                 // add production O and M calculations - done below before financial calculations, production, capacity, annual and land lease...
+                ssc_number_t* pOMFixed = ((var_table*)compute_module_outputs)->allocate("cf_om_fixed", analysisPeriod + 1);
                 ssc_number_t* pOMProduction = ((var_table*)compute_module_outputs)->allocate("cf_om_production", analysisPeriod + 1);
                 ssc_number_t* pOMCapacity = ((var_table*)compute_module_outputs)->allocate("cf_om_capacity", analysisPeriod + 1);
-                ssc_number_t* pOMFixed = ((var_table*)compute_module_outputs)->allocate("cf_om_fixed", analysisPeriod + 1);
 
                 escal_or_annual(input, pOMFixed, analysisPeriod, "om_fixed", inflation_rate, 1.0, false, input.as_double("om_fixed_escal") * 0.01); // $ 
-                escal_or_annual(input, pOMProduction, analysisPeriod, "om_production", inflation_rate, 0.001, false, input.as_double("om_production_escal") * 0.01); // $/kWh after conversion
-                escal_or_annual(input, pOMCapacity, analysisPeriod, "om_capacity", inflation_rate, system_capacity, false, input.as_double("om_capacity_escal") * 0.01); // $ after multiplying by system capacity
+                escal_or_annual(input, pOMProduction, analysisPeriod, "om_production", inflation_rate, 0.001, false, input.as_double("om_production_escal") * 0.01);        // $/kWh after conversion
+                escal_or_annual(input, pOMCapacity, analysisPeriod, "om_capacity", inflation_rate, system_capacity, false, input.as_double("om_capacity_escal") * 0.01);    // $ after multiplying by system capacity
+
+                // TODO: how to handle production and capacity O&M including battery?
+                // What if we force the user to use the Hybrid Cmod to access the battery within CSP?
+                //      Then we would use "om_batt_fixed_cost" , "om_batt_variable_cost", "om_batt_capacity_cost" are the relevant inputs for battery O&M costs.
+
+
+                // Production - multiply by yearly gen (initially assume single year) - use degradation
                 ssc_number_t* curGen = ssc_data_get_array(compute_module_outputs, "gen", &len);
                 currentTimeStepsPerHour = len / 8760;
                 genTimestepsPerHour.push_back(currentTimeStepsPerHour);
@@ -547,16 +589,23 @@ public:
                         pEnergyNet[i] = first_year_energy * pDegradation[i];
                     }
                 }
-                
-                 // fuelcell cost - replacement from lifetime analysis
+
+                // battery cost - replacement from lifetime analysis
+                calculate_battery_replacement_cost_schedule(input, compute_module_outputs, analysisPeriod, inflation_rate);
                 
                 // production O and M conversion to $
                /* for (int i = 1; i <= analysisPeriod; i++) {
                     pOMProduction[i] *= pEnergyNet[i];
                 }*/
 
-                // add to gen "fuelcell_power" * timestep (set for pGen above)
-                // cash flow line item is fuelcell_annual_energy_discharged from cmod_fuelcell
+                // resize annual outputs
+                size_t arr_length = analysisPeriod + 1;
+                ssc_number_t yr_0_value = 0.0;
+                prepend_to_output((var_table*)compute_module_outputs, "batt_bank_replacement", arr_length, yr_0_value);
+                //prepend_to_output((var_table*)compute_module_outputs, "batt_annual_charge_energy", arr_length, yr_0_value);
+                //prepend_to_output((var_table*)compute_module_outputs, "batt_annual_discharge_energy", arr_length, yr_0_value);
+                //prepend_to_output((var_table*)compute_module_outputs, "batt_annual_charge_from_system", arr_length, yr_0_value);
+
                 size_t count_gen;
                 ssc_number_t* gen = ((var_table*)compute_module_outputs)->as_array("gen", &count_gen);
                 size_t count_degrade;
@@ -658,9 +707,6 @@ public:
                     double first_val = battery_discharged[0];
                     battery_discharged.resize(analysisPeriod, first_val);
                 }
-                else if (csp_thermal_storage.size() != 0) {
-                    battery_discharged.resize(1, 0);
-                }
                 else if (len != analysisPeriod) {
                     throw exec_error("hybrid", util::format("battery_discharged size (%d) incorrect", (int)len));
                 }
@@ -670,41 +716,7 @@ public:
                 }
 
                 // battery cost - replacement from lifetime analysis
-                double batt_cap = 0.0;
-                if (input.as_integer("batt_replacement_option") > 0) {
-                    ssc_number_t* batt_rep = 0;
-                    std::vector<ssc_number_t> replacement_percent;
-                    size_t count;
-                    batt_rep = ((var_table*)compute_module_outputs)->as_array("batt_bank_replacement", &count); // replacements per year calculated
-
-                    // replace at capacity percent
-                    if (input.as_integer("batt_replacement_option") == 1) {
-
-                        for (int i = 0; i < (int)count; i++) {
-                            replacement_percent.push_back(100);
-                        }
-                    }
-                    else {// user specified
-                        replacement_percent = input.as_vector_ssc_number_t("batt_replacement_schedule_percent");
-                    }
-                    batt_cap = ((var_table*)compute_module_outputs)->as_double("batt_computed_bank_capacity");
-                    // updated 10/17/15 per 10/14/15 meeting
-                    ssc_number_t* pOMBattReplacementCost = ((var_table*)compute_module_outputs)->allocate("cf_battery_replacement_cost_schedule", analysisPeriod + 1);
-                    escal_or_annual(input, pOMBattReplacementCost, analysisPeriod, "om_batt_replacement_cost", inflation_rate, batt_cap, false, input.as_double("om_replacement_cost_escal") * 0.01);
-
-                    for (int i = 0; i < analysisPeriod && i < (int)count; i++) {
-                        // the cash flow sheets are 1 indexed, batt_rep and replacement_percent is zero indexed
-                        pOMBattReplacementCost[i + 1] = batt_rep[i] * replacement_percent[i] * 0.01 * pOMBattReplacementCost[i + 1];
-                    }
-                }
-                else
-                {
-                    batt_cap = ((var_table*)compute_module_outputs)->as_double("batt_computed_bank_capacity");
-                    // updated 10/17/15 per 10/14/15 meeting
-                    ssc_number_t* pOMBattReplacementCost = ((var_table*)compute_module_outputs)->allocate("cf_battery_replacement_cost_schedule", analysisPeriod + 1);
-                    escal_or_annual(input, pOMBattReplacementCost, analysisPeriod, "om_batt_replacement_cost", inflation_rate, batt_cap, false, input.as_double("om_replacement_cost_escal") * 0.01);
-                }
-                escal_or_annual(input, pOMCapacity, analysisPeriod, "om_batt_capacity_cost", inflation_rate, batt_cap, false, input.as_double("om_capacity_escal") * 0.01);
+                calculate_battery_replacement_cost_schedule(input, compute_module_outputs, analysisPeriod, inflation_rate);
 
                 // production O and M conversion to $
                 for (size_t i = 0; i < (size_t)analysisPeriod; i++)
@@ -820,8 +832,9 @@ public:
                 ssc_number_t* om_production = csp_outputs.as_array("cf_om_production", &count_csp);
                 ssc_number_t* om_fixed = csp_outputs.as_array("cf_om_fixed", &count_csp);
                 ssc_number_t* om_capacity = csp_outputs.as_array("cf_om_capacity", &count_csp);
+                ssc_number_t* om_replacement = csp_outputs.as_array("cf_battery_replacement_cost_schedule", &count_csp);
                 for (int y = 1; y <= analysisPeriod; y++) {
-                    pHybridOMSum[y] += om_production[y] + om_fixed[y] + om_capacity[y];
+                    pHybridOMSum[y] += om_production[y] + om_fixed[y] + om_capacity[y] + om_replacement[y];
                 }
             }
 

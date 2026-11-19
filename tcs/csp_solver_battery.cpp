@@ -126,13 +126,8 @@ C_csp_battery::C_csp_battery(battstor* batt_storage, double dt_hr_in) {
 };
 
 void C_csp_battery::call(double target_power) {
-    // to change timestep -> see stateful
-    //battery->ChangeTimestep(dt_hr);
-
-    // TODO: FIXME
-    // Replacements
-    //size_t lifetime_index = as_integer("last_idx"); //TODO make last_idx a member?
-    size_t lifetime_index = 8760;
+    // Set up the time step and index for the battery model, then run the replacement and power calculations
+    size_t lifetime_index = battstor_csp->battery_model->get_state().last_idx;
     size_t steps_per_hour = (size_t)(1 / dt_hr);
     size_t steps_per_year = (size_t)(8760 * steps_per_hour);
     size_t year = (size_t)(lifetime_index / steps_per_year);
@@ -245,7 +240,6 @@ void C_csp_battery::write_outputs() {
     //}
 
     mc_reported_outputs.value(C_csp_battery::loss_kw, state.losses->ancillary_loss_kw);                    // [kW] Ancillary power loss (kW DC for DC connected, AC for AC connected)
-    mc_reported_outputs.value(C_csp_battery::n_replacements, state.replacement->n_replacements);           // [1] Number of replacements at current year
     //mc_reported_outputs.value(C_csp_battery::indices_replaced, state.replacement->indices_replaced);       // [1] Lifetime indices of replacement occurrences
 
     mc_reported_outputs.set_timestep_outputs();

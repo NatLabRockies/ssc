@@ -127,7 +127,7 @@ public:
         failed
     };
 
-    // Common structure across all dispatch models used to pass solver infromation for reporting.
+    // Common structure across all dispatch models used to pass solver information for reporting.
     struct s_solver_outputs
     {
         bool last_opt_successful;       //last optimization run was successful?

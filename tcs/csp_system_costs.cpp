@@ -193,7 +193,9 @@ void N_mspt::calculate_mspt_etes_costs(
             rad_fluid_totcost,
             rad_storage_totcost,
             bop_cost,
-            fossil_backup_cost);
+            fossil_backup_cost,
+            batt_kw_cost,
+            batt_kwh_cost);
 
     contingency_cost =
         N_mspt::contingency_cost(contingency_rate, direct_capital_precontingency_cost);
@@ -971,7 +973,9 @@ double N_mspt::direct_capital_precontingency_cost(double site_improvement_cost /
 	double rad_fluid_totcost /*$*/,
 	double rad_storage_totcost /*$*/,
 	double bop_cost /*$*/,
-	double fossil_backup_cost /*$*/)
+	double fossil_backup_cost /*$*/,
+    double batt_kw_cost /*$*/,
+    double batt_kwh_cost /*$*/)
 {
 	return site_improvement_cost +
 		heliostat_cost +
@@ -985,7 +989,9 @@ double N_mspt::direct_capital_precontingency_cost(double site_improvement_cost /
 		rad_fluid_totcost +
 		rad_storage_totcost +
 		bop_cost +
-		fossil_backup_cost;	//[$]
+		fossil_backup_cost +
+        batt_kw_cost +
+        batt_kwh_cost;	//[$]
 }
 
 double N_mspt::contingency_cost(double contingency_rate /*%*/, double direct_capital_precontingency_cost /*$*/)

@@ -2230,7 +2230,7 @@ public:
         //std::unique_ptr<battstor> batt_storage = nullptr;
         std::shared_ptr<battstor> batt_storage = nullptr;
         std::unique_ptr<C_csp_battery> battery = nullptr;
-        if (is_battery_included && sim_type == 1) {
+        if (is_battery_included) {
             size_t nrec_battery = (size_t)steps_per_hour * 8760;
             batt_storage = std::unique_ptr<battstor>(new battstor(*this->get_var_table(),
                 /*setup_model*/ true, nrec_battery, 1.0 / steps_per_hour,
@@ -2954,9 +2954,13 @@ public:
 
         double batt_kw_design = 0.0;
         double batt_kwh_design = 0.0;
+        double batt_kw_spec_cost = 0;
+        double batt_kwh_spec_cost = 0;
         if (is_battery_included) {
             batt_kwh_design = battery->battstor_csp->batt_vars->batt_kwh;
             batt_kw_design = battery->battstor_csp->batt_vars->batt_kw;
+            batt_kw_spec_cost = as_double("batt_kw_spec_cost");
+            batt_kwh_spec_cost = as_double("batt_kwh_spec_cost");
         }
 
         // Set heater thermal power and cost above, because they're dependent on is_heater boolean
@@ -2993,9 +2997,6 @@ public:
         double bop_spec_cost = as_double("bop_spec_cost");
 
         double fossil_backup_spec_cost = as_double("fossil_spec_cost");
-
-        double batt_kw_spec_cost = as_double("batt_kw_spec_cost");
-        double batt_kwh_spec_cost = as_double("batt_kwh_spec_cost");
 
         double contingency_rate = as_double("contingency_rate");
 

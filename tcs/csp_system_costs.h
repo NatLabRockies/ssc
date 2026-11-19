@@ -458,7 +458,9 @@ namespace N_mspt
 		double rad_fluid_totcost /*$*/,
 		double rad_storage_totcost /*$*/,
 		double bop_cost /*$*/,
-		double fossil_backup_cost /*$*/);
+		double fossil_backup_cost /*$*/,
+        double batt_kw_cost /*$*/,
+        double batt_kwh_cost /*$*/);
 	
 	double contingency_cost( double contingency_rate /*%*/, double direct_capital_precontingency_cost /*$*/);
 

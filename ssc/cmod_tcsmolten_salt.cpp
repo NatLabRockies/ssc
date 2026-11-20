@@ -836,10 +836,13 @@ static var_info _cm_vtab_tcsmolten_salt[] = {
     var_info_invalid };
 
 static var_info vtab_battery_csp_outputs[] = {
+
+    // Annual battery outputs
+    { SSC_OUTPUT,     SSC_ARRAY,     "batt_annual_discharge_energy","Battery annual energy discharged",                         "kWh",      "",                      "Battery",       "",                           "",                               "" },
+
     // battery pack
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_voltage",             "Battery voltage",                                          "V",         "",                     "StatePack",       "",                           "",                               ""  },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_power",               "Battery power",                                            "kW",        "",                     "StatePack",       "",                           "",                               ""  },
-    { SSC_OUTPUT,     SSC_NUMBER,    "batt_annual_discharge_energy","Battery annual energy discharged",                         "kWh",      "",                      "Battery",       "",                           "",                               "" },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_capacity",            "Battery capacity",                                         "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_max_capacity",        "Battery max Capacity",                                     "Ah",        "",                     "StatePack",       "",                           "",                               ""  },
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_current",             "Battery current",                                          "A",         "",                     "StatePack",       "",                           "",                               ""  },
@@ -916,11 +919,17 @@ static var_info vtab_battery_csp_outputs[] = {
     { SSC_OUTPUT,     SSC_ARRAY,     "battery_temp_avg",            "Battery average temperature for current day",                     "K",         "LMO/LTO Life Model",   "StateCell",        "",                           "",                               ""  },
 
     // losses
-    { SSC_OUTPUT,     SSC_ARRAY,     "battery_loss_kw",   "Battery ancillary power loss (kW DC for DC connected, AC for AC connected)", "kW",        "",                     "StatePack",        "",                           "",                               ""  },
+    { SSC_OUTPUT,     SSC_ARRAY,     "battery_loss_kw",  "Battery ancillary power loss (kW DC for DC connected, AC for AC connected)", "kW",        "",                     "StatePack",        "",                           "",                               ""  },
 
     // replacements
     //{ SSC_OUTPUT,     SSC_ARRAY,     "battery_n_replacements",            "Battery number of replacements at current year",              "",         "",                     "StatePack",        "",                           "",                               ""  },
     //{ SSC_INOUT,        SSC_ARRAY,      "battery_indices_replaced",          "Lifetime indices of replacement occurrences",              "",         "",                      "StatePack",     "",                           "",                               ""  },
+
+    // cash flow outputs
+    { SSC_OUTPUT,   SSC_ARRAY,      "cf_om_production_batt",        "Battery production O&M costs",                                    "$",        "",                     "HybridCosts",      "",                           "",                               "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "cf_om_capacity_batt",          "Battery capacity O&M costs",                                      "$",        "",                     "HybridCosts",      "",                           "",                               "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "cf_om_fixed_batt",             "Battery fixed O&M costs",                                         "$",        "",                     "HybridCosts",      "",                           "",                               "" },
+
 
     var_info_invalid };
 
@@ -971,6 +980,7 @@ public:
         add_var_info(vtab_battery_kernel_inputs);
         add_var_info(vtab_battery_costs_io);
         add_var_info(vtab_battery_csp_outputs);
+        add_var_info(vtab_hybrid_tech_om_outputs);
     } 
 
     bool relay_message(string &msg, double percent)
@@ -2243,7 +2253,6 @@ public:
             // TODO: Go through the outputs and determine which ones we actually want to report.
             battery->mc_reported_outputs.assign(C_csp_battery::Voltage, allocate("battery_voltage", batt_lifetime_allocation), batt_lifetime_allocation);
             battery->mc_reported_outputs.assign(C_csp_battery::Power, allocate("battery_power", batt_lifetime_allocation), batt_lifetime_allocation);
-            accumulate_annual_for_year("battery_power", "batt_annual_discharge_energy", sim_setup.m_report_step / 3600.0, steps_per_hour, 1, n_steps_fixed / steps_per_hour);
             battery->mc_reported_outputs.assign(C_csp_battery::Capacity, allocate("battery_capacity", batt_lifetime_allocation), batt_lifetime_allocation);
             battery->mc_reported_outputs.assign(C_csp_battery::MaxCapacity, allocate("battery_max_capacity", batt_lifetime_allocation), batt_lifetime_allocation);
             battery->mc_reported_outputs.assign(C_csp_battery::Current, allocate("battery_current", batt_lifetime_allocation), batt_lifetime_allocation);
@@ -3314,8 +3323,23 @@ public:
                     batt_replacements[y] = battery->battery->getNumReplacementYear();
                     battery->battery->resetReplacement();
                 }
-            }
 
+                // Handle annual accumulation of battery energy discharge for each year of the simulation
+                size_t count = 0;
+                ssc_number_t* ts = as_array("battery_power", &count);
+                ssc_number_t* batt_annual_discharge_energy = allocate("batt_annual_discharge_energy", nyears);
+                double scale = sim_setup.m_report_step / 3600.0;    // [kW] * [hr] = [kWh]
+                double annual_discharge = 0.0;
+                for (size_t y = 0; y < nyears; y++) {
+                    for (size_t t = 0; t < n_steps_fixed / steps_per_hour; t++) {
+                        if (ts[t + y * n_steps_fixed / steps_per_hour] > 0.0) { // Only count discharge energy
+                            annual_discharge += ts[t + y * n_steps_fixed / steps_per_hour] * scale;    // [kWh]
+                        }
+                    }
+                    batt_annual_discharge_energy[y] = (ssc_number_t)annual_discharge;
+                    annual_discharge = 0.0;    // Reset for next year
+                }
+            }
         }
         catch(C_csp_exception &csp_exception)
         {

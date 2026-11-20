@@ -529,7 +529,7 @@ public:
                 // Gather calculated outputs for financial calculations
                 ssc_number_t system_capacity = ((var_table*)compute_module_outputs)->as_double("nameplate") * 1.e3; // MWe to kWe, net capacity
                 hybridSystemCapacity += system_capacity; // financial calculations -> net?
-                ssc_number_t battery_capacity = input.lookup("batt_power_discharge_max_kwac")->num;
+                ssc_number_t battery_capacity = input.lookup("batt_power_discharge_max_kwdc")->num;
                 hybridSystemCapacity += battery_capacity;       // TODO: Do we need to add battery capacity to hybridSystemCapacity?
 
                 hybridTotalInstalledCost += ((var_table*)compute_module_outputs)->as_double("total_installed_cost");        // Accounts for battery costs
@@ -544,13 +544,17 @@ public:
                 ssc_number_t* pOMProduction = ((var_table*)compute_module_outputs)->allocate("cf_om_production", analysisPeriod + 1);
                 ssc_number_t* pOMCapacity = ((var_table*)compute_module_outputs)->allocate("cf_om_capacity", analysisPeriod + 1);
 
-                escal_or_annual(input, pOMFixed, analysisPeriod, "om_fixed", inflation_rate, 1.0, false, input.as_double("om_fixed_escal") * 0.01); // $ 
+                escal_or_annual(input, pOMFixed, analysisPeriod, "om_fixed", inflation_rate, 1.0, false, input.as_double("om_fixed_escal") * 0.01); // $
                 escal_or_annual(input, pOMProduction, analysisPeriod, "om_production", inflation_rate, 0.001, false, input.as_double("om_production_escal") * 0.01);        // $/kWh after conversion
                 escal_or_annual(input, pOMCapacity, analysisPeriod, "om_capacity", inflation_rate, system_capacity, false, input.as_double("om_capacity_escal") * 0.01);    // $ after multiplying by system capacity
 
-                // TODO: how to handle production and capacity O&M including battery?
-                // What if we force the user to use the Hybrid Cmod to access the battery within CSP?
-                //      Then we would use "om_batt_fixed_cost" , "om_batt_variable_cost", "om_batt_capacity_cost" are the relevant inputs for battery O&M costs.
+                // Add battery O&M costs
+                ssc_number_t* pOMFixedBatt = ((var_table*)compute_module_outputs)->allocate("cf_om_fixed_batt", analysisPeriod + 1);
+                ssc_number_t* pOMProductionBatt = ((var_table*)compute_module_outputs)->allocate("cf_om_production_batt", analysisPeriod + 1);
+                ssc_number_t* pOMCapacityBatt = ((var_table*)compute_module_outputs)->allocate("cf_om_capacity_batt", analysisPeriod + 1);
+                escal_or_annual(input, pOMFixedBatt, analysisPeriod, "om_batt_fixed_cost", inflation_rate, 1.0, false, input.as_double("om_fixed_escal") * 0.01);
+                escal_or_annual(input, pOMProductionBatt, analysisPeriod, "om_batt_variable_cost", inflation_rate, 0.001, false, input.as_double("om_production_escal") * 0.01);
+                escal_or_annual(input, pOMCapacityBatt, analysisPeriod, "om_batt_capacity_cost", inflation_rate, battery_capacity, false, input.as_double("om_capacity_escal") * 0.01);    // $ after multiplying by system capacity
 
 
                 // Production - multiply by yearly gen (initially assume single year) - use degradation
@@ -590,20 +594,40 @@ public:
                     }
                 }
 
+                // production O and M conversion to $
+                for (int i = 1; i <= analysisPeriod; i++) {
+                    pOMProduction[i] *= pEnergyNet[i];          // TODO: Is this double accounting for battery production?
+                }
+
+                // battery discharged energy - used for production O&M
+                std::vector<double> battery_discharged(analysisPeriod, 0);
+                ssc_number_t* battery_discharged_array = ssc_data_get_array(compute_module_outputs, "batt_annual_discharge_energy", &len);
+                if (len == 1) { // ssc #992
+                    double first_val = battery_discharged[0];
+                    battery_discharged.resize(analysisPeriod, first_val);
+                }
+                else if (len != analysisPeriod) {
+                    throw exec_error("hybrid", util::format("battery_discharged size (%d) incorrect", (int)len));
+                }
+                else {
+                    for (int i = 0; i < len; i++)
+                        battery_discharged[i] = battery_discharged_array[i];
+                }
+
                 // battery cost - replacement from lifetime analysis
                 calculate_battery_replacement_cost_schedule(input, compute_module_outputs, analysisPeriod, inflation_rate);
-                
+
                 // production O and M conversion to $
-               /* for (int i = 1; i <= analysisPeriod; i++) {
-                    pOMProduction[i] *= pEnergyNet[i];
-                }*/
+                for (size_t i = 0; i < (size_t)analysisPeriod; i++) {
+                    pOMProductionBatt[i + 1] *= battery_discharged[i];
+                }
 
                 // resize annual outputs
                 size_t arr_length = analysisPeriod + 1;
                 ssc_number_t yr_0_value = 0.0;
                 prepend_to_output((var_table*)compute_module_outputs, "batt_bank_replacement", arr_length, yr_0_value);
                 //prepend_to_output((var_table*)compute_module_outputs, "batt_annual_charge_energy", arr_length, yr_0_value);
-                //prepend_to_output((var_table*)compute_module_outputs, "batt_annual_discharge_energy", arr_length, yr_0_value);
+                prepend_to_output((var_table*)compute_module_outputs, "batt_annual_discharge_energy", arr_length, yr_0_value);
                 //prepend_to_output((var_table*)compute_module_outputs, "batt_annual_charge_from_system", arr_length, yr_0_value);
 
                 size_t count_gen;
@@ -677,9 +701,7 @@ public:
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "system_use_lifetime_output", 1);
                 ssc_data_set_number(static_cast<ssc_data_t>(&input), "en_batt", 1); // should be done at UI level
 
-                
                 ssc_module_exec_with_error(module, input, compute_module);
-                
 
                 ssc_data_t compute_module_outputs = ssc_data_create();
 
@@ -832,9 +854,15 @@ public:
                 ssc_number_t* om_production = csp_outputs.as_array("cf_om_production", &count_csp);
                 ssc_number_t* om_fixed = csp_outputs.as_array("cf_om_fixed", &count_csp);
                 ssc_number_t* om_capacity = csp_outputs.as_array("cf_om_capacity", &count_csp);
+
+                ssc_number_t* om_production_batt = csp_outputs.as_array("cf_om_production_batt", &count_csp);
+                ssc_number_t* om_fixed_batt = csp_outputs.as_array("cf_om_fixed_batt", &count_csp);
+                ssc_number_t* om_capacity_batt = csp_outputs.as_array("cf_om_capacity_batt", &count_csp);
                 ssc_number_t* om_replacement = csp_outputs.as_array("cf_battery_replacement_cost_schedule", &count_csp);
+
                 for (int y = 1; y <= analysisPeriod; y++) {
-                    pHybridOMSum[y] += om_production[y] + om_fixed[y] + om_capacity[y] + om_replacement[y];
+                    pHybridOMSum[y] += (om_production[y] + om_fixed[y] + om_capacity[y] +
+                                        om_production_batt[y] + om_fixed_batt[y] + om_capacity_batt[y] + om_replacement[y]);
                 }
             }
 

@@ -132,20 +132,20 @@ var_info vtab_oandm_heat[] = {
     { SSC_INPUT,SSC_NUMBER  , "om_opt_fuel_2_cost_escal"             , "Coal feedstock cost escalation"     , "%/year"  , "biomass"                                      , "System Costs"         , "?=0.0"          , ""                      , ""},
 
     // optional additional base o and m types
-    { SSC_INPUT,SSC_NUMBER  , "add_om_num_types"                     , "Number of O and M types" , "" , "battery,fuelcell"                                      , "System Costs"         , "?=0"            , "INTEGER,MIN=0,MAX=2"   , ""},
-    { SSC_INPUT,SSC_NUMBER  , "om_batt_nameplate"               , "Battery capacity for System Costs values"                       , "kW", "battery"                                      , "System Costs"         , "?=0"            , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "add_om_num_types"                     , "Number of O and M types"                                        , "" , "battery,fuelcell"                                      , "System Costs"         , "?=0"            , "INTEGER,MIN=0,MAX=2"   , ""},
+    { SSC_INPUT,SSC_NUMBER  , "om_batt_nameplate"                    , "Battery capacity for System Costs values"                       , "kW", "battery"                                      , "System Costs"         , "?=0"            , ""                      , ""},
     { SSC_INPUT,SSC_ARRAY   , "om_production1_values"                , "Battery production for System Costs values"                     , "kWh", "battery"                                      , "System Costs"         , "?=0"            , ""                      , ""},
 
-    { SSC_INPUT,SSC_ARRAY   , "om_batt_fixed_cost"                            , "Battery fixed System Costs annual amount"                       , "$/year",    "battery",   "System Costs"         , "?=0.0"          , ""                      , ""},
-    { SSC_INPUT,SSC_ARRAY   , "om_batt_variable_cost"                       , "Battery production-based System Costs amount"                   , "$/MWh", "battery"    , "System Costs"         , "?=0.0"          , ""                      , ""},
-    { SSC_INPUT,SSC_ARRAY   , "om_batt_capacity_cost"                         , "Battery capacity-based System Costs amount"                     , "$/kWcap", "battery"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_batt_fixed_cost"                   , "Battery fixed System Costs annual amount"                       , "$/year",    "battery",   "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_batt_variable_cost"                , "Battery production-based System Costs amount"                   , "$/MWh", "battery"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_batt_capacity_cost"                , "Battery capacity-based System Costs amount"                     , "$/kWcap", "battery"    , "System Costs"         , "?=0.0"          , ""                      , ""},
 
-    { SSC_INPUT,SSC_NUMBER  , "om_fuelcell_nameplate"               , "Fuel cell capacity for System Costs values"                     , "kW", "fuelcell"                                      , "System Costs"         , "?=0"            , ""                      , ""},
+    { SSC_INPUT,SSC_NUMBER  , "om_fuelcell_nameplate"                , "Fuel cell capacity for System Costs values"                     , "kW", "fuelcell"                                      , "System Costs"         , "?=0"            , ""                      , ""},
     { SSC_INPUT,SSC_ARRAY   , "om_production2_values"                , "Fuel cell production for System Costs values"                   , "kWh", "fuelcell"                                      , "System Costs"         , "?=0"            , ""                      , ""},
 
-    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_fixed_cost"                            , "Fuel cell fixed System Costs annual amount"                     , "$/year", "fuelcell" , "System Costs"         , "?=0.0"          , ""                      , ""},
-    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_variable_cost"                       , "Fuel cell production-based System Costs amount"                 , "$/MWh", "fuelcell"    , "System Costs"         , "?=0.0"          , ""                      , ""},
-    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_capacity_cost"                         , "Fuel cell capacity-based System Costs amount"                   , "$/kWcap", "fuelcell"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_fixed_cost"               , "Fuel cell fixed System Costs annual amount"                     , "$/year", "fuelcell" , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_variable_cost"            , "Fuel cell production-based System Costs amount"                 , "$/MWh", "fuelcell"    , "System Costs"         , "?=0.0"          , ""                      , ""},
+    { SSC_INPUT,SSC_ARRAY   , "om_fuelcell_capacity_cost"            , "Fuel cell capacity-based System Costs amount"                   , "$/kWcap", "fuelcell"    , "System Costs"         , "?=0.0"          , ""                      , ""},
 
     // optional land lease
     { SSC_INPUT,        SSC_NUMBER,     "land_area",                      "Total land area",	                                                "acres",                "",                        "Land Lease",            "?=0",					   "",                              "" },

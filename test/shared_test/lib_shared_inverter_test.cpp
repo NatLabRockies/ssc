@@ -261,3 +261,35 @@ TEST_F(sharedInverterTest_lib_shared_inverter, calculateEffForACPower) {
         EXPECT_NEAR(inv->powerAC_kW, -sandia.Paco / 1000., 1e-3) << "inverter cannot produce more than max (negative) Paco";
     }
 }
+
+// Part load inverter efficiency should be AC / DC when clipping (SAM issue 2272)
+TEST(partloadInverterTest_lib_shared_inverter, clippingEfficiency) {
+    partload_inverter_t partload;
+    partload.Paco = 4000;
+    partload.Pdco = 4210.53;
+    partload.Vdco = 310;
+    partload.Pntare = 0;
+    partload.Partload = { 0, 10, 50, 100 };
+    partload.Efficiency = { 0, 90, 95, 96 };
+    SharedInverter inv(SharedInverter::PARTLOAD_INVERTER, 1, nullptr, &partload, nullptr);
+    double e = 1e-6;
+
+    // no clipping, 30% load is halfway between 90% and 95% on the curve
+    inv.calculateACPower(0.3 * partload.Pdco / 1000., partload.Vdco, 25);
+    EXPECT_NEAR(inv.efficiencyAC, 92.5, e) << "efficiency from part load curve";
+    EXPECT_NEAR(inv.powerClipLoss_kW, 0, e) << "no clipping below Paco";
+    EXPECT_NEAR(inv.powerAC_kW, inv.powerDC_kW * inv.efficiencyAC * 0.01, e) << "efficiency is ac / dc without clipping";
+
+    // DC/AC ratio of 2, clipped to Paco
+    double p_dc_kw = 2 * partload.Paco / 1000.;
+    inv.calculateACPower(p_dc_kw, partload.Vdco, 25);
+    EXPECT_NEAR(inv.powerAC_kW, partload.Paco / 1000., e) << "output clipped to Paco";
+    EXPECT_GT(inv.powerClipLoss_kW, 0) << "clipping loss reported";
+    EXPECT_NEAR(inv.efficiencyAC, 50., e) << "efficiency includes clipping";
+    EXPECT_NEAR(inv.powerAC_kW, inv.powerDC_kW * inv.efficiencyAC * 0.01, e) << "efficiency is ac / dc with clipping";
+
+    // two MPPT inputs
+    inv.calculateACPower(std::vector<double>{ p_dc_kw / 2, p_dc_kw / 2 }, std::vector<double>{ partload.Vdco, partload.Vdco }, 25);
+    EXPECT_NEAR(inv.powerAC_kW, partload.Paco / 1000., e) << "multiple MPPT output clipped to Paco";
+    EXPECT_NEAR(inv.efficiencyAC, 50., e) << "multiple MPPT efficiency includes clipping";
+}

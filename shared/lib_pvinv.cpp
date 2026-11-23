@@ -149,6 +149,9 @@ bool partload_inverter_t::acpower(
 	{
 		*Pac = Paco;
 		*Pcliploss = PacNoClip - *Pac;
+		// efficiency after clipping, same as the Sandia model (SAM issue 2272)
+		if (Pdc_total > 0.0)
+			*Eff = *Pac / Pdc_total;
 	}
 
 	*Plr = Pdc_total / Pdco;

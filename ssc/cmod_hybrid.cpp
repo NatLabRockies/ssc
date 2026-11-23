@@ -649,6 +649,13 @@ public:
                     }
                 }
 
+                // optional land lease o and m costs if present - set to zero by default
+                if (compute_module_inputs->table.lookup("om_land_lease")) {
+                    ssc_number_t* pOMLandLease = ((var_table*)compute_module_outputs)->allocate("cf_om_land_lease", analysisPeriod + 1);
+                    ssc_number_t total_land_area = compute_module_inputs->table.lookup("total_land_area")->num;
+                    escal_or_annual(input, pOMLandLease, analysisPeriod, "om_land_lease", inflation_rate, total_land_area, false, input.as_double("om_land_lease_escal") * 0.01);
+                }
+
                 ssc_data_set_table(outputs, compute_module.c_str(), compute_module_outputs);
                 ssc_module_free(module);
                 ssc_data_free(compute_module_outputs);
@@ -860,9 +867,15 @@ public:
                 ssc_number_t* om_capacity_batt = csp_outputs.as_array("cf_om_capacity_batt", &count_csp);
                 ssc_number_t* om_replacement = csp_outputs.as_array("cf_battery_replacement_cost_schedule", &count_csp);
 
+                ssc_number_t* om_landlease = NULL;
+                if (csp_outputs.lookup("cf_om_land_lease"))
+                    om_landlease = csp_outputs.as_array("cf_om_land_lease", &count_csp);
+
                 for (int y = 1; y <= analysisPeriod; y++) {
                     pHybridOMSum[y] += (om_production[y] + om_fixed[y] + om_capacity[y] +
                                         om_production_batt[y] + om_fixed_batt[y] + om_capacity_batt[y] + om_replacement[y]);
+                    if (csp_outputs.lookup("cf_om_land_lease"))
+                        pHybridOMSum[y] += om_landlease[y];
                 }
             }
 

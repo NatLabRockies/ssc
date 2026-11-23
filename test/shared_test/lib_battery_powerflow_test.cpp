@@ -2427,6 +2427,49 @@ TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_interconnection_limit_exce
     check_net_flows("3rd case");
 }
 
+// Part load inverter with a DC-connected battery should stay at its AC limit (SAM issue 2272)
+TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, DC_PartloadInverterClipping) {
+    // part load inverter with the same rating as the CEC one, 100 x 3.8 kWac
+    partload->Paco = sandia->Paco;
+    partload->Pdco = sandia->Pdco;
+    partload->Vdco = sandia->Vdco;
+    partload->Pntare = sandia->Pntare;
+    partload->Partload = { 0, 10, 50, 100 };
+    partload->Efficiency = { 0, 90, 95, 96 };
+    delete m_sharedInverter;
+    m_sharedInverter = new SharedInverter(SharedInverter::PARTLOAD_INVERTER, 100, sandia, partload, ond);
+    m_batteryPower->setSharedInverter(m_sharedInverter);
+    double inverter_max_ac = m_sharedInverter->getACNameplateCapacitykW();
+
+    m_batteryPower->connectionMode = ChargeController::DC_CONNECTED;
+    m_batteryPower->canSystemCharge = true;
+    m_batteryPower->canDischarge = true;
+    m_batteryPower->canGridCharge = false;
+
+    // charging with PV above the inverter rating
+    m_batteryPower->powerSystem = 600;
+    m_batteryPower->powerLoad = 50;
+    for (double batt_dc : { -0.01, -50. }) {
+        m_batteryPower->powerBatteryDC = batt_dc;
+        m_batteryPowerFlow->calculate();
+
+        EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, inverter_max_ac, error) << "charging " << batt_dc << ": output held at inverter max";
+        EXPECT_NEAR(m_batteryPower->powerSystemToLoad + m_batteryPower->powerSystemToGrid, inverter_max_ac, error) << "charging " << batt_dc << ": PV ac matches inverter output";
+        EXPECT_NEAR(m_batteryPower->powerGrid, inverter_max_ac - m_batteryPower->powerLoad, error) << "charging " << batt_dc << ": export";
+    }
+
+    // discharging while the inverter clips
+    m_batteryPower->powerSystem = 500;
+    m_batteryPower->powerLoad = 200;
+    m_batteryPower->powerBatteryDC = 50;
+    m_batteryPowerFlow->calculate();
+
+    EXPECT_NEAR(m_batteryPower->powerGeneratedBySystem, inverter_max_ac, error) << "discharging: output held at inverter max";
+    EXPECT_NEAR(m_batteryPower->powerSystemToLoad + m_batteryPower->powerSystemToGrid + m_batteryPower->powerBatteryToLoad + m_batteryPower->powerBatteryToGrid,
+        inverter_max_ac, error) << "discharging: PV and battery ac match inverter output";
+    EXPECT_NEAR(m_batteryPower->powerSystemToGrid + m_batteryPower->powerBatteryToGrid, m_batteryPower->powerGrid, error) << "discharging: export";
+}
+
 // Excess PV production
 TEST_F(BatteryPowerFlowTest_lib_battery_powerflow, AC_PVCharging_ExcessPV_Flexible_Powerflow) {
     m_batteryPower->connectionMode = ChargeController::AC_CONNECTED;
